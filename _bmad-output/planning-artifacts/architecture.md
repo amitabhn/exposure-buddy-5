@@ -1370,6 +1370,66 @@ All 16 checklist items confirmed. No critical gaps. Important gaps are either ac
 - Named events from `@exposure-buddy/core/analytics/events` only — never pass raw domain objects to analytics facade
 - `packages/core` must remain Node-runnable — no RN, Supabase, or MMKV imports even as devDeps
 
+**UX-Derived Implementation Guidance (from UX Design Workflow — 2026-05-08):**
+
+The following implementation constraints were established during UX design and must be
+honoured in story-writing. They complement but do not override existing ADRs.
+
+**Thread State Management:**
+- Thread state is **local-first** (expo-sqlite via PowerSync). Supabase is sync target,
+  not source of truth. Thread must be fully functional offline — the critical moments
+  (pre-exposure, in-the-moment) occur when network reliability is worst.
+- Sync aggressively on every state transition, not just on app close.
+- Store `created_at` locally at thread creation; include in sync payload so Supabase
+  honours the local timestamp, not the insertion timestamp (avoids clock skew on
+  48hr expiry calculation).
+- Run the 48hr expiry check at **prompt fire time**, not submission time. Once the
+  reflection prompt surfaces, lock thread state locally until dismissed or submitted.
+- **One active thread at a time (v1, soft-enforced).** Data model supports multiple
+  threads; the constraint is UI policy. When a user starts prep with an open thread,
+  surface: *"You still have [situation] in progress. Want to close that first, or
+  start fresh?"* Relax this constraint only with user behaviour data.
+
+**Thread Data Model (in `packages/core`):**
+```typescript
+type ThreadStatus =
+  | 'preparing'
+  | 'active'
+  | 'pending_reflection'
+  | 'completed'
+  | 'expired';
+
+interface ExposureThread {
+  id: string;                    // uuid
+  userId: string;
+  situationId: string;           // FK to ladder item
+  situationLabel: string;        // denormalized — ladder changes must not affect history
+  status: ThreadStatus;
+  createdAt: string;             // ISO timestamp, set locally
+  activatedAt: string | null;    // when "I'm going now" fired
+  reflectionPromptedAt: string | null;
+  completedAt: string | null;
+  expiresAt: string;             // createdAt + 48hrs, computed at creation
+  predictionScore: number | null;
+  realityScore: number | null;
+  notes: string | null;
+}
+```
+
+**Persistent Quick-Access Panel (navigation architecture):**
+- Panel lives in `app/_layout.tsx` (root layout), not in any tab or stack layout.
+  This guarantees it persists across all route changes without remounting.
+- Panel communicates with screens via shared state (Zustand store at root level).
+  Do NOT use route params for panel state.
+- Panel has two UI states — **standby** (thread open, user hasn't gone yet) and
+  **active** (user is mid-exposure). These are state machine values in the thread
+  store, not route changes.
+- Watch for conflicts with `KeyboardAvoidingView` and `SafeAreaView` on both
+  platforms — test early. Consider expo-router's `<Slot />` pattern over raw
+  absolute positioning for cleaner inset handling.
+- In-the-moment components must be **pure React Native with no web polyfill
+  dependencies**. The panel renders identically on airplane mode.
+
 **First Implementation Priority:**
 
 ```bash
