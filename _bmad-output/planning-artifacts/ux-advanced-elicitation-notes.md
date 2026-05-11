@@ -1,10 +1,10 @@
 # UX Design — Advanced Elicitation Notes
 
 **Project:** exposure-buddy
-**Date:** 2026-05-08
-**Phase:** UX Discovery (Step 2 — Project Understanding)
+**Date:** 2026-05-08 (Steps 2), 2026-05-10 (Step 3)
+**Phase:** UX Discovery (Steps 2–3)
 
-These notes capture three advanced elicitation sessions run during UX discovery to stress-test and deepen the initial project understanding output.
+These notes capture elicitation sessions run during UX discovery to stress-test and deepen the project understanding and core experience definition outputs.
 
 ---
 
@@ -405,3 +405,76 @@ The mantra/anchor selection (YOGA-2) and pre-exposure prep screen (P3) are curre
 | Miguel | Open-text debrief fails if NLP wrong — users feel misunderstood | Keep structured capture (SUDS slider + outcome tap); open text is optional elaboration |
 | Miguel | Transparent logic must name the actual rule | Recommendation reason must be specific: "because your score was 7" not "to help you feel better" |
 | Miguel | Situation naming is therapeutic | Ladder suggestions are editable before acceptance; naming is part of exposure prep |
+
+---
+
+## Step 3 — Core Experience Definition
+
+*Three elicitation sessions run to stress-test the three-mode framework, mode transitions, thread mechanics, and platform strategy.*
+
+---
+
+## Session 7 — User Persona Focus Group (Step 3)
+
+*Method: Established personas react to the three-mode framework, transition mechanics, and platform strategy.*
+
+### Key Persona Challenges
+
+| Persona | Challenge | Design Implication |
+|---|---|---|
+| Priya | "I'm going now" too confident for anxious users | Label changed to "Let's do this" — neutral tone, accessible across anxiety spectrum |
+| Priya | "How did it go?" carries performance pressure in some registers | Re-entry copy needs cultural/linguistic review before lock |
+| Marcus | Partial exposure has no re-entry path ("I did it" and "Not yet" both wrong) | Fourth re-entry option added: "I tried" → own debrief path, not full-completion flow |
+| Marcus | "Silent thread expiry" undefined as experience | Thread expiry experience requires explicit design, not just a data spec |
+| Aiko | 32-hour window may expire before avoidance users reflect | Window extended to 48 hours; 6-week review gate retained |
+| James | Web onboarding assumption needs validation | Flag for pre-build validation: % of target users who onboard on desktop |
+| James | Preparation mode designed for ideal case; real case is 3 minutes | Quick prep path for time-constrained users identified as design gap |
+| Rohan | "Universal three techniques" unnamed — most critical cold-install decision | Flagged as required design deliverable before implementation |
+| Rohan | In-the-moment tap target: screen damage tolerance | Minimum tap target raised to 56×56px |
+| Dr. Sunita | Silent reroute must say something, even if not "stall" | Copy for silent reroute surface state flagged as required deliverable |
+| Dr. Sunita | Principle 4 ("always invisible") contradicts welfare pause | Revised: "Safety gates are invisible unless they must speak" |
+
+---
+
+## Session 8 — Tree of Thoughts (Step 3)
+
+*Method: Map parallel paths through the pre→in-the-moment→reflection loop to surface gaps and dead ends.*
+
+### Branches Explored
+
+**Branch 1 — Exposure as planned:** Core loop specified correctly. Gap: in-the-moment invoked mid-transit with an open thread loses thread context.
+
+**Branch 2 — User changes their mind:** Gap 1: no "I decided not to go" re-entry state — "Not yet" conflates avoidance with circumstantial delay. Gap 2: the in-the-moment standby screen after "Let's do this" has no visible exit affordance for immediate second thoughts.
+
+**Branch 3 — Thread expiry:** Gap: expired thread conflates avoidance with late debrief. A user who completed the exposure but didn't open the app for 3 days is treated identically to a user who avoided. Retroactive log path needed.
+
+**Branch 4 — Concurrent threads:** Single-active-thread rule was unspecified. Added: single-thread enforced for MVP as complexity constraint; multi-thread is a named future capability.
+
+**Branch 5 — In-the-moment with no thread:** Gap: no reflection loop after threadless in-the-moment use. Post-session micro-check-in ("How are you feeling now? 1–10") added for users with no open thread.
+
+### Changes Applied
+
+| Finding | Change |
+|---|---|
+| In-transit panic with open thread | In-the-moment layer now shows ambient thread marker when thread is open |
+| "I decided not to go" missing | Fifth re-entry option "I decided to wait" added — flags avoidance to engine, distinct from "Not yet" |
+| Immediate second thoughts in standby | Low-prominence exit affordance added to in-the-moment standby screen |
+| Expired thread ≠ avoidance | Retroactive log prompt added to expired-thread re-entry |
+| Concurrent threads unspecified | Single-active-thread rule defined; queue model specified |
+| Threadless in-the-moment has no reflection | Post-session micro-check-in added for no-thread sessions |
+
+---
+
+## Session 9 — Challenge from Critical Perspective (Step 3)
+
+*Method: Devil's advocate against core design decisions to find weaknesses and sharpen framing.*
+
+### Challenges and Verdicts
+
+| Challenge | Verdict | Change |
+|---|---|---|
+| Three-mode framework is designer's abstraction, not user reality | Valid — loop is <20% of sessions; single-mode is norm | Added: each mode must feel complete in itself, never like an interrupted sequence |
+| "Therapeutic act of commitment" is designer romanticism | Valid — clinical framing belongs in protocol docs, not UX spec | Reframed as "distinct, intentional tap that marks the boundary between preparation and action" |
+| Single-active-thread rule is paternalistic | Valid for subset — but MVP complexity constraint justifies it | Reframed explicitly as complexity constraint, not clinical constraint; multi-thread named as future capability |
+| Welfare pause under-powered for genuine crisis at score 10 | Critical gap — keyword detection requires typing; score-10 users may not type | Persistent low-prominence crisis link added to score-10 state, independent of keyword detection |
+| Pull-first leaves pre-technique users unreachable | Valid tension — welfare vs. engagement notification distinction matters | Narrow welfare-framed permission ask permitted at post-score-reveal or post-first-technique |
