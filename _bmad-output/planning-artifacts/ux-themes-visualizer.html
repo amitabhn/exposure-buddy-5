@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>exposure-buddy — UX Theme Directions</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Lora:ital,wght@0,400;1,400;1,600&family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&family=Playfair+Display:ital,wght@0,400;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#E8E8E4;color:#1C1C18;min-height:100vh;}
+
+header{background:#1C1C18;color:#F0F0EC;padding:24px 48px;display:flex;justify-content:space-between;align-items:flex-end;}
+header h1{font-size:18px;font-weight:500;letter-spacing:-0.01em;}
+header p{font-size:12px;color:#80806E;margin-top:3px;}
+.hdr-right{font-size:11px;color:#60605A;text-align:right;line-height:1.6;}
+
+nav{background:#D4D4CE;padding:14px 48px;display:flex;gap:4px;align-items:center;position:sticky;top:0;z-index:100;border-bottom:1px solid #C4C4BC;}
+.tab{padding:7px 20px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;border:none;background:transparent;color:#5C5C52;transition:all .15s;}
+.tab:hover{background:#C4C4BC;}
+.tab.active{background:#1C1C18;color:#F0F0EC;}
+.sep{color:#A0A090;margin:0 2px;}
+
+.theme{display:none;padding:36px 48px 64px;}
+.theme.active{display:block;}
+
+.intro{margin-bottom:28px;max-width:600px;}
+.intro h2{font-size:24px;font-weight:600;letter-spacing:-0.02em;margin-bottom:6px;}
+.intro .concept{font-size:14px;color:#5C5C52;line-height:1.6;margin-bottom:10px;}
+.intro .fonts{font-size:11px;color:#80806E;}
+.intro .fonts strong{color:#5C5C52;}
+
+.palette{display:flex;height:68px;border-radius:12px;overflow:hidden;margin-bottom:36px;box-shadow:0 2px 16px rgba(0,0,0,.13);}
+.sw{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:7px 8px;}
+.sw-name{font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.7;}
+.sw-hex{font-size:8px;font-family:monospace;opacity:.5;}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:1080px;}
+.col-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#80806E;margin-bottom:12px;}
+
+/* Phone */
+.phone{width:236px;height:496px;border-radius:34px;overflow:hidden;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.22),0 3px 10px rgba(0,0,0,.1),inset 0 0 0 1.5px rgba(0,0,0,.18);}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:64px;height:19px;border-radius:0 0 11px 11px;background:rgba(0,0,0,.88);z-index:20;}
+.pinner{width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+.sbar{padding:22px 15px 5px;display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.sdots{display:flex;gap:3px;}
+.sdot{width:5px;height:5px;border-radius:50%;opacity:.45;}
+
+.pcontent{flex:1;padding:11px 15px;overflow:hidden;display:flex;flex-direction:column;}
+.bbar{padding:7px 18px 14px;display:flex;justify-content:space-around;flex-shrink:0;border-top:1px solid;}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.nicon{width:17px;height:17px;border-radius:4px;}
+.nlbl{font-size:8px;font-weight:500;}
+
+/* Typography */
+.pg{font-size:10px;margin-bottom:3px;opacity:.55;}
+.ph1{font-size:16px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2;}
+.ph2{font-size:13px;font-weight:600;margin-bottom:8px;}
+.psm{font-size:9px;opacity:.5;}
+.pbody{font-size:10px;line-height:1.5;}
+
+/* Cards */
+.card{border-radius:13px;padding:11px;margin-bottom:9px;}
+.ptag{display:inline-block;padding:2px 7px;border-radius:16px;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;}
+.litem{display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid;}
+.litem:last-child{border-bottom:none;}
+.rbadge{width:21px;height:21px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.rtext{font-size:10px;line-height:1.3;flex:1;}
+.rarrow{font-size:9px;opacity:.3;}
+
+.btn{border-radius:11px;padding:12px;font-size:12px;font-weight:600;text-align:center;border:none;cursor:pointer;width:100%;display:block;margin-bottom:7px;letter-spacing:-.01em;}
+.btng{border-radius:11px;padding:9px;font-size:11px;font-weight:500;text-align:center;width:100%;display:block;background:transparent;border:1.5px solid;}
+
+/* SUDS */
+.slbl{font-size:9px;font-weight:600;margin-bottom:5px;}
+.strack{height:3px;border-radius:2px;margin-bottom:3px;position:relative;}
+.sthumb{width:17px;height:17px;border-radius:50%;position:absolute;top:-7px;left:56%;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.snums{display:flex;justify-content:space-between;}
+.snum{font-size:7px;opacity:.38;}
+.shint{font-size:8px;opacity:.5;margin-top:5px;line-height:1.4;}
+
+/* Writing */
+.wfield{border-radius:9px;padding:9px;font-size:9px;border:1px dashed;min-height:46px;margin-bottom:10px;}
+.mantra{font-size:10px;text-align:center;font-style:italic;padding:8px 0;margin-bottom:7px;opacity:.65;}
+
+/* Breathing */
+.bcon{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:12px 0;}
+.bring{width:108px;height:108px;border-radius:50%;display:flex;align-items:center;justify-content:center;border-width:2px;border-style:solid;margin-bottom:14px;}
+.binn{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.bword{font-size:11px;font-weight:600;}
+.bcnt{font-size:9px;opacity:.6;margin-top:2px;}
+
+/* QA panel */
+.qapanel{position:absolute;bottom:0;left:0;right:0;border-radius:18px 18px 0 0;padding:12px 11px 18px;}
+.qahandle{width:26px;height:3px;border-radius:2px;margin:0 auto 10px;}
+.qarow{display:flex;gap:5px;}
+.qabtn{flex:1;border-radius:9px;padding:7px 3px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.qaicon{font-size:13px;}
+.qalbl{font-size:7px;font-weight:500;}
+
+/* Reveal */
+.rscores{display:flex;border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.rcol{flex:1;padding:9px 7px;text-align:center;}
+.rnum{font-size:26px;font-weight:700;line-height:1;}
+.rlbl{font-size:7px;text-transform:uppercase;letter-spacing:.08em;opacity:.5;margin-top:2px;}
+.rdiv{width:1px;align-self:stretch;}
+.rquote{border-left:3px solid;padding:9px;border-radius:0 9px 9px 0;margin-bottom:9px;font-style:italic;font-size:10px;line-height:1.5;}
+.rmsg{font-size:10px;line-height:1.5;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>exposure-buddy — Visual Theme Directions</h1>
+    <p>UX Design Step 8 · Three directions for review</p>
+  </div>
+  <div class="hdr-right">Screens: Ladder · Ritual · In-the-moment · Reveal<br>Click tabs to switch themes</div>
+</header>
+
+<nav>
+  <button class="tab active" onclick="show('a',this)">A — Earthy Resolve</button>
+  <span class="sep">·</span>
+  <button class="tab" onclick="show('b',this)">B — Deep Trust</button>
+  <span class="sep">·</span>
+  <button class="tab" onclick="show('c',this)">C — Midnight Courage</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     THEME A — EARTHY RESOLVE
+     ═══════════════════════════════════════════════════════ -->
+<section class="theme active" id="theme-a">
+  <div class="intro">
+    <h2 style="font-family:'DM Sans',sans-serif;">A — Earthy Resolve</h2>
+    <p class="concept">Warm, grounded, human. Terracotta and stone signal safety and courage without clinical coldness. The Indian philosophical aesthetic shows up in the earthiness — present but never costume.</p>
+    <p class="fonts"><strong>Body:</strong> DM Sans &nbsp;·&nbsp; <strong>Narrative moments:</strong> Lora italic</p>
+  </div>
+
+  <div class="palette">
+    <div class="sw" style="background:#FAF7F2;color:#2C1F14;"><span class="sw-name">Surface</span><span class="sw-hex">#FAF7F2</span></div>
+    <div class="sw" style="background:#F0EBE3;color:#2C1F14;"><span class="sw-name">Surface 2</span><span class="sw-hex">#F0EBE3</span></div>
+    <div class="sw" style="background:#2C1F14;color:#FAF7F2;"><span class="sw-name">Content</span><span class="sw-hex">#2C1F14</span></div>
+    <div class="sw" style="background:#6B5344;color:#FAF7F2;"><span class="sw-name">Content 2</span><span class="sw-hex">#6B5344</span></div>
+    <div class="sw" style="background:#C4622D;color:#FAF7F2;"><span class="sw-name">Courage</span><span class="sw-hex">#C4622D</span></div>
+    <div class="sw" style="background:#E8A84C;color:#2C1F14;"><span class="sw-name">Progress</span><span class="sw-hex">#E8A84C</span></div>
+    <div class="sw" style="background:#7B9E87;color:#FAF7F2;"><span class="sw-name">Grounding</span><span class="sw-hex">#7B9E87</span></div>
+    <div class="sw" style="background:#FDF3E0;color:#2C1F14;"><span class="sw-name">Reflect bg</span><span class="sw-hex">#FDF3E0</span></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- A: Ladder -->
+    <div>
+      <div class="col-label">Preparation — Ladder</div>
+      <div class="phone" style="background:#FAF7F2;font-family:'DM Sans',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#2C1F14;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div></div></div>
+          <div class="pcontent">
+            <p class="pg" style="color:#6B5344;">Good morning, Dev</p>
+            <p class="ph1" style="color:#2C1F14;">Your courage<br>ladder</p>
+            <div class="card" style="background:#F0EBE3;">
+              <div class="ptag" style="background:#C4622D22;color:#C4622D;">Next up</div>
+              <div class="litem" style="border-color:#C4622D22;">
+                <div class="rbadge" style="background:#C4622D;color:#FAF7F2;">1</div>
+                <div class="rtext" style="color:#2C1F14;">Saying hello to the barista</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#2C1F1412;">
+                <div class="rbadge" style="background:transparent;color:#6B5344;border:1px solid #C4622D44;">2</div>
+                <div class="rtext" style="color:#6B5344;">Asking a question in a meeting</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#2C1F1412;">
+                <div class="rbadge" style="background:transparent;color:#6B5344;border:1px solid #C4622D44;">3</div>
+                <div class="rtext" style="color:#6B5344;">Making a call to a stranger</div>
+                <div class="rarrow">›</div>
+              </div>
+            </div>
+            <button class="btn" style="background:#C4622D;color:#FAF7F2;">Prepare for step 1</button>
+            <button class="btng" style="color:#6B5344;border-color:#6B534440;">+ Add a situation</button>
+          </div>
+          <div class="bbar" style="border-color:#2C1F140E;">
+            <div class="ni"><div class="nicon" style="background:#C4622D;"></div><div class="nlbl" style="color:#C4622D;">Ladder</div></div>
+            <div class="ni"><div class="nicon" style="background:#6B534428;"></div><div class="nlbl" style="color:#6B5344;opacity:.4;">Learn</div></div>
+            <div class="ni"><div class="nicon" style="background:#6B534428;"></div><div class="nlbl" style="color:#6B5344;opacity:.4;">Progress</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A: Ritual -->
+    <div>
+      <div class="col-label">Preparation — Ritual</div>
+      <div class="phone" style="background:#F0EBE3;font-family:'DM Sans',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#2C1F14;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#6B5344;">Preparing for</p>
+            <p class="ph2" style="color:#2C1F14;margin-bottom:10px;">Saying hello to the barista</p>
+            <p class="mantra" style="color:#6B5344;font-family:'Lora',serif;">"I am steady. I am enough."</p>
+            <div style="margin-bottom:10px;">
+              <p class="slbl" style="color:#2C1F14;">How anxious do you expect to feel?</p>
+              <div class="strack" style="background:#2C1F141E;"><div class="sthumb" style="background:#C4622D;"></div></div>
+              <div class="snums"><span class="snum" style="color:#2C1F14;">0</span><span class="snum" style="color:#2C1F14;">5</span><span class="snum" style="color:#2C1F14;">10</span></div>
+              <p class="shint" style="color:#6B5344;">0 = no anxiety · 10 = worst imaginable. Most people land 4–7.</p>
+            </div>
+            <div class="wfield" style="border-color:#C4622D50;color:#6B5344;">What do you want to remember after? (optional)</div>
+            <button class="btn" style="background:#C4622D;color:#FAF7F2;margin-top:auto;">Let's do this</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A: In-the-moment -->
+    <div>
+      <div class="col-label">In-the-moment — Breathing</div>
+      <div class="phone" style="background:#FAF7F2;font-family:'DM Sans',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner" style="position:relative;">
+          <div class="sbar" style="color:#2C1F14;"><span>9:51</span><div class="sdots"><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div></div></div>
+          <div class="pcontent" style="align-items:center;">
+            <p style="color:#2C1F14;font-size:12px;font-weight:500;margin-bottom:3px;">Box breathing</p>
+            <p style="color:#6B5344;font-size:9px;text-align:center;margin-bottom:0;">You're heading to the café</p>
+            <div class="bcon">
+              <div class="bring" style="border-color:#7B9E87;">
+                <div class="binn" style="background:#7B9E8720;">
+                  <div class="bword" style="color:#2C1F14;">Breathe in</div>
+                  <div class="bcnt" style="color:#7B9E87;">4</div>
+                </div>
+              </div>
+              <p style="color:#6B5344;font-size:8px;text-align:center;">Inhale 4 · Hold 4 · Out 4 · Hold 4</p>
+            </div>
+          </div>
+          <div class="qapanel" style="background:#F0EBE3;">
+            <div class="qahandle" style="background:#2C1F1428;"></div>
+            <div class="qarow">
+              <div class="qabtn" style="background:#FAF7F2;"><div class="qaicon">🌊</div><div class="qalbl" style="color:#6B5344;">Grounding</div></div>
+              <div class="qabtn" style="background:#7B9E8720;border:1px solid #7B9E8750;"><div class="qaicon">💨</div><div class="qalbl" style="color:#7B9E87;font-weight:700;">Breathing</div></div>
+              <div class="qabtn" style="background:#FAF7F2;"><div class="qaicon">🔤</div><div class="qalbl" style="color:#6B5344;">Mantra</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A: Reveal -->
+    <div>
+      <div class="col-label">Reflection — Reveal</div>
+      <div class="phone" style="background:#FDF3E0;font-family:'DM Sans',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#2C1F14;"><span>11:03</span><div class="sdots"><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div><div class="sdot" style="background:#2C1F14;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#6B5344;">You did it</p>
+            <p class="ph1" style="color:#2C1F14;font-family:'Lora',serif;font-weight:400;font-size:15px;margin-bottom:10px;">Saying hello to the barista</p>
+            <div class="rscores" style="background:#F0EBE3;">
+              <div class="rcol"><div class="rnum" style="color:#6B5344;">6</div><div class="rlbl" style="color:#6B5344;">Predicted</div></div>
+              <div class="rdiv" style="background:#2C1F1412;"></div>
+              <div class="rcol"><div class="rnum" style="color:#C4622D;">4</div><div class="rlbl" style="color:#6B5344;">Actual</div></div>
+            </div>
+            <div class="rquote" style="border-color:#E8A84C;background:#E8A84C15;color:#6B5344;font-family:'Lora',serif;">"You thought this would be a 6. It was a 4. That gap is real — and it's yours."</div>
+            <p class="rmsg" style="color:#6B5344;">You predicted this would be hard. It was manageable. The difference between what we fear and what we face — that's courage.</p>
+            <button class="btn" style="background:#C4622D;color:#FAF7F2;">What's next?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid A -->
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     THEME B — DEEP TRUST
+     ═══════════════════════════════════════════════════════ -->
+<section class="theme" id="theme-b">
+  <div class="intro">
+    <h2 style="font-family:'Inter',sans-serif;">B — Deep Trust</h2>
+    <p class="concept">Deep, authoritative, calm. Forest teal signals clinical competence without the coldness of blue. Amber punctuates achievement. The aesthetic says: <em>this app knows what it's doing.</em></p>
+    <p class="fonts"><strong>Body:</strong> Inter &nbsp;·&nbsp; <strong>Milestone moments:</strong> DM Serif Display</p>
+  </div>
+
+  <div class="palette">
+    <div class="sw" style="background:#F5F7F6;color:#1A2E2A;"><span class="sw-name">Surface</span><span class="sw-hex">#F5F7F6</span></div>
+    <div class="sw" style="background:#EBF0EE;color:#1A2E2A;"><span class="sw-name">Surface 2</span><span class="sw-hex">#EBF0EE</span></div>
+    <div class="sw" style="background:#1A2E2A;color:#F5F7F6;"><span class="sw-name">Content</span><span class="sw-hex">#1A2E2A</span></div>
+    <div class="sw" style="background:#4A6B62;color:#F5F7F6;"><span class="sw-name">Content 2</span><span class="sw-hex">#4A6B62</span></div>
+    <div class="sw" style="background:#2D6A5A;color:#F5F7F6;"><span class="sw-name">Courage</span><span class="sw-hex">#2D6A5A</span></div>
+    <div class="sw" style="background:#E8A84C;color:#1A2E2A;"><span class="sw-name">Progress</span><span class="sw-hex">#E8A84C</span></div>
+    <div class="sw" style="background:#8B6F47;color:#F5F7F6;"><span class="sw-name">Grounding</span><span class="sw-hex">#8B6F47</span></div>
+    <div class="sw" style="background:#FDF7ED;color:#1A2E2A;"><span class="sw-name">Reflect bg</span><span class="sw-hex">#FDF7ED</span></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- B: Ladder -->
+    <div>
+      <div class="col-label">Preparation — Ladder</div>
+      <div class="phone" style="background:#F5F7F6;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1A2E2A;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div></div></div>
+          <div class="pcontent">
+            <p class="pg" style="color:#4A6B62;">Good morning, Dev</p>
+            <p class="ph1" style="color:#1A2E2A;">Your courage<br>ladder</p>
+            <div class="card" style="background:#EBF0EE;">
+              <div class="ptag" style="background:#2D6A5A20;color:#2D6A5A;">Next up</div>
+              <div class="litem" style="border-color:#2D6A5A1E;">
+                <div class="rbadge" style="background:#2D6A5A;color:#F5F7F6;">1</div>
+                <div class="rtext" style="color:#1A2E2A;">Saying hello to the barista</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#1A2E2A10;">
+                <div class="rbadge" style="background:transparent;color:#4A6B62;border:1px solid #2D6A5A40;">2</div>
+                <div class="rtext" style="color:#4A6B62;">Asking a question in a meeting</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#1A2E2A10;">
+                <div class="rbadge" style="background:transparent;color:#4A6B62;border:1px solid #2D6A5A40;">3</div>
+                <div class="rtext" style="color:#4A6B62;">Making a call to a stranger</div>
+                <div class="rarrow">›</div>
+              </div>
+            </div>
+            <button class="btn" style="background:#2D6A5A;color:#F5F7F6;">Prepare for step 1</button>
+            <button class="btng" style="color:#4A6B62;border-color:#4A6B6238;">+ Add a situation</button>
+          </div>
+          <div class="bbar" style="border-color:#1A2E2A0C;">
+            <div class="ni"><div class="nicon" style="background:#2D6A5A;"></div><div class="nlbl" style="color:#2D6A5A;">Ladder</div></div>
+            <div class="ni"><div class="nicon" style="background:#4A6B6228;"></div><div class="nlbl" style="color:#4A6B62;opacity:.4;">Learn</div></div>
+            <div class="ni"><div class="nicon" style="background:#4A6B6228;"></div><div class="nlbl" style="color:#4A6B62;opacity:.4;">Progress</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Ritual -->
+    <div>
+      <div class="col-label">Preparation — Ritual</div>
+      <div class="phone" style="background:#EBF0EE;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1A2E2A;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#4A6B62;">Preparing for</p>
+            <p class="ph2" style="color:#1A2E2A;margin-bottom:10px;">Saying hello to the barista</p>
+            <p class="mantra" style="color:#4A6B62;font-style:italic;">"I am steady. I am enough."</p>
+            <div style="margin-bottom:10px;">
+              <p class="slbl" style="color:#1A2E2A;">How anxious do you expect to feel?</p>
+              <div class="strack" style="background:#1A2E2A1C;"><div class="sthumb" style="background:#2D6A5A;"></div></div>
+              <div class="snums"><span class="snum" style="color:#1A2E2A;">0</span><span class="snum" style="color:#1A2E2A;">5</span><span class="snum" style="color:#1A2E2A;">10</span></div>
+              <p class="shint" style="color:#4A6B62;">0 = no anxiety · 10 = worst imaginable. Most people land 4–7.</p>
+            </div>
+            <div class="wfield" style="border-color:#2D6A5A48;color:#4A6B62;">What do you want to remember after? (optional)</div>
+            <button class="btn" style="background:#2D6A5A;color:#F5F7F6;margin-top:auto;">Let's do this</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: In-the-moment -->
+    <div>
+      <div class="col-label">In-the-moment — Breathing</div>
+      <div class="phone" style="background:#F5F7F6;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner" style="position:relative;">
+          <div class="sbar" style="color:#1A2E2A;"><span>9:51</span><div class="sdots"><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div></div></div>
+          <div class="pcontent" style="align-items:center;">
+            <p style="color:#1A2E2A;font-size:12px;font-weight:500;margin-bottom:3px;">Box breathing</p>
+            <p style="color:#4A6B62;font-size:9px;text-align:center;">You're heading to the café</p>
+            <div class="bcon">
+              <div class="bring" style="border-color:#8B6F47;">
+                <div class="binn" style="background:#8B6F4720;">
+                  <div class="bword" style="color:#1A2E2A;">Breathe in</div>
+                  <div class="bcnt" style="color:#8B6F47;">4</div>
+                </div>
+              </div>
+              <p style="color:#4A6B62;font-size:8px;text-align:center;">Inhale 4 · Hold 4 · Out 4 · Hold 4</p>
+            </div>
+          </div>
+          <div class="qapanel" style="background:#EBF0EE;">
+            <div class="qahandle" style="background:#1A2E2A25;"></div>
+            <div class="qarow">
+              <div class="qabtn" style="background:#F5F7F6;"><div class="qaicon">🌊</div><div class="qalbl" style="color:#4A6B62;">Grounding</div></div>
+              <div class="qabtn" style="background:#8B6F4720;border:1px solid #8B6F4748;"><div class="qaicon">💨</div><div class="qalbl" style="color:#8B6F47;font-weight:700;">Breathing</div></div>
+              <div class="qabtn" style="background:#F5F7F6;"><div class="qaicon">🔤</div><div class="qalbl" style="color:#4A6B62;">Mantra</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Reveal -->
+    <div>
+      <div class="col-label">Reflection — Reveal</div>
+      <div class="phone" style="background:#FDF7ED;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1A2E2A;"><span>11:03</span><div class="sdots"><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div><div class="sdot" style="background:#1A2E2A;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#4A6B62;">You did it</p>
+            <p class="ph1" style="color:#1A2E2A;font-family:'DM Serif Display',serif;font-weight:400;font-size:15px;margin-bottom:10px;">Saying hello to the barista</p>
+            <div class="rscores" style="background:#EBF0EE;">
+              <div class="rcol"><div class="rnum" style="color:#4A6B62;">6</div><div class="rlbl" style="color:#4A6B62;">Predicted</div></div>
+              <div class="rdiv" style="background:#1A2E2A10;"></div>
+              <div class="rcol"><div class="rnum" style="color:#2D6A5A;">4</div><div class="rlbl" style="color:#4A6B62;">Actual</div></div>
+            </div>
+            <div class="rquote" style="border-color:#E8A84C;background:#E8A84C14;color:#4A6B62;font-family:'DM Serif Display',serif;font-style:italic;">"You thought this would be a 6. It was a 4. That gap is real — and it's yours."</div>
+            <p class="rmsg" style="color:#4A6B62;">You predicted this would be hard. It was manageable. The difference between what we fear and what we face — that's courage.</p>
+            <button class="btn" style="background:#2D6A5A;color:#F5F7F6;">What's next?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid B -->
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     THEME C — MIDNIGHT COURAGE
+     ═══════════════════════════════════════════════════════ -->
+<section class="theme" id="theme-c">
+  <div class="intro">
+    <h2 style="font-family:'Inter',sans-serif;font-weight:700;">C — Midnight Courage</h2>
+    <p class="concept">Distinctive and bold. The in-the-moment register is <em>always dark</em> — not because of system dark mode, but because the app shifts registers deliberately. The visual jolt signals the mode change before the user reads a word.</p>
+    <p class="fonts"><strong>Body:</strong> Inter &nbsp;·&nbsp; <strong>Narrative moments:</strong> Playfair Display italic</p>
+  </div>
+
+  <div class="palette">
+    <div class="sw" style="background:#FAFAF8;color:#1C1C18;"><span class="sw-name">Surface</span><span class="sw-hex">#FAFAF8</span></div>
+    <div class="sw" style="background:#F2F2EE;color:#1C1C18;"><span class="sw-name">Surface 2</span><span class="sw-hex">#F2F2EE</span></div>
+    <div class="sw" style="background:#1C1C18;color:#F0F0EC;"><span class="sw-name">Content</span><span class="sw-hex">#1C1C18</span></div>
+    <div class="sw" style="background:#141412;color:#F0F0EC;"><span class="sw-name">ITM bg</span><span class="sw-hex">#141412</span></div>
+    <div class="sw" style="background:#D4A847;color:#1C1C18;"><span class="sw-name">Courage</span><span class="sw-hex">#D4A847</span></div>
+    <div class="sw" style="background:#C4622D;color:#F0F0EC;"><span class="sw-name">Progress</span><span class="sw-hex">#C4622D</span></div>
+    <div class="sw" style="background:#7BA891;color:#1C1C18;"><span class="sw-name">Grounding</span><span class="sw-hex">#7BA891</span></div>
+    <div class="sw" style="background:#F0F0EC;color:#1C1C18;"><span class="sw-name">ITM text</span><span class="sw-hex">#F0F0EC</span></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- C: Ladder -->
+    <div>
+      <div class="col-label">Preparation — Ladder</div>
+      <div class="phone" style="background:#FAFAF8;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1C1C18;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div></div></div>
+          <div class="pcontent">
+            <p class="pg" style="color:#5C5C52;">Good morning, Dev</p>
+            <p class="ph1" style="color:#1C1C18;">Your courage<br>ladder</p>
+            <div class="card" style="background:#F2F2EE;">
+              <div class="ptag" style="background:#D4A84720;color:#C4622D;">Next up</div>
+              <div class="litem" style="border-color:#D4A84720;">
+                <div class="rbadge" style="background:#D4A847;color:#1C1C18;">1</div>
+                <div class="rtext" style="color:#1C1C18;">Saying hello to the barista</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#1C1C1812;">
+                <div class="rbadge" style="background:transparent;color:#5C5C52;border:1px solid #D4A84742;">2</div>
+                <div class="rtext" style="color:#5C5C52;">Asking a question in a meeting</div>
+                <div class="rarrow">›</div>
+              </div>
+              <div class="litem" style="border-color:#1C1C1812;">
+                <div class="rbadge" style="background:transparent;color:#5C5C52;border:1px solid #D4A84742;">3</div>
+                <div class="rtext" style="color:#5C5C52;">Making a call to a stranger</div>
+                <div class="rarrow">›</div>
+              </div>
+            </div>
+            <button class="btn" style="background:#D4A847;color:#1C1C18;">Prepare for step 1</button>
+            <button class="btng" style="color:#5C5C52;border-color:#5C5C5235;">+ Add a situation</button>
+          </div>
+          <div class="bbar" style="border-color:#1C1C180C;">
+            <div class="ni"><div class="nicon" style="background:#D4A847;"></div><div class="nlbl" style="color:#D4A847;">Ladder</div></div>
+            <div class="ni"><div class="nicon" style="background:#5C5C5228;"></div><div class="nlbl" style="color:#5C5C52;opacity:.4;">Learn</div></div>
+            <div class="ni"><div class="nicon" style="background:#5C5C5228;"></div><div class="nlbl" style="color:#5C5C52;opacity:.4;">Progress</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Ritual -->
+    <div>
+      <div class="col-label">Preparation — Ritual</div>
+      <div class="phone" style="background:#F2F2EE;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1C1C18;"><span>9:41</span><div class="sdots"><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#5C5C52;">Preparing for</p>
+            <p class="ph2" style="color:#1C1C18;margin-bottom:10px;">Saying hello to the barista</p>
+            <p class="mantra" style="color:#5C5C52;font-family:'Playfair Display',serif;">"I am steady. I am enough."</p>
+            <div style="margin-bottom:10px;">
+              <p class="slbl" style="color:#1C1C18;">How anxious do you expect to feel?</p>
+              <div class="strack" style="background:#1C1C181C;"><div class="sthumb" style="background:#D4A847;"></div></div>
+              <div class="snums"><span class="snum" style="color:#1C1C18;">0</span><span class="snum" style="color:#1C1C18;">5</span><span class="snum" style="color:#1C1C18;">10</span></div>
+              <p class="shint" style="color:#5C5C52;">0 = no anxiety · 10 = worst imaginable. Most people land 4–7.</p>
+            </div>
+            <div class="wfield" style="border-color:#D4A84752;color:#5C5C52;">What do you want to remember after? (optional)</div>
+            <button class="btn" style="background:#1C1C18;color:#F0F0EC;margin-top:auto;">Let's do this</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: In-the-moment (ALWAYS DARK) -->
+    <div>
+      <div class="col-label">In-the-moment — Always dark</div>
+      <div class="phone" style="background:#141412;font-family:'Inter',sans-serif;">
+        <div class="notch" style="background:#080806;"></div>
+        <div class="pinner" style="position:relative;">
+          <div class="sbar" style="color:#A0A090;"><span>9:51</span><div class="sdots"><div class="sdot" style="background:#A0A090;"></div><div class="sdot" style="background:#A0A090;"></div><div class="sdot" style="background:#A0A090;"></div></div></div>
+          <div class="pcontent" style="align-items:center;">
+            <p style="color:#F0F0EC;font-size:12px;font-weight:500;margin-bottom:3px;">Box breathing</p>
+            <p style="color:#80806E;font-size:9px;text-align:center;">You're heading to the café</p>
+            <div class="bcon">
+              <div class="bring" style="border-color:#7BA891;">
+                <div class="binn" style="background:#7BA89120;">
+                  <div class="bword" style="color:#F0F0EC;">Breathe in</div>
+                  <div class="bcnt" style="color:#7BA891;">4</div>
+                </div>
+              </div>
+              <p style="color:#80806E;font-size:8px;text-align:center;">Inhale 4 · Hold 4 · Out 4 · Hold 4</p>
+            </div>
+          </div>
+          <div class="qapanel" style="background:#1E1E1A;">
+            <div class="qahandle" style="background:#F0F0EC28;"></div>
+            <div class="qarow">
+              <div class="qabtn" style="background:#141412;"><div class="qaicon">🌊</div><div class="qalbl" style="color:#80806E;">Grounding</div></div>
+              <div class="qabtn" style="background:#7BA89118;border:1px solid #7BA89145;"><div class="qaicon">💨</div><div class="qalbl" style="color:#7BA891;font-weight:700;">Breathing</div></div>
+              <div class="qabtn" style="background:#141412;"><div class="qaicon">🔤</div><div class="qalbl" style="color:#80806E;">Mantra</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Reveal -->
+    <div>
+      <div class="col-label">Reflection — Reveal</div>
+      <div class="phone" style="background:#FAFAF8;font-family:'Inter',sans-serif;">
+        <div class="notch"></div>
+        <div class="pinner">
+          <div class="sbar" style="color:#1C1C18;"><span>11:03</span><div class="sdots"><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div><div class="sdot" style="background:#1C1C18;"></div></div></div>
+          <div class="pcontent">
+            <p class="psm" style="color:#5C5C52;">You did it</p>
+            <p class="ph1" style="color:#1C1C18;font-family:'Playfair Display',serif;font-weight:400;font-size:15px;margin-bottom:10px;">Saying hello to the barista</p>
+            <div class="rscores" style="background:#F2F2EE;">
+              <div class="rcol"><div class="rnum" style="color:#5C5C52;">6</div><div class="rlbl" style="color:#5C5C52;">Predicted</div></div>
+              <div class="rdiv" style="background:#1C1C1812;"></div>
+              <div class="rcol"><div class="rnum" style="color:#D4A847;">4</div><div class="rlbl" style="color:#5C5C52;">Actual</div></div>
+            </div>
+            <div class="rquote" style="border-color:#D4A847;background:#D4A84710;color:#5C5C52;font-family:'Playfair Display',serif;font-style:italic;">"You thought this would be a 6. It was a 4. That gap is real — and it's yours."</div>
+            <p class="rmsg" style="color:#5C5C52;">You predicted this would be hard. It was manageable. The difference between what we fear and what we face — that's courage.</p>
+            <button class="btn" style="background:#1C1C18;color:#F0F0EC;">What's next?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid C -->
+</section>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.theme').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('theme-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

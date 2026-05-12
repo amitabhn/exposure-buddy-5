@@ -1,5 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7]
+stepInProgress: 8
+stepInProgressNotes: _bmad-output/planning-artifacts/ux-step8-session-notes.md
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/product-brief-exposure-buddy.md
