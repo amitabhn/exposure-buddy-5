@@ -122,6 +122,7 @@ These gaps must be resolved as Architecture Decision Records (ADRs) before epics
 | ADR-007 | Android background sync: WorkManager configuration + graceful SLA-breach behaviour for OEM battery management | NFR-OFFLINE-02 stories |
 | ADR-008 | Supabase API layer: PostgREST vs Edge Functions vs Realtime for each data flow; connection budget per flow | Backend stories, load test |
 | ADR-009 | apps/web role (Phase 2 clinician surface) + dual-role RLS posture | All RLS stories, clinician epic |
+| ADR-RN-VERSION | React Native / Expo SDK version pin: RN 0.81, Expo SDK 54, Expo Router v4, NativeWind 5.0.0-preview.3, PowerSync 1.34.0 | Story 1 (project initialisation), all mobile stories |
 
 ---
 
@@ -386,6 +387,25 @@ PowerSync handles WorkManager configuration + OEM battery management (MIUI, One 
 ### ADR-009 — apps/web Role and Dual-Role RLS Posture (Status: Accepted)
 
 See Starter Template Evaluation section above.
+
+---
+
+### ADR-RN-VERSION — React Native / Expo SDK Version Pin (Status: Accepted)
+
+**Decision:** Expo SDK 54 / React Native 0.81 / Expo Router v4. React Native version is Expo-managed — no independent `react-native` overrides permitted.
+
+| Component | Version | Pin strategy |
+|-----------|---------|--------------|
+| React Native | `0.81` | Expo SDK 54 managed — do not upgrade independently |
+| Expo SDK | `54` | Pinned; upgrade only as a coordinated stack bump |
+| Expo Router | `v4` | Tied to Expo SDK 54 |
+| NativeWind | `5.0.0-preview.3` | Pre-release; exact version pin (`no ^`) |
+| PowerSync SDK | `@powersync/react-native@1.34.0` | Exact version pin (`no ^`) |
+| Node runtime | `20+` | LTS minimum |
+
+**Rationale:** NativeWind v5 preview, PowerSync 1.34.0, and MMKV's New Architecture requirement are all verified against RN 0.81 / Expo SDK 54. NativeWind and PowerSync are exact-pinned because pre-release patch bumps and SQLite schema changes respectively make `^` unsafe. Expo manages the RN version — coordinated stack bumps only.
+
+See `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md` for full upgrade policy and consequences.
 
 ---
 
