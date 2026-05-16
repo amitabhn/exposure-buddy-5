@@ -1,5 +1,7 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+lastStep: 14
+workflowStatus: complete
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/product-brief-exposure-buddy.md
@@ -986,8 +988,8 @@ flowchart TD
     I -->|No — resend + retry\nno limit MVP| H
     I -->|Yes| J[SPIN questionnaire — 17 items]
     J --> K{SPIN score}
-    K -->|≥ 40| L[Full-screen referral\nmandatory tap to continue]
-    L --> M[User acknowledges — continues]
+    K -->|≥ 40| L[Full-screen referral\nexplicit acknowledgement checkbox required]
+    L --> M[User checks acknowledgement\n→ Continue enabled]
     K -->|< 40| N
     M --> N[Conversational symptom check — 3–4 questions]
     N --> O[Safety behaviour checklist — 15 items\nmandatory MVP]
@@ -1005,7 +1007,7 @@ flowchart TD
 - Previews accessible from Achievements post-account creation
 - OTP: no retry limit MVP; flagged for post-MVP review
 - Safety behaviour checklist: mandatory MVP; flagged for post-MVP review
-- SPIN ≥40: full-screen referral, mandatory tap to continue, no dismiss without acknowledgement
+- SPIN ≥40: full-screen referral, explicit acknowledgement checkbox required before Continue is enabled, no dismiss without acknowledgement; flagged for post-MVP review (whether to allow full app access after referral, disclosure logging requirements)
 - Referral screen copy: warm, non-judgmental; leads with "It sounds like you're carrying a lot"; includes helplines from remotely updatable config (localised by region, not hardcoded)
 - SUDS scale everywhere: light-weight subtext shown dynamically as user selects each value, describing what it means
 
@@ -1175,7 +1177,7 @@ flowchart TD
 - Re-calibration: short conversational check-in OR skip to direct SUDS with anchoring line ("Last time you rated this a X")
 - SUDS re-baseline write occurs on check-in confirmation, not on each input
 - SUDS re-baseline retroactively affects next session's technique routing; audit trail required for post-MVP clinical routing
-- Avoidance classification triggers on any of: (1) 3+ app opens on active thread without debrief; (2) thread open > X hours without debrief (threshold TBD, product placeholder); (3) user explicitly declares they didn't complete
+- Avoidance classification triggers on any of: (1) 3+ app opens on active thread without debrief; (2) thread open > 6 hours without debrief (provisional; post-MVP clinical review); (3) user explicitly declares they didn't complete
 - "Avoidance" label never shown in UI; state 5 is tone-only
 
 ---
@@ -1199,7 +1201,7 @@ flowchart TD
     J --> K
     G --> L[SUDS arc]
     L --> K
-    K --> M{6h window still open?\nexpiry displayed in UTC}
+    K --> M{6h window still open?\nexpiry displayed in local timezone}
     M -->|Yes — user completes notes| N[Thread resolved\nLadder item advances automatically\nunconditional on SUDS delta]
     M -->|After 6h — first open past expiry| O[Home — Window expired state 8]
     N --> P{Last ladder item?}
@@ -1214,12 +1216,12 @@ flowchart TD
 
 **Decisions:**
 - `expires_at`: set at debrief completion, UTC epoch ms, server-side only, bigint in Supabase; client uses `Date.now()` for comparison only
-- Expiry remaining time displayed in UTC — no local timezone conversion; epoch is authoritative across timezone changes
+- Expiry remaining time displayed in user's local timezone (`Intl.DateTimeFormat` with device locale); stored epoch remains authoritative for server-side computation and timezone-change resilience
 - Letter written → reveal is primary CTA
 - No letter → acknowledgement card ("You did something genuinely hard today") tied to what actually happened, not just attendance
 - No-letter path is first-class, not a fallback
 - Late debrief offered indefinitely; advance unconditional on debrief completion regardless of SUDS delta
-- SUDS arc and prediction reveal accessible post-thread from Achievements tab (longitudinal view)
+- SUDS arc and prediction reveal accessible post-thread from session history (single-session view at MVP); multi-session longitudinal view in Achievements tab is post-MVP (`LongitudinalSudsChart`)
 
 ---
 
@@ -1468,12 +1470,11 @@ Accessible from the Achievements tab as a primary feature — not a post-debrief
 
 ---
 
-### Custom Components — Post-MVP (4)
+### Custom Components — Post-MVP (3)
 
 | Component | Replaces / Enhances | Deferral rationale |
 |-----------|--------------------|--------------------|
 | `LongitudinalSudsChart` | Simplified session list in Achievements | Multi-session habituation curves; not required for core loop. Library choice tied to `SudsArcChart` ADR. |
-| `BreathingCoach` | Calm Me ships with `GroundingPrompt` only | Second grounding technique; one sufficient for MVP. |
 | `OnboardingProgress` | No step indicator in F1 | Cosmetic; onboarding functions without it. |
 | `ReEntryOverlay` | Standard `Card` primitive with re-entry copy | App-kill re-entry works with simpler fallback for MVP. |
 
@@ -1495,10 +1496,10 @@ Evaluate `react-native-reusables` (rn-primitives, NativeWind-native) and `@gorho
 `HomeStateCard` · `LadderItemCard` · `DragRankList` · `TechniqueCard` · `CalmMeButton` · `SudsArcChart`
 
 **Phase 2 — Loop completion:**
-`LetterToSelfEditor` · `LetterReveal` · `AcknowledgementCard` · `GroundingPrompt` · `HelplineCard`
+`LetterToSelfEditor` · `LetterReveal` · `AcknowledgementCard` · `GroundingPrompt` · `HelplineCard` · `BreathingCoach`
 
 **Post-MVP:**
-`LongitudinalSudsChart` · `BreathingCoach` · `OnboardingProgress` · `ReEntryOverlay`
+`LongitudinalSudsChart` · `OnboardingProgress` · `ReEntryOverlay`
 
 ---
 
@@ -1518,6 +1519,14 @@ The following decisions are flagged for resolution in implementation ADRs before
 | ADR-DELETE-UX | `LadderItemCard` | Pending-delete mechanism: undo timer (with navigation-commit behaviour) vs. confirm dialog. |
 | ADR-NOTES-PERSIST | `AcknowledgementCard` | Notes persistence: local component state, session store, or discarded on unmount. |
 | ADR-LETTER-REVEAL | `LetterReveal` | Reveal trigger: swipe vs. tap vs. dedicated button. Relationship between mount animation and reveal trigger for reduced-motion testing. |
+| ADR-HOME-STATE-RESOLVE | `HomeStateCard`, `packages/core` | Spec `resolveHomeScreenState(ctx: HomeScreenContext): HomeScreenState` — define `HomeScreenContext` type, canonical priority ordering for all 10 states, and minimum 5 happy/sad path test cases. Draft at `adrs/ADR-HOME-STATE-RESOLVE.md`. |
+| ADR-ONBOARDING-BREATHING | Onboarding screen, `GroundingPrompt` | Option A (accessible somatic alternative via aria-live + haptic) vs. Option B (documented divergent skip path). Owner: lead designer. Decision required before onboarding sprint. Draft at `adrs/ADR-ONBOARDING-BREATHING.md`. |
+| ADR-OFFLINE-DEGRADATION | F3, F4, all network-dependent flows | Define offline degradation policy: minimum criteria, degraded states for F3/F4, reconciliation on reconnect. Owner: engineering lead. Shell at `adrs/ADR-OFFLINE-DEGRADATION.md`. |
+| ADR-CALMME-KEYBOARD | `CalmMeButton` | Platform constraint: `zIndex: 9999` does not overlay Android native software keyboard. Define per-platform layout strategy (`adjustResize`/`adjustPan` + `KeyboardAvoidingView`) and whether keyboard should dismiss on Calm Me tap. Draft at `adrs/ADR-CALMME-KEYBOARD.md`. |
+| ADR-LADDER-SNAPSHOT | `packages/core`, Supabase schema | Ladder stability contract requires creation-date snapshot storage, not only current state. Define snapshot data model, migration strategy, and audit trail requirements. Draft at `adrs/ADR-LADDER-SNAPSHOT.md`. |
+| ADR-ERROR-STATES | All 11 MVP components | Define base fallback error state (app-level error boundary copy) and require each component to specify loading, empty, error, and success state variants before sprint sign-off. Draft at `adrs/ADR-ERROR-STATES.md`. |
+| ADR-TECHNIQUE-SUDS-FALLBACK | `TechniqueCard` | Define fallback behaviour when no SUDS data exists (first session or skipped gate): proposed fallback is `without-nudge` variant — nudge text hidden, all techniques shown without recommended indicator. Draft at `adrs/ADR-TECHNIQUE-SUDS-FALLBACK.md`. |
+| ADR-DARK-MODE-NATIVEWIND | `packages/ui`, all NativeWind components | Dark mode is deferred. Decision: disable `darkMode` in `tailwind.config`, audit third-party component theme hooks, add CI regression test asserting light-mode-only rendering. Draft at `adrs/ADR-DARK-MODE-NATIVEWIND.md`. |
 
 ---
 
