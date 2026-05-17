@@ -122,6 +122,7 @@ These gaps must be resolved as Architecture Decision Records (ADRs) before epics
 | ADR-007 | Android background sync: WorkManager configuration + graceful SLA-breach behaviour for OEM battery management | NFR-OFFLINE-02 stories |
 | ADR-008 | Supabase API layer: PostgREST vs Edge Functions vs Realtime for each data flow; connection budget per flow | Backend stories, load test |
 | ADR-009 | apps/web role (Phase 2 clinician surface) + dual-role RLS posture | All RLS stories, clinician epic |
+| ADR-RN-VERSION | React Native / Expo SDK version pin: RN 0.81, Expo SDK 54, Expo Router v4, NativeWind 5.0.0-preview.3, PowerSync 1.34.0 | Story 1 (project initialisation), all mobile stories |
 
 ---
 
@@ -196,15 +197,31 @@ packages/supabase — Supabase client, dual-role RLS helpers, type-safe queries
                     therapist_patient.enabled = false DEFAULT)
 ```
 
-**ADRs Resolved by PowerSync Selection:**
+**ADR Resolution Registry — All ADRs:**
 
 | ADR | Status | Resolution |
 |---|---|---|
-| ADR-002 | **Resolved** | PowerSync owns local SQLite store — WatermelonDB/Legend-State/Redux decision superseded |
-| ADR-005 | **Resolved** | PowerSync test patterns replace custom offline test strategy |
-| ADR-007 | **Resolved** | PowerSync handles WorkManager + OEM battery management + graceful SLA-breach fallback |
+| ADR-001 | **Accepted** | packages/core boundary: full domain layer (Option C) — session state machine, crisis detection, consent records, SUDS logic, all zero-dep |
+| ADR-002 | **Resolved by PowerSync** | PowerSync owns local SQLite store — WatermelonDB/Legend-State/Redux decision superseded |
+| ADR-003 | **Accepted** | MMKV + PowerSync SQLite, no separate SQLCipher — key derivation via Expo SecureStore (Android Keystore API 23+) |
+| ADR-004 | **Accepted** | MMKV sync read for navigation persistence + session recovery; startup sequence: MMKV key derivation → MMKV sync reads → PowerSync init |
+| ADR-005 | **Resolved by PowerSync** | PowerSync test patterns replace custom offline test strategy |
+| ADR-006 | **Accepted** | RLS policy test harness: TypeScript integration tests in packages/supabase/__tests__/rls/, Vitest, four-assertion minimum per policy |
+| ADR-007 | **Resolved by PowerSync** | PowerSync handles WorkManager + OEM battery management + graceful SLA-breach fallback |
+| ADR-008 | **Accepted** | Data flow mapping + design rules: PostgREST for SUDS/session reads, Edge Functions for DPDPA export/erasure + notifications; see ADR-008 section |
+| ADR-009 | **Accepted** | apps/web: Phase 2 clinician surface placeholder; dual-role RLS from day one (patient_access active, clinician_access stubbed behind therapist_patient.enabled = false) |
+| ADR-RN-VERSION | **Accepted** | RN 0.81 / Expo SDK 54 / Expo Router v4 / NativeWind 5.0.0-preview.3 / PowerSync 1.34.0 — all exact-pinned; see ADR-RN-VERSION.md |
 
-**ADRs Remaining:** ADR-001, ADR-003, ADR-004, ADR-006, ADR-008, ADR-009
+**ADRs Remaining:** None — all original ADRs (ADR-001 through ADR-009, ADR-RN-VERSION) are resolved. See Core Architectural Decisions section below.
+
+**ADRs Pending from Adversarial Review (must be written before story-writing):**
+
+| ADR | Decision | Required before |
+|---|---|---|
+| ADR-ZUSTAND-PANEL | Zustand minimal scope for CalmMe/panel coordination only; Zustand must not be used for clinical data state | Any panel/overlay story |
+| ADR-AUTH-TOKEN-PROVIDER | `AuthTokenProvider` interface in `packages/core`; `packages/sync` must not import `packages/supabase`; `apps/mobile` is the composition root | packages/sync stories |
+| ADR-NOTIFICATIONS | Expo Push Service abstraction (→ FCM/APNs); notifications are architecture-critical, not nice-to-have; push = best-effort nudge, PowerSync = authoritative delivery for crisis alerts | Story 1 (Firebase project + package name must be locked) |
+| ADR-DPO-INTERFACE | Three Supabase Edge Functions (`/dpo/erase-user`, `/dpo/export-user`, `/dpo/audit-log`) + append-only `dpo_audit_log` table + self-hosted HTML operator panel; replaces Supabase Studio as DPO interface | Before any personal data is processed in production |
 
 **Architectural Decisions Established:**
 
@@ -386,6 +403,25 @@ PowerSync handles WorkManager configuration + OEM battery management (MIUI, One 
 ### ADR-009 — apps/web Role and Dual-Role RLS Posture (Status: Accepted)
 
 See Starter Template Evaluation section above.
+
+---
+
+### ADR-RN-VERSION — React Native / Expo SDK Version Pin (Status: Accepted)
+
+**Decision:** Expo SDK 54 / React Native 0.81 / Expo Router v4. React Native version is Expo-managed — no independent `react-native` overrides permitted.
+
+| Component | Version | Pin strategy |
+|-----------|---------|--------------|
+| React Native | `0.81` | Expo SDK 54 managed — do not upgrade independently |
+| Expo SDK | `54` | Pinned; upgrade only as a coordinated stack bump |
+| Expo Router | `v4` | Tied to Expo SDK 54 |
+| NativeWind | `5.0.0-preview.3` | Pre-release; exact version pin (`no ^`) |
+| PowerSync SDK | `@powersync/react-native@1.34.0` | Exact version pin (`no ^`) |
+| Node runtime | `20+` | LTS minimum |
+
+**Rationale:** NativeWind v5 preview, PowerSync 1.34.0, and MMKV's New Architecture requirement are all verified against RN 0.81 / Expo SDK 54. NativeWind and PowerSync are exact-pinned because pre-release patch bumps and SQLite schema changes respectively make `^` unsafe. Expo manages the RN version — coordinated stack bumps only.
+
+See `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md` for full upgrade policy and consequences.
 
 ---
 
@@ -1337,24 +1373,46 @@ Full directory tree defined with file-level granularity across all packages and 
 
 ### Architecture Readiness Assessment
 
-**Overall Status: READY FOR IMPLEMENTATION**
+**Overall Status: ARCHITECTURE COMPLETE — INDIA LAUNCH BLOCKED**
 
-All 16 checklist items confirmed. No critical gaps. Important gaps are either accepted risks with mitigations (NativeWind pre-release, version pinned) or parallel-track non-blockers (PowerSync DPA, notifications TBD).
+| Dimension | Status |
+|---|---|
+| Architecture decisions | ✅ Complete — all 10 ADRs accepted (see ADR Resolution Registry above) |
+| Story-writing readiness | ✅ Unblocked — epics and stories can be written |
+| India launch | ⛔ Blocked — four pre-conditions must be satisfied before first user data is processed |
+| Implementation start | ✅ Unblocked for Stories 1–N that do not require India launch clearance |
+
+**India Launch Pre-conditions (hard blockers — not parallel-track):**
+1. **PowerSync DPA** — signed Data Processing Agreement covering health data transit through PowerSync infrastructure (DPDPA §2(t))
+2. **DPDPA consent schema implemented** — `consent_records` + `user_consent_status` tables live with `policy_version`, `locale`, `consent_mechanism` fields; `packages/core/src/consent/dpdpa.ts` types deployed
+3. **DPO interface live** — three Supabase Edge Functions (`/dpo/erase-user`, `/dpo/export-user`, `/dpo/audit-log`) + `dpo_audit_log` table + HTML operator panel deployed and tested
+4. **Four pending ADRs written** — ADR-ZUSTAND-PANEL, ADR-AUTH-TOKEN-PROVIDER, ADR-NOTIFICATIONS, ADR-DPO-INTERFACE must be formalised before the stories that depend on them are estimated
+
+**Story 1 Pre-conditions (hard blockers for project initialisation):**
+- Firebase project created, `google-services.json` in repo, Android package name locked
+- Notification channel taxonomy defined (`crisis-alerts`, `reminders`, `check-ins`)
+- `eas.json` profiles configured (development/preview/production)
 
 **Confidence Level: High**
 
 **Key Strengths:**
-- Packages/core as a zero-dependency domain layer makes all clinical logic testable in Vitest without a device — highest-risk features (crisis detection, SUDS calculation, consent records) are testable in isolation
-- Import boundary table enforced at CI removes entire classes of agent drift errors before they reach code review
-- Three independent elicitation passes (failure mode analysis, pre-mortem, red team) hardened the structure with 15 concrete fixes before this validation
-- Offline-first and DPDPA compliance are first-class architectural constraints, not retrofits — data flows and erasure paths are defined before a single story is written
-- NativeWind pre-release risk is bounded: pinned to exact version with upgrade gate; if v5 stable ships, migration is a styling-layer change only
+- packages/core as a zero-dependency domain layer makes all clinical logic testable in Vitest without a device — crisis detection, SUDS calculation, consent records, crisis port interface all testable in isolation
+- Import boundary table enforced at CI removes entire classes of coupling errors before code review; sibling package imports explicitly prohibited (packages/sync ↔ packages/supabase cross-import resolved via AuthTokenProvider in packages/core)
+- Three independent elicitation passes + 15-finding adversarial review hardened the structure before story-writing
+- Offline-first and DPDPA compliance are first-class constraints: data flows, consent gate, erasure paths, and DPO interface all defined before a single story is written
+- NativeWind pre-release risk bounded: exact pin with upgrade gate
 
-**Areas for Future Enhancement:**
-- Notifications delivery layer — FCM/APNs token management and scheduling architecture (resolve before FR-NOTx sprint)
-- Phase 2 activation gates — therapist_patient.enabled migration + DPO sign-off path + HIPAA §164.312(b) audit log story
-- Supabase Realtime connection budget assessment — required if Phase 2 introduces live therapist-facing views
-- Android OEM battery management telemetry — WorkManager graceful-breach behaviour validated by device profiling in sprint 1
+**Resolved by adversarial review (not present in original architecture):**
+- SUDS write / consent-record separation: consent gate in packages/core session machine; packages/sync consent-oblivious
+- Crisis detection → SyncMode: CrisisPort interface in packages/core/src/ports/crisis-port.ts; apps/mobile is composition root
+- DPO interface: three Edge Functions + HTML panel replaces Supabase Studio
+- Analytics: deferred to Phase 2; all candidate Phase 1 events are clinical session data — zero analytics writes at MVP
+- ExposureThread.situationLabel conflict policy: label_updated_at + label_updated_by_user_id + situation_label_history stub + therapist_patient.conflict_policy column; therapist_wins / flag_for_review gate enforced in code before therapist_patient.enabled can be activated
+
+**Phase 2 activation gates (not MVP blockers):**
+- therapist_patient.enabled: requires conflict_policy ≠ last_write_wins + situation_label_history writes active + conflict resolution UI QA'd
+- Supabase Realtime: connection budget assessment required before any live therapist-facing views
+- Analytics: two-key sign-off (lead clinician + data controller) before any event_name added to analytics_events
 
 ---
 
