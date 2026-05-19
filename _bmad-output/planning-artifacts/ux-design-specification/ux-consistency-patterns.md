@@ -32,7 +32,7 @@ Dim overlay. `CalmMeOverlay` rendered in root `_layout.tsx` above `<Stack>` with
 - Never mentions algorithm, engine, or system
 - Recommendations do not incorporate dissent history — suggestions are not adjusted based on whether the user previously ignored them. The UI always offers equal-weight access to alternatives so the formula is never perceived as a gate.
 
-**SUDS literacy:** SUDS scale displays text anchors at the extremes (0 = no anxiety, 10 = worst imaginable). This is the mechanism for building SUDS literacy — not interpolated copy in the recommendation formula. Further SUDS education is post-MVP.
+**SUDS literacy:** SUDS scale displays the full static anchor set at all times — not just the extremes (FR-SUDS-ANCHOR-01): 0 = completely calm, 2 = very mild, 4 = mild, 6 = moderate, 8 = severe, 10 = worst imaginable. Anchors are inline subtext visible during rating entry, never behind a tooltip or expandable. This is the mechanism for building SUDS literacy — not interpolated copy in the recommendation formula. Further SUDS education is post-MVP.
 
 **In-the-moment exception:** On in-the-moment surfaces, the formula collapses to an imperative. Drop the state descriptor entirely; lead with the recommendation. The personal-causal register applies to check-in results, technique selection screens, and ladder nudges — not in-the-moment surfaces where every word is cognitive overhead.
 

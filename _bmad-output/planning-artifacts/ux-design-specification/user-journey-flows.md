@@ -22,36 +22,35 @@ flowchart TD
     G[Create account] --> H[Email or phone + OTP verification]
     H --> I{OTP valid?}
     I -->|No — resend + retry\nno limit MVP| H
-    I -->|Yes| J[SPIN questionnaire — 17 items]
-    J --> K{SPIN score}
-    K -->|≥ 40| L[Full-screen referral\nexplicit acknowledgement checkbox required]
-    L --> M[User checks acknowledgement\n→ Continue enabled]
-    K -->|< 40| N
+    I -->|Yes| J[mini-SPIN questionnaire — 3 items\n0–4 per item, max score 12]
+    J --> K{mini-SPIN score}
+    K -->|0–3| N
+    K -->|4–5| K2[Inline soft advisory shown\nno tap required — user proceeds]
+    K2 --> N
+    K -->|≥ 6| L[Full-screen referral\niCall, Vandrevala Foundation, NIMHANS\nexplicit acknowledgement tap required\nfull app access granted after tap]
+    L --> M[User acknowledges\n→ Continue enabled]
     M --> N[Conversational symptom check — 3–4 questions]
     N --> O[Safety behaviour checklist — 15 items\nmandatory MVP]
     O --> P[Inline psychoeducation — anxiety cycle\npresented immediately before first exposure]
-    P --> Q{Readiness prerequisite}
-    Q -->|Thought record| R[Complete thought record]
-    Q -->|Somatic session| S[Complete somatic session]
-    R --> T[Hierarchy builder unlocks automatically]
-    S --> T
+    P --> T[Hierarchy builder — immediately accessible\nno prerequisite session required]
     T --> U[Home — First-use state 1\nPrimary CTA: Build your ladder]
 ```
 
 **Decisions:**
-- Anonymous previews use a server-issued device token on first launch; completions merge into real account on creation
+- Anonymous previews stored in MMKV local storage only (no server-side anonymous record); completions transferred to the real account via `adapter.enqueue()` on account creation (ARC-005); anonymous progress is intentionally not retained across app reinstalls — a server-issued device token is not used (would create a pre-consent server record, violating DPDPA boundary, and would require network on cold first launch, violating offline-first design)
 - Previews accessible from Achievements post-account creation
 - OTP: no retry limit MVP; flagged for post-MVP review
 - Safety behaviour checklist: mandatory MVP; flagged for post-MVP review
-- SPIN ≥40: full-screen referral, explicit acknowledgement checkbox required before Continue is enabled, no dismiss without acknowledgement; flagged for post-MVP review (whether to allow full app access after referral, disclosure logging requirements)
-- Referral screen copy: warm, non-judgmental; leads with "It sounds like you're carrying a lot"; includes helplines from remotely updatable config (localised by region, not hardcoded)
+- **mini-SPIN (3-item, not 17-item SPIN):** Each item scored 0–4, max score 12. Three-tier response: score 0–3 → no message, proceed silently; score 4–5 → inline soft advisory shown inline, no tap required, user proceeds automatically; score ≥6 → full-screen referral (iCall, Vandrevala Foundation, NIMHANS contacts), explicit acknowledgement tap required before Continue is enabled; full app access granted at any score after acknowledgement. ≥6 threshold pending clinical sign-off for Indian urban adult wellness context.
+- Referral screen contacts: iCall (+91-9152987821), Vandrevala Foundation (1860-2662-345), NIMHANS (080-46110007) — hardcoded strings, displayed offline
 - SUDS scale everywhere: light-weight subtext shown dynamically as user selects each value, describing what it means
+- **Readiness gate: REMOVED** — FR-GATE-01 was removed by product decision. The exposure hierarchy is immediately accessible after onboarding completes; no prerequisite thought record or somatic session is required.
 
 ---
 
 ## F2 — Fear Ladder Building
 
-Entry: hierarchy builder unlocked after readiness prerequisite.
+Entry: hierarchy builder accessible immediately after onboarding completes (no prerequisite).
 
 ```mermaid
 flowchart TD
@@ -100,7 +99,7 @@ flowchart TD
     C --> D{Technique type}
     D -->|Somatic| E[Somatic session]
     D -->|Breathing / pranayama| F[Breathing coach]
-    D -->|Cognitive| G[Thought record]
+    D -->|Cognitive — POST-MVP\nnot available at launch| G[Thought record\nPOST-MVP]
     E --> H[Pre-exposure briefing\nwhat to expect]
     F --> H
     G --> H
@@ -129,6 +128,7 @@ flowchart TD
 - Pre-exposure SUDS is mandatory and gates exposure start
 - SUDS scale: light-weight subtext per value everywhere
 - Technique routing: user-choice MVP with lightweight SUDS-based nudge ("at a SUDS of X, most people start with Y"); full clinical routing post-MVP
+- **Cognitive technique (Thought Record) — POST-MVP:** FR-CBT-01/02/03 are deferred to post-MVP (backlog items 1.23–1.25). The Cognitive branch in this flow is not available at launch. MVP technique menu offers Somatic and Breathing/pranayama only. Thought Record option will be hidden or disabled in the technique picker until FR-CBT-01–03 are implemented.
 - Letter to self: optional; framed as "recommended for SUDS ≥ 7" to encourage without forcing
 - Two stopped-early paths: (1) Calm Me → "I need to stop" → immediate modal debrief offer; (2) Stop Exposure affordance → grounding screen (mandatory, not skippable) → user confirms stop → debrief
 - SUDS logging during exposure: user-triggered; no minimum log count required; arc always has pre-exposure + debrief entry (two-point minimum)
@@ -215,6 +215,8 @@ flowchart TD
 - SUDS re-baseline retroactively affects next session's technique routing; audit trail required for post-MVP clinical routing
 - Avoidance classification triggers on any of: (1) 3+ app opens on active thread without debrief; (2) thread open > 6 hours without debrief (provisional; post-MVP clinical review); (3) user explicitly declares they didn't complete
 - "Avoidance" label never shown in UI; state 5 is tone-only
+- **Avoidance state 5 — POST-MVP:** State 5 is fully specified here for design completeness but is explicitly deferred to post-MVP. Epic 6 Story 6.3 skips avoidance heuristic evaluation entirely; the state machine transitions directly from state 4 logic to state 6 logic with a required code comment `// State 5 (avoidance detection) deferred post-MVP`. All three classification thresholds also require post-MVP clinical review before going live (backlog item 1.1). Developers implementing Epic 6 must not implement state 5 based on this UX spec.
+- **Daily SUDS check-in widget — POST-MVP:** FR-CHECKIN-01 (daily in-app check-in with technique routing) is not available at launch. The re-calibration check-in in this flow (node F/G/H/I/J) is a gap-return re-baseline only, not the recurring daily check-in described in FR-CHECKIN-01. The daily check-in widget on the home screen is deferred to post-MVP (backlog item 1.21) pending a complete somatic + CBT suite for clinically meaningful routing.
 
 ---
 
