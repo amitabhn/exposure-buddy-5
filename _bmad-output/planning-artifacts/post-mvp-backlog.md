@@ -32,7 +32,7 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Notes:** Should include a meaningful celebration moment, reflection prompt, and a clear next-step (e.g., extend ladder, review journey, share milestone). Clinical input needed on what "completed" means for a social anxiety ladder and whether a formal discharge or re-assessment is appropriate.
 
 ### 1.6 Multi-Session Longitudinal SUDS Chart (Achievements Tab)
-**What:** A longitudinal chart showing SUDS trends across multiple sessions for the same fear item, surfaced in an Achievements or Progress tab.
+**What:** A longitudinal chart showing SUDS trends across multiple sessions for the same fear item, surfaced in the Achievements tab.
 **Source:** UX spec F6 decisions ("`LongitudinalSudsChart` ... multi-session longitudinal view in Achievements tab is post-MVP").
 **Notes:** Single-session SUDS arc (Branch A/B) is in MVP (Story 5.3). The longitudinal view requires session history storage already in place. The `LongitudinalSudsChart` component is the primary deliverable.
 

@@ -171,8 +171,8 @@ FR-SAFE-01: Epic 2 — Two mandatory safety checkboxes at account creation
 FR-ONBOARD-01: Epic 4 — mini-SPIN questionnaire with three-tier clinical routing
 FR-ONBOARD-02: Epic 4 — Symptom check + 15-item safety behaviour checklist
 FR-ONBOARD-03: Epic 4 — Inline psychoeducation and avoidance explainer
-FR-HIER-01: Epic 5 — Template-based hierarchy builder with SUDS ratings (onboarding phase)
-FR-HIER-02: Epic 5 — Custom hierarchy items (onboarding phase)
+FR-HIER-01: Epics 4+5 — Initial fear ladder setup during onboarding (Story 4.3); full ladder screen with drag-to-reorder and post-onboarding item management (Story 5.1)
+FR-HIER-02: Epics 4+5 — Custom item entry during onboarding (Story 4.3); add/edit items post-onboarding from full ladder screen (Story 5.1)
 FR-HIER-03: Epic 5 — Stall detection and step-down prompt
 FR-LADDER-01: Epic 5 — Full ladder screen view with status indicators (Story 5.1)
 FR-LADDER-02: Epic 5 — Drag-and-reorder, add/edit items post-onboarding from full ladder screen (Story 5.1)
@@ -184,8 +184,8 @@ FR-ERP-04: Epic 5 — Abort handling without negative framing (Story 5.2)
 FR-CBT-01: POST-MVP — 6-field thought record deferred; no MVP story
 FR-CBT-02: POST-MVP — Cognitive distortion library deferred; no MVP story
 FR-CBT-03: POST-MVP — 5-field behavioural experiment deferred; no MVP story
-FR-SOM-01: Epic 7 (partial MVP) — box breathing and 5-4-3-2-1 covered; 4-7-8, Bhramari, Nadi Shodhana, body scan POST-MVP
-FR-SOM-02: Epic 7 (partial MVP) — visual-only pacing covered for box breathing and 5-4-3-2-1; remaining techniques POST-MVP
+FR-SOM-01: Epic 7 (partial MVP) — box breathing and 5-4-3-2-1 covered; 4-7-8, Bhramari, Nadi Shodhana, body scan POST-MVP. **Decision record (2026-05-19):** FR-SOM-01 is an in-scope PRD feature partially deferred. Rationale: box breathing and 5-4-3-2-1 grounding cover the two highest-prevalence use cases at MVP (pre-exposure grounding and mid-session crisis); the remaining four techniques (4-7-8, Bhramari, Nadi Shodhana, body scan) require distinct animated visual guides and culturally resonant framing for Indian pranayama techniques that increase scope beyond MVP timeline. The 2-technique set is clinically sufficient for the MVP ERP session and Calm Me flows. Deferring the remaining 4 also cascades to FR-CHECKIN-01 deferral — check-in routing to somatic techniques is incomplete until the full set exists. Confirmed in post-MVP backlog as item 1.26.
+FR-SOM-02: Epic 7 (partial MVP) — visual-only pacing covered for box breathing and 5-4-3-2-1; remaining techniques POST-MVP (blocked by FR-SOM-01 remaining; see FR-SOM-01 decision record and backlog item 1.26)
 FR-CHECKIN-01: POST-MVP — daily SUDS check-in deferred; no MVP story. **Decision record (2026-05-19):** FR-CHECKIN-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the daily check-in depends on a complete somatic + CBT technique suite (FR-SOM-01 remaining, FR-CBT-01–03) to produce clinically meaningful routing; launching a check-in that can only route to box breathing and 5-4-3-2-1 is therapeutically incomplete. Confirmed in post-MVP backlog as item 1.21. FR-ADVERSE-02 (check-in crisis contacts) is blocked by this deferral (backlog item 1.22).
 FR-PROG-01: Epic 8 — SUDS trend graph (weekly + monthly)
 FR-PROG-02: Epic 8 — Chronological exposure history log
@@ -195,7 +195,7 @@ FR-NOTIF-03: Epic 8 — User notification controls and opt-out
 FR-NOTIF-04: Epic 8 — Window-close push notification at 3 hours post-session if reflection not yet submitted (Story 8.3)
 FR-CRISIS-01: Epic 3 — On-device crisis keyword detection (packages/core)
 FR-CRISIS-02: Epic 3 — English + Hindi keyword list, binary-embedded
-FR-CRISIS-03: Epic 7 — Persistent SOS/CalmMe overlay during active ERP session (grounding screen stub wired in Epic 5 Story 5.2; full CalmMe overlay with breathing + 5-4-3-2-1 implemented in Epic 7)
+FR-CRISIS-03: Epic 7 — Persistent SOS/CalmMe overlay during active ERP session (initial grounding screen with affirmation + breathing prompt wired in Epic 5 Story 5.2; full technique picker with breathing coach, 5-4-3-2-1, and helplines added in Epic 7 Story 7.5)
 FR-I18N-01: Epic 9 — Full locale coverage verification (infrastructure scaffolded in Epic 1)
 FR-I18N-02: Epic 9 — RTL rendering verification (infrastructure scaffolded in Epic 1)
 FR-ANALYTICS-01: Epic 8 — Day-1 metrics schema design (no live writes at MVP; events table stub from Epic 3)
@@ -210,7 +210,7 @@ FR-HOME-03: Epic 6 — One active thread per user per fear item enforced via par
 FR-HOME-05: Epic 6 — Home screen re-engagement state (state 9) SUDS re-baseline prompt after >10-day gap (Story 6.4)
 FR-SESSION-04: Epic 6 — Technique selection before each exposure session with last-used pre-selection and SUDS-based nudge (Story 6.1)
 FR-SESSION-05: Epic 6 — Mandatory non-skippable pre-exposure briefing screen with intention letter read-back (Story 6.1)
-FR-SESSION-06: Epic 7 — Mandatory non-skippable grounding screen on mid-session stop; stub wired in Epic 5 Story 5.2
+FR-SESSION-06: Epics 5+7 — Mandatory non-skippable grounding screen on mid-session stop; initial implementation (affirmation + breathing prompt) in Epic 5 Story 5.2; enhanced with full technique picker in Epic 7 Story 7.5
 FR-LADDER-06: Epic 6 — SUDS re-baseline on re-engagement stored in suds_baselines; predicted_suds not overwritten (Story 6.4)
 FR-DPO-01: Epic 3 — DPO appointed before India launch; contact in privacy notice
 FR-DPO-02: Epic 3 — Data export request flow (Settings → Privacy → Request my data)
@@ -290,7 +290,7 @@ The crisis keyword detection engine is live in `packages/core` and available for
 
 New users complete the mini-SPIN questionnaire with three-tier clinical routing (referral screen at ≥6 pending clinical sign-off), the symptom check, and the 15-item safety behaviour checklist. Personalised hierarchy template suggestions are generated. Inline psychoeducation on the anxiety cycle precedes the first exposure; the avoidance explainer appears at safety behaviour item selection (not front-loaded).
 
-**FRs covered:** FR-ONBOARD-01, FR-ONBOARD-02, FR-ONBOARD-03
+**FRs covered:** FR-ONBOARD-01, FR-ONBOARD-02, FR-ONBOARD-03, FR-HIER-01 (partial — initial onboarding setup; full management in Epic 5), FR-HIER-02 (partial — initial onboarding setup; full management in Epic 5)
 
 ---
 
@@ -965,7 +965,7 @@ So that I understand the app and arrive at my Courage Ladder prepared (FR-ONBOAR
 
 As a new user,
 I want to understand what a fear ladder is and practise using the distress scale,
-So that I can engage meaningfully with my first exposure session (FR-ONBOARD-02, FR-PSYCH-01).
+So that I can engage meaningfully with my first exposure session (FR-ONBOARD-02, FR-ONBOARD-03).
 
 *Depends on: Story 4.1 merged to main.*
 
@@ -997,7 +997,7 @@ So that I can engage meaningfully with my first exposure session (FR-ONBOARD-02,
 
 As a new user,
 I want to add my feared situations and arrange them from least to most anxiety-provoking,
-So that my Courage Ladder starts from where I actually am (FR-ONBOARD-03, FR-ONBOARD-04).
+So that my Courage Ladder starts from where I actually am (FR-HIER-01, FR-HIER-02).
 
 *Depends on: Story 4.2 merged to main.*
 
@@ -1161,7 +1161,7 @@ So that I can track my anxiety arc during the exposure (FR-ERP-01, FR-ERP-02).
 
 **Given** the user taps "Stop Exposure" mid-session
 **When** the stop affordance triggers
-**Then** the `SessionStateMachine` transitions `active → grounding`; a grounding screen renders — mandatory, not skippable (UX spec); the grounding screen is a stub in this story: courage affirmation `t('session.grounding.affirmation')` and breathing prompt `t('session.grounding.breathingPrompt')`; Epic 7 replaces the stub with full breathing coach and 5-4-3-2-1 implementations; after grounding the user chooses Resume (`grounding → active`) or Confirm Stop (`grounding → abandoned`)
+**Then** the `SessionStateMachine` transitions `active → grounding`; a grounding screen renders — mandatory, not skippable (UX spec); the grounding screen is a complete initial implementation: courage affirmation `t('session.grounding.affirmation')` and guided breathing prompt `t('session.grounding.breathingPrompt')` — this is a clinically sufficient grounding experience at MVP; Epic 7 Story 7.5 enhances it by adding a full technique picker (breathing coach, 5-4-3-2-1, helplines) once those components exist; no `// STUB` or `// TODO` comments in the grounding screen file — it ships as complete; after grounding the user chooses Resume (`grounding → active`) or Confirm Stop (`grounding → abandoned`)
 
 **Given** the user confirms stop after grounding
 **When** abandonment executes
@@ -1385,7 +1385,7 @@ CREATE INDEX idx_suds_baselines_lookup ON suds_baselines (user_id, fear_item_id,
 
 ## Epic 7: Support Toolkit
 
-Enable users to access calming support from anywhere in the app — a global Calm Me button surfaces a courage affirmation, a breathing coach (guided then passive), a 5-4-3-2-1 grounding exercise, and crisis helplines. The grounding screen stub from Story 5.2 is replaced with real content and fully wired to the `SessionStateMachine`.
+Enable users to access calming support from anywhere in the app — a global Calm Me button surfaces a courage affirmation, a breathing coach (guided then passive), a 5-4-3-2-1 grounding exercise, and crisis helplines. The grounding screen from Story 5.2 (affirmation + breathing prompt, fully shippable) is enhanced with a full technique picker and fully wired to the `SessionStateMachine`.
 
 ### Story 7.1: Calm Me Shell, Courage Affirmation & Action Decision Routing
 
@@ -1571,7 +1571,7 @@ So that I can reach human support immediately, even offline (FR-CRISIS-01, NFR-O
 
 ---
 
-### Story 7.5: Grounding Screen — Full Content (Replaces Story 5.2 Stub)
+### Story 7.5: Grounding Screen — Full Technique Picker
 
 As a user who has tapped "Stop Exposure" during an active session,
 I want a fully implemented grounding screen with breathing, 5-4-3-2-1, and helplines available,
@@ -1579,9 +1579,9 @@ So that I can calm myself before deciding whether to continue or end the session
 
 **Acceptance Criteria:**
 
-**Given** the stub grounding screen from Story 5.2 exists
+**Given** the initial grounding screen from Story 5.2 exists (courage affirmation + breathing prompt + 2 CTAs)
 **When** this story is implemented
-**Then** all `// STUB` and `// TODO` comments in the grounding screen file are removed; the screen renders the full content described below; no stub placeholder copy remains
+**Then** the grounding screen is enhanced with a full technique picker as described below; the affirmation and action footer from Story 5.2 are retained; the breathing prompt text is replaced by the interactive technique picker
 
 **Given** the user reaches the grounding screen via the "Stop Exposure" affordance
 **When** the screen renders
@@ -1610,15 +1610,15 @@ So that I can calm myself before deciding whether to continue or end the session
 
 ---
 
-## Epic 8: Notifications & Progress Tab
+## Epic 8: Notifications & Achievements Tab
 
-Surface session completion and re-engagement nudges via Expo push and local notifications, and deliver a Progress tab where users can review their SUDS arc and session history.
+Surface session completion and re-engagement nudges via Expo push and local notifications, and deliver an Achievements tab where users can review their SUDS arc and session history.
 
 ### Story 8.1: Push Token Registration & Shared Push Helper
 
 As a user who wants to receive session reminders,
 I want the app to register my device for push notifications and store my token securely,
-So that the server can dispatch notifications to me (FR-NOTIF-01).
+So that the server can dispatch notifications to me (technical prerequisite for FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04 — no FR is directly implemented here; FR-NOTIF-01 is implemented in Story 8.4).
 
 **Acceptance Criteria:**
 
@@ -1759,7 +1759,7 @@ there is no lower-bound time filter — any session that has passed the 3-hour m
 
 **Given** the user taps the window-close notification
 **When** the deep link is resolved
-**Then** the user is navigated to the Progress tab; the tap destination is the Progress tab (not the Home screen or a session-specific debrief screen)
+**Then** the user is navigated to the Achievements tab; the tap destination is the Achievements tab (not the Home screen or a session-specific debrief screen)
 
 **Given** the cron job definition
 **When** it is registered
@@ -1861,19 +1861,19 @@ on `{ ok: true }` from `sendPushNotification`, `re_engagement_day5_notified_at` 
 
 ---
 
-### Story 8.5: Progress Tab — SUDS Trend, Session History & Arc
+### Story 8.5: Achievements Tab — SUDS Trend, Session History & Arc
 
 As a user who has completed one or more exposure sessions,
-I want a Progress tab with a SUDS trend graph across all my sessions and a full session history log,
+I want an Achievements tab with a SUDS trend graph across all my sessions and a full session history log,
 So that I can observe my habituation pattern over time and review individual sessions (FR-PROG-01, FR-PROG-02).
 
 **Acceptance Criteria:**
 
-**Given** the Progress tab does not yet exist in the bottom navigation
+**Given** the Achievements tab does not yet exist in the bottom navigation
 **When** this story is implemented
 **Then** a "Progress" tab is added to the tab bar; the tab is accessible from all main screens; the tab icon uses a suitable symbol from the approved icon set
 
-**Given** the user navigates to the Progress tab
+**Given** the user navigates to the Achievements tab
 **When** the screen renders
 **Then** the screen has three distinct sections in order: (1) SUDS trend graph (FR-PROG-01); (2) session history log (FR-PROG-02); (3) most-recent session SUDS arc detail; each section renders independently — a missing data condition in one section does not collapse the others
 
@@ -1894,16 +1894,16 @@ So that I can observe my habituation pattern over time and review individual ses
 **Then** the full SUDS arc for that session is shown (pre-exposure + all mid-session log entries + debrief SUDS); the debrief outcome (`post_session_reflection` if present) is shown; no edit affordance is provided — this is a read-only historical view
 
 **Given** the user has no completed or abandoned sessions yet
-**When** the Progress tab renders
+**When** the Achievements tab renders
 **Then** an empty state is shown with copy `t('progress.emptyState')` (canonical: "Complete your first session to see your progress here"); no error state is shown; the trend graph and history sections are not rendered
 
 **Given** the device is offline
-**When** the Progress tab renders
+**When** the Achievements tab renders
 **Then** all data is read from the PowerSync local replica via `useQuery`; no network request is made; the tab renders fully without a connectivity check; NFR-OFFLINE-03 is satisfied
 
 **Given** the window-close notification tap (Story 8.3)
 **When** the deep link resolves
-**Then** the user is navigated to this Progress tab; the tab is the canonical destination for all notification taps in Epic 8
+**Then** the user is navigated to this Achievements tab; the tab is the canonical destination for all notification taps in Epic 8
 
 ---
 
@@ -2025,7 +2025,7 @@ So that a regression in the core user path is caught before it reaches users (NF
 
 **Given** the critical path flows
 **When** the smoke suite runs
-**Then** the following YAML flow files exist and pass: (1) `onboarding.yaml` — app launch through account creation, SPIN questionnaire, symptom check, safety behaviour checklist, psychoeducation, to hierarchy builder unlock; (2) `ladder-build.yaml` — add at least one fear item with SUDS rating, reach the "Start today's challenge" home state; (3) `exposure-loop.yaml` — start session, select technique, begin exposure, log a SUDS reading, complete exposure, reach debrief screen; (4) `debrief.yaml` — complete debrief, verify session saved, verify Progress tab shows a completed session entry; (5) `backgrounded-recovery.yaml` — start exposure, send app to background, re-foreground, verify session state is recovered and Calm Me prompt is overlaid
+**Then** the following YAML flow files exist and pass: (1) `onboarding.yaml` — app launch through account creation, SPIN questionnaire, symptom check, safety behaviour checklist, psychoeducation, to hierarchy builder unlock; (2) `ladder-build.yaml` — add at least one fear item with SUDS rating, reach the "Start today's challenge" home state; (3) `exposure-loop.yaml` — start session, select technique, begin exposure, log a SUDS reading, complete exposure, reach debrief screen; (4) `debrief.yaml` — complete debrief, verify session saved, verify Achievements tab shows a completed session entry; (5) `backgrounded-recovery.yaml` — start exposure, send app to background, re-foreground, verify session state is recovered and Calm Me prompt is overlaid
 
 **Given** the backgrounded-recovery flow
 **When** the flow runs
@@ -2058,7 +2058,7 @@ So that I am never alarmed or left confused at a high-anxiety moment (UX-DR-ERRO
 **Then** it is replaced with specific, calm, actionable copy following this pattern: state what happened in plain language, state the user's data status (lost / safe / will sync), state what to do next; canonical replacements:
 - Offline write failure: "We couldn't save your session right now. It's stored on your device and will sync automatically."
 - Auth network error: "Couldn't connect to sign you in. Check your connection and try again."
-- Progress tab empty state: "Complete your first session to see your progress here."
+- Achievements tab empty state: "Complete your first session to see your progress here."
 - Hierarchy empty state: "Your ladder is empty. Tap 'Build your ladder' to get started."
 
 **Given** the SPIN referral screen and any clinical advisory copy
@@ -2081,7 +2081,7 @@ So that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 
 **Given** the performance budget targets
 **When** this story is implemented
-**Then** the following budgets are defined and documented in `apps/mobile/docs/performance-budget.md`: (1) cold start to interactive: ≤2 seconds on the reference device profile; (2) frame rate during the active exposure screen (SUDS slider interaction, session timer tick): ≥55 fps; (3) Calm Me button tap-to-screen latency: ≤200ms; (4) Progress tab initial render with 10 sessions of data: ≤1 second
+**Then** the following budgets are defined and documented in `apps/mobile/docs/performance-budget.md`: (1) cold start to interactive: ≤2 seconds on the reference device profile; (2) frame rate during the active exposure screen (SUDS slider interaction, session timer tick): ≥55 fps; (3) Calm Me button tap-to-screen latency: ≤200ms; (4) Achievements tab initial render with 10 sessions of data: ≤1 second
 
 **Given** the reference device profile
 **When** performance is measured

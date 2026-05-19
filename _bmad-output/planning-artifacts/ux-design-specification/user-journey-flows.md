@@ -37,7 +37,7 @@ flowchart TD
 ```
 
 **Decisions:**
-- Anonymous previews use a server-issued device token on first launch; completions merge into real account on creation
+- Anonymous previews stored in MMKV local storage only (no server-side anonymous record); completions transferred to the real account via `adapter.enqueue()` on account creation (ARC-005); anonymous progress is intentionally not retained across app reinstalls — a server-issued device token is not used (would create a pre-consent server record, violating DPDPA boundary, and would require network on cold first launch, violating offline-first design)
 - Previews accessible from Achievements post-account creation
 - OTP: no retry limit MVP; flagged for post-MVP review
 - Safety behaviour checklist: mandatory MVP; flagged for post-MVP review
@@ -215,6 +215,7 @@ flowchart TD
 - SUDS re-baseline retroactively affects next session's technique routing; audit trail required for post-MVP clinical routing
 - Avoidance classification triggers on any of: (1) 3+ app opens on active thread without debrief; (2) thread open > 6 hours without debrief (provisional; post-MVP clinical review); (3) user explicitly declares they didn't complete
 - "Avoidance" label never shown in UI; state 5 is tone-only
+- **Avoidance state 5 — POST-MVP:** State 5 is fully specified here for design completeness but is explicitly deferred to post-MVP. Epic 6 Story 6.3 skips avoidance heuristic evaluation entirely; the state machine transitions directly from state 4 logic to state 6 logic with a required code comment `// State 5 (avoidance detection) deferred post-MVP`. All three classification thresholds also require post-MVP clinical review before going live (backlog item 1.1). Developers implementing Epic 6 must not implement state 5 based on this UX spec.
 - **Daily SUDS check-in widget — POST-MVP:** FR-CHECKIN-01 (daily in-app check-in with technique routing) is not available at launch. The re-calibration check-in in this flow (node F/G/H/I/J) is a gap-return re-baseline only, not the recurring daily check-in described in FR-CHECKIN-01. The daily check-in widget on the home screen is deferred to post-MVP (backlog item 1.21) pending a complete somatic + CBT suite for clinically meaningful routing.
 
 ---
