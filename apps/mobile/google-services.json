@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "649295623497",
+    "project_id": "exposure-buddy",
+    "storage_bucket": "exposure-buddy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:649295623497:android:547c1edd99417a0ed3d698",
+        "android_client_info": {
+          "package_name": "com.exposurebuddy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6E-Z0Pi7FmOYwPV4tsXfRX9cGnp9vYro"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
