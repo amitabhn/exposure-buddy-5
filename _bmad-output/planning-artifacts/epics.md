@@ -254,6 +254,7 @@ All developers can build features with confidence: the Turborepo monorepo is liv
 **ARC coverage:** ARC-001, ARC-002, ARC-003, ARC-011, ARC-013, SPIKE-001
 **UX-DR coverage:** UX-DR1, UX-DR2, UX-DR3, UX-DR4, UX-DR5, UX-DR15, UX-DR16, UX-DR17, UX-DR22, UX-DR23
 **NFR design constraints:** NFR-ACCESS-01 (infrastructure), NFR-SEC-01 (storage/transport decisions)
+**Planning note:** Epic 1 delivers zero user-visible features by design. This is an accepted planning decision for a greenfield project with a complex cross-platform stack; the NativeWind spike and library evaluations are hard blockers for all subsequent component work. Sprint 1 produces no shippable user feature — the team should communicate this expectation explicitly at kickoff.
 
 **Epic 1 exit criteria additions (accepted from agent review):**
 - `packages/core/src/i18n/` scaffolded: i18next + expo-localization, `t()` hook wired, key naming convention documented; no user-visible string ever authored as a literal from Epic 2 onwards
@@ -893,7 +894,11 @@ As a user or regulator,
 I want to access the Privacy Notice before creating an account and know who the DPO is,
 So that informed consent is possible and DPDPA accountability obligations are met (FR-DPO-01, FR-DPO-02).
 
-*Depends on: Story 3.4 merged to main (DPO identity established before Privacy Notice can name them).*
+*Depends on: Story 3.4 merged to main (DPO identity established before Privacy Notice can name them).*  
+*Depends on (documentation): The following ADRs must exist and be accepted before this story can be marked complete:*
+- *`adrs/ADR-DPDPA-CHILDRENS-DATA.md` — children's data handling and 18+ self-declaration gate*
+- *`adrs/ADR-DPDPA-EXPORT-DEFERRAL.md` — operator-initiated export at MVP; self-service export deferred*
+- *`adrs/ADR-DPDPA-WITHDRAWAL-DEFERRAL.md` — consent withdrawal-without-deletion deferred; account deletion is MVP withdrawal mechanism*
 
 **Acceptance Criteria:**
 

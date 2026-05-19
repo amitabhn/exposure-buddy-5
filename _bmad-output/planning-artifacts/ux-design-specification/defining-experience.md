@@ -81,7 +81,7 @@ When only one situation exists, the ladder view shows a warmth state: *"Your fir
 
 Preparation screen:
 - **Mantra**: hidden (slot not rendered) until the user has set one; appears progressively once set. The ritual feels intentional and complete without it on day 1.
-- **SUDS prediction slider** — anchoring language shown before first interaction: *"0 = no anxiety, 10 = worst imaginable. Most people land between 4–7."* Displayed as inline tooltip or brief onboarding moment on first use.
+- **SUDS prediction slider** — canonical anchor labels shown before first interaction (FR-SUDS-ANCHOR-01): *"0 = completely calm, 2 = very mild, 4 = mild, 6 = moderate, 8 = severe, 10 = worst imaginable. Most people land between 4–7."* Anchors are inline subtext visible at all times during rating entry — not behind a tooltip.
 - **Optional pre-exposure writing field** — unhurried; deliberate pause before the continue button activates
 - **Deliberate pause** before "Let's do this" becomes active
 - **Heavy haptic** on tap — distinct, weighted; marks the boundary between preparation and commitment
