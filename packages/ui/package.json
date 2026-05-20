@@ -12,11 +12,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@exposure-buddy/core": "workspace:*"
+    "@exposure-buddy/core": "workspace:*",
+    "@rn-primitives/dialog": "1.4.0",
+    "@rn-primitives/portal": "1.4.0",
+    "@rn-primitives/slot": "1.4.0",
+    "@rn-primitives/types": "1.4.0"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.1",
-    "eslint": "^8.57.0"
+    "vitest": "^3.2.1"
   }
 }
