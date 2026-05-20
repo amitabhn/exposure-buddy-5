@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # ─── Gate 1: packages/core import boundary (ARC-011) ───────────────────────
+  core-boundary-gate:
+    name: "ARC-011 — packages/core boundary"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check packages/core has no forbidden imports
+        run: |
+          if grep -rE "from ['\"]react-native|from ['\"]expo|from ['\"]@supabase" packages/core/src 2>/dev/null; then
+            echo "FAIL: packages/core contains forbidden imports (react-native, expo-*, @supabase/*)"
+            echo "packages/core must remain pure TypeScript with zero framework dependencies (ARC-011)"
+            exit 1
+          fi
+          echo "PASS: packages/core boundary is clean"
+
+  # ─── Gate 2: Dark mode lock (ADR-DARK-MODE-NATIVEWIND, UX-DR22) ────────────
+  dark-mode-gate:
+    name: "ADR-DARK-MODE — userInterfaceStyle must be light"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify userInterfaceStyle is locked to light
+        run: |
+          VALUE=$(node -e "const j=require('./apps/mobile/app.json'); console.log(j.expo.userInterfaceStyle)")
+          if [ "$VALUE" != "light" ]; then
+            echo "FAIL: apps/mobile/app.json userInterfaceStyle is '$VALUE', must be 'light'"
+            echo "Dark mode is deferred to post-MVP. See ADR-DARK-MODE-NATIVEWIND."
+            exit 1
+          fi
+          echo "PASS: userInterfaceStyle is locked to 'light'"
+
+  # ─── Gate 3: apps/web import gate (ADR-009) ────────────────────────────────
+  web-import-gate:
+    name: "ADR-009 — Phase 1 code must not import from apps/web"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check no Phase 1 code imports from apps/web
+        run: |
+          if grep -rE "from ['\"].*apps/web" apps/mobile/src apps/mobile/app packages/ 2>/dev/null; then
+            echo "FAIL: Phase 1 code imports from apps/web (ADR-009)"
+            exit 1
+          fi
+          echo "PASS: No Phase 1 code imports from apps/web"
+
+  # ─── Gate 4: SDK dependency audit (ARC-013) ────────────────────────────────
+  sdk-dep-audit:
+    name: "ARC-013 — SDK dependency audit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Flag new third-party data-transmitting dependencies
+        run: |
+          FLAGGED_PATTERNS=("analytics" "posthog" "mixpanel" "amplitude" "datadog" "newrelic" "crashlytics" "firebase" "segment" "heap" "fullstory")
+          FOUND_ISSUES=0
+          for pattern in "${FLAGGED_PATTERNS[@]}"; do
+            MATCHES=$(grep -ril "\"$pattern" apps/*/package.json packages/*/package.json 2>/dev/null || true)
+            if [ -n "$MATCHES" ]; then
+              echo "REVIEW REQUIRED: '$pattern' found in — $MATCHES"
+              FOUND_ISSUES=1
+            fi
+          done
+          if [ "$FOUND_ISSUES" -eq 1 ]; then
+            echo "ARC-013: New data-transmitting dependencies require explicit sign-off before merge."
+            exit 1
+          fi
+          echo "PASS: No unreviewed third-party data transmitters found"
+
+  # ─── Build ──────────────────────────────────────────────────────────────────
+  build:
+    name: "Build all packages"
+    runs-on: ubuntu-latest
+    needs: [core-boundary-gate, dark-mode-gate, web-import-gate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build all packages
+        run: pnpm turbo build
+
+  # ─── Typecheck ──────────────────────────────────────────────────────────────
+  typecheck:
+    name: "TypeScript — strict mode"
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck all packages
+        run: pnpm turbo typecheck

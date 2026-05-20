@@ -1,2 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.expo/
+
+# Turbo
+.turbo/
+
+# Environment files (NEVER commit values)
+*.env
+.env.local
+.env.*.local
+
+# EAS build artifacts
+eas-build-*
+
+# OS
 .DS_Store
-tmp
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Test coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Temp
+tmp/
+
+# Note: google-services.json IS intentionally committed (project config, not a secret)

@@ -1,0 +1,17 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  eas-build:
+    name: "EAS Build — production"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: EAS Build (configure after EAS project is linked)
+        run: |
+          echo "EAS Build release workflow — stub until EAS project is configured"
+          echo "Next steps: eas init, then wire eas build --profile production here"

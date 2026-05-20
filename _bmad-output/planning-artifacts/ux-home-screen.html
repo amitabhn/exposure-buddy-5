@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exposure Buddy — Home Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --surface: #F5F7F6;
+    --surface-2: #EBF0EE;
+    --content: #1A2E2A;
+    --content-2: #4A6B62;
+    --teal: #2D6A5A;
+    --amber: #E8A84C;
+    --brown: #8B6F47;
+    --reflect: #FDF7ED;
+    --reflect-border: #E8D8B8;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #E8EDE9;
+    color: var(--content);
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--content);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: var(--content-2);
+    margin-bottom: 32px;
+  }
+
+  .tab-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    background: var(--white);
+    color: var(--content-2);
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+
+  .screens {
+    display: none;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .screens.visible { display: flex; }
+
+  /* Phone shell */
+  .phone {
+    width: 320px;
+    min-height: 680px;
+    background: var(--surface);
+    border-radius: 40px;
+    box-shadow: 0 20px 60px rgba(26,46,42,0.18), 0 2px 8px rgba(26,46,42,0.08);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone-label {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--content-2);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Status bar — time only; Pause button sits top-right as abs element */
+  .status-bar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 14px 20px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--content);
+  }
+
+  /* Calm Me button — top-right, single-hand reachable */
+  .pause-btn {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(45, 106, 90, 0.1);
+    border: 1.5px solid rgba(45, 106, 90, 0.3);
+    border-radius: 20px;
+    padding: 5px 11px 5px 8px;
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  .pause-btn .pause-icon {
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .pause-btn .pause-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal);
+    letter-spacing: 0.02em;
+  }
+
+  /* Screen content */
+  .screen-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    overflow: hidden;
+  }
+
+  /* Greeting */
+  .greeting {
+    margin-top: 10px;
+    margin-bottom: 12px;
+  }
+
+  .greeting-eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--content-2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .greeting-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--content);
+    line-height: 1.2;
+  }
+
+  /* Hero illustration */
+  .hero-illustration {
+    width: 100%;
+    height: 130px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Context message card */
+  .context-card {
+    background: var(--reflect);
+    border: 1px solid var(--reflect-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+  }
+
+  .context-card.teal { background: #E8F2EF; border-color: #B8D8D0; }
+  .context-card.amber { background: #FDF7ED; border-color: #E8D8B8; }
+  .context-card.grounding { background: #F4F0EC; border-color: #D4C4B0; }
+
+  .context-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--content-2);
+    margin-bottom: 4px;
+  }
+
+  .context-label.teal { color: var(--teal); }
+  .context-label.amber { color: #A06820; }
+  .context-label.brown { color: var(--brown); }
+
+  .context-text {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--content);
+    line-height: 1.5;
+  }
+
+  .context-subtext {
+    font-size: 11px;
+    color: var(--content-2);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  /* SUDS mini-scale */
+  .suds-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .suds-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .suds-predicted {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 3px;
+    background: rgba(139, 111, 71, 0.35);
+  }
+
+  .suds-actual {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--teal);
+  }
+
+  .suds-legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+  }
+
+  .suds-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--content-2);
+  }
+
+  .suds-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .suds-dot.predicted { background: rgba(139, 111, 71, 0.6); }
+  .suds-dot.actual { background: var(--teal); }
+
+  .suds-gap-note {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--teal);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* Thread deadline row */
+  .deadline-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--content-2);
+  }
+
+  .deadline-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+
+  /* Primary CTA */
+  .cta-primary {
+    background: var(--teal);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .cta-primary.amber-cta { background: #C8882C; }
+  .cta-primary.brown-cta { background: var(--brown); }
+
+  .cta-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .cta-text { flex: 1; }
+
+  .cta-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 1px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .cta-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+  }
+
+  .cta-arrow {
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    flex-shrink: 0;
+  }
+
+  /* Secondary options */
+  .options-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+
+  .option-card {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid rgba(26,46,42,0.1);
+    border-radius: 12px;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .option-icon { font-size: 20px; line-height: 1; }
+
+  .option-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--content-2);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    height: 60px;
+    background: var(--white);
+    border-top: 1px solid rgba(26,46,42,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    cursor: pointer;
+  }
+
+  .nav-icon { font-size: 18px; line-height: 1; }
+
+  .nav-label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--content-2);
+    letter-spacing: 0.02em;
+  }
+
+  .nav-item.active .nav-label { color: var(--teal); font-weight: 600; }
+
+  /* Divider label */
+  .divider-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--content-2);
+    margin: 4px 0 8px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  /* Annotation card */
+  .annotation {
+    background: var(--white);
+    border: 1px solid rgba(26,46,42,0.12);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--content-2);
+    line-height: 1.5;
+    max-width: 320px;
+  }
+
+  .annotation strong { color: var(--content); }
+
+  .annotation .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--surface-2);
+    color: var(--content-2);
+    margin-bottom: 6px;
+  }
+
+  .annotation .tag.teal { background: #E8F2EF; color: var(--teal); }
+  .annotation .tag.amber { background: #FDF7ED; color: #A06820; }
+
+  .layout-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--content-2);
+    margin-top: 24px;
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.7;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 16px 20px;
+    border: 1px solid rgba(26,46,42,0.1);
+  }
+
+  .layout-note strong { color: var(--content); }
+</style>
+</head>
+<body>
+
+<h1>Exposure Buddy — Home Screen</h1>
+<p class="subtitle">Four context states · Deep Trust visual foundation · Pause button top-right</p>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="show(0)">State 1 · Morning</div>
+  <div class="tab" onclick="show(1)">State 2 · Active Thread</div>
+  <div class="tab" onclick="show(2)">State 3 · After Exposure</div>
+  <div class="tab" onclick="show(3)">State 4 · Return After Gap</div>
+</div>
+
+<!-- ===== STATE 1: MORNING ===== -->
+<div class="screens visible" id="screen-0">
+  <div>
+    <p class="phone-label">Morning · No active thread</p>
+    <div class="phone">
+      <div class="status-bar"><span>9:14</span></div>
+
+      <!-- Pause button — top-right, always present -->
+      <div class="pause-btn">
+        <span class="pause-icon">🌊</span>
+        <span class="pause-label">Calm Me</span>
+      </div>
+
+      <div class="screen-body">
+        <div class="greeting">
+          <div class="greeting-eyebrow">Tuesday, May 12</div>
+          <div class="greeting-name">Good morning, Cooper.</div>
+        </div>
+
+        <div class="hero-illustration">
+          <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <defs>
+              <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#D4E8E0"/>
+                <stop offset="100%" stop-color="#EBF5F0"/>
+              </linearGradient>
+            </defs>
+            <rect width="320" height="130" fill="url(#sky1)"/>
+            <ellipse cx="80" cy="138" rx="110" ry="55" fill="#2D6A5A" opacity="0.22"/>
+            <ellipse cx="240" cy="142" rx="120" ry="58" fill="#2D6A5A" opacity="0.16"/>
+            <rect x="48" y="68" width="7" height="30" rx="3" fill="#8B6F47"/>
+            <ellipse cx="51" cy="64" rx="14" ry="19" fill="#2D6A5A" opacity="0.7"/>
+            <rect x="130" y="56" width="8" height="42" rx="3" fill="#8B6F47"/>
+            <ellipse cx="134" cy="50" rx="18" ry="23" fill="#2D6A5A" opacity="0.8"/>
+            <rect x="220" y="64" width="7" height="34" rx="3" fill="#8B6F47"/>
+            <ellipse cx="223" cy="60" rx="15" ry="20" fill="#2D6A5A" opacity="0.65"/>
+            <rect x="272" y="70" width="6" height="26" rx="3" fill="#8B6F47"/>
+            <ellipse cx="275" cy="66" rx="12" ry="17" fill="#2D6A5A" opacity="0.6"/>
+            <circle cx="260" cy="32" r="18" fill="#E8A84C" opacity="0.5"/>
+            <circle cx="260" cy="32" r="12" fill="#E8A84C" opacity="0.7"/>
+            <path d="M90 28 Q93 25 96 28" stroke="#4A6B62" stroke-width="1.5" fill="none"/>
+            <path d="M102 24 Q105 21 108 24" stroke="#4A6B62" stroke-width="1.5" fill="none"/>
+            <path d="M115 30 Q118 27 121 30" stroke="#4A6B62" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+
+        <div class="context-card teal">
+          <div class="context-label teal">Today's Insight</div>
+          <div class="context-text">Your last three exposures averaged a 3-point anxiety drop. You're building real momentum.</div>
+        </div>
+
+        <div class="cta-primary">
+          <div class="cta-icon">🧗</div>
+          <div class="cta-text">
+            <div class="cta-label">Suggested challenge</div>
+            <div class="cta-title">Order at the coffee counter — alone</div>
+          </div>
+          <div class="cta-arrow">›</div>
+        </div>
+
+        <div class="divider-label">or explore</div>
+        <div class="options-row">
+          <div class="option-card">
+            <div class="option-icon">🪜</div>
+            <div class="option-label">Try a challenge</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">🌿</div>
+            <div class="option-label">Relaxation technique</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">📖</div>
+            <div class="option-label">Read about anxiety</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">🪜</div><div class="nav-label">Ladder</div></div>
+        <div class="nav-item"><div class="nav-icon">🏅</div><div class="nav-label">Achievements</div></div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="tag teal">Context-aware CTA</div>
+      Highlights the next suggested ladder item near the user's rolling SUDS average. If avg ≥ 6 with no recent exposures, a grounding technique is offered instead.
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 2: ACTIVE THREAD ===== -->
+<div class="screens" id="screen-1">
+  <div>
+    <p class="phone-label">Active thread · Committed to a challenge</p>
+    <div class="phone">
+      <div class="status-bar"><span>2:47 PM</span></div>
+
+      <div class="pause-btn">
+        <span class="pause-icon">🌊</span>
+        <span class="pause-label">Calm Me</span>
+      </div>
+
+      <div class="screen-body">
+        <div class="greeting">
+          <div class="greeting-eyebrow">Active thread</div>
+          <div class="greeting-name">Almost there, keep going!</div>
+        </div>
+
+        <div class="hero-illustration">
+          <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <defs>
+              <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#E8F2EF"/>
+                <stop offset="100%" stop-color="#D0E6DE"/>
+              </linearGradient>
+            </defs>
+            <rect width="320" height="130" fill="url(#sky2)"/>
+            <path d="M160 130 C160 112 155 94 150 76 C145 58 148 38 160 18" stroke="#2D6A5A" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 4"/>
+            <ellipse cx="157" cy="120" rx="12" ry="6" fill="#2D6A5A" opacity="0.5"/>
+            <ellipse cx="153" cy="100" rx="10" ry="5" fill="#2D6A5A" opacity="0.4"/>
+            <ellipse cx="150" cy="80" rx="11" ry="5" fill="#2D6A5A" opacity="0.35"/>
+            <ellipse cx="152" cy="60" rx="10" ry="5" fill="#E8A84C" opacity="0.7"/>
+            <circle cx="160" cy="20" r="10" fill="#E8A84C" opacity="0.6"/>
+            <circle cx="160" cy="20" r="5" fill="#E8A84C" opacity="0.9"/>
+            <ellipse cx="60" cy="95" rx="40" ry="28" fill="#2D6A5A" opacity="0.1"/>
+            <ellipse cx="260" cy="88" rx="44" ry="32" fill="#2D6A5A" opacity="0.08"/>
+          </svg>
+        </div>
+
+        <!-- Context: time remaining from user-set or default (committed + 48 hrs) deadline -->
+        <div class="context-card amber">
+          <div class="context-label amber">Committed</div>
+          <div class="context-text">Ask a colleague a question after the next meeting. You prepared for this.</div>
+        </div>
+
+        <div class="cta-primary amber-cta">
+          <div class="cta-icon">✅</div>
+          <div class="cta-text">
+            <div class="cta-label">Ready to debrief?</div>
+            <div class="cta-title">How did it go?</div>
+          </div>
+          <div class="cta-arrow">›</div>
+        </div>
+
+        <div class="divider-label">while you wait</div>
+        <div class="options-row">
+          <div class="option-card">
+            <div class="option-icon">🌬️</div>
+            <div class="option-label">Breathing exercise</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">📝</div>
+            <div class="option-label">Re-read your prep</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">🌿</div>
+            <div class="option-label">Ground yourself</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">🪜</div><div class="nav-label">Ladder</div></div>
+        <div class="nav-item"><div class="nav-icon">🏅</div><div class="nav-label">Achievements</div></div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="tag amber">Active thread state</div>
+      Context label shows time remaining (countdown). Challenge text is what the user wrote — no assumed meeting time. Default window = committed timestamp + 48 hrs; user may set a specific deadline during challenge creation.
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 3: AFTER EXPOSURE ===== -->
+<div class="screens" id="screen-2">
+  <div>
+    <p class="phone-label">Post-exposure · Debrief complete</p>
+    <div class="phone">
+      <div class="status-bar"><span>4:12 PM</span></div>
+
+      <div class="pause-btn">
+        <span class="pause-icon">🌊</span>
+        <span class="pause-label">Calm Me</span>
+      </div>
+
+      <div class="screen-body">
+        <div class="greeting">
+          <div class="greeting-eyebrow">Tuesday, May 12</div>
+          <div class="greeting-name">You did something brave today.</div>
+        </div>
+
+        <div class="hero-illustration">
+          <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <defs>
+              <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#FBF0E0"/>
+                <stop offset="60%" stop-color="#F5E0C0"/>
+                <stop offset="100%" stop-color="#E8D0A8"/>
+              </linearGradient>
+            </defs>
+            <rect width="320" height="130" fill="url(#sunset)"/>
+            <ellipse cx="100" cy="140" rx="140" ry="48" fill="#8B6F47" opacity="0.18"/>
+            <ellipse cx="240" cy="148" rx="130" ry="52" fill="#8B6F47" opacity="0.13"/>
+            <circle cx="160" cy="84" r="36" fill="#E8A84C" opacity="0.18"/>
+            <circle cx="160" cy="84" r="24" fill="#E8A84C" opacity="0.32"/>
+            <circle cx="160" cy="84" r="14" fill="#E8A84C" opacity="0.58"/>
+            <line x1="160" y1="46" x2="160" y2="36" stroke="#E8A84C" stroke-width="2" opacity="0.4"/>
+            <line x1="184" y1="60" x2="192" y2="54" stroke="#E8A84C" stroke-width="2" opacity="0.4"/>
+            <line x1="194" y1="84" x2="206" y2="84" stroke="#E8A84C" stroke-width="2" opacity="0.4"/>
+            <line x1="136" y1="60" x2="128" y2="54" stroke="#E8A84C" stroke-width="2" opacity="0.4"/>
+            <line x1="126" y1="84" x2="114" y2="84" stroke="#E8A84C" stroke-width="2" opacity="0.4"/>
+          </svg>
+        </div>
+
+        <!-- SUDS context card — numbers explained with scale and bar -->
+        <div class="context-card amber">
+          <div class="context-label amber">Prediction vs. Reality</div>
+          <div class="context-text">You expected it to feel quite hard. It actually felt more manageable.</div>
+
+          <!-- Visual SUDS comparison with labels -->
+          <div class="suds-row">
+            <span style="font-size:10px;color:var(--content-2);white-space:nowrap">Calm 0</span>
+            <div class="suds-bar" style="position:relative;">
+              <div class="suds-predicted" style="width:70%"></div>
+              <div class="suds-actual" style="width:50%"></div>
+            </div>
+            <span style="font-size:10px;color:var(--content-2);white-space:nowrap">10 Overwhelming</span>
+          </div>
+          <div class="suds-legend">
+            <div class="suds-legend-item">
+              <div class="suds-dot predicted"></div>
+              <span>Expected: 7 / 10</span>
+            </div>
+            <div class="suds-legend-item">
+              <div class="suds-dot actual"></div>
+              <span>Actual: 5 / 10</span>
+            </div>
+          </div>
+          <div class="suds-gap-note">↓ 2 points lower than expected. That gap is growth.</div>
+        </div>
+
+        <div class="cta-primary">
+          <div class="cta-icon">🌅</div>
+          <div class="cta-text">
+            <div class="cta-label">What's next</div>
+            <div class="cta-title">Pick your next challenge when you're ready</div>
+          </div>
+          <div class="cta-arrow">›</div>
+        </div>
+
+        <div class="divider-label">or take a moment</div>
+        <div class="options-row">
+          <div class="option-card">
+            <div class="option-icon">🌿</div>
+            <div class="option-label">Relaxation technique</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">🏅</div>
+            <div class="option-label">View achievements</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">📊</div>
+            <div class="option-label">My progress</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">🪜</div><div class="nav-label">Ladder</div></div>
+        <div class="nav-item"><div class="nav-icon">🏅</div><div class="nav-label">Achievements</div></div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="tag amber">SUDS context</div>
+      Numbers are always shown with the 0–10 scale anchored (Calm → Overwhelming) and a colour-coded comparison bar. The text summary avoids the raw numbers — it translates them to plain language first, then the visual shows the gap.
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATE 4: RETURN AFTER GAP ===== -->
+<div class="screens" id="screen-3">
+  <div>
+    <p class="phone-label">Return after 12-day gap</p>
+    <div class="phone">
+      <div class="status-bar"><span>10:30 AM</span></div>
+
+      <div class="pause-btn">
+        <span class="pause-icon">🌊</span>
+        <span class="pause-label">Calm Me</span>
+      </div>
+
+      <div class="screen-body">
+        <div class="greeting">
+          <div class="greeting-eyebrow">Welcome back · 12 days since last visit</div>
+          <div class="greeting-name">You're back. That's enough.</div>
+        </div>
+
+        <div class="hero-illustration">
+          <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            <defs>
+              <linearGradient id="dawn" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#D4E8E0"/>
+                <stop offset="100%" stop-color="#C4DCE8"/>
+              </linearGradient>
+            </defs>
+            <rect width="320" height="130" fill="url(#dawn)"/>
+            <path d="M0 90 Q80 80 160 90 Q240 100 320 90 L320 130 L0 130 Z" fill="#2D6A5A" opacity="0.14"/>
+            <path d="M0 100 Q80 90 160 100 Q240 110 320 100 L320 130 L0 130 Z" fill="#2D6A5A" opacity="0.09"/>
+            <path d="M80 86 Q100 83 120 86" stroke="#4A6B62" stroke-width="1" fill="none" opacity="0.45"/>
+            <path d="M190 81 Q215 78 240 81" stroke="#4A6B62" stroke-width="1" fill="none" opacity="0.38"/>
+            <circle cx="160" cy="90" r="48" fill="#E8A84C" opacity="0.09"/>
+            <circle cx="160" cy="90" r="28" fill="#E8A84C" opacity="0.11"/>
+            <rect x="148" y="48" width="7" height="40" rx="3" fill="#8B6F47" opacity="0.55"/>
+            <ellipse cx="151" cy="42" rx="16" ry="21" fill="#2D6A5A" opacity="0.45"/>
+          </svg>
+        </div>
+
+        <div class="context-card grounding">
+          <div class="context-label brown">No pressure</div>
+          <div class="context-text">It's been a while. A quick check-in helps us give you better suggestions — no commitment needed.</div>
+        </div>
+
+        <div class="cta-primary brown-cta">
+          <div class="cta-icon">🌱</div>
+          <div class="cta-text">
+            <div class="cta-label">Quick check-in</div>
+            <div class="cta-title">How am I feeling right now?</div>
+          </div>
+          <div class="cta-arrow">›</div>
+        </div>
+
+        <div class="divider-label">or jump straight in</div>
+        <div class="options-row">
+          <div class="option-card">
+            <div class="option-icon">🪜</div>
+            <div class="option-label">Try a challenge</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">🌿</div>
+            <div class="option-label">Relaxation technique</div>
+          </div>
+          <div class="option-card">
+            <div class="option-icon">📖</div>
+            <div class="option-label">Read about anxiety</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">🪜</div><div class="nav-label">Ladder</div></div>
+        <div class="nav-item"><div class="nav-icon">🏅</div><div class="nav-label">Achievements</div></div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="tag">Gap return state</div>
+      Check-in is offered as primary CTA to recalibrate SUDS baseline, but user can bypass via secondary options. No ladder nudge until recalibration completes or is dismissed.
+    </div>
+  </div>
+</div>
+
+<!-- Design notes -->
+<div class="layout-note">
+  <strong>Calm Me button</strong> — top-right corner, within natural right-thumb reach in portrait mode.
+  Teal pill style: quiet but always findable.
+  Tapping opens a grounding/breathing path immediately — no confirmation step, no thread modification.
+  The thread stays open; Calm Me is a "step away, not step out" action.<br><br>
+  <strong>SUDS display rule</strong> — raw numbers (e.g. "7") are never shown alone. Always shown with: (a) plain-language translation, (b) 0–10 scale anchors, (c) comparison bar. The visual communicates the gap; the number provides precision for users who want it.
+</div>
+
+<script>
+  function show(idx) {
+    document.querySelectorAll('.screens').forEach((s, i) => s.classList.toggle('visible', i === idx));
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  }
+</script>
+</body>
+</html>
