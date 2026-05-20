@@ -34,9 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify userInterfaceStyle is locked to light
         run: |
-          VALUE=$(node -e "const j=require('./apps/mobile/app.json'); console.log(j.expo.userInterfaceStyle)")
-          if [ "$VALUE" != "light" ]; then
-            echo "FAIL: apps/mobile/app.json userInterfaceStyle is '$VALUE', must be 'light'"
+          if ! grep -qE "userInterfaceStyle:\s*['\"]light['\"]" apps/mobile/app.config.ts; then
+            echo "FAIL: apps/mobile/app.config.ts userInterfaceStyle is not 'light'"
             echo "Dark mode is deferred to post-MVP. See ADR-DARK-MODE-NATIVEWIND."
             exit 1
           fi
