@@ -32,10 +32,10 @@ mvpScope:
   in:
     - "Taste experience: 3 preview challenges; logged-in → home; logged-out → Sign In / Sign Up / Try a Challenge"
     - "Auth: email or phone + OTP"
-    - "SPIN questionnaire (17-item): track assignment; mandatory referral screen for SPIN ≥ 40"
+    - "mini-SPIN questionnaire (3-item): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory; score ≥6 full referral screen (iCall/Vandrevala/NIMHANS) with acknowledgement required; clinical sign-off pending for ≥6 threshold in Indian urban adult wellness context"
     - "Conversational symptom check (3–4 questions) + safety behaviour checklist (15-item)"
     - "Psychoeducation inline (not front-loaded): anxiety cycle before first exposure; avoidance explainer at safety behaviour selection"
-    - "Exposure readiness gate: ≥1 prerequisite (thought record OR somatic session) before fear ladder unlocks"
+    - "Exposure readiness gate: REMOVED — hierarchy immediately accessible after onboarding; no prerequisite session required"
     - "Exposure hierarchy builder: neutral templates, SUDS 0–10 per item, stall logic (2 stalls = step down)"
     - "ERP session flow: pre-session briefing → SUDS logging → debrief"
     - "CBT techniques: thought record, cognitive distortion library, behavioural experiment"
@@ -107,10 +107,10 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 **In scope:**
 - Taste experience: 3 preview challenges accessible without authentication; logged-in users route to home; logged-out users route to Sign In / Sign Up / Try a Challenge
 - Authentication: email or phone number verified by OTP
-- SPIN questionnaire (17-item): assigned during onboarding; scores ≥40 trigger a mandatory referral screen (iCall, Vandrevala Foundation, NIMHANS) that the user must acknowledge before proceeding
+- mini-SPIN questionnaire (3-item, 0–4 per item, max 12): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory (no tap required); score ≥6 full referral screen (iCall, Vandrevala Foundation, NIMHANS) with explicit acknowledgement tap required before proceeding; full app access granted at any score; clinical sign-off pending for ≥6 threshold in Indian urban adult wellness context
 - Conversational symptom check (3–4 questions) + 15-item safety behaviour checklist
 - Psychoeducation inline, not front-loaded: anxiety cycle presented immediately before the user's first exposure; avoidance explainer presented at the moment a safety behaviour is selected
-- Exposure readiness gate: ≥1 qualifying prerequisite (thought record OR somatic session) must be completed before the exposure hierarchy unlocks
+- Exposure readiness gate: REMOVED — the exposure hierarchy is immediately accessible after onboarding; no prerequisite session required before building the courage ladder
 - Exposure hierarchy builder: neutral templates, SUDS rating 0–10 per item, stall logic — 2 consecutive stalled sessions on the same step triggers a prompt to step down
 - ERP session flow: pre-session briefing → real-time SUDS logging → structured debrief
 - CBT techniques: thought record, cognitive distortion library, behavioural experiment
@@ -170,11 +170,11 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 
 1. Discovers app → taps "Try a Challenge" (logged-out taste experience — 1 of 3 preview challenges, no account required)
 2. Converts: creates account via email or phone + OTP
-3. Onboarding: completes 17-item SPIN questionnaire; if score ≥40, sees mandatory referral screen and acknowledges before proceeding
+3. Onboarding: completes 3-item mini-SPIN questionnaire; score 0–3 proceeds silently; score 4–5 sees inline soft advisory; score ≥6 sees full referral screen and acknowledges before proceeding
 4. Completes 3–4 question conversational symptom check → 15-item safety behaviour checklist
 5. Receives inline psychoeducation on the anxiety cycle — presented immediately before first exposure is introduced, not as a front-loaded module
-6. Completes exposure readiness prerequisite (thought record or somatic session) → hierarchy builder unlocks automatically
-7. Builds personalised fear ladder: selects India-contextualised templates (speaking up in meetings, navigating hierarchy, assertiveness with authority figures), assigns SUDS rating 0–10 to each item
+6. Hierarchy builder immediately accessible — no prerequisite session required
+7. Builds personalised courage ladder: selects India-contextualised templates (speaking up in meetings, navigating hierarchy, assertiveness with authority figures), assigns SUDS rating 0–10 to each item
 8. Returns daily: completes check-in → routed to technique type based on score → initiates ERP session or technique
 9. ERP session: reads pre-session briefing → enters real-world exposure situation → logs SUDS at intervals → completes debrief → views SUDS arc confirming habituation
 10. If anxiety spikes mid-session: taps SOS → breathing coach or 5-4-3-2-1 grounding, accessible without leaving session
@@ -200,7 +200,7 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 
 1. Discovers via search (familiar with ERP terminology) → recognises protocol in app description → creates account
 2. SPIN score typically moderate; onboarding proceeds without referral gate
-3. Completes readiness prerequisite quickly given prior CBT familiarity → hierarchy builder unlocks
+3. Hierarchy builder immediately accessible — proceeds directly given prior CBT familiarity
 4. Uses app for periodic maintenance exposures at self-directed pace; no therapist link required
 5. Monitors SUDS trend graph for early signs of relapse (upward SUDS trend across sessions)
 6. **Success state:** Sustained SUDS control across 90 days; <5% monthly churn (highest LTV segment)
@@ -366,13 +366,13 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Onboarding
 
-- **FR-ONBOARD-01:** Users complete the 17-item SPIN questionnaire during onboarding; scores ≥40 display a referral screen with contact details for iCall, Vandrevala Foundation, and NIMHANS that the user must actively acknowledge before proceeding to the app
+- **FR-ONBOARD-01:** Users complete the 3-item mini-SPIN questionnaire during onboarding (each item scored 0–4, maximum score 12); three-tier response: score 0–3 — no message, proceed to app; score 4–5 — inline soft advisory shown, no tap required, user proceeds; score ≥6 — full referral screen with iCall, Vandrevala Foundation, and NIMHANS contacts, explicit acknowledgement tap required before proceeding; full app access granted after acknowledgement at any score; ≥6 threshold pending clinical sign-off for Indian urban adult population in a wellness (non-SaMD) context
 - **FR-ONBOARD-02:** Users complete a 3–4 question conversational symptom check followed by a 15-item safety behaviour checklist during onboarding; responses are stored and used to personalise the initial hierarchy template suggestions
 - **FR-ONBOARD-03:** Psychoeducation on the anxiety cycle is presented inline immediately before the user's first exposure is introduced; the avoidance explainer is presented at the moment a safety behaviour item is selected — not as a standalone front-loaded module
 
 ### Exposure Readiness Gate
 
-- **FR-GATE-01:** The exposure hierarchy is locked until the user completes at least one qualifying prerequisite: one complete thought record session or one complete somatic technique session; gate lifts automatically on completion without user action
+- ~~**FR-GATE-01:** The exposure hierarchy is locked until the user completes at least one qualifying prerequisite: one complete thought record session or one complete somatic technique session; gate lifts automatically on completion without user action~~ **REMOVED** — The exposure hierarchy is immediately accessible after onboarding; no prerequisite session is required before building the courage ladder.
 
 ### Exposure Hierarchy
 

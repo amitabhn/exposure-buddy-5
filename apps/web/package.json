@@ -1,0 +1,14 @@
+{
+  "name": "exposure-buddy-web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Web app is a Phase 2 placeholder'",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.8.3"
+  }
+}
