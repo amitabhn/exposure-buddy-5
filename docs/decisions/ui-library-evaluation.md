@@ -8,8 +8,14 @@ Stack: Expo SDK 54 / RN 0.81.6 / NativeWind v5.0.0-preview.3
 
 | Library | Version tested | Peer dep conflicts | Metro warnings | expo-doctor |
 |---|---|---|---|---|
-| @rn-primitives/* | 1.4.0 | None new (React 19.1.4 vs 19.1.0 mismatch is pre-existing via expo-router, not introduced by this library) | None new | Pre-existing warnings only (react/react-native patch version mismatches, Metro watchFolders) |
+| @rn-primitives/* | 1.4.0 | None new (React 19.1.4 vs 19.1.0 mismatch is pre-existing via expo-router, not introduced by this library) ¹ | None new | Pre-existing warnings only (react/react-native patch version mismatches, Metro watchFolders) |
 | @gorhom/bottom-sheet | 5.2.14 (evaluated, not installed) | Requires `react-native-gesture-handler` and `react-native-reanimated` as explicit native peer deps; expo-doctor warns app will crash without GestureHandlerRootView at root | N/A — not installed in final state | Would require additional native setup |
+
+¹ **Transitive dependencies introduced by @rn-primitives:**
+- `@rn-primitives/portal` → `zustand@5.0.13` (lightweight state store used for portal registration)
+- `@rn-primitives/dialog` → `@radix-ui/react-dialog@1.1.15` (web dialog semantics) → `react-dom@18.3.1`
+
+The `react-dom@18.3.1` transitive resolved against `react@19.1.4` is a cross-major version dependency. It is benign in practice — `@radix-ui/react-dialog` uses `react-dom` only for its web rendering path, which is excluded from the RN bundle by Metro's platform-specific resolution — but the mismatch appears in `pnpm-lock.yaml` and will surface in `pnpm install` peer dep warnings. Story teams should be aware when debugging dep resolution issues.
 
 **Note on pre-research finding:** The story's Dev Notes stated `@gorhom/bottom-sheet` v5 was incompatible with Reanimated v4. This was **incorrect at time of evaluation**. v5.2.14 declares `"react-native-reanimated": ">=3.16.0 || >=4.0.0-"` — Reanimated v4 is supported. The REJECT decision below is based on cost-benefit, not a compatibility blocker.
 
@@ -31,7 +37,11 @@ Stack: Expo SDK 54 / RN 0.81.6 / NativeWind v5.0.0-preview.3
 | @rn-primitives/types | 28K |
 | @rn-primitives/dialog | 76K |
 | @rn-primitives/hooks (transitive) | 40K |
-| **Total** | **~208K** |
+| zustand (transitive via portal) | 28K |
+| @radix-ui/react-dialog + react-dom (transitive via dialog) | ~320K |
+| **Total** | **~556K** |
+
+**Note on Metro app bundle impact:** The node_modules footprint above is the disk cost. The actual JS bytes added to the app bundle will be smaller — Metro tree-shakes, and `react-dom` / `@radix-ui/react-dialog`'s web-only code is excluded by platform-specific resolution. A precise Metro bundle delta was not measured in this evaluation; measure during Story 1.3 (NativeWind spike) when a dev build is available.
 
 ## 3. Accessibility Prop Passthrough
 
@@ -57,11 +67,13 @@ The spread `{ ...slotProps, ...overrideProps }` passes all arbitrary props — i
 - `DialogTitle` → `role="heading"` on the heading element
 - Additional props accepted via `{...props}` spread on all components
 
-**Result:** All four target props (`accessibilityLabel`, `accessibilityRole`, `accessibilityHint`, `aria-live`) pass through to the underlying RN component. ✅
+**Result:** `accessibilityLabel`, `accessibilityRole`, `accessibilityHint` — confirmed passing through via static analysis. ✅
+
+**Caveat — `aria-live` unverified at runtime:** `aria-live` is a web attribute. React Native's equivalent is `accessibilityLiveRegion` (`'none' | 'polite' | 'assertive'`). Static analysis confirms `aria-live` is spread to the underlying component, but does not confirm whether `@rn-primitives` maps it to `accessibilityLiveRegion` or passes the web attribute unchanged (which is a no-op on RN). Runtime verification via React DevTools Profiler or `testID` inspection is required before any component in Story 1.4+ relies on live-region announcements. ⚠️
 
 ## 4. Overlay Capability (@gorhom/bottom-sheet)
 
-Evaluated by reading v5.2.14 package metadata and `@gorhom/portal@1.0.14` (bundled peer).
+Evaluation method: `@gorhom/bottom-sheet@5.2.14` was installed into `apps/mobile` via `pnpm --filter exposure-buddy-mobile add @gorhom/bottom-sheet`, then removed after assessment. Overlay and peer dep findings are based on package metadata, `expo-doctor` output, and pnpm peer resolution — not a running dev build (no Android SDK available in evaluation environment). Runtime rendering behaviour (z-index, gesture response) was not verified on device.
 
 **Mechanism:** `@gorhom/portal` renders content into a separate React tree mounted above the main navigator, achieving JS-layer z-index elevation similar to `@rn-primitives/portal`.
 
@@ -78,6 +90,8 @@ Evaluated by reading v5.2.14 package metadata and `@gorhom/portal@1.0.14` (bundl
 ### @rn-primitives: ADOPT
 
 **Installed packages:** `@rn-primitives/slot`, `@rn-primitives/portal`, `@rn-primitives/dialog`, `@rn-primitives/types` — all at v1.4.0, installed in `packages/ui`.
+
+**Note — `@rn-primitives/pressable` does not exist on npm (404).** The story Dev Notes listed it as a target package for `AccessiblePressable` use-cases. The correct API is `Slot.Pressable` exported from `@rn-primitives/slot`, which provides the same composable pressable behaviour. Developers implementing `AccessiblePressable` in Story 1.4 should import from `@rn-primitives/slot`, not a `pressable` package.
 
 **Rationale:**
 - NativeWind-native design: primitives accept `className` props and integrate with the NativeWind v5 style injection tree without any wrapping or workaround
