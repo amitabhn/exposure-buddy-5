@@ -24,7 +24,7 @@ const config: ExpoConfig = {
       '@sentry/react-native/expo',
       {
         url: 'https://sentry.io/',
-        uploadSourceMaps: false,
+        uploadSourceMaps: true,
       },
     ],
   ],
