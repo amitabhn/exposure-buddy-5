@@ -6,14 +6,30 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "paths": {
-      "@exposure-buddy/core": ["../../packages/core/src/index.ts"],
-      "@exposure-buddy/ui": ["../../packages/ui/src/index.ts"],
-      "@exposure-buddy/supabase": ["../../packages/supabase/src/index.ts"],
-      "@exposure-buddy/sync": ["../../packages/sync/src/index.ts"]
+      "@exposure-buddy/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@exposure-buddy/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@exposure-buddy/supabase": [
+        "../../packages/supabase/src/index.ts"
+      ],
+      "@exposure-buddy/sync": [
+        "../../packages/sync/src/index.ts"
+      ]
     }
   },
-  "include": ["app/**/*", "src/**/*", "app.config.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "app/**/*",
+    "src/**/*",
+    "app.config.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
