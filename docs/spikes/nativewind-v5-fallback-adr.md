@@ -33,8 +33,8 @@ NativeWind's custom Metro transformer causes a `getDevServer is not a function (
 2. `apps/mobile` does not use a custom Metro transformer — standard `expo/metro-config` only
 3. Story 1.4 (Token System and Typography Architecture) must use StyleSheet-based design tokens, not Tailwind utility classes. The token system should define a typed JS/TS constants file (`packages/ui/src/tokens.ts`) exporting spacing, colours, typography, and radius values for use with StyleSheet.
 4. Stories in Epics 2–7 that reference NativeWind or `className` must be re-baselined before sprint entry
-5. The `tailwind.config.js` stub in `apps/mobile/` is retained but unused (no harm in leaving it)
-6. `nativewind-env.d.ts` should be removed; no `className` prop support is needed on RN components
+5. The `tailwind.config.js` in `apps/mobile/` is retained as a plain comment stub (no JSDoc type reference, no working config); `tailwindcss` is not installed and no Tailwind configuration is active
+6. `nativewind-env.d.ts` was removed during FALLBACK cleanup (Task 6b); no `className` prop support is needed on RN components
 
 ## Downstream Stories Requiring Re-baseline Before Sprint Entry
 
@@ -78,7 +78,7 @@ All stories below that include UI components built in `packages/ui` must have th
 
 **Not affected (data/infra stories):**
 
-`2-3` (partially — infra part), `3-1` through `3-5`, `4-x` data parts, `5-4`, `5-5`, `8-1` through `8-4`, `9-1`, `9-2`, `9-4`, `9-5`, `9-7`, `9-8`
+`1-7` (data/infra — no UI components), `3-1` through `3-5`, `4-x` data parts, `5-4`, `5-5`, `8-1` through `8-4`, `9-1`, `9-2`, `9-4`, `9-5`, `9-7`, `9-8`
 
 ## StyleSheet Fallback Pattern for packages/ui
 

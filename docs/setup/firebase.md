@@ -8,6 +8,19 @@ The `google-services.json` placeholder at `apps/mobile/google-services.json` mus
 - Firebase Cloud Messaging sender ID must be registered before Epic 8 notification work
 - `google-services.json` contains non-secret project config (project ID, sender ID) — safe to commit
 
+## API Key Restriction — REQUIRED ACTION
+
+`google-services.json` contains an Android API key (`current_key`). This key was **already rotated once** (git history) — restrict it immediately to prevent repeat exposure.
+
+**Steps:**
+1. Go to [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials) for the `exposure-buddy` project
+2. Find the Android API key (name: "Android key (auto created by Firebase)")
+3. Under **Application restrictions** → select **Android apps**
+4. Add package: `com.exposurebuddy.app` with the SHA-1 certificate fingerprint from your keystore
+5. Save — the key will now be rejected by Google if used from any other app or context
+
+**Verification:** Attempt to use the key from a non-Android context (e.g., a plain HTTP request) — it must return a `403 keyInvalid` error.
+
 ## Steps
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com)

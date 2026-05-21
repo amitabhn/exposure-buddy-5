@@ -1,6 +1,6 @@
 # Story 1.3: NativeWind v5 Validation Spike
 
-Status: review
+Status: done
 
 ## Story
 
@@ -490,6 +490,16 @@ apps/mobile/postcss.config.js (removed)
 apps/mobile/src/stubs/react-native-reanimated.js (removed)
 apps/mobile/src/components/spike/NativeWindSpikeTest.tsx (removed)
 
+### Review Findings
+
+Code review (2026-05-21) — 5 patches applied, 0 deferred:
+
+- [x] P1: Added `1-7` explicitly to the ADR "Not affected" section (spec minimum list requirement)
+- [x] P2: Replaced `tailwind.config.js` with a plain comment stub; removed broken `@type {import('tailwindcss').Config}` JSDoc; updated ADR Consequence 5 to reflect stub (not full config)
+- [x] P3: Added EOF newline to `apps/mobile/tsconfig.json` (introduced by formatting change)
+- [x] P4: ADR Consequence 6 tense fixed ("should be removed" → "was removed during FALLBACK cleanup"); `global.css` removal recorded in spike doc cleanup accounting; story `2-3` removed from "Not affected" list (was contradicted by its entry in the re-baseline table)
+- [x] P5: Added missing spec-required field labels (`Test:`, `Observed:`, `Notes:`) to `nativewind-v5.md` Section 1; added `Test runs (s):`, `Reload type observed:`, `Notes:` to Section 3
+
 ## Change Log
 
 | Date | Change | Author |
@@ -497,3 +507,4 @@ apps/mobile/src/components/spike/NativeWindSpikeTest.tsx (removed)
 | 2026-05-21 | Story created by create-story workflow | claude-sonnet-4-6 |
 | 2026-05-21 | Tasks 1+2 complete — NativeWind v5 installed, spike test component created, turbo build passes | claude-sonnet-4-6 |
 | 2026-05-21 | FALLBACK — Tasks 3+4 blocked by LightningCSS incompatibility + Expo Go runtime failure; Tasks 5+6b complete; all spike artifacts reverted; decision docs committed | claude-sonnet-4-6 |
+| 2026-05-21 | Code review complete — 5 patches applied | claude-sonnet-4-6 |

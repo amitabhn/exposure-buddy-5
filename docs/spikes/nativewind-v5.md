@@ -32,7 +32,7 @@ All code changes are committed. Device validation (Sections 1–4 below) require
 - `apps/mobile/package.json` — added `nativewind@5.0.0-preview.3`, `react-native-css`, `tailwindcss` devDep
 - `packages/ui/package.json` — added `nativewind@5.0.0-preview.3`
 - `apps/mobile/metro.config.js` — wrapped with `withNativewind(config, { input: './global.css' })`
-- `apps/mobile/global.css` — NEW: hand-crafted plain CSS (see Section 1 — Tailwind import blocked)
+- `apps/mobile/global.css` — NEW: hand-crafted plain CSS (see Section 1 — Tailwind import blocked); **removed in FALLBACK cleanup (Task 6b)**
 - `apps/mobile/app/_layout.tsx` — added `import '../global.css'` as first import
 - `apps/mobile/tailwind.config.js` — updated to stub comment (Tailwind v4 uses CSS config)
 - `apps/mobile/tsconfig.json` — added `*.d.ts` to include; Metro also added `nativewind-env.d.ts`
@@ -50,7 +50,10 @@ All code changes are committed. Device validation (Sections 1–4 below) require
 ## 1. CSS Custom Property Resolution (Android Hermes)
 
 Device: Not tested — see BLOCKER below
+Test: className="bg-[--spike-bg]" — expected: #4F46E5 (indigo) background — not run
+Observed: N/A — runtime failure prevented rendering (see Section 3 BLOCKER)
 Result: BLOCKED (could not reach device testing; see runtime failure in Section 3)
+Notes: See BLOCKER section below for full technical detail
 
 ### BLOCKER: Tailwind v4 CSS import incompatible with react-native-css 3.0.7
 
@@ -119,8 +122,10 @@ metroRequire
 
 **Story notes confirmation:** The story Dev Notes state "Expo Dev Client required — NativeWind v5-preview requires Dev Client." This is confirmed. Expo Go is not a valid test environment for NativeWind v5-preview.
 
-Test runs: Not completed — runtime error prevents component from loading
+Test runs (s): Not completed — runtime error prevents component from loading
 Result: FAIL — hot reload cannot be measured when app does not start
+Reload type observed: N/A
+Notes: See BLOCKER section above for full technical detail
 
 ---
 

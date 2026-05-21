@@ -1,6 +1,6 @@
 # Story 1.1: Monorepo Initialisation, Mobile App Shell & Build Pipeline
 
-Status: review
+Status: done
 
 ## Story
 
@@ -523,9 +523,22 @@ pnpm-workspace.yaml
 tsconfig.base.json
 turbo.json
 
+### Review Findings
+
+- [x] [Review][Patch] Firebase API key restriction — verify `current_key` in `apps/mobile/google-services.json` is restricted in Firebase Console to Android apps with package `com.exposurebuddy.app`; key was already rotated once (commit 8ee7a0b), confirming a prior exposure [apps/mobile/google-services.json] — restriction steps added to docs/setup/firebase.md
+- [x] [Review][Patch] `sdk-dep-audit` gate missing from `build.needs` — add `sdk-dep-audit` to `needs: [core-boundary-gate, dark-mode-gate, web-import-gate]` in `build` job so a failing audit blocks merges [.github/workflows/ci.yml:101]
+- [x] [Review][Patch] `@sentry/react-native` bypasses `sdk-dep-audit` — Sentry is a data-transmitting SDK that was never reviewed through ARC-013 gate; add to FLAGGED_PATTERNS and document as approved-in-story-1.1, or add an explicit allowlist mechanism [.github/workflows/ci.yml:83]
+- [x] [Review][Patch] `core-boundary-gate` grep misses `require()` and dynamic imports — pattern only catches `from '...'` ES module syntax; `require('react-native')` or `import('expo')` pass silently; extend regex to cover CommonJS and dynamic import forms [.github/workflows/ci.yml:22]
+- [x] [Review][Patch] `error-handler.ts` safety gaps — three related issues: (1) `Sentry.init()` throws synchronously before `ErrorUtils.setGlobalHandler` is reached; (2) `global.ErrorUtils` undefined in expo-router static/build-time context causes `TypeError`; (3) `SENTRY_DSN ?? ''` causes Sentry to silently init with blank DSN in production — add try-catch around `Sentry.init`, guard `global.ErrorUtils`, and add early-return if DSN is falsy [apps/mobile/src/error-handler.ts:3-14]
+- [x] [Review][Patch] Redundant `allowBuilds` in `pnpm-workspace.yaml` — superseded by `onlyBuiltDependencies` in pnpm v9+; remove the `allowBuilds` block [pnpm-workspace.yaml:6-8]
+- [x] [Review][Defer] `turbo.json` `.env*` cache input may expose secrets to Turbo Remote Cache — not actionable until remote cache is configured; revisit before enabling `TURBO_TOKEN` [turbo.json:7] — deferred, pre-existing
+- [x] [Review][Defer] `web-import-gate` does not account for future `apps/` directories — grep scope is limited to current known paths; low risk at current project size [.github/workflows/ci.yml:63] — deferred, pre-existing
+- [x] [Review][Defer] `typecheck` CI job rebuilds from scratch on fresh runners — `pnpm turbo typecheck` re-runs build without a shared cache, making `needs: [build]` ordering redundant and doubling CI time; address when Turbo Remote Cache is configured [.github/workflows/ci.yml:117] — deferred, pre-existing
+
 ## Change Log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-19 | Story created by create-story workflow | claude-sonnet-4-6 |
 | 2026-05-19 | Story implemented — Tasks 1–7 complete; Task 8 pending manual EAS build | claude-sonnet-4-6 |
+| 2026-05-21 | Code review findings written | claude-sonnet-4-6 |

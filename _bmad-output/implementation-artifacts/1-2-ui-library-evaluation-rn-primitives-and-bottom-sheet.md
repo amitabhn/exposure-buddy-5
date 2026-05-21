@@ -1,6 +1,6 @@
 # Story 1.2: UI Library Evaluation — rn-primitives & Bottom Sheet
 
-Status: review
+Status: done
 
 ## Story
 
@@ -220,9 +220,24 @@ docs/decisions/ui-library-evaluation.md
 packages/ui/package.json
 pnpm-lock.yaml
 
+### Review Findings
+
+- [x] [Review][Patch] `PortalHost` missing from `_layout.tsx` — memo (Section 6) instructs "PortalHost at `_layout.tsx` root" but the file has only `ThemeProvider > Stack`; any `<Portal>` usage silently renders nothing until this is added [apps/mobile/app/_layout.tsx]
+- [x] [Review][Patch] `Slot.Pressable` notation is ambiguous — memo says "use `Slot.Pressable` from `@rn-primitives/slot`" but `Slot` is not a namespace object; correct usage is `import { Pressable } from '@rn-primitives/slot'`; a developer writing `Slot.Pressable` at the call site gets `undefined`, which renders nothing silently [docs/decisions/ui-library-evaluation.md: Section 5]
+- [x] [Review][Patch] ~208K vs ~556K footprint discrepancy — Section 2 bundle table totals ~556K (including transitive deps) but Section 5 ADOPT rationale cites "Small footprint (~208K total installed)"; clarify that ~208K is @rn-primitives packages only, ~556K is total including zustand + @radix-ui/react-dialog + react-dom [docs/decisions/ui-library-evaluation.md: Sections 2 & 5]
+- [x] [Review][Patch] `expo-doctor` exit code not explicitly confirmed — AC-2 requires "expo-doctor exits 0 post-install"; memo says "Pre-existing warnings only" without stating the exit code; add explicit "expo-doctor exits 0" confirmation [docs/decisions/ui-library-evaluation.md: Section 1]
+- [x] [Review][Patch] Section 4 overlay assessment doesn't address iOS and Android separately — AC-4 requires "both iOS and Android" explicitly; Section 4 gives a single undifferentiated statement; split or annotate per-platform [docs/decisions/ui-library-evaluation.md: Section 4]
+- [x] [Review][Patch] `aria-live` gap — AC-1(c) requires prop passthrough verification but `aria-live` is unverified at runtime; memo flags this correctly but doesn't assign a follow-up story; add a specific note pointing to Story 1.4 as the verification point [docs/decisions/ui-library-evaluation.md: Section 3]
+- [x] [Review][Defer] `react-dom@18.3.1` cross-major + Expo web bundling risk — only relevant if an Expo web target is added; not in Phase 1 scope [docs/decisions/ui-library-evaluation.md: Section 1] — deferred, pre-existing
+- [x] [Review][Defer] `@rn-primitives/*` as `dependencies` vs `peerDependencies` in `packages/ui` — architectural preference; benign in internal monorepo with pnpm workspace deduplication [packages/ui/package.json] — deferred, pre-existing
+- [x] [Review][Defer] Metro cold-start not verified on a running dev server — evaluation constraint; acknowledged in memo Section 4; revisit in Story 1.3 when dev build is available — deferred, pre-existing
+- [x] [Review][Defer] `zustand` deduplication fragile on future direct zustand adoption — portal owns zustand as a runtime dep; two-version risk if a future package pins a different range — deferred, pre-existing
+- [x] [Review][Defer] `@radix-ui/react-dialog` web-only code bundled on Expo web target — not in Phase 1 scope; revisit before adding Expo web — deferred, pre-existing
+
 ## Change Log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-20 | Story created by create-story workflow | claude-sonnet-4-6 |
 | 2026-05-20 | Story implemented — @rn-primitives ADOPT, @gorhom/bottom-sheet REJECT, decision memo authored | claude-sonnet-4-6 |
+| 2026-05-21 | Code review findings written | claude-sonnet-4-6 |

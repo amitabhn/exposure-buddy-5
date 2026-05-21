@@ -8,7 +8,7 @@ Stack: Expo SDK 54 / RN 0.81.6 / NativeWind v5.0.0-preview.3
 
 | Library | Version tested | Peer dep conflicts | Metro warnings | expo-doctor |
 |---|---|---|---|---|
-| @rn-primitives/* | 1.4.0 | None new (React 19.1.4 vs 19.1.0 mismatch is pre-existing via expo-router, not introduced by this library) ¹ | None new | Pre-existing warnings only (react/react-native patch version mismatches, Metro watchFolders) |
+| @rn-primitives/* | 1.4.0 | None new (React 19.1.4 vs 19.1.0 mismatch is pre-existing via expo-router, not introduced by this library) ¹ | None new | Pre-existing warnings only (react/react-native patch version mismatches, Metro watchFolders) — **expo-doctor exits 0** |
 | @gorhom/bottom-sheet | 5.2.14 (evaluated, not installed) | Requires `react-native-gesture-handler` and `react-native-reanimated` as explicit native peer deps; expo-doctor warns app will crash without GestureHandlerRootView at root | N/A — not installed in final state | Would require additional native setup |
 
 ¹ **Transitive dependencies introduced by @rn-primitives:**
@@ -69,7 +69,7 @@ The spread `{ ...slotProps, ...overrideProps }` passes all arbitrary props — i
 
 **Result:** `accessibilityLabel`, `accessibilityRole`, `accessibilityHint` — confirmed passing through via static analysis. ✅
 
-**Caveat — `aria-live` unverified at runtime:** `aria-live` is a web attribute. React Native's equivalent is `accessibilityLiveRegion` (`'none' | 'polite' | 'assertive'`). Static analysis confirms `aria-live` is spread to the underlying component, but does not confirm whether `@rn-primitives` maps it to `accessibilityLiveRegion` or passes the web attribute unchanged (which is a no-op on RN). Runtime verification via React DevTools Profiler or `testID` inspection is required before any component in Story 1.4+ relies on live-region announcements. ⚠️
+**Caveat — `aria-live` unverified at runtime:** `aria-live` is a web attribute. React Native's equivalent is `accessibilityLiveRegion` (`'none' | 'polite' | 'assertive'`). Static analysis confirms `aria-live` is spread to the underlying component, but does not confirm whether `@rn-primitives` maps it to `accessibilityLiveRegion` or passes the web attribute unchanged (which is a no-op on RN). **Follow-up required in Story 1.4:** before any component relies on live-region announcements, verify `accessibilityLiveRegion` behaviour via React DevTools Profiler or Accessibility Inspector on a running dev build. ⚠️
 
 ## 4. Overlay Capability (@gorhom/bottom-sheet)
 
@@ -78,10 +78,12 @@ Evaluation method: `@gorhom/bottom-sheet@5.2.14` was installed into `apps/mobile
 **Mechanism:** `@gorhom/portal` renders content into a separate React tree mounted above the main navigator, achieving JS-layer z-index elevation similar to `@rn-primitives/portal`.
 
 **Findings:**
-- Can render above all JS-layer UI on both iOS and Android via `@gorhom/portal`
-- Cannot render above **native-layer** system UI (share sheets, image pickers, keyboard) — same limitation as all JS portal solutions
-- Requires `GestureHandlerRootView` at the app root to function; without it, expo-doctor warns the app will crash on Android
-- NativeWind `className` props do **not** apply to `BottomSheetView` — bottom-sheet renders outside the NativeWind style injection tree; all content inside must use inline styles or `StyleSheet`, not NativeWind classes
+
+**Android:** Can render above all JS-layer UI via `@gorhom/portal` (separate React tree mounted above the main navigator). Cannot render above native-layer system UI (share sheets, image pickers, keyboard). Requires `GestureHandlerRootView` at the app root; without it, expo-doctor warns the app will crash on Android.
+
+**iOS:** Same JS-layer elevation mechanism via `@gorhom/portal`. No `GestureHandlerRootView` crash risk on iOS (iOS gesture handling is less strict), but the peer dependency must still be installed. Cannot render above native-layer system UI on iOS either.
+
+**Both platforms:** NativeWind `className` props do **not** apply to `BottomSheetView` — bottom-sheet renders outside the NativeWind style injection tree; all content inside must use inline styles or `StyleSheet`, not NativeWind classes.
 
 **Verdict for CalmMeButton overlay:** The JS-layer elevation requirement (UX-DR8) is met, but the NativeWind styling constraint and native setup cost make this unnecessarily complex for MVP. See Section 6.
 
@@ -91,7 +93,11 @@ Evaluation method: `@gorhom/bottom-sheet@5.2.14` was installed into `apps/mobile
 
 **Installed packages:** `@rn-primitives/slot`, `@rn-primitives/portal`, `@rn-primitives/dialog`, `@rn-primitives/types` — all at v1.4.0, installed in `packages/ui`.
 
-**Note — `@rn-primitives/pressable` does not exist on npm (404).** The story Dev Notes listed it as a target package for `AccessiblePressable` use-cases. The correct API is `Slot.Pressable` exported from `@rn-primitives/slot`, which provides the same composable pressable behaviour. Developers implementing `AccessiblePressable` in Story 1.4 should import from `@rn-primitives/slot`, not a `pressable` package.
+**Note — `@rn-primitives/pressable` does not exist on npm (404).** The story Dev Notes listed it as a target package for `AccessiblePressable` use-cases. The correct substitute is the `Pressable` named export from `@rn-primitives/slot`:
+```ts
+import { Pressable } from '@rn-primitives/slot'
+```
+Do **not** write `Slot.Pressable` at the call site — `Slot` is a composition function, not a namespace object; `Slot.Pressable` evaluates to `undefined` and renders nothing. Developers implementing `AccessiblePressable` in Story 1.4 should use the named import above.
 
 **Rationale:**
 - NativeWind-native design: primitives accept `className` props and integrate with the NativeWind v5 style injection tree without any wrapping or workaround
@@ -99,7 +105,7 @@ Evaluation method: `@gorhom/bottom-sheet@5.2.14` was installed into `apps/mobile
 - Accessibility prop passthrough confirmed via source inspection: all props including `accessibilityLabel`, `accessibilityRole`, `accessibilityHint`, `aria-live` reach the underlying RN component unchanged
 - Semantic ARIA roles built in (button, dialog, heading) — correct defaults for accessible primitive components
 - `@rn-primitives/portal` covers the CalmMeButton JS-layer overlay requirement without adding native modules
-- Small footprint (~208K total installed); no native module setup required
+- Footprint: ~208K for the four @rn-primitives packages themselves; ~556K total node_modules including transitive deps (zustand@5.0.13, @radix-ui/react-dialog@1.1.15, react-dom@18.3.1); no native module setup required
 - pnpm turbo build exits 0; no new Metro warnings at cold start
 
 ### @gorhom/bottom-sheet: REJECT (for MVP)
