@@ -5,7 +5,3 @@ packages:
 allowBuilds:
   '@sentry/cli': true
   esbuild: true
-
-onlyBuiltDependencies:
-  - "@sentry/cli"
-  - esbuild

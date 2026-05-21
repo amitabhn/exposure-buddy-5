@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '9'
 
 jobs:
   # ─── Gate 1: packages/core import boundary (ARC-011) ───────────────────────
@@ -19,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check packages/core has no forbidden imports
         run: |
-          if grep -rE "from ['\"]react-native|from ['\"]expo|from ['\"]@supabase" packages/core/src 2>/dev/null; then
+          if grep -rE "from ['\"]react-native|from ['\"]expo|from ['\"]@supabase|require\(['\"]react-native|require\(['\"]expo|require\(['\"]@supabase|import\(['\"]react-native|import\(['\"]expo|import\(['\"]@supabase" packages/core/src 2>/dev/null; then
             echo "FAIL: packages/core contains forbidden imports (react-native, expo-*, @supabase/*)"
             echo "packages/core must remain pure TypeScript with zero framework dependencies (ARC-011)"
             exit 1
@@ -63,13 +62,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Flag new third-party data-transmitting dependencies
         run: |
-          FLAGGED_PATTERNS=("analytics" "posthog" "mixpanel" "amplitude" "datadog" "newrelic" "crashlytics" "firebase" "segment" "heap" "fullstory")
+          # ARC-013: Approved data-transmitting deps — reviewed and signed off
+          # Add to this list (with story reference) when a new one is approved via PR review
+          APPROVED_DEPS=(
+            "@sentry/react-native"  # Story 1.1 — crash reporting to sentry.io, approved
+          )
+
+          FLAGGED_PATTERNS=("sentry" "analytics" "posthog" "mixpanel" "amplitude" "datadog" "newrelic" "crashlytics" "firebase" "segment" "heap" "fullstory")
           FOUND_ISSUES=0
           for pattern in "${FLAGGED_PATTERNS[@]}"; do
             MATCHES=$(grep -ril "\"$pattern" apps/*/package.json packages/*/package.json 2>/dev/null || true)
             if [ -n "$MATCHES" ]; then
-              echo "REVIEW REQUIRED: '$pattern' found in — $MATCHES"
-              FOUND_ISSUES=1
+              for match_file in $MATCHES; do
+                UNAPPROVED=$(grep -i "\"$pattern" "$match_file" || true)
+                for approved in "${APPROVED_DEPS[@]}"; do
+                  UNAPPROVED=$(echo "$UNAPPROVED" | grep -v "\"$approved\"" || true)
+                done
+                if [ -n "$UNAPPROVED" ]; then
+                  echo "REVIEW REQUIRED: '$pattern' found in $match_file"
+                  echo "$UNAPPROVED"
+                  FOUND_ISSUES=1
+                fi
+              done
             fi
           done
           if [ "$FOUND_ISSUES" -eq 1 ]; then
@@ -82,12 +96,10 @@ jobs:
   build:
     name: "Build all packages"
     runs-on: ubuntu-latest
-    needs: [core-boundary-gate, dark-mode-gate, web-import-gate]
+    needs: [core-boundary-gate, dark-mode-gate, web-import-gate, sdk-dep-audit]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -105,8 +117,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
