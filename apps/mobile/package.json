@@ -8,7 +8,11 @@
     "ios": "expo run:ios",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app src --ext .ts,.tsx"
+    "lint": "eslint app src --ext .ts,.tsx",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "jest-expo"
   },
   "dependencies": {
     "@exposure-buddy/core": "workspace:*",
@@ -35,7 +39,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@testing-library/react-native": "^13.0.0",
+    "@types/jest": "^29.0.0",
     "@types/react": "^19.1.4",
+    "jest-expo": "~54.0.0",
+    "react-test-renderer": "19.1.4",
     "typescript": "^5.8.3"
   }
 }
