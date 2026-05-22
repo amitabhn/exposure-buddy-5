@@ -1,6 +1,6 @@
 # Story 1.6: Developer Infrastructure — i18n Scaffold & Accessibility Gates
 
-Status: review
+Status: done
 
 ## Story
 
@@ -722,9 +722,21 @@ claude-sonnet-4-6
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `pnpm-lock.yaml`
 
+### Review Findings
+
+- [x] [Review][Decision] AC2 lint mode scope — resolved: broadened to `mode: 'all'` with `jsx-attributes.exclude` (testID, nativeID, name, accessibilityRole) and `callees.exclude` (StyleSheet.create, console.*). Validated: `pnpm turbo lint` passes clean.
+- [x] [Review][Decision] AC3 scope — resolved: required-label constraint applies to `AccessiblePressable` only; `AccessibleText` stays as-is with explanatory comment documenting design intent.
+- [x] [Review][Patch] i18n init: BCP-47 normalized with `.split('-')[0]`; pre-loaded resources ensure synchronous init in v26; `.catch(console.error)` added for defensive error handling [apps/mobile/src/i18n/index.ts]
+- [x] [Review][Patch] AC5 test fixed — `findNodeHandle` mocked to return `1`; `reduced: true` test now asserts `toHaveBeenCalledWith(1)` [apps/mobile/src/hooks/useFocusOnMount.test.tsx]
+- [x] [Review][Patch] `apps/web` TypeScript parser added — `@typescript-eslint/parser` added to devDeps and `.eslintrc.js` [apps/web]
+- [x] [Review][Defer] i18n side-effect import mid-block — positioned between other imports; import auto-fixers could reorder and break init sequence [apps/mobile/app/_layout.tsx:7] — deferred, pre-existing ordering pattern
+- [x] [Review][Defer] useFocusOnMount stale reduced:true boot — AnimationContext defaults `reduced: true` before `isReduceMotionEnabled` resolves; first focus event may steal accessibility focus on non-reduced-motion systems [apps/mobile/src/hooks/useFocusOnMount.ts:17] — deferred, pre-existing AnimationContext design from Story 1.5
+- [x] [Review][Defer] useFocusEffect no cleanup — callback returns nothing; stale native handle may be targeted if navigation interrupts before TalkBack processes focus [apps/mobile/src/hooks/useFocusOnMount.ts:18] — deferred, low risk at scaffold stage
+
 ## Change Log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-22 | Story created by create-story workflow | claude-sonnet-4-6 |
 | 2026-05-22 | Story implemented — all 8 tasks complete, all CI gates pass | claude-sonnet-4-6 |
+| 2026-05-22 | Code review complete — 2 decisions needed, 4 patches, 3 deferred | code-review |

@@ -32,13 +32,11 @@ describe('useFocusOnMount', () => {
     expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
   })
 
-  it('attempts focus placement when reduced is true (null guard prevents call with null handle)', () => {
+  it('calls setAccessibilityFocus with the node handle when reduced is true', () => {
     (useAnimation as jest.Mock).mockReturnValue({ reduced: true })
-    // findNodeHandle returns null for unmounted refs in Jest — the null guard `if (handle !== null)`
-    // prevents calling setAccessibilityFocus with a null handle. This test verifies the
-    // reduced-true branch executes without error and the null guard works correctly.
-    expect(() => renderHook(() => useFocusOnMount())).not.toThrow()
-    // setAccessibilityFocus is NOT called because findNodeHandle returns null in test env
-    expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+    // Mock findNodeHandle to return a valid handle so the focus call can be asserted (AC5)
+    jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(1)
+    renderHook(() => useFocusOnMount())
+    expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(1)
   })
 })

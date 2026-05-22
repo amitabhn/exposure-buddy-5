@@ -8,6 +8,7 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.59.4",
     "eslint": "^8.57.0",
     "typescript": "^5.8.3"
   }

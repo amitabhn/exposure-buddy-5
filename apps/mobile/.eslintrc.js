@@ -17,8 +17,33 @@ module.exports = {
     global: 'readonly',  // React Native global object
   },
   rules: {
-    // i18n gate: reject raw string literals in JSX (FR-I18N-01)
-    'i18next/no-literal-string': ['error', { mode: 'jsx-text-only' }],
+    // i18n gate: reject hardcoded strings in JSX text and prop values (FR-I18N-01)
+    'i18next/no-literal-string': [
+      'error',
+      {
+        mode: 'all',
+        'jsx-attributes': {
+          exclude: [
+            // plugin defaults
+            'className', 'styleName', 'style', 'type', 'key', 'id', 'width', 'height',
+            // RN/Expo Router structural props — route identifiers and semantic roles, not user strings
+            'testID', 'nativeID', 'name', 'accessibilityRole',
+          ],
+        },
+        callees: {
+          exclude: [
+            // plugin defaults (must re-specify — callees option replaces, not extends, defaults)
+            'i18n(ext)?', 't', 'require', 'addEventListener', 'removeEventListener',
+            'postMessage', 'getElementById', 'dispatch', 'commit',
+            'includes', 'indexOf', 'endsWith', 'startsWith',
+            // strings inside StyleSheet.create() are CSS property values, not translatable text
+            'StyleSheet\\.create',
+            // console calls are developer-facing debug output, not user-visible strings
+            'console\\.(log|warn|error|info|debug)',
+          ],
+        },
+      },
+    ],
     // a11y gate: Pressable/TouchableOpacity must have accessibilityLabel (NFR-ACCESS-01)
     'react-native-a11y/has-accessibility-props': 'error',
     // TypeScript declaration files use declare — no-unused-vars is a false positive
