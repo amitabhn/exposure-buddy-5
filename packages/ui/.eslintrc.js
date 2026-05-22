@@ -1,6 +1,8 @@
 module.exports = {
   root: true,
   extends: ['eslint:recommended'],
+  parser: '@typescript-eslint/parser',
+  parserOptions: { ecmaVersion: 2020, sourceType: 'module', ecmaFeatures: { jsx: true } },
   rules: {
     'no-restricted-imports': [
       'error',
@@ -16,6 +18,26 @@ module.exports = {
     ],
   },
   overrides: [
+    {
+      // primitives/ is the React Native abstraction layer — react-native imports are
+      // required here by design. Approved exception: removing only the react-native
+      // pattern while keeping all other boundary restrictions intact.
+      files: ['src/primitives/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              '@supabase/*',
+              '@exposure-buddy/sync',
+              '@exposure-buddy/supabase',
+              // react-native intentionally OMITTED for primitives — this is the RN abstraction layer
+              'expo-*',
+            ],
+          },
+        ],
+      },
+    },
     {
       // no-grounding-token-in-context: groundingTokens must not be imported in
       // Context or Provider files — the grounding surface has a 2s access SLA and

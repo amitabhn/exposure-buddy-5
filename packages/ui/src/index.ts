@@ -3,3 +3,5 @@
 // Styling approach: React Native StyleSheet.create() with typed tokens from packages/ui/src/tokens/theme.ts
 export { color, motion, haptic, spacing, radius, tapTarget, typography, groundingTokens } from './tokens/theme'
 export type { DmSerifSurface } from './tokens/theme'
+export { AccessiblePressable } from './primitives/AccessiblePressable'
+export { AccessibleText } from './primitives/AccessibleText'

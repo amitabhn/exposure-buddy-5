@@ -1,0 +1,18 @@
+{
+  "common": {
+    "appName": "Exposure Buddy"
+  },
+  "nav": {
+    "home": "Home"
+  },
+  "error": {
+    "notFoundTitle": "Oops!",
+    "screenNotFound": "This screen does not exist.",
+    "goHome": "Go to home screen!"
+  },
+  "auth": {
+    "signin": {
+      "placeholder": "Sign in — Story 2.1"
+    }
+  }
+}

@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 // Placeholder — OTP authentication implemented in Story 2.1
 export default function SignInScreen() {
+  const { t } = useTranslation()
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Exposure Buddy</Text>
-      <Text style={styles.subtitle}>Sign in — Story 2.1</Text>
+      <Text style={styles.title}>{t('common.appName')}</Text>
+      <Text style={styles.subtitle}>{t('auth.signin.placeholder')}</Text>
     </View>
   )
 }
