@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router'
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { PortalHost } from '@rn-primitives/portal'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { initErrorHandler } from '../src/error-handler'
+import { ReducedMotionProvider } from '../src/contexts/AnimationContext'
 import { useFonts } from 'expo-font'
 import {
   Inter_400Regular,
@@ -47,9 +49,13 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }} />
-      <PortalHost />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ReducedMotionProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack screenOptions={{ headerShown: false }} />
+          <PortalHost />
+        </ThemeProvider>
+      </ReducedMotionProvider>
+    </SafeAreaProvider>
   )
 }

@@ -1,6 +1,6 @@
 # Story 1.5: Motion, Layout & Mode Foundations
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -41,45 +41,45 @@ so that every subsequent screen inherits correct motion behaviour, safe area han
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Set up Jest for `apps/mobile` (AC: 1)
-  - [ ] Add `jest-expo@~54.0.0` and `@testing-library/react-native` as devDependencies in `apps/mobile/package.json`
-  - [ ] Add `@types/jest` as devDependency
-  - [ ] Add `"test": "jest"` script to `apps/mobile/package.json`
-  - [ ] Add `"jest": { "preset": "jest-expo" }` config to `apps/mobile/package.json`
-  - [ ] Verify `pnpm --filter exposure-buddy-mobile test` runs (zero tests pass is fine at this point)
+- [x] Task 1 — Set up Jest for `apps/mobile` (AC: 1)
+  - [x] Add `jest-expo@~54.0.0` and `@testing-library/react-native` as devDependencies in `apps/mobile/package.json`
+  - [x] Add `@types/jest` as devDependency
+  - [x] Add `"test": "jest"` script to `apps/mobile/package.json`
+  - [x] Add `"jest": { "preset": "jest-expo" }` config to `apps/mobile/package.json`
+  - [x] Verify `pnpm --filter exposure-buddy-mobile test` runs (zero tests pass is fine at this point)
 
-- [ ] Task 2 — Author `AnimationContext` + `ReducedMotionProvider` (AC: 1, 2, 3)
-  - [ ] Create `apps/mobile/src/contexts/AnimationContext.tsx` with `AnimationContext`, `ReducedMotionProvider` export, and `useAnimation` hook (see Dev Notes — Implementation)
-  - [ ] Default context value is `{ reduced: true }` (fail-safe)
-  - [ ] `ReducedMotionProvider` reads `AccessibilityInfo.isReduceMotionEnabled()` at mount
-  - [ ] `ReducedMotionProvider` subscribes to `AccessibilityInfo.addEventListener('reduceMotionChanged', handler)` with cleanup on unmount
-  - [ ] Write Jest test at `apps/mobile/src/contexts/AnimationContext.test.tsx` (see Dev Notes — Test)
+- [x] Task 2 — Author `AnimationContext` + `ReducedMotionProvider` (AC: 1, 2, 3)
+  - [x] Create `apps/mobile/src/contexts/AnimationContext.tsx` with `AnimationContext`, `ReducedMotionProvider` export, and `useAnimation` hook (see Dev Notes — Implementation)
+  - [x] Default context value is `{ reduced: true }` (fail-safe)
+  - [x] `ReducedMotionProvider` reads `AccessibilityInfo.isReduceMotionEnabled()` at mount
+  - [x] `ReducedMotionProvider` subscribes to `AccessibilityInfo.addEventListener('reduceMotionChanged', handler)` with cleanup on unmount
+  - [x] Write Jest test at `apps/mobile/src/contexts/AnimationContext.test.tsx` (see Dev Notes — Test)
 
-- [ ] Task 3 — Wire providers into `_layout.tsx` (AC: 1, 4)
-  - [ ] Add `SafeAreaProvider` from `react-native-safe-area-context` (already installed v5.6.2)
-  - [ ] Add `ReducedMotionProvider` from `../src/contexts/AnimationContext`
-  - [ ] Nesting order: `SafeAreaProvider` → `ReducedMotionProvider` → `ThemeProvider` → `Stack` + `PortalHost`
-  - [ ] All three providers must be inside the font-loading guard (after null-return) — consistent with existing pattern
-  - [ ] Preserve existing: `initErrorHandler()`, `SplashScreen.preventAutoHideAsync()`, `useFonts`, `splashHidden` ref, `useEffect`, `PortalHost`
+- [x] Task 3 — Wire providers into `_layout.tsx` (AC: 1, 4)
+  - [x] Add `SafeAreaProvider` from `react-native-safe-area-context` (already installed v5.6.2)
+  - [x] Add `ReducedMotionProvider` from `../src/contexts/AnimationContext`
+  - [x] Nesting order: `SafeAreaProvider` → `ReducedMotionProvider` → `ThemeProvider` → `Stack` + `PortalHost`
+  - [x] All three providers must be inside the font-loading guard (after null-return) — consistent with existing pattern
+  - [x] Preserve existing: `initErrorHandler()`, `SplashScreen.preventAutoHideAsync()`, `useFonts`, `splashHidden` ref, `useEffect`, `PortalHost`
 
-- [ ] Task 4 — Author three mode briefs (AC: 5)
-  - [ ] Create `docs/ux/mode-briefs/` directory
-  - [ ] Write `docs/ux/mode-briefs/preparation.md` (see Dev Notes — Mode Briefs)
-  - [ ] Write `docs/ux/mode-briefs/in-the-moment.md`
-  - [ ] Write `docs/ux/mode-briefs/reflection.md`
-  - [ ] Each brief includes: director's statement, token surface table (bg colour, motion duration, touch target), haptic language, key behaviours, PM sign-off field
+- [x] Task 4 — Author three mode briefs (AC: 5)
+  - [x] Create `docs/ux/mode-briefs/` directory
+  - [x] Write `docs/ux/mode-briefs/preparation.md` (see Dev Notes — Mode Briefs)
+  - [x] Write `docs/ux/mode-briefs/in-the-moment.md`
+  - [x] Write `docs/ux/mode-briefs/reflection.md`
+  - [x] Each brief includes: director's statement, token surface table (bg colour, motion duration, touch target), haptic language, key behaviours, PM sign-off field
 
-- [ ] Task 5 — Author ADR-CALMME-RENDER.md (AC: 6)
-  - [ ] Write `_bmad-output/planning-artifacts/adrs/ADR-CALMME-RENDER.md`
-  - [ ] Record the decided choice: `@rn-primitives/portal` (JS-layer only) via `<PortalHost>` already in `_layout.tsx`
-  - [ ] Reference Story 1.2 evaluation that informed the decision
-  - [ ] Document the JS-layer limitation explicitly (does not float above native system UI)
-  - [ ] Record sign-off fields
+- [x] Task 5 — Author ADR-CALMME-RENDER.md (AC: 6)
+  - [x] Write `_bmad-output/planning-artifacts/adrs/ADR-CALMME-RENDER.md`
+  - [x] Record the decided choice: `@rn-primitives/portal` (JS-layer only) via `<PortalHost>` already in `_layout.tsx`
+  - [x] Reference Story 1.2 evaluation that informed the decision
+  - [x] Document the JS-layer limitation explicitly (does not float above native system UI)
+  - [x] Record sign-off fields
 
-- [ ] Task 6 — Build validation (all ACs)
-  - [ ] Run `pnpm turbo build` — verify exit 0
-  - [ ] Run `pnpm turbo typecheck` — verify exit 0
-  - [ ] Run `pnpm --filter exposure-buddy-mobile test` — verify Jest test passes
+- [x] Task 6 — Build validation (all ACs)
+  - [x] Run `pnpm turbo build` — verify exit 0
+  - [x] Run `pnpm turbo typecheck` — verify exit 0
+  - [x] Run `pnpm --filter exposure-buddy-mobile test` — verify Jest test passes
 
 ## Dev Notes
 
@@ -406,12 +406,34 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
+- **Task 1:** `jest.requireActual('react-native')` in the mock factory triggers RN 0.81 new-arch `TurboModuleRegistry.getEnforcing('DevMenu')` in Jest environment → replaced with `jest.spyOn` approach which uses `jest-expo`'s existing RN mock without loading native modules.
+- **Task 2:** `addEventListener` TypeScript overload mismatch — `mockImplementation` parameter types must use `unknown` to avoid the `AccessibilityAnnouncementFinishedEventHandler` overload clash.
+- **Task 1:** Added `react-test-renderer@19.1.4` (pinned, not `^`) to match `react@19.1.4` — `@testing-library/react-native` v13 enforces exact version parity.
+
 ### Completion Notes List
 
+- **Task 1:** Jest set up for `apps/mobile` using `jest-expo` preset. Added `jest-expo@~54.0.0`, `@testing-library/react-native@^13.0.0`, `@types/jest@^29.0.0`, `react-test-renderer@19.1.4` as devDependencies. `"test": "jest"` script and `"jest": { "preset": "jest-expo" }` config added to `package.json`.
+- **Task 2:** `AnimationContext.tsx` authored with fail-safe default `{ reduced: true }`, async `isReduceMotionEnabled()` read at mount, live `reduceMotionChanged` listener with cleanup. Test uses `jest.spyOn` (not `jest.requireActual`) to avoid RN 0.81 TurboModule issues. 2 tests pass.
+- **Task 3:** `SafeAreaProvider` and `ReducedMotionProvider` wired into `_layout.tsx`. Nesting: `SafeAreaProvider` → `ReducedMotionProvider` → `ThemeProvider` → `Stack` + `PortalHost`. All existing code preserved.
+- **Task 4:** Three mode briefs authored at `docs/ux/mode-briefs/` — preparation (200ms `easeOut`, `tapTarget.standard`), in-the-moment (400ms `easeInOut`, `tapTarget.inTheMoment` 56×56px, zero-network rule), reflection (600ms `easeOut`, `reflect.background`). Each includes director's statement, token surface table, haptic language, key behaviours, and PM sign-off field.
+- **Task 5:** `ADR-CALMME-RENDER.md` authored. Decided: `@rn-primitives/portal` via existing `<PortalHost>`. Rejection of `@gorhom/bottom-sheet` (no MVP need + native module cost) documented. JS-layer limitation explicitly stated. Keyboard edge case deferred to `ADR-CALMME-KEYBOARD.md`.
+- **Task 6:** All CI gates pass — `pnpm turbo build` exit 0, `pnpm turbo typecheck` exit 0, Jest 2/2 tests pass.
+
 ### File List
+
+- `apps/mobile/src/contexts/AnimationContext.tsx` — new
+- `apps/mobile/src/contexts/AnimationContext.test.tsx` — new
+- `apps/mobile/app/_layout.tsx` — modified (SafeAreaProvider + ReducedMotionProvider added)
+- `apps/mobile/package.json` — modified (jest deps + test script + jest config)
+- `docs/ux/mode-briefs/preparation.md` — new
+- `docs/ux/mode-briefs/in-the-moment.md` — new
+- `docs/ux/mode-briefs/reflection.md` — new
+- `_bmad-output/planning-artifacts/adrs/ADR-CALMME-RENDER.md` — new
+- `pnpm-lock.yaml` — auto-updated
 
 ## Change Log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-21 | Story created by create-story workflow | claude-sonnet-4-6 |
+| 2026-05-22 | Story implemented: AnimationContext, ReducedMotionProvider, SafeAreaProvider at root, three mode briefs, ADR-CALMME-RENDER. All CI gates green. | claude-sonnet-4-6 |
