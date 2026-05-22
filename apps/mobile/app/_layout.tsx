@@ -4,6 +4,7 @@ import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { initErrorHandler } from '../src/error-handler'
 import { ReducedMotionProvider } from '../src/contexts/AnimationContext'
+import '../src/i18n'
 import { useFonts } from 'expo-font'
 import {
   Inter_400Regular,
