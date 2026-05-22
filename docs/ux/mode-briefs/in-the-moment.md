@@ -27,7 +27,9 @@ Stripped. Immediate. Zero overhead — the app recedes to a tool in the hand.
 - `SudsScale` requires reduced motion support; collapse all durations to 0ms when `useAnimation().reduced` is `true`.
 - 2-second access SLA from anywhere in the app: tapping CalmMeButton must reach an In-the-moment surface within 2 seconds.
 - All animation durations must come from `motion.grounding` tokens — no hardcoded values. All collapse to `0ms` when `reduced: true`.
-- `groundingTokens` must **not** be imported in any Context or Provider file.
+- `DM Serif Display` is **not** permitted in In-the-moment surfaces; use Inter only.
+- `spacing[10]` (extra breathing room) is **not** applied in In-the-moment; reserve for Reflection.
+- `groundingTokens` must **not** be imported in any Context or Provider file — this rule is automatically enforced by ESLint in `packages/ui/.eslintrc.js`.
 
 ## PM Sign-off
 

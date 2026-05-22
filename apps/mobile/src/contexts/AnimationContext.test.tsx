@@ -24,10 +24,10 @@ describe('AnimationContext', () => {
   })
 
   it('updates within one render cycle when reduceMotionChanged fires', () => {
-    let capturedHandler: (isEnabled: boolean) => void = () => {}
+    let capturedHandler: (isEnabled: unknown) => void = () => {}
     jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(
       (_event: unknown, handler: unknown) => {
-        capturedHandler = handler as (isEnabled: boolean) => void
+        capturedHandler = handler as (isEnabled: unknown) => void
         return { remove: jest.fn() } as any
       },
     )
@@ -35,6 +35,41 @@ describe('AnimationContext', () => {
     const { result } = renderHook(() => useAnimation(), { wrapper })
 
     act(() => {
+      capturedHandler(true)
+    })
+
+    expect(result.current.reduced).toBe(true)
+  })
+
+  it('removes event listener on unmount', () => {
+    const removeMock = jest.fn()
+    jest.spyOn(AccessibilityInfo, 'addEventListener').mockReturnValue({ remove: removeMock } as any)
+    const { unmount } = renderHook(() => useAnimation(), { wrapper })
+    unmount()
+    expect(removeMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('remains reduced: true when isReduceMotionEnabled rejects', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockRejectedValue(new Error('API failure'))
+    const { result } = renderHook(() => useAnimation(), { wrapper })
+    await act(async () => {})
+    expect(result.current.reduced).toBe(true)
+  })
+
+  it('reflects last value after rapid successive reduceMotionChanged events', () => {
+    let capturedHandler: (isEnabled: unknown) => void = () => {}
+    jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(
+      (_event: unknown, handler: unknown) => {
+        capturedHandler = handler as (isEnabled: unknown) => void
+        return { remove: jest.fn() } as any
+      },
+    )
+
+    const { result } = renderHook(() => useAnimation(), { wrapper })
+
+    act(() => {
+      capturedHandler(true)
+      capturedHandler(false)
       capturedHandler(true)
     })
 

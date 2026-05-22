@@ -11,7 +11,7 @@ Warm, containing, quiet forward momentum — a dojo, not a spa.
 | Background colour | `surface.primary` | `#F5F7F6` |
 | Motion duration | `motion.preparing.duration` | `200ms` |
 | Motion easing | `motion.preparing.easing` | `easeOut` |
-| Touch target | `tapTarget.standard` | `44×44pt` |
+| Touch target | `tapTarget.standard` | `44×44pt` iOS / `48dp` Android |
 
 ## Haptic Language
 
@@ -27,6 +27,7 @@ Warm, containing, quiet forward momentum — a dojo, not a spa.
 - `DM Serif Display` is **not** permitted in Preparation surfaces; use Inter only.
 - `spacing[10]` (extra breathing room) is **not** applied in Preparation; reserve for Reflection.
 - All animated components must read durations from `motion.preparing` tokens — no hardcoded values.
+- All animation durations collapse to `0ms` when `useAnimation().reduced` is `true` — applies to all animated Preparation components.
 
 ## PM Sign-off
 

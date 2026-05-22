@@ -1,6 +1,6 @@
 # Story 1.5: Motion, Layout & Mode Foundations
 
-Status: review
+Status: done
 
 ## Story
 
@@ -437,3 +437,34 @@ claude-sonnet-4-6
 |---|---|---|
 | 2026-05-21 | Story created by create-story workflow | claude-sonnet-4-6 |
 | 2026-05-22 | Story implemented: AnimationContext, ReducedMotionProvider, SafeAreaProvider at root, three mode briefs, ADR-CALMME-RENDER. All CI gates green. | claude-sonnet-4-6 |
+
+## Review Findings (Code Review — Group 1: Core Implementation)
+
+**10 `patch` findings identified.** Issues are fixable without human decision. All findings are in `AnimationContext.tsx`, `AnimationContext.test.tsx`, `_layout.tsx`, and `package.json`.
+
+- [x] [Review][Patch] Unguarded `subscription.remove()` can throw [AnimationContext.tsx:25] — Fixed: optional chaining `subscription?.remove?.()`.
+- [x] [Review][Patch] Unmounted component state update warning [AnimationContext.tsx:17] — Fixed: `isMounted` guard added before `setReduced` call in async init.
+- [x] [Review][Patch] Handler type safety: non-boolean arguments [AnimationContext.tsx:22] — Fixed: `(value: unknown) => setReduced(Boolean(value))` coercion applied.
+- [x] [Review][Patch] Race condition: async init vs listener [AnimationContext.tsx:17-22] — Fixed: `isMounted` guard prevents stale update; rapid succession test added.
+- [x] [Review][Patch] Missing test coverage for listener cleanup [AnimationContext.test.tsx] — Fixed: `removes event listener on unmount` test added.
+- [x] [Review][Patch] Missing test for failed `isReduceMotionEnabled()` [AnimationContext.test.tsx] — Fixed: `remains reduced: true when isReduceMotionEnabled rejects` test added.
+- [x] [Review][Patch] Silent error catch without fallback indication [AnimationContext.tsx:17] — Fixed: `__DEV__` warning added in catch.
+- [x] [Review][Patch] No integration test for provider nesting [_layout.tsx] — Fixed: `app/_layout.test.tsx` added, verifies `SafeAreaProvider → ReducedMotionProvider` nesting provides AnimationContext to children.
+- [x] [Review][Patch] Rapid successive `reduceMotionChanged` events [AnimationContext.tsx:22] — Fixed: stress test added verifying last value wins after 3 rapid toggles.
+- [x] [Review][Patch] Unverified `AccessibilityInfo.addEventListener` API contract [AnimationContext.tsx:22] — Fixed: `REDUCE_MOTION_EVENT: AccessibilityChangeEventName` typed constant ensures compile-time check.
+
+## Review Findings (Code Review — Group 2: Documentation)
+
+**Acceptance Auditor: PASS** — All AC5 and AC6 acceptance criteria satisfied.
+
+**9 `patch` findings.** All are documentation additions/corrections.
+
+- [x] [Review][Patch] ADR lacks decision timestamp [ADR-CALMME-RENDER.md] — Fixed: "Decided — during Story 1.2 evaluation (2026-05-22)" added to Status section.
+- [x] [Review][Patch] Preparation: No reduced motion rule [preparation.md] — Fixed: Key behaviour added — all durations collapse to 0ms when `reduced: true`.
+- [x] [Review][Patch] Preparation: Android touch target omitted [preparation.md] — Fixed: `44×44pt iOS / 48dp Android` added to token surface table.
+- [x] [Review][Patch] In-the-moment: DM Serif Display + `spacing[10]` prohibitions not stated [in-the-moment.md] — Fixed: both prohibitions added to Key Behaviours.
+- [x] [Review][Patch] In-the-moment: `groundingTokens` prohibition is ESLint-enforced — brief doesn't note this [in-the-moment.md] — Fixed: ESLint enforcement noted in the rule.
+- [x] [Review][Patch] Reflection: 4 DM Serif Display surfaces not named inline [reflection.md] — Fixed: `score-reveal`, `prediction-reality-reveal`, `progress-readback`, `pre-exposure-readback` listed inline.
+- [x] [Review][Patch] Reflection: `accent.progress` missing accessibility reason [reflection.md] — Fixed: WCAG AA contrast failure (1.94:1) and no-text rule added.
+- [x] [Review][Patch] Reflection: `SudsScale` absent from brief [reflection.md] — Fixed: `SudsScale` + `motion.reflecting` key behaviour added.
+- [x] [Review][Patch] Reflection: No reduced motion rule [reflection.md] — Fixed: reduced motion collapse rule added covering `SudsArcChart` and `SudsScale`.

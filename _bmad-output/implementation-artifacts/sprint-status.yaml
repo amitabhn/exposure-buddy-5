@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-22 # story 1-5 review — AnimationContext, SafeAreaProvider, mode briefs, ADR-CALMME-RENDER complete; all CI gates green
+last_updated: 2026-05-22 # story 1-5 done — code review complete; 19 patches applied across AnimationContext, mode briefs, ADR; 7 items deferred
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -49,7 +49,7 @@ development_status:
   1-2-ui-library-evaluation-rn-primitives-and-bottom-sheet: done
   1-3-nativewind-v5-validation-spike: done
   1-4-token-system-and-typography-architecture: done
-  1-5-motion-layout-and-mode-foundations: review
+  1-5-motion-layout-and-mode-foundations: done
   1-6-developer-infrastructure-i18n-scaffold-and-accessibility-gates: backlog
   1-7-data-foundation-supabase-mmkv-and-powersync-adapter-scaffold: backlog
   epic-1-retrospective: optional

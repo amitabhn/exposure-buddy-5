@@ -2,7 +2,7 @@
 
 ## Status
 
-Decided
+Decided — during Story 1.2 evaluation (2026-05-22)
 
 ## Context
 
