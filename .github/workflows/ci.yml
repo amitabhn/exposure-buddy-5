@@ -92,11 +92,27 @@ jobs:
           fi
           echo "PASS: No unreviewed third-party data transmitters found"
 
+  # ─── Gate 5: Supabase client import boundary (ARC-006) ─────────────────────
+  supabase-import-gate:
+    name: "ARC-006 — @supabase/supabase-js boundary"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check @supabase/supabase-js only imported inside packages/supabase
+        run: |
+          if grep -rE "from ['\"]@supabase/supabase-js['\"]|require\(['\"]@supabase/supabase-js['\"]" \
+            apps/ packages/sync/ packages/ui/ packages/core/ 2>/dev/null; then
+            echo "FAIL: @supabase/supabase-js imported outside packages/supabase (ARC-006)"
+            echo "Use @exposure-buddy/supabase instead"
+            exit 1
+          fi
+          echo "PASS: @supabase/supabase-js boundary is clean"
+
   # ─── Build ──────────────────────────────────────────────────────────────────
   build:
     name: "Build all packages"
     runs-on: ubuntu-latest
-    needs: [core-boundary-gate, dark-mode-gate, web-import-gate, sdk-dep-audit]
+    needs: [core-boundary-gate, dark-mode-gate, web-import-gate, sdk-dep-audit, supabase-import-gate]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

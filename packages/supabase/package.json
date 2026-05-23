@@ -7,12 +7,23 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@exposure-buddy/core": "workspace:*"
+    "@exposure-buddy/core": "workspace:*",
+    "@supabase/supabase-js": "^2.106.1",
+    "expo-secure-store": "~14.0.0",
+    "react-native-mmkv": "^3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

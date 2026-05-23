@@ -46,6 +46,25 @@ module.exports = {
     ],
     // a11y gate: Pressable/TouchableOpacity must have accessibilityLabel (NFR-ACCESS-01)
     'react-native-a11y/has-accessibility-props': 'error',
+    // ARC-005: Direct @powersync/react-native imports are forbidden in apps/mobile.
+    // All writes must go through adapter.enqueue() from @exposure-buddy/sync.
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@powersync/react-native', '@powersync/common'],
+            message:
+              'Use adapter.enqueue() from @exposure-buddy/sync — direct PowerSync imports bypass the sync boundary (ARC-005)',
+          },
+          {
+            group: ['@supabase/supabase-js'],
+            message:
+              'Use @exposure-buddy/supabase instead — direct @supabase/supabase-js imports violate the package boundary (ARC-006)',
+          },
+        ],
+      },
+    ],
     // TypeScript declaration files use declare — no-unused-vars is a false positive
     'no-unused-vars': 'off',
   },

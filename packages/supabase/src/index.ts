@@ -1,3 +1,14 @@
-// @exposure-buddy/supabase — Supabase client, auth, mappers, RLS
-// Stub: client and auth provider added in Story 1.7
-export {}
+// @exposure-buddy/supabase — Supabase client, auth, session, RLS
+export { createSupabaseClient } from './client'
+export type { Database, TypedSupabaseClient } from './client'
+
+export { AuthProvider, AuthContext } from './auth/AuthProvider'
+export { useAuth } from './auth/useAuth'
+export {
+  initSession,
+  getAuthState,
+  setAuthState,
+  clearAuthState,
+  MMKV_KEYS,
+} from './auth/session'
+export type { AuthState, MmkvKey, MMKV } from './auth/session'
