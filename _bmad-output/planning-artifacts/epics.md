@@ -166,7 +166,7 @@ UX-DR27: Soft nudge at item 8 on fear ladder ("That's a solid ladder — most pe
 ### FR Coverage Map
 
 FR-AUTH-01: Epic 2 — OTP registration and login
-FR-AUTH-02: Epic 2 — Preview challenges (3 ERP-lite, local storage only; ACs must exclude distress-signal input or provide pre-auth crisis signposting; implementation isolated from Epic 6 session components)
+FR-AUTH-02: POST-MVP — Preview challenges (unauthenticated taste experience) deferred; no MVP story. **Decision record (2026-05-23):** FR-AUTH-02 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the preview challenge flow requires significant cross-cutting complexity — MMKV local storage per device, idempotency-keyed re-assignment on account creation, and full isolation gates from Epic 6 ERP session components. For a closed-beta or soft-launch cohort (invited users), acquisition via unauthenticated preview adds risk without proportionate clinical value. Unauthenticated users land directly on Sign In / Sign Up at MVP. Confirmed in post-MVP backlog. Logged in post-mvp-backlog.md.
 FR-SAFE-01: Epic 2 — Two mandatory safety checkboxes at account creation
 FR-ONBOARD-01: Epic 4 — mini-SPIN questionnaire with three-tier clinical routing
 FR-ONBOARD-02: Epic 4 — Symptom check + 15-item safety behaviour checklist
@@ -176,7 +176,7 @@ FR-HIER-02: Epics 4+5 — Custom item entry during onboarding (Story 4.3); add/e
 FR-HIER-03: Epic 5 — Stall detection and step-down prompt
 FR-LADDER-01: Epic 5 — Full ladder screen view with status indicators (Story 5.1)
 FR-LADDER-02: Epic 5 — Drag-and-reorder, add/edit items post-onboarding from full ladder screen (Story 5.1)
-FR-LADDER-03: Epic 5 — Clinician read-only access via therapist_patient_relationships RLS (Stories 5.4/5.5)
+FR-LADDER-03: POST-MVP — Clinician read-only access via therapist_patient_relationships RLS deferred; Stories 5.4 and 5.5 have no MVP story. **Decision record (2026-05-23):** FR-LADDER-03 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the therapist portal is explicitly Phase 2; zero clinicians will access the system at MVP. The stub `therapist_patient_relationships` table created in Story 4.3 is sufficient — Stories 5.4/5.5 add RLS policy updates and 15+ pgTAP assertions across 3 tables for a read path that has no active consumers. Phase 2 will activate the policies via migration. Confirmed in post-MVP backlog.
 FR-ERP-01: Epic 5 — Three sequential ERP session phases (Story 5.2)
 FR-ERP-02: Epic 5 — Self-initiated SUDS logging during active phase (Story 5.2)
 FR-ERP-03: Epic 5 — Debrief with SUDS arc graph and structured reflection (Story 5.3)
@@ -207,11 +207,11 @@ FR-ADVERSE-02: POST-MVP — daily check-in SUDS ≥8 crisis contacts deferred (d
 FR-HOME-01: Epic 6 — Home screen morning state (state 3) today's challenge card and single primary CTA (Story 6.2)
 FR-HOME-02: Epic 6 — Home screen progressing state (state 4) active thread context card and re-entry CTA (Story 6.3)
 FR-HOME-03: Epic 6 — One active thread per user per fear item enforced via partial unique index (Story 6.2)
-FR-HOME-05: Epic 6 — Home screen re-engagement state (state 9) SUDS re-baseline prompt after >10-day gap (Story 6.4)
+FR-HOME-05: POST-MVP — Home screen re-engagement state (state 9) SUDS re-baseline deferred; no MVP story. **Decision record (2026-05-23):** FR-HOME-05 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the 10-day inactivity trigger will not fire for any user in the first weeks post-launch; the `suds_baselines` table and re-baseline query add schema and home-state-machine complexity for a condition that does not occur at launch. Home screen state machine falls through to state 3 (today's challenge) for returning users. Code comment to be added in the state machine: `// State 9 (re-engagement re-baseline) deferred post-MVP — falls through to state 3`. Confirmed in post-MVP backlog.
 FR-SESSION-04: Epic 6 — Technique selection before each exposure session with last-used pre-selection and SUDS-based nudge (Story 6.1)
 FR-SESSION-05: Epic 6 — Mandatory non-skippable pre-exposure briefing screen with intention letter read-back (Story 6.1)
 FR-SESSION-06: Epics 5+7 — Mandatory non-skippable grounding screen on mid-session stop; initial implementation (affirmation + breathing prompt) in Epic 5 Story 5.2; enhanced with full technique picker in Epic 7 Story 7.5
-FR-LADDER-06: Epic 6 — SUDS re-baseline on re-engagement stored in suds_baselines; predicted_suds not overwritten (Story 6.4)
+FR-LADDER-06: POST-MVP — SUDS re-baseline on re-engagement deferred with FR-HOME-05 (Story 6.4). `suds_baselines` table not created at MVP; no baseline stored. Predicted_suds on fear_ladder_items remains the sole reference point at MVP. See FR-HOME-05 decision record (2026-05-23).
 FR-DPO-01: Epic 3 — DPO appointed before India launch; contact in privacy notice
 FR-DPO-02: Epic 3 — Data export request flow (Settings → Privacy → Request my data)
 FR-DPO-03: Epic 3 — Account deletion (30-day soft-delete window)
@@ -266,9 +266,10 @@ All developers can build features with confidence: the Turborepo monorepo is liv
 
 ### Epic 2: Authentication & Account Safety
 
-Users can register with both mandatory safety checkboxes, log in via OTP, and access 3 preview challenges without committing to an account. On account creation, local preview completions are re-assigned to the account. Session management is live.
+Users can register with both mandatory safety checkboxes, log in via OTP, and sign out or delete their account. Session management is live. **FR-AUTH-02 (preview challenges) is DEFERRED post-MVP** — unauthenticated users land on Sign In / Sign Up only.
 
-**FRs covered:** FR-AUTH-01, FR-AUTH-02, FR-SAFE-01
+**FRs covered:** FR-AUTH-01, FR-SAFE-01
+**FRs deferred:** FR-AUTH-02 — see decision record in FR Coverage Map
 **Architecture:** ARC-010 (ADR-AUTH-TOKEN-PROVIDER resolved)
 
 **Story constraint for FR-AUTH-02:** Preview challenges must either (a) exclude all distress-signal input (no SUDS rating, no free-text reflection) or (b) include a lightweight crisis signposting display pre-auth. The implementation must be explicitly isolated from Epic 6 ERP session components (not reused/extended in Epic 6). This constraint must appear in the FR-AUTH-02 story acceptance criteria.
@@ -303,15 +304,16 @@ Users build and manage their personalised exposure hierarchy: pairwise comparati
 **UX-DR coverage:** UX-DR7, UX-DR9, UX-DR12, UX-DR14, UX-DR27
 **Architecture:** ARC-014
 
-**Home screen state machine note:** States that depend on Epic 7 data (daily check-in routing) and Epic 8 data (progress history) are implemented with stubbed inputs in Epic 5. Epic 5 acceptance criteria explicitly document which states are live vs. stubbed. Wiring of live data happens in the epic that introduces it.
+**Home screen state machine note:** States that depend on Epic 7 data (daily check-in routing) and Epic 8 data (progress history) are implemented with stubbed inputs in Epic 5. Epic 5 acceptance criteria explicitly document which states are live vs. stubbed. Wiring of live data happens in the epic that introduces it. **State 9 (re-engagement re-baseline) is DEFERRED post-MVP** — `resolveHomeScreenState` must include `// State 9 (re-engagement re-baseline) deferred post-MVP — falls through to state 3` and must NOT reference or query `suds_baselines` (table does not exist at MVP). The gap-check branch is omitted; the function returns state 3 for all users with no active thread.
 
 ---
 
 ### Epic 6: ERP Session Surrounding Experience
 
-Users select a calming technique and receive a mandatory pre-exposure briefing before entering a session. The home screen correctly reflects the user's current thread state across three states: morning ready (state 3), session in progress (state 4), and return after gap (state 9). Re-engagement after a gap triggers a SUDS re-baseline stored in suds_baselines. The ERP session core loop itself (session start, SUDS logging, debrief, home states 7/8) was implemented in Epic 5.
+Users select a calming technique and receive a mandatory pre-exposure briefing before entering a session. The home screen correctly reflects the user's current thread state across two states: morning ready (state 3) and session in progress (state 4). The ERP session core loop itself (session start, SUDS logging, debrief, home states 7/8) was implemented in Epic 5. **Story 6.4 (state 9 re-engagement re-baseline, `suds_baselines` table) is DEFERRED post-MVP.**
 
-**FRs covered:** FR-SESSION-04, FR-SESSION-05, FR-HOME-01, FR-HOME-02, FR-HOME-03, FR-HOME-05, FR-LADDER-06
+**FRs covered:** FR-SESSION-04, FR-SESSION-05, FR-HOME-01, FR-HOME-02, FR-HOME-03
+**FRs deferred:** FR-HOME-05 (state 9), FR-LADDER-06 (suds_baselines) — see decision records in FR Coverage Map
 **UX-DR coverage:** UX-DR8, UX-DR11, UX-DR13, UX-DR19, UX-DR20, UX-DR26
 
 **SUDS anchor constraint:** The shared `SudsAnchorScale` component in `packages/ui` is produced in Epic 5 (FR-SUDS-ANCHOR-01). Epic 7 is required to consume this component for all SUDS collection points (check-in). This cross-epic dependency must appear in Epic 7 story acceptance criteria.
@@ -588,7 +590,7 @@ So that all durable writes from Epic 2 onwards call `adapter.enqueue()` from day
 
 ## Epic 2: Authentication & Account Safety
 
-Users can register (with both mandatory safety checkboxes and required explanatory copy), log in via OTP, and access 3 preview challenges without an account. On registration, local preview completions are re-assigned via the `onNewAccountCreated` event. Auth session management is live. All Epic 3 dependencies (consent-record Edge Function, DPO infrastructure) are handled via typed stub interfaces with explicit production-gate criteria.
+Users can register (with both mandatory safety checkboxes and required explanatory copy), log in via OTP, and sign out or delete their account. Auth session management is live. All Epic 3 dependencies (consent-record Edge Function, DPO infrastructure) are handled via typed stub interfaces with explicit production-gate criteria. **Story 2.3 (preview challenges) is DEFERRED post-MVP** — unauthenticated users land on Sign In / Sign Up only; the `onNewAccountCreated` event is emitted by Story 2.1 but has no subscriber at MVP.
 
 ### Story 2.1: OTP Authentication — Registration & Login
 
@@ -672,7 +674,9 @@ So that I give informed, voluntary consent before any personal data is stored (F
 
 ---
 
-### Story 2.3: Preview Challenges — Unauthenticated Access
+### Story 2.3: Preview Challenges — Unauthenticated Access ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-05-23).** See FR-AUTH-02 decision record in FR Coverage Map. Unauthenticated users land on Sign In / Sign Up at MVP. No story to implement.
 
 As a visitor exploring the app without an account,
 I want to try 3 preview challenges before committing to registration,
@@ -942,7 +946,7 @@ So that I understand the app and arrive at my Courage Ladder prepared (FR-ONBOAR
 
 **Given** `packages/core/src/constants/kvKeys.ts` is created
 **When** any code needs to reference an MMKV key
-**Then** it imports from `KV_KEYS` — the file exports user-scoped key functions (e.g. `ONBOARDING_PROGRESS: (userId: string) => \`onboarding:progress:${userId}\``) and device-scoped constants (e.g. `PREVIEW_CHALLENGES: 'preview_challenges'`) with inline comments documenting scope intent; pre-existing keys from Stories 2.3 and 2.4 are added as device-scoped constants; raw MMKV key string literals outside this file are prohibited via a lint rule in `apps/mobile`
+**Then** it imports from `KV_KEYS` — the file exports user-scoped key functions (e.g. `ONBOARDING_PROGRESS: (userId: string) => \`onboarding:progress:${userId}\``) and device-scoped constants (e.g. `PREVIEW_CHALLENGES: 'preview_challenges'`) with inline comments documenting scope intent; `PREVIEW_CHALLENGES: 'preview_challenges'` is added as a device-scoped forward-reference constant in this story even though Story 2.3 is deferred — Story 2.4 sign-out logic references it (the `preview_challenges` key must not be cleared on sign-out, per Story 2.4 AC); keys from Story 2.4 are added as device-scoped constants; raw MMKV key string literals outside this file are prohibited via a lint rule in `apps/mobile`
 
 **Given** a user successfully completes OTP registration (Story 2.1)
 **When** the auth session is established
@@ -1214,7 +1218,9 @@ So that I feel recognised and know what to do in the next 6 hours (FR-ERP-03).
 
 ---
 
-### Story 5.4: Clinician Access — Schema & RLS Policies
+### Story 5.4: Clinician Access — Schema & RLS Policies ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-05-23).** See FR-LADDER-03 decision record in FR Coverage Map. Stub `therapist_patient_relationships` table from Story 4.3 is sufficient. RLS policies will be activated via Phase 2 migration. No story to implement.
 
 As a clinician,
 I want read access to my patients' fear ladders and session data,
@@ -1242,7 +1248,9 @@ So that I can monitor therapeutic progress safely (FR-LADDER-03).
 
 ---
 
-### Story 5.5: Clinician Access — pgTAP Coverage
+### Story 5.5: Clinician Access — pgTAP Coverage ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-05-23).** Depends on Story 5.4, which is deferred. See FR-LADDER-03 decision record in FR Coverage Map. No story to implement.
 
 As the development team,
 I want complete pgTAP coverage for all clinician read policies,
@@ -1324,7 +1332,7 @@ As a user who has an active exposure thread in progress,
 I want the home screen to acknowledge my ongoing session and invite me to continue,
 So that I can re-enter the session without confusion (FR-HOME-02, UX-DR-14).
 
-*State 5 (avoidance detection) is explicitly deferred post-MVP. This story covers state 4 only.*
+*State 5 (avoidance detection) is explicitly deferred post-MVP. State 9 (re-engagement re-baseline) is also deferred post-MVP (Story 6.4). This story covers state 4 only. The state machine must include `// State 9 (re-engagement re-baseline) deferred post-MVP — falls through to state 3` alongside the existing state 5 comment.*
 
 **Acceptance Criteria:**
 
@@ -1346,7 +1354,9 @@ So that I can re-enter the session without confusion (FR-HOME-02, UX-DR-14).
 
 ---
 
-### Story 6.4: Re-engagement After Gap (State 9)
+### Story 6.4: Re-engagement After Gap (State 9) ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-05-23).** See FR-HOME-05 and FR-LADDER-06 decision records in FR Coverage Map. The `suds_baselines` table is not created. State 9 is not evaluated — the state machine falls through to state 3. No story to implement.
 
 As a returning user who has not engaged with the app for more than 10 days,
 I want a gentle re-baseline check before resuming my ladder,
@@ -1926,7 +1936,7 @@ So that every dev agent knows the authoritative offline behaviour contract befor
 
 **Given** the PowerSync sync configuration file (`apps/mobile/powersync.config.ts` or equivalent)
 **When** this story is implemented
-**Then** every table and column referenced in the PowerSync schema matches the current Supabase migration state; any discrepancy is treated as a blocking defect and resolved before the story closes; a checklist comment in the config file lists the verified tables: `exposure_sessions`, `fear_ladder_items`, `suds_baselines`, `device_push_tokens`, `user_onboarding_metadata`
+**Then** every table and column referenced in the PowerSync schema matches the current Supabase migration state; any discrepancy is treated as a blocking defect and resolved before the story closes; a checklist comment in the config file lists the verified tables: `exposure_sessions`, `fear_ladder_items`, `device_push_tokens`, `user_onboarding_metadata`; **`suds_baselines` is excluded** — table is not created at MVP (Story 6.4 deferred)
 
 **Given** ADR-OFFLINE-DEGRADATION is referenced in architecture documentation but its content is not yet finalized
 **When** this story is implemented

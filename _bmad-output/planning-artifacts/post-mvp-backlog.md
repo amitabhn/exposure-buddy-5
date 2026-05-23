@@ -131,7 +131,22 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Source:** FR-CBT-03; deferred from Epic 7 during final validation (no MVP story).
 **Notes:** Distinct from the letter-to-self (which is pre/post-exposure narrative). The behavioural experiment is an active structured CBT technique for testing beliefs. Requires its own screen flow, data table, and RLS policy. Clinical review required for field labels and prompts.
 
-### 1.26 Additional Somatic Techniques — 4-7-8, Bhramari, Nadi Shodhana, Body Scan (FR-SOM-01 remaining)
+### 1.26 Preview Challenges — Unauthenticated Taste Experience (FR-AUTH-02)
+**What:** Three ERP-lite preview challenges accessible without account creation; completions stored in MMKV and re-assigned to the user's account on registration; preview components fully isolated from Epic 6 ERP session components.
+**Source:** FR-AUTH-02; deferred from Epic 2 (Story 2.3) on 2026-05-23. Decision record in epics.md FR Coverage Map.
+**Notes:** At MVP, unauthenticated users land directly on Sign In / Sign Up. Preview challenges are an acquisition driver for App Store wide-release. Must include: (a) MMKV local storage per device; (b) idempotency-keyed re-assignment on account creation (`sha256(challengeId + userId)`); (c) full `no-restricted-imports` ESLint isolation from `packages/core/src/session/` and Epic 6 modules; (d) either no distress-signal input or pre-auth crisis signposting. Implement before first public App Store listing.
+
+### 1.27 Clinician Read-Only Access — RLS Policies & pgTAP Coverage (FR-LADDER-03)
+**What:** Activate the clinician read path on `fear_ladder_items`, `exposure_sessions`, and `suds_readings` via `therapist_patient_relationships` join-based RLS policies; full pgTAP coverage across all three tables (Stories 5.4 + 5.5).
+**Source:** FR-LADDER-03; deferred from Epic 5 on 2026-05-23. Decision record in epics.md FR Coverage Map.
+**Notes:** The stub `therapist_patient_relationships` table (Story 4.3) and the `[stub]` pgTAP assertions are in place. Phase 2 implementation is a migration-only activation — no schema rebuild required. Must ship before the therapist portal (Phase 2) accepts its first clinician account. Requires service-role seeding script for `therapist_patient_relationships` rows (no self-insert path).
+
+### 1.28 Re-engagement Re-Baseline After Gap (FR-HOME-05, FR-LADDER-06)
+**What:** Home screen state 9 — when the user's most recent completed session is more than 10 days ago, prompt a SUDS re-baseline for their next ladder item; store the baseline in a `suds_baselines` table without overwriting `predicted_suds`; use the value to contextualise the next session's technique routing.
+**Source:** FR-HOME-05, FR-LADDER-06; deferred from Epic 6 (Story 6.4) on 2026-05-23. Decision record in epics.md FR Coverage Map.
+**Notes:** At MVP, the state machine falls through to state 3 (today's challenge) for returning users. The 10-day gap threshold is a product decision flagged for post-MVP clinical review (see post-mvp-backlog item 1.10). The `suds_baselines` DDL is documented in Story 6.4 and is ready to apply as a migration. Connects to FR-LADDER-06 (baseline stored without overwriting `predicted_suds`) and item 1.11 (full clinical routing algorithm).
+
+### 1.29 Additional Somatic Techniques — 4-7-8, Bhramari, Nadi Shodhana, Body Scan (FR-SOM-01 remaining, was 1.26)
 **What:** Full implementation of the remaining 4 somatic techniques required by FR-SOM-01: 4-7-8 breathing, Bhramari (humming breath), Nadi Shodhana (alternate nostril), and body scan — each with animated visual pacing and no audio requirement (FR-SOM-02).
 **Source:** FR-SOM-01, FR-SOM-02; deferred from Epic 7 during final validation (MVP covers box breathing + 5-4-3-2-1 only).
 **Notes:** Box breathing (Story 7.2) and 5-4-3-2-1 (Story 7.3) are the two MVP somatic techniques. The breathing coach config (`packages/core/src/config/breathingCoach.ts`) already documents the extension point for additional breathing patterns (item 1.7 above covers user-configurable timer/cycles). Each new technique needs its own animated visual guide (FR-SOM-02). Bhramari and Nadi Shodhana require audio-free visual pacing designs — Indian pranayama techniques with culturally resonant framing.
