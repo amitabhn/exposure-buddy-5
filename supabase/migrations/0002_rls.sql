@@ -13,6 +13,12 @@ CREATE POLICY "users_own_row_update"
   FOR UPDATE
   USING (auth.uid() = id);
 
+-- Own-row insert: authenticated user can insert their own row
+CREATE POLICY "users_own_row_insert"
+  ON public.users
+  FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
 -- Cross-user reads: blocked by default — no SELECT policy for other users' rows
 -- Unauthenticated reads: blocked by default — auth.uid() returns NULL, USING fails
 

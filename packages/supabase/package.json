@@ -13,8 +13,8 @@
   "dependencies": {
     "@exposure-buddy/core": "workspace:*",
     "@supabase/supabase-js": "^2.106.1",
-    "expo-secure-store": "^56.0.4",
-    "react-native-mmkv": "^4.3.1"
+    "expo-secure-store": "~14.0.0",
+    "react-native-mmkv": "^3"
   },
   "peerDependencies": {
     "react": "*",

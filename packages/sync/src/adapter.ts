@@ -1,4 +1,3 @@
-import { buildOutboxEntry } from './utils/outbox'
 import type { OutboxOperation } from './utils/outbox-schema'
 
 // ARC-005: All durable writes go through this interface.
@@ -17,21 +16,22 @@ export enum SyncMode {
   CRISIS_WRITE_WINDOW = 'CRISIS_WRITE_WINDOW',
 }
 
-// No-op implementation — real sync relay wired in Epic 6
+// True no-op stub — durable outbox and PowerSync relay wired in Epic 6.
+// Outbox types (OutboxEntry, buildOutboxEntry) live in ./utils for Epic 6 to import directly.
 export class PowerSyncSyncAdapter implements SyncAdapter {
-  private readonly _pending: ReturnType<typeof buildOutboxEntry>[] = []
-
-  async enqueue(table: string, operation: OutboxOperation, payload: unknown): Promise<void> {
-    const entry = buildOutboxEntry(table, operation, payload)
-    this._pending.push(entry)
+  async enqueue(
+    _table: string,
+    _operation: OutboxOperation,
+    _payload: unknown,
+  ): Promise<void> {
+    return Promise.resolve()
   }
 
   async flush(): Promise<void> {
-    // No-op: real flush implementation deferred to Epic 6
-    this._pending.length = 0
+    return Promise.resolve()
   }
 
   async getPendingCount(): Promise<number> {
-    return this._pending.length
+    return Promise.resolve(0)
   }
 }

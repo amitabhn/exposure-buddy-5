@@ -21,25 +21,27 @@ const skipIfNoSupabase = !SERVICE_ROLE_KEY || !ANON_KEY
 describe.skipIf(skipIfNoSupabase)('users table RLS', () => {
   // Initialise inside beforeAll so createClient is NOT called at collection time
   let serviceClient: SupabaseClient<Database>
-  let userAId: string
-  let userBId: string
+  let userAId: string | undefined
+  let userBId: string | undefined
 
   beforeAll(async () => {
     serviceClient = createClient<Database>(LOCAL_URL, SERVICE_ROLE_KEY)
 
     // Create two isolated test users via service role
-    const { data: a } = await serviceClient.auth.admin.createUser({
+    const { data: a, error: errorA } = await serviceClient.auth.admin.createUser({
       email: TEST_USER_A_EMAIL,
       password: TEST_PASSWORD,
       email_confirm: true,
     })
-    const { data: b } = await serviceClient.auth.admin.createUser({
+    const { data: b, error: errorB } = await serviceClient.auth.admin.createUser({
       email: TEST_USER_B_EMAIL,
       password: TEST_PASSWORD,
       email_confirm: true,
     })
-    userAId = a.user!.id
-    userBId = b.user!.id
+    if (errorA ?? !a.user) throw new Error(`Failed to create user A: ${errorA?.message ?? 'null user'}`)
+    if (errorB ?? !b.user) throw new Error(`Failed to create user B: ${errorB?.message ?? 'null user'}`)
+    userAId = a.user.id
+    userBId = b.user.id
 
     // Insert users into public.users
     await serviceClient
@@ -51,10 +53,9 @@ describe.skipIf(skipIfNoSupabase)('users table RLS', () => {
   })
 
   afterAll(async () => {
-    // Clean up test users
-    await serviceClient.from('users').delete().in('id', [userAId, userBId])
-    await serviceClient.auth.admin.deleteUser(userAId)
-    await serviceClient.auth.admin.deleteUser(userBId)
+    // Delete auth users — ON DELETE CASCADE cleans up public.users rows
+    if (userAId) await serviceClient.auth.admin.deleteUser(userAId)
+    if (userBId) await serviceClient.auth.admin.deleteUser(userBId)
   })
 
   it('[+] own-row read succeeds for authenticated user', async () => {
