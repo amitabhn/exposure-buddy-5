@@ -22,6 +22,23 @@ export interface Database {
           created_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          display_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          display_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          display_name?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

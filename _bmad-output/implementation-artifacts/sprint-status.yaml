@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-23 # story 1-7 done — code review patches applied, all decisions resolved
+last_updated: 2026-05-23 # story 2-1 done — OTP auth code review complete, 6 patches applied
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -55,8 +55,8 @@ development_status:
   epic-1-retrospective: optional
 
   # ─── Epic 2: Authentication & Account Safety ──────────────────────────────
-  epic-2: backlog
-  2-1-otp-authentication-registration-and-login: backlog
+  epic-2: in-progress
+  2-1-otp-authentication-registration-and-login: done
   2-2-account-creation-safety-checkboxes: backlog
   2-3-preview-challenges-unauthenticated-access: backlog
   2-4-account-deletion-and-session-sign-out: backlog

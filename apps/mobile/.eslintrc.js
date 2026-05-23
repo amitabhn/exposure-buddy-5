@@ -28,6 +28,9 @@ module.exports = {
             'className', 'styleName', 'style', 'type', 'key', 'id', 'width', 'height',
             // RN/Expo Router structural props — route identifiers and semantic roles, not user strings
             'testID', 'nativeID', 'name', 'accessibilityRole',
+            // RN input control props — semantic API values, not translatable user text
+            'autoCapitalize', 'autoComplete', 'autoCorrect', 'keyboardType', 'returnKeyType',
+            'textContentType', 'importantForAccessibility', 'keyboardAppearance', 'inputMode',
           ],
         },
         callees: {
@@ -40,6 +43,8 @@ module.exports = {
             'StyleSheet\\.create',
             // console calls are developer-facing debug output, not user-visible strings
             'console\\.(log|warn|error|info|debug)',
+            // Expo Router navigation — route paths are structural identifiers, not user-visible strings
+            'router\\.push', 'router\\.replace', 'router\\.navigate', 'router\\.back',
           ],
         },
       },
