@@ -11,8 +11,29 @@
     "goHome": "Go to home screen!"
   },
   "auth": {
-    "signin": {
-      "placeholder": "Sign in — Story 2.1"
+    "otp": {
+      "emailLabel": "Email address",
+      "phoneLabel": "Phone number",
+      "sendCode": "Send code",
+      "enterCode": "Enter the code sent to {{identifier}}",
+      "verify": "Verify",
+      "resend": "Resend code",
+      "invalidCode": "Invalid code. Please try again.",
+      "expired": "Code has expired. Please request a new one.",
+      "sendError": "Failed to send code. Please try again.",
+      "codeLabel": "One-time passcode",
+      "codeHint": "Enter the 6-digit code sent to your email or phone",
+      "verifyHint": "Submits the one-time code to verify your identity",
+      "resendHint": "Sends a new one-time code to your email or phone",
+      "emailInputHint": "Enter your email address to receive a one-time code",
+      "phoneInputHint": "Enter your phone number in international format to receive a one-time code",
+      "sendCodeHint": "Sends a one-time code to your email or phone"
+    },
+    "validation": {
+      "emailRequired": "Please enter your email address",
+      "phoneRequired": "Please enter your phone number",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPhone": "Phone number must be in international format (e.g. +91...)"
     }
   }
 }
