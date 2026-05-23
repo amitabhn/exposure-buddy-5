@@ -51,7 +51,7 @@ development_status:
   1-4-token-system-and-typography-architecture: done
   1-5-motion-layout-and-mode-foundations: done
   1-6-developer-infrastructure-i18n-scaffold-and-accessibility-gates: done
-  1-7-data-foundation-supabase-mmkv-and-powersync-adapter-scaffold: backlog
+  1-7-data-foundation-supabase-mmkv-and-powersync-adapter-scaffold: ready-for-dev
   epic-1-retrospective: optional
 
   # ─── Epic 2: Authentication & Account Safety ──────────────────────────────

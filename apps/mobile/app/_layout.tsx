@@ -17,7 +17,8 @@ import {
   DMSerifDisplay_400Regular_Italic,
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AuthProvider, initSession, type MMKV } from '@exposure-buddy/supabase'
 
 // MUST be called before any React rendering — registers Sentry and global error handler
 initErrorHandler()
@@ -35,6 +36,21 @@ export default function RootLayout() {
   })
 
   const splashHidden = useRef(false)
+  // Cold start sequence (ARC-004):
+  // 1. initErrorHandler() — module scope, first
+  // 2. SplashScreen.preventAutoHideAsync() — module scope, second
+  // 3. i18n side-effect — module scope, third
+  // 4. initSession() — async, derives MMKV key from SecureStore before auth reads
+  const [mmkv, setMmkv] = useState<MMKV | null>(null)
+
+  useEffect(() => {
+    initSession()
+      .then(setMmkv)
+      .catch(() => {
+        // SecureStore unavailable (e.g. simulator without keychain) — proceed with null session
+        setMmkv(null)
+      })
+  }, [])
 
   useEffect(() => {
     if ((fontsLoaded || fontError) && !splashHidden.current) {
@@ -50,13 +66,15 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ReducedMotionProvider>
-        <ThemeProvider value={DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }} />
-          <PortalHost />
-        </ThemeProvider>
-      </ReducedMotionProvider>
-    </SafeAreaProvider>
+    <AuthProvider mmkv={mmkv}>
+      <SafeAreaProvider>
+        <ReducedMotionProvider>
+          <ThemeProvider value={DefaultTheme}>
+            <Stack screenOptions={{ headerShown: false }} />
+            <PortalHost />
+          </ThemeProvider>
+        </ReducedMotionProvider>
+      </SafeAreaProvider>
+    </AuthProvider>
   )
 }

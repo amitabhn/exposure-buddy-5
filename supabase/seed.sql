@@ -1,0 +1,2 @@
+-- Supabase seed data
+-- Populated in later stories (Epic 2+) once auth and roles are defined
