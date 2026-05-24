@@ -3,13 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
-import { emitAccountCreated } from '@exposure-buddy/core'
+import { emitAccountCreated, ConsentRecordServiceStub, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
 
 type State = {
   code: string
   isLoading: boolean
   errorKey: string | null
   hasAttemptedSubmit: boolean
+  consentError: string | null
 }
 
 type Action =
@@ -20,6 +21,10 @@ type Action =
   | { type: 'CLEAR_ERROR' }
   | { type: 'RESEND_START' }
   | { type: 'RESEND_DONE' }
+  | { type: 'SET_CONSENT_ERROR'; payload: string }
+  | { type: 'CLEAR_CONSENT_ERROR' }
+  | { type: 'CONSENT_START' }
+  | { type: 'CONSENT_DONE' }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -36,6 +41,14 @@ function reducer(state: State, action: Action): State {
     case 'RESEND_START':
       return { ...state, isLoading: true, errorKey: null }
     case 'RESEND_DONE':
+      return { ...state, isLoading: false }
+    case 'SET_CONSENT_ERROR':
+      return { ...state, consentError: action.payload }
+    case 'CLEAR_CONSENT_ERROR':
+      return { ...state, consentError: null }
+    case 'CONSENT_START':
+      return { ...state, isLoading: true }
+    case 'CONSENT_DONE':
       return { ...state, isLoading: false }
     default:
       return state
@@ -60,23 +73,30 @@ const INITIAL_STATE: State = {
   isLoading: false,
   errorKey: null,
   hasAttemptedSubmit: false,
+  consentError: null,
 }
 
 export default function OtpVerificationScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { identifier, identifierType } = useLocalSearchParams<{
+  const { identifier, identifierType, isNewAccount: isNewAccountParam } = useLocalSearchParams<{
     identifier: string
     identifierType: 'email' | 'phone'
+    isNewAccount: string
   }>()
+  const isNewAccount = isNewAccountParam === 'true'
 
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE)
   const { isAuthenticated, authState } = useAuth()
   const prevIsAuthenticated = useRef(false)
 
-  // P1: redirect to sign-in if navigation params were lost (deep link, state loss)
+  // Redirect to sign-in if any required navigation params are missing (deep link, crash-recovery,
+  // or routing contract violation). isNewAccount undefined means consent screen was bypassed.
   useEffect(() => {
-    if (!identifier || !identifierType) {
+    if (!identifier || !identifierType || isNewAccountParam === undefined) {
+      if (isNewAccountParam === undefined) {
+        console.warn('[OtpVerificationScreen] isNewAccount param missing — routing contract violation; redirecting to sign-in')
+      }
       router.replace('/(auth)/sign-in')
     }
   }, [])
@@ -84,17 +104,59 @@ export default function OtpVerificationScreen() {
   useEffect(() => {
     if (isAuthenticated && !prevIsAuthenticated.current) {
       prevIsAuthenticated.current = true
-      if (authState.userId) {
-        emitAccountCreated(authState.userId)
-      }
-      router.replace('/(app)/')
-    }
-  }, [isAuthenticated, authState.userId])
 
-  // P1: render nothing while redirecting back to sign-in (params guard above handles navigation)
-  if (!identifier || !identifierType) return null
+      if (isNewAccount && authState.userId) {
+        dispatch({ type: 'CONSENT_START' })
+        const consentService = new ConsentRecordServiceStub()
+        consentService
+          .recordConsent({
+            timestampUtc: new Date().toISOString(),
+            purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
+            consentVersion: CONSENT_VERSION_CURRENT,
+            withdrawalStatus: false,
+          })
+          .then(() => {
+            emitAccountCreated(authState.userId!)
+            router.replace('/(app)/')
+          })
+          .catch(() => {
+            dispatch({ type: 'CONSENT_DONE' })
+            dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
+            // prevIsAuthenticated stays true; user retries via manual button tap
+          })
+      } else {
+        if (authState.userId) emitAccountCreated(authState.userId)
+        router.replace('/(app)/')
+      }
+    }
+  }, [isAuthenticated, authState.userId, isNewAccount])
+
+  if (!identifier || !identifierType || isNewAccountParam === undefined) return null
 
   async function handleVerify() {
+    // Retry consent write if already authenticated but consent failed
+    if (isAuthenticated && state.consentError && isNewAccount) {
+      dispatch({ type: 'CLEAR_CONSENT_ERROR' })
+      dispatch({ type: 'CONSENT_START' })
+      const consentService = new ConsentRecordServiceStub()
+      consentService
+        .recordConsent({
+          timestampUtc: new Date().toISOString(),
+          purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
+          consentVersion: CONSENT_VERSION_CURRENT,
+          withdrawalStatus: false,
+        })
+        .then(() => {
+          if (authState.userId) emitAccountCreated(authState.userId)
+          router.replace('/(app)/')
+        })
+        .catch(() => {
+          dispatch({ type: 'CONSENT_DONE' })
+          dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
+        })
+      return
+    }
+
     if (!state.code.trim()) {
       dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.otp.invalidCode' })
       return
@@ -166,6 +228,8 @@ export default function OtpVerificationScreen() {
       />
 
       {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey)}</Text> : null}
+
+      {state.consentError ? <Text style={styles.errorText}>{t(state.consentError)}</Text> : null}
 
       <TouchableOpacity
         style={[styles.button, state.isLoading && styles.buttonDisabled]}

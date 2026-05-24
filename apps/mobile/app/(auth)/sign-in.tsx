@@ -3,8 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient } from '@exposure-buddy/supabase'
+import { SafetyCheckboxes } from '../../src/components/auth/SafetyCheckboxes'
 
 type IdentifierType = 'email' | 'phone'
+// eslint-disable-next-line i18next/no-literal-string
+type Mode = 'signin' | 'signup'
 
 type State = {
   identifier: string
@@ -12,6 +15,9 @@ type State = {
   isLoading: boolean
   errorKey: string | null
   hasAttemptedSubmit: boolean
+  mode: Mode
+  ageConfirmed: boolean
+  medicoLegalConfirmed: boolean
 }
 
 type Action =
@@ -21,6 +27,9 @@ type Action =
   | { type: 'SUBMIT_ERROR'; payload: string }
   | { type: 'SUBMIT_SUCCESS' }
   | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_MODE'; payload: Mode }
+  | { type: 'TOGGLE_AGE' }
+  | { type: 'TOGGLE_MEDICO_LEGAL' }
 
 function validateIdentifier(identifier: string, identifierType: IdentifierType): string | null {
   // eslint-disable-next-line i18next/no-literal-string
@@ -52,6 +61,12 @@ function reducer(state: State, action: Action): State {
       return { ...state, isLoading: false }
     case 'CLEAR_ERROR':
       return { ...state, errorKey: null }
+    case 'SET_MODE':
+      return { ...state, mode: action.payload, ageConfirmed: false, medicoLegalConfirmed: false, hasAttemptedSubmit: false, errorKey: null }
+    case 'TOGGLE_AGE':
+      return { ...state, ageConfirmed: !state.ageConfirmed }
+    case 'TOGGLE_MEDICO_LEGAL':
+      return { ...state, medicoLegalConfirmed: !state.medicoLegalConfirmed }
     default:
       return state
   }
@@ -63,6 +78,9 @@ const INITIAL_STATE: State = {
   isLoading: false,
   errorKey: null,
   hasAttemptedSubmit: false,
+  mode: 'signup',
+  ageConfirmed: false,
+  medicoLegalConfirmed: false,
 }
 
 export default function SignInScreen() {
@@ -70,7 +88,11 @@ export default function SignInScreen() {
   const router = useRouter()
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE)
 
+  const checkboxesIncomplete = state.mode === 'signup' && (!state.ageConfirmed || !state.medicoLegalConfirmed)
+  const isSendDisabled = state.isLoading || checkboxesIncomplete
+
   async function handleSendCode() {
+    if (isSendDisabled) return
     const validationErrorKey = validateIdentifier(state.identifier, state.identifierType)
     if (validationErrorKey) {
       dispatch({ type: 'SUBMIT_ERROR', payload: validationErrorKey })
@@ -96,7 +118,11 @@ export default function SignInScreen() {
       dispatch({ type: 'SUBMIT_SUCCESS' })
       router.push({
         pathname: '/(auth)/otp-verification',
-        params: { identifier: state.identifier, identifierType: state.identifierType },
+        params: {
+          identifier: state.identifier,
+          identifierType: state.identifierType,
+          isNewAccount: state.mode === 'signup' ? 'true' : 'false',
+        },
       })
     } catch {
       dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.otp.sendError' })
@@ -119,6 +145,31 @@ export default function SignInScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>{t('common.appName')}</Text>
       <Text style={styles.subtitle}>{t('auth.otp.sendCode')}</Text>
+
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tab, state.mode === 'signup' && styles.tabActive]}
+          onPress={() => dispatch({ type: 'SET_MODE', payload: 'signup' })}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.mode.createAccount')}
+          accessibilityState={{ selected: state.mode === 'signup' }}
+        >
+          <Text style={[styles.tabText, state.mode === 'signup' && styles.tabTextActive]}>
+            {t('auth.mode.createAccount')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, state.mode === 'signin' && styles.tabActive]}
+          onPress={() => dispatch({ type: 'SET_MODE', payload: 'signin' })}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.mode.signIn')}
+          accessibilityState={{ selected: state.mode === 'signin' }}
+        >
+          <Text style={[styles.tabText, state.mode === 'signin' && styles.tabTextActive]}>
+            {t('auth.mode.signIn')}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.tabRow}>
         <TouchableOpacity
@@ -167,12 +218,21 @@ export default function SignInScreen() {
         accessibilityHint={inputHint}
       />
 
+      {state.mode === 'signup' && (
+        <SafetyCheckboxes
+          ageConfirmed={state.ageConfirmed}
+          medicoLegalConfirmed={state.medicoLegalConfirmed}
+          onToggleAge={() => dispatch({ type: 'TOGGLE_AGE' })}
+          onToggleMedicoLegal={() => dispatch({ type: 'TOGGLE_MEDICO_LEGAL' })}
+        />
+      )}
+
       {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey)}</Text> : null}
 
       <TouchableOpacity
-        style={[styles.button, state.isLoading && styles.buttonDisabled]}
+        style={[styles.button, isSendDisabled && styles.buttonDisabled]}
         onPress={handleSendCode}
-        disabled={state.isLoading}
+        disabled={isSendDisabled}
         accessibilityLabel={t('auth.otp.sendCode')}
         accessibilityHint={t('auth.otp.sendCodeHint')}
         accessibilityRole="button"

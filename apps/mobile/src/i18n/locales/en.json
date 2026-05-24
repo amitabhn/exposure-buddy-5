@@ -29,6 +29,16 @@
       "phoneInputHint": "Enter your phone number in international format to receive a one-time code",
       "sendCodeHint": "Sends a one-time code to your email or phone"
     },
+    "mode": {
+      "createAccount": "Create account",
+      "signIn": "Sign in"
+    },
+    "safety": {
+      "consentIntro": "We need your confirmation on two things before we create your account.",
+      "ageConfirmation": "I confirm I am 18 years of age or older",
+      "medicoLegalDisclaimer": "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings.",
+      "consentWriteFailed": "We couldn't save your consent record. Please try again."
+    },
     "validation": {
       "emailRequired": "Please enter your email address",
       "phoneRequired": "Please enter your phone number",
