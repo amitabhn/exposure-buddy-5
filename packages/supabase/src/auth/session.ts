@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 import { MMKV } from 'react-native-mmkv'
 import type { Session } from '@supabase/supabase-js'
+import { createSupabaseClient } from '../client'
 
 export type { MMKV }
 
@@ -80,4 +81,13 @@ export function setAuthState(mmkv: MMKV, session: Session): void {
 
 export function clearAuthState(mmkv: MMKV): void {
   mmkv.delete(MMKV_KEYS.AUTH_STATE)
+}
+
+export async function signOut(mmkv: MMKV): Promise<void> {
+  await createSupabaseClient().auth.signOut()
+  clearAuthState(mmkv)
+  // eslint-disable-next-line i18next/no-literal-string
+  await SecureStore.deleteItemAsync('supabase_access_token').catch(() => {})
+  // eslint-disable-next-line i18next/no-literal-string
+  await SecureStore.deleteItemAsync('supabase_refresh_token').catch(() => {})
 }

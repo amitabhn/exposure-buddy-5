@@ -2,9 +2,6 @@
   "common": {
     "appName": "Exposure Buddy"
   },
-  "nav": {
-    "home": "Home"
-  },
   "error": {
     "notFoundTitle": "Oops!",
     "screenNotFound": "This screen does not exist.",
@@ -44,6 +41,32 @@
       "phoneRequired": "Please enter your phone number",
       "invalidEmail": "Please enter a valid email address",
       "invalidPhone": "Phone number must be in international format (e.g. +91...)"
+    },
+    "deletion": {
+      "accountPendingDeletion": "Your account is scheduled for deletion and cannot be accessed. If you believe this is an error, contact us at {{dpoEmail}}."
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "signOut": "Sign out",
+    "signOutError": "Sign out failed. Please try again.",
+    "deleteAccountError": "Failed to submit deletion request. Please try again.",
+    "privacy": {
+      "title": "Privacy",
+      "deleteAccount": "Delete my account"
+    },
+    "deletion": {
+      "dialogTitle": "Delete your account",
+      "whatHappens": "All your personal data will be permanently deleted after 30 days.",
+      "whatRetained": "Your consent records will be retained for the duration of your account plus 2 years after deletion, as required by DPDPA 2023.",
+      "windowMeaning": "During the 30-day window your account will be inaccessible. You will not be able to log back in, and this action cannot be cancelled once confirmed.",
+      "dpoContact": "For questions about your data, contact our Data Protection Officer at {{dpoEmail}}.",
+      "confirmButton": "Delete my account",
+      "cancelButton": "Cancel"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings"
   }
 }
