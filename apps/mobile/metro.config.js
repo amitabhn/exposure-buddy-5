@@ -13,4 +13,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ]
 
+// Exclude test files so @testing-library/react-native is never bundled at runtime
+config.resolver.blockList = [/.*\.(test|spec)\.[jt]sx?$/, /.*__tests__.*/]
+
 module.exports = config
