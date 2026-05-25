@@ -5,3 +5,6 @@ packages:
 allowBuilds:
   '@sentry/cli': true
   esbuild: true
+
+overrides:
+  react-native: 0.81.5
