@@ -9,7 +9,8 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app src --ext .ts,.tsx",
-    "test": "jest"
+    "test": "jest",
+    "eas-build-post-install": "cd ../.. && pnpm turbo run build --filter=@exposure-buddy/core --filter=@exposure-buddy/supabase --filter=@exposure-buddy/sync --filter=@exposure-buddy/ui"
   },
   "jest": {
     "preset": "jest-expo"
