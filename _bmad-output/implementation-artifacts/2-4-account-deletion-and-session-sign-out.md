@@ -268,6 +268,10 @@ The sign-in screen (`sign-in.tsx`) does not need modification for this story. Th
 - **Story 4.1 (KV_KEYS)**: Will create a `KV_KEYS` constant file with `PENDING_DELETION_REQUEST: 'pending_deletion_request'`. The raw string `'pending_deletion_request'` in `DpoServiceStub` will be refactored to use `KV_KEYS` at that point. A lint rule prohibiting raw MMKV key literals in `apps/mobile` will also be added in Story 4.1.
 - **Story 3.3 (DPO Edge Functions)**: Replaces `DpoServiceStub` with a real `DpoService` that calls `/dpo/erase-user`. The `IDpoService` interface contract is unchanged.
 
+### Deferred Work
+
+- **DPO email and data-deletion dialog copy review** — The DPO contact email is currently hardcoded as `privacy@exposure-buddy.com` in two places (`apps/mobile/src/components/settings/DeleteAccountModal.tsx` and `apps/mobile/app/(auth)/otp-verification.tsx`) and the deletion dialog copy (`settings.deletion.*` i18n keys) has not been reviewed by a DPO or legal counsel. Both must be reviewed and updated before production release. Tracked by W2 in Review Findings above; Story 3.5 (Privacy Notice) is the target story for consolidating the real DPO email into a single constant and finalising the copy.
+
 ### References
 
 - `packages/supabase/src/auth/session.ts` — `clearAuthState`, `MMKV_KEYS`, MMKV initialization pattern to follow
