@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   extends: ['eslint:recommended'],
-  plugins: ['i18next', 'react-native-a11y'],
+  plugins: ['i18next', 'react-native-a11y', 'react-hooks'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,
@@ -70,6 +70,9 @@ module.exports = {
         ],
       },
     ],
+    // Enforce complete useEffect dependency arrays — catches stale closures at lint time
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'error',
     // TypeScript declaration files use declare — no-unused-vars is a false positive
     'no-unused-vars': 'off',
   },

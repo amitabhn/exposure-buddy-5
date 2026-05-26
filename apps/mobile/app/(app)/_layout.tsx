@@ -14,7 +14,7 @@ export default function AppLayout() {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
     }
-  }, [isLoading, isAuthenticated])
+  }, [isLoading, isAuthenticated, router])
 
   // Refresh session on foreground resume to catch token expiry during background suspension (ADR-008 §5b)
   useEffect(() => {

@@ -513,6 +513,88 @@ export function useSubmitCheckIn() {
 
 ---
 
+## Async useEffect Patterns
+
+`useEffect` bodies that contain Promises require three guards that are easy to forget on the happy path.
+
+**Required shape — async operation inside useEffect:**
+
+```typescript
+// ✅ correct shape — concurrency guard + cleanup + dep array
+useEffect(() => {
+  if (!shouldRun) return          // guard: don't fire on every render if condition not met
+
+  let cancelled = false           // cleanup flag
+
+  dispatch({ type: 'SET_LOADING', payload: true })
+
+  someAsyncOperation()
+    .then((result) => {
+      if (cancelled) return       // guard: ignore if effect was cleaned up before Promise resolved
+      dispatch({ type: 'SET_RESULT', payload: result })
+    })
+    .catch((err) => {
+      if (cancelled) return
+      dispatch({ type: 'SET_ERROR', payload: classifyError(err) })
+    })
+    .finally(() => {
+      if (!cancelled) dispatch({ type: 'SET_LOADING', payload: false })
+    })
+
+  return () => { cancelled = true }    // cleanup: mark stale on unmount or dep change
+}, [shouldRun, someStableDep])         // dep array: include every value read inside the effect
+```
+
+**The three failure modes — all caught in Epic 2 code review:**
+
+1. **No loading guard before the async call.** If the user triggers the effect twice (double-tap, strict-mode double-invoke, fast navigation), two Promises race. The second dispatch wins regardless of which resolved first. Fix: set loading state before the call and gate re-entry on it, or use the `cancelled` flag to discard the stale result.
+
+2. **No `cancelled` flag (or equivalent cleanup).** If the component unmounts before the Promise resolves, the `.then()` still fires and dispatches to a dead reducer. In strict mode this causes visible state flicker. Fix: always return a cleanup function that sets `cancelled = true`.
+
+3. **Incomplete dependency array.** If a value read inside the effect is missing from the dep array, the effect closes over a stale copy. `react-hooks/exhaustive-deps` (now set to `error` in `apps/mobile/.eslintrc.js`) catches this at lint time — a failing lint is the signal, not a runtime bug.
+
+**When `async/await` is needed instead of `.then()`:**
+
+```typescript
+useEffect(() => {
+  let cancelled = false
+
+  async function run() {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    try {
+      const result = await someAsyncOperation()
+      if (!cancelled) dispatch({ type: 'SET_RESULT', payload: result })
+    } catch (err) {
+      if (!cancelled) dispatch({ type: 'SET_ERROR', payload: classifyError(err) })
+    } finally {
+      if (!cancelled) dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+
+  run()
+  return () => { cancelled = true }
+}, [dep1, dep2])
+// Note: the effect callback itself is never async — only the inner function is
+```
+
+**Auth state transitions (prevRef pattern — Epic 2 established):**
+
+When an effect must fire exactly once on an auth state transition (`false → true`), use a ref to track the previous value rather than a `cancelled` flag:
+
+```typescript
+const prevIsAuthenticated = useRef(false)
+
+useEffect(() => {
+  if (isAuthenticated && !prevIsAuthenticated.current) {
+    prevIsAuthenticated.current = true
+    // fire exactly once on transition — subsequent renders with isAuthenticated=true are no-ops
+    handleAuthTransition()
+  }
+}, [isAuthenticated])
+```
+
+---
+
 ## Anti-Patterns
 
 **8a — Importing database.types.ts outside packages/supabase**
