@@ -10,10 +10,11 @@ interface UseAuthResult {
   signOut: () => Promise<void>
   requestAccountDeletion: () => Promise<void>
   pendingDeletion: PendingDeletionRecord | null
+  hasAuthedBefore: boolean
 }
 
 export function useAuth(): UseAuthResult {
-  const { authState, isLoading, signOut, requestAccountDeletion, pendingDeletion } = useContext(AuthContext)
+  const { authState, isLoading, signOut, requestAccountDeletion, pendingDeletion, hasAuthedBefore } = useContext(AuthContext)
   return {
     authState,
     isLoading,
@@ -21,5 +22,6 @@ export function useAuth(): UseAuthResult {
     signOut,
     requestAccountDeletion,
     pendingDeletion,
+    hasAuthedBefore,
   }
 }

@@ -2,7 +2,7 @@ import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
 import { DpoServiceStub, type IDpoService, type PendingDeletionRecord } from '@exposure-buddy/core'
 import { createSupabaseClient } from '../client'
-import { clearAuthState, getAuthState, setAuthState, signOut as sessionSignOut, type AuthState } from './session'
+import { clearAuthState, getAuthState, getHasAuthedBefore, setAuthState, signOut as sessionSignOut, type AuthState } from './session'
 
 interface AuthContextValue {
   authState: AuthState
@@ -10,6 +10,10 @@ interface AuthContextValue {
   signOut: () => Promise<void>
   requestAccountDeletion: () => Promise<void>
   pendingDeletion: PendingDeletionRecord | null
+  // True once the device has had at least one successful sign-in (persisted via
+  // MMKV, survives sign-out, cleared on reinstall). The sign-in screen uses
+  // this to pick between "Create account" and "Sign in" as the default tab.
+  hasAuthedBefore: boolean
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -24,11 +28,15 @@ export const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   requestAccountDeletion: async () => {},
   pendingDeletion: null,
+  hasAuthedBefore: false,
 })
 
 interface AuthProviderProps {
   children: React.ReactNode
-  mmkv: MMKV | null
+  // undefined = initSession still pending; null = init failed (degraded mode, no persistence);
+  // MMKV = ready. The tri-state lets the auth gate distinguish "still loading" from
+  // "loaded but no persistence" so it can redirect to sign-in instead of hanging.
+  mmkv: MMKV | null | undefined
   dpoService?: IDpoService
 }
 
@@ -36,9 +44,10 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [authState, setAuthStateLocal] = useState<AuthState>(DEFAULT_AUTH_STATE)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletionRecord | null>(null)
-  const mmkvRef = useRef(mmkv)
+  const [hasAuthedBefore, setHasAuthedBeforeLocal] = useState(false)
+  const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
   const dpoServiceRef = useRef<IDpoService>(
-    dpoService ?? new DpoServiceStub((key, val) => mmkvRef.current!.set(key, val))
+    dpoService ?? new DpoServiceStub((key, val) => mmkvRef.current?.set(key, val))
   )
   // Flips to true once MMKV is available and the stored session has been bootstrapped
   // into the Supabase in-memory client. The auth listener ignores events until this fires
@@ -48,9 +57,26 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   // Bootstrap Supabase in-memory session from MMKV on first availability (ARC-004).
   // Calling setSession() here re-arms autoRefreshToken for the stored token.
   useEffect(() => {
+    // Pending — keep loading until initSession resolves one way or the other.
+    if (mmkv === undefined) return
+
     mmkvRef.current = mmkv
-    if (!mmkv || mmkvReadyRef.current) return
+
+    // Init failed (null) — proceed in degraded mode without persistence so the auth
+    // gate can render sign-in instead of hanging on isLoading=true.
+    if (mmkv === null) {
+      if (!mmkvReadyRef.current) {
+        mmkvReadyRef.current = true
+        setIsLoading(false)
+      }
+      return
+    }
+
+    if (mmkvReadyRef.current) return
     mmkvReadyRef.current = true
+
+    // Bootstrap "has authed before" flag (persisted across sign-out)
+    setHasAuthedBeforeLocal(getHasAuthedBefore(mmkv))
 
     // Bootstrap pending deletion state
     try {
@@ -91,6 +117,9 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       if (session) {
         if (store) setAuthState(store, session)
         setAuthStateLocal({ session, userId: session.user.id, email: session.user.email ?? null })
+        // setAuthState already wrote the flag to MMKV; mirror it into local state
+        // so consumers (via context) see it immediately without another MMKV read.
+        setHasAuthedBeforeLocal(true)
       } else {
         if (store) clearAuthState(store)
         setAuthStateLocal(DEFAULT_AUTH_STATE)
@@ -104,7 +133,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   }, [])
 
   async function signOut(): Promise<void> {
-    if (!mmkvRef.current) return
+    // mmkvRef.current may be null in degraded mode (initSession failed) — still
+    // sign out: the supabase listener flips local state and the auth gate redirects.
     await sessionSignOut(mmkvRef.current)
   }
 
@@ -123,7 +153,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   }
 
   return (
-    <AuthContext.Provider value={{ authState, isLoading, signOut, requestAccountDeletion, pendingDeletion }}>
+    <AuthContext.Provider value={{ authState, isLoading, signOut, requestAccountDeletion, pendingDeletion, hasAuthedBefore }}>
       {children}
     </AuthContext.Provider>
   )

@@ -41,13 +41,16 @@ export default function RootLayout() {
   // 2. SplashScreen.preventAutoHideAsync() — module scope, second
   // 3. i18n side-effect — module scope, third
   // 4. initSession() — async, derives MMKV key from SecureStore before auth reads
-  const [mmkv, setMmkv] = useState<MMKV | null>(null)
+  // Tri-state: undefined = pending; null = init failed (degraded, no persistence);
+  // MMKV = ready. AuthProvider uses this to decide when to stop loading.
+  const [mmkv, setMmkv] = useState<MMKV | null | undefined>(undefined)
 
   useEffect(() => {
     initSession()
       .then(setMmkv)
       .catch(() => {
-        // SecureStore unavailable (e.g. simulator without keychain) — proceed with null session
+        // initSession can fail if SecureStore is unavailable or the Hermes runtime
+        // lacks crypto APIs — proceed in degraded mode so the auth gate can still render.
         setMmkv(null)
       })
   }, [])

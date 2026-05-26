@@ -242,6 +242,10 @@ Transition: NORMAL → CRISIS_PAUSED (immediate on detection) → CRISIS_WRITE_W
 - Rule: after cold start, read auth state from context only — never read MMKV for auth again until the next cold start
 - `packages/supabase` instantiates the Supabase client and owns the listener; auth context provider lives in `apps/mobile`
 
+**MMKV key inventory (5a-i):**
+- `auth.state` — serialized `{ userId, accessToken, expiresAt }`; written by `setAuthState()`, cleared by `clearAuthState()` (sign-out)
+- `auth.hasAuthedBefore` — boolean flag; written by `setAuthState()` on every successful sign-in, **never cleared** by `clearAuthState()` — survives sign-out, persists until reinstall. Read once at cold start into `AuthContext.hasAuthedBefore`; downstream consumers call `useAuth().hasAuthedBefore` — never re-read MMKV directly (same rule as 5a above). Purpose: sign-in screen defaults to "Create account" on first-ever install, "Sign in" on any device that has previously authenticated (FR-AUTH-03).
+
 **Auth recheck during runtime (5b):**
 - `AppState` change to `active` → call `supabase.auth.getSession()` in the root layout's `useEffect`
 - Rationale: OS can suspend the app long enough for a token to expire while backgrounded; the listener does not fire for time passing, only for Supabase-initiated events

@@ -150,6 +150,8 @@ so that I control my presence in the app and my data is handled per DPDPA 2023 (
 
 **MMKV `"preview_challenges"` key is safe.** `clearAuthState(mmkv)` only calls `mmkv.delete(MMKV_KEYS.AUTH_STATE)` where `MMKV_KEYS.AUTH_STATE = 'auth.state'`. It does NOT call `mmkv.clearAll()`. Preview challenges are preserved automatically.
 
+**Post-sign-out sign-in tab default (FR-AUTH-03).** Sign-out routes to `(auth)/sign-in`, which previously always defaulted to the "Create account" tab — jarring for a returning user who just signed out. A new MMKV key `MMKV_KEYS.HAS_AUTHED_BEFORE = 'auth.hasAuthedBefore'` is set by `setAuthState()` on every successful session write and read by `AuthProvider` at bootstrap. `clearAuthState()` does NOT touch this key — it persists across sign-out and is only lost on reinstall (MMKV key rotation). The sign-in screen reads `hasAuthedBefore` via `useAuth()` and lazy-initializes its `mode` reducer to `'signin'` when true, `'signup'` when false. Surfaced via context (not a second MMKV read) per `implementation-patterns § "read auth state from context only after cold start"`.
+
 ### Architecture: DpoServiceStub ARC-011 Compliance
 
 `packages/core` must have zero `react-native`, `expo-*`, or `@supabase/*` imports (ARC-011). MMKV is `react-native-mmkv`. The stub cannot import MMKV directly.
