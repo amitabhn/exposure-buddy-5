@@ -125,3 +125,15 @@
 - **`web-import-gate` does not account for future `apps/` directories** — the grep scope in `ci.yml` is limited to `apps/mobile/src apps/mobile/app packages/`; new `apps/` directories added in later phases (e.g., `apps/desktop`) would not be checked for `apps/web` imports. Low risk at current project size but should be widened when a second app is added. [.github/workflows/ci.yml:63]
 
 - **`typecheck` CI job rebuilds from scratch on fresh runners** — `pnpm turbo typecheck` depends on `build` outputs that live on a different runner; there is no Turbo Remote Cache configured, so the build is re-run from scratch on the typecheck runner. Makes `needs: [build]` ordering redundant and doubles CI time. Address when Turbo Remote Cache is configured. [.github/workflows/ci.yml:117]
+
+## Deferred from: code review of 3-1-crisis-keyword-detection-engine (2026-05-26)
+
+- **D1: Unicode homoglyph/lookalike substitution bypasses detection** — Characters like Cyrillic small dze (U+0455) replacing Latin 's', full-width ASCII, or combining diacritics are not normalized before matching. Requires NFKC confusable folding — beyond the scope of a pure substring detector. Address if adversarial bypass becomes a concern; document as a known gap for now. [`keywordDetector.ts:4-5`]
+
+- **D2: Substring false positives on 'overdose' and 'want to die' in casual speech** — `overdose` matches "I overdosed on coffee"; `want to die` matches "I want to die of embarrassment". Inherent limitation of the substring-match design mandated by Story 3.1 spec. False positives increase alert fatigue; consider context-window scoring in a future NLP upgrade story. [`keywords.ts:10,21`]
+
+- **D3: Hindi keyword coverage gaps — gendered and conjugation variants absent** — `'मरना चाहता'` covers masculine only; feminine plural (`चाहते`), informal conjugations, and Romanized transliterations are missing. Clinical review required before production (flagged in source comment). Address during the clinician keyword review pass before production release. [`keywords.ts:24-31`]
+
+- **D4: Devanagari word-boundary false positives** — Hindi script has no equivalent of `\b` word boundaries; short keywords like `'जान'` (life/soul) appear as common standalone words and in vocative usage. Design limitation of substring matching; acceptable at MVP. Revisit if false-positive rate proves clinically significant. [`keywords.ts:24-31`]
+
+- **D5: No false-positive test cases documenting known substring-match scope** — The test suite covers true-positive branches but has no tests asserting that common benign phrases ("suicide prevention", "I overdosed on coffee") do or do not trigger detection. Add documentation tests when the NLP approach is revisited. [`keywordDetector.test.ts`]
