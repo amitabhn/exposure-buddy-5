@@ -101,7 +101,7 @@ export default function SignInScreen() {
   // or returning user), redirect to home. Mirrors the redirect in otp-verification.
   useEffect(() => {
     if (isAuthenticated) router.replace('/(app)/')
-  }, [isAuthenticated])
+  }, [isAuthenticated, router])
 
   const checkboxesIncomplete = state.mode === 'signup' && (!state.ageConfirmed || !state.medicoLegalConfirmed)
   const isSendDisabled = state.isLoading || checkboxesIncomplete

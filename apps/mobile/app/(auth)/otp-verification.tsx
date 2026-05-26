@@ -99,6 +99,8 @@ export default function OtpVerificationScreen() {
       }
       router.replace('/(auth)/sign-in')
     }
+  // Mount-only guard: route params are stable after mount; redirect fires at most once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -143,7 +145,7 @@ export default function OtpVerificationScreen() {
         router.replace('/(app)/')
       }
     }
-  }, [isAuthenticated, authState.userId, isNewAccount, pendingDeletion, signOut])
+  }, [isAuthenticated, authState.userId, isNewAccount, pendingDeletion, signOut, router])
 
   if (!identifier || !identifierType || isNewAccountParam === undefined) return null
 
