@@ -93,6 +93,7 @@ export default function SignInScreen() {
   // routes us here, so no flash.
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (initial): State => ({
     ...initial,
+    // eslint-disable-next-line i18next/no-literal-string
     mode: hasAuthedBefore ? 'signin' : 'signup',
   }))
 
