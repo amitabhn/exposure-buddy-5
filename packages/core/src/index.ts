@@ -8,3 +8,5 @@ export { CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from './ser
 export { ConsentRecordServiceStub } from './stubs/ConsentRecordServiceStub'
 export type { IDpoService, PendingDeletionRecord } from './services/IDpoService'
 export { DpoServiceStub } from './stubs/DpoServiceStub'
+export { detectCrisisKeywords } from './crisis/keywordDetector'
+export { CRISIS_KEYWORDS } from './crisis/keywords'
