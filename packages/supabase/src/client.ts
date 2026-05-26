@@ -11,12 +11,12 @@ declare const process: { env: Record<string, string | undefined> }
 export function createSupabaseClient(): TypedSupabaseClient {
   if (_client) return _client
 
-  const supabaseUrl = process.env['SUPABASE_URL']
-  const supabaseAnonKey = process.env['SUPABASE_ANON_KEY']
+  const supabaseUrl = process.env['EXPO_PUBLIC_SUPABASE_URL']
+  const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY']
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'SUPABASE_URL and SUPABASE_ANON_KEY must be set in EAS environment variables (ARC-006)',
+      'EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set as EAS environment variables (ARC-006). The EXPO_PUBLIC_ prefix is required so Expo inlines the value into the JS bundle at build time.',
     )
   }
 

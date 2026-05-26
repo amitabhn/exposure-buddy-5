@@ -29,6 +29,7 @@ export default function AppLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" options={{ title: t('nav.home') }} />
+      <Tabs.Screen name="settings/index" options={{ title: t('nav.settings') }} />
     </Tabs>
   )
 }

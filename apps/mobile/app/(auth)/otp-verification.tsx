@@ -87,7 +87,7 @@ export default function OtpVerificationScreen() {
   const isNewAccount = isNewAccountParam === 'true'
 
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE)
-  const { isAuthenticated, authState } = useAuth()
+  const { isAuthenticated, authState, pendingDeletion, signOut } = useAuth()
   const prevIsAuthenticated = useRef(false)
 
   // Redirect to sign-in if any required navigation params are missing (deep link, crash-recovery,
@@ -103,6 +103,20 @@ export default function OtpVerificationScreen() {
 
   useEffect(() => {
     if (isAuthenticated && !prevIsAuthenticated.current) {
+      if (pendingDeletion?.userId === authState.userId) {
+        prevIsAuthenticated.current = false
+        dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.deletion.accountPendingDeletion' })
+        ;(async () => {
+          try {
+            await signOut()
+          } catch {
+            // Sign-out failure: session may persist until network recovers;
+            // the deletion guard re-engages on next isAuthenticated transition.
+          }
+        })()
+        return
+      }
+
       prevIsAuthenticated.current = true
 
       if (isNewAccount && authState.userId) {
@@ -129,7 +143,7 @@ export default function OtpVerificationScreen() {
         router.replace('/(app)/')
       }
     }
-  }, [isAuthenticated, authState.userId, isNewAccount])
+  }, [isAuthenticated, authState.userId, isNewAccount, pendingDeletion, signOut])
 
   if (!identifier || !identifierType || isNewAccountParam === undefined) return null
 
@@ -227,7 +241,8 @@ export default function OtpVerificationScreen() {
         accessibilityHint={t('auth.otp.codeHint')}
       />
 
-      {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey)}</Text> : null}
+      {/* eslint-disable-next-line i18next/no-literal-string */}
+      {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey, { dpoEmail: 'privacy@exposure-buddy.com' })}</Text> : null}
 
       {state.consentError ? <Text style={styles.errorText}>{t(state.consentError)}</Text> : null}
 

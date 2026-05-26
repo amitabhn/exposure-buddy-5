@@ -1,8 +1,8 @@
-import { useReducer } from 'react'
+import { useReducer, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { createSupabaseClient } from '@exposure-buddy/supabase'
+import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
 import { SafetyCheckboxes } from '../../src/components/auth/SafetyCheckboxes'
 
 type IdentifierType = 'email' | 'phone'
@@ -86,7 +86,22 @@ const INITIAL_STATE: State = {
 export default function SignInScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE)
+  const { isAuthenticated, hasAuthedBefore } = useAuth()
+  // Returning user (has signed in on this device before): default to "Sign in".
+  // Fresh install: default to "Create account". Lazy initializer reads the flag
+  // once on mount — AuthProvider has resolved it by the time the auth gate
+  // routes us here, so no flash.
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (initial): State => ({
+    ...initial,
+    // eslint-disable-next-line i18next/no-literal-string
+    mode: hasAuthedBefore ? 'signin' : 'signup',
+  }))
+
+  // If we land on sign-in while already authenticated (e.g. dev password sign-in
+  // or returning user), redirect to home. Mirrors the redirect in otp-verification.
+  useEffect(() => {
+    if (isAuthenticated) router.replace('/(app)/')
+  }, [isAuthenticated])
 
   const checkboxesIncomplete = state.mode === 'signup' && (!state.ageConfirmed || !state.medicoLegalConfirmed)
   const isSendDisabled = state.isLoading || checkboxesIncomplete
@@ -239,6 +254,25 @@ export default function SignInScreen() {
       >
         <Text style={styles.buttonText}>{t('auth.otp.sendCode')}</Text>
       </TouchableOpacity>
+
+      {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') ? (
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#6b7280', marginTop: 8 }]}
+          onPress={async () => {
+            const { error } = await createSupabaseClient().auth.signInWithPassword({
+              // eslint-disable-next-line i18next/no-literal-string
+              email: 'test1@test.com',
+              // eslint-disable-next-line i18next/no-literal-string
+              password: 'DevTest123!',
+            })
+            if (error) dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.otp.sendError' })
+          }}
+          accessibilityRole="button"
+        >
+          {/* eslint-disable-next-line i18next/no-literal-string */}
+          <Text style={styles.buttonText}>DEV: Sign in as test user</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   )
 }

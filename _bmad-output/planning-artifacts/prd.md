@@ -359,6 +359,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 - **FR-AUTH-01:** Users authenticate using email address or phone number; both paths use OTP verification
 - **FR-AUTH-02:** Logged-out users access all 3 preview challenges without authentication; progress from preview challenges is not persisted unless the user creates an account
+- **FR-AUTH-03:** The sign-in screen defaults to the **Create account** tab on a device that has never had a successful sign-in, and to the **Sign in** tab on any device where at least one successful sign-in has previously occurred. The "device has authed before" state is persisted in encrypted MMKV under key `auth.hasAuthedBefore`; it survives Sign out (so a returning user lands on Sign in after signing out) and is cleared only on app reinstall (which rotates the MMKV encryption key)
 
 ### Sign-Up Safeguards
 

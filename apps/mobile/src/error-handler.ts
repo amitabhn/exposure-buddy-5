@@ -5,8 +5,8 @@ export function initErrorHandler(): void {
 
   try {
     Sentry.init({
-      dsn: process.env.SENTRY_DSN || undefined,
-      enabled: !__DEV__ && !!process.env.SENTRY_DSN,
+      dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
+      enabled: !__DEV__ && !!process.env.EXPO_PUBLIC_SENTRY_DSN,
       tracesSampleRate: 0.1,
     })
   } catch {

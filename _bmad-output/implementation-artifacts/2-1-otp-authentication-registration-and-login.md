@@ -135,6 +135,8 @@ useEffect(() => {
 
 The simplest MVP approach: the sign-in screen passes an `isNewAccount: boolean` param when navigating to the verification screen (determined by whether the user came from "Create account" vs "Sign in" path). If sign-in/sign-up share one screen (recommended MVP simplification), this is always `true` on first OTP verification — Supabase creates the account if one doesn't exist.
 
+**Sign-in screen tab default (FR-AUTH-03).** The screen has two tabs — "Create account" (`mode: 'signup'`) and "Sign in" (`mode: 'signin'`). The reducer's initial `mode` is chosen via `useReducer`'s lazy initializer based on `useAuth().hasAuthedBefore`: `true` → `'signin'`, `false` → `'signup'`. `hasAuthedBefore` is sourced from MMKV key `auth.hasAuthedBefore` (set by `setAuthState()` on every successful session write; preserved across sign-out; cleared only on reinstall) and surfaced via `AuthContext` per ARC-004 (no MMKV reads after cold start). Tab switches by the user are not persisted — re-mounting the screen always re-runs the lazy initializer.
+
 ### Profiles Table
 
 The `profiles` table is for user metadata (display name, preferences) — **distinct from** `public.users` which is the auth linkage table created in Story 1.7. Story 2.1 creates the table and RLS harness; later stories populate it. Follow the 4-item entity checklist from impl-patterns:

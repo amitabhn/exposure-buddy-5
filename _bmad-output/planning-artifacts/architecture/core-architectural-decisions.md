@@ -22,7 +22,7 @@ PowerSync owns the local SQLite store. WatermelonDB/Legend-State/Redux decision 
 
 **Decision:** MMKV + PowerSync's SQLite — no separate SQLCipher instance.
 
-- MMKV: auth tokens, navigation state, user preferences, session recovery flag
+- MMKV: auth tokens (`auth.state`), sign-in history flag (`auth.hasAuthedBefore`), navigation state, user preferences, session recovery flag
 - PowerSync SQLite: all clinical structured data (SUDS logs, ERP sessions, hierarchy)
 - Encryption key: derived via Expo SecureStore (Android Keystore API 23+, iOS Keychain)
 - iOS file protection: NSFileProtectionCompleteUntilFirstUserAuthentication (accessible after first unlock, background sync safe)
@@ -36,7 +36,7 @@ PowerSync owns the local SQLite store. WatermelonDB/Legend-State/Redux decision 
 
 **Startup sequence (cold start dependency graph):**
 1. MMKV key derivation (Expo SecureStore)
-2. MMKV sync reads: [auth state] [session.inProgress] [last route]
+2. MMKV sync reads: [auth.state] [auth.hasAuthedBefore] [session.inProgress] [last route]
 3. PowerSync init (parallel to step 2 where possible)
 4. Route decision: session recovery screen OR last route OR onboarding
 

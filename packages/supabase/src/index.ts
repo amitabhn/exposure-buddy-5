@@ -9,6 +9,8 @@ export {
   getAuthState,
   setAuthState,
   clearAuthState,
+  signOut,
   MMKV_KEYS,
 } from './auth/session'
 export type { AuthState, MmkvKey, MMKV } from './auth/session'
+export type { PendingDeletionRecord } from '@exposure-buddy/core'
