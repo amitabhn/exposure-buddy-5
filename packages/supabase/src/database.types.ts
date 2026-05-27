@@ -11,18 +11,21 @@ export interface Database {
           email: string | null
           created_at: string
           deleted_at: string | null
+          deletion_requested_at: string | null
         }
         Insert: {
           id: string
           email: string
           created_at?: string
           deleted_at?: string | null
+          deletion_requested_at?: string | null
         }
         Update: {
           id?: string
           email?: string | null
           created_at?: string
           deleted_at?: string | null
+          deletion_requested_at?: string | null
         }
       }
       profiles: {
