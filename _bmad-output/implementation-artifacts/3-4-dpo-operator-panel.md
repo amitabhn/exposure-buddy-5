@@ -63,6 +63,7 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
   - [ ] `CREATE TABLE IF NOT EXISTS public.dpo_operators (id UUID PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMPTZ DEFAULT now())`
   - [ ] Add comment: `-- dpo_operators: DPO operator identities. id matches auth.users.id for JWT sub alignment. Managed via seeding only — no self-registration.`
   - [ ] No RLS needed: only service_role accesses this table (via Edge Function login check)
+  - [ ] NOTE (F9 — accepted): No FK to `auth.users` is declared. `dpo_operators.id` alignment with `auth.users.id` is enforced procedurally via the seeding pattern (Admin API creates auth user first, then INSERT uses the returned UUID). An orphaned row (mismatched UUID) would pass the email-based login check in `dpo-login` but produce an `acting_operator_id` in `dpo_audit_log` that does not correspond to any operator row. The T10 seeding curl command is the guardrail — follow it exactly.
 
 - [ ] T2 — Create `supabase/migrations/0010_deletion_requested_at.sql` (AC: 2)
   - [ ] `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMPTZ`
@@ -73,6 +74,7 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
   - [ ] CORS preflight
   - [ ] Env var fast-fail (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   - [ ] Extract + verify user JWT via `adminClient.auth.getUser(jwt)` — regular user JWT (NOT `dpo_operator` role required)
+  - [ ] Do NOT parse the request body — it is intentionally empty (`{}`); user identity is derived exclusively from the verified JWT, never from a body field (C2/BOLA prevention — see F1 in Change Log)
   - [ ] Use service_role client to `UPDATE public.users SET deletion_requested_at = now() WHERE id = user.id`
   - [ ] Return `200 { ok: true }` — do NOT check for existing deletion_requested_at (idempotent: re-submission updates timestamp)
   - [ ] Return `401` if JWT invalid
@@ -80,8 +82,8 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
 - [ ] T4 — Create `supabase/functions/dpo-login/index.ts` (AC: 4)
   - [ ] POST-only method guard
   - [ ] CORS preflight
-  - [ ] Env var fast-fail
-  - [ ] Parse body: `{ email: string, password: string }` — 400 if missing
+  - [ ] Env var fast-fail (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY) — all three required; SUPABASE_ANON_KEY is used by the anon client for `signInWithPassword` (C1)
+  - [ ] Parse body: `{ email: string, password: string }` — return `400 { error: 'Bad request' }` if either field is missing, not a string, or is an empty string after `.trim()`; do NOT forward empty credentials to Supabase Auth (`if (!email?.trim() || !password?.trim()) return 400`)
   - [ ] Create anon client (`createClient(url, anonKey)`) and call `signInWithPassword({ email, password })`
   - [ ] On auth error: return `401 { error: 'Invalid credentials' }` — DO NOT disclose which field failed
   - [ ] Verify `user.app_metadata?.role === 'dpo_operator'` — 401 if not
@@ -94,32 +96,39 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
   - [ ] CORS preflight
   - [ ] Set `Set-Cookie: dpo_token=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0` to clear cookie
   - [ ] Return `200 { ok: true }`
+  - [ ] NOTE (F3 — accepted, deferred to Epic 4): The cookie is cleared client-side but the underlying Supabase session JWT remains valid until expiry (≤8 hours). Server-side revocation via `adminClient.auth.admin.signOut(userId)` is not implemented here — it would require parsing the cookie server-side, creating an admin client, and an extra Supabase Auth round-trip, disproportionate for this story's scope. Mitigated by: (a) 8h Max-Age TTL limits the exposure window, (b) `dpo_operators.active = false` blocks re-login, (c) small operator roster limits blast radius. File as security hardening ticket for Epic 4 / SOC-2 prep. (F10 same root cause — `active = false` deactivation does not revoke in-flight sessions; same deferred mitigation applies.)
 
 - [ ] T6 — Create `supabase/functions/dpo-panel/index.ts` (AC: 6)
-  - [ ] GET-only method guard (CORS OPTIONS exempt)
+  - [ ] CORS OPTIONS handler (E1 — before any method guard): `if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })` — same pattern as all other Edge Functions
+  - [ ] GET-only method guard (after OPTIONS check)
   - [ ] Return `Content-Type: text/html` with the panel HTML (inline in the Edge Function)
   - [ ] Panel HTML structure (all JS inline in `<script>` tag, no external dependencies):
     - Login form (hidden after auth): email + password fields + "Login" button
     - Dashboard (hidden before auth): three sections below
-    - Section 1: Pending Erasure Requests — JS fetches `POST /dpo/panel-data` or calls Supabase REST directly with operator token to query users where `deletion_requested_at IS NOT NULL AND deleted_at IS NULL`; shows email, requested date, "Confirm Erasure" button (with confirmation dialog)
-    - Section 2: Export — search by email/userId; "Trigger Export" button shows exported data in a scrollable pre block
-    - Section 3: Audit Log — paginated table; "Previous" / "Next" buttons
+    - Section 1: Pending Erasure Requests — JS calls GET `__SUPABASE_URL__/functions/v1/dpo-pending-requests` (see T6a); response shape: `{ requests: Array<{ id: string, email: string | null, deletion_requested_at: string }> }`; render each row with email (display "(email not available)" if `email === null` — C5), requested date, and "Confirm Erasure" button; on confirm: POST `__SUPABASE_URL__/functions/v1/dpo-erase-user` with body `{ targetUserId: request.id }` (C3 — field name must be `targetUserId`, NOT `userId`)
+    - Section 2: Export — search input (userId UUID); "Trigger Export" button POSTs to `__SUPABASE_URL__/functions/v1/dpo-export-user` with body `{ targetUserId: <entered-uuid> }` (C4 — field name must be `targetUserId`, NOT `userId`); response: `{ export: { user, authUser, profile, consentRecords, sessions } }`; display in `<details>` wrapper
+    - Section 3: Audit Log — paginated table; JS calls GET `__SUPABASE_URL__/functions/v1/dpo-audit-log?page=<n>&pageSize=20` (M2 — must pass `page` and `pageSize` query params); response: `{ entries: [...], page, pageSize, total }`; "Previous" / "Next" buttons update `page` param
     - Logout button
   - [ ] Panel JS flow: login → store token in closure variable → pass as `Authorization: Bearer <token>` on all `/dpo/*` calls → logout clears variable + calls `/dpo/logout`
-  - [ ] Panel JS uses `fetch()` to call existing Edge Functions: `/dpo/erase-user`, `/dpo/export-user`, `/dpo/audit-log`, `/dpo/login`, `/dpo/logout`
-  - [ ] To query pending erasure requests, the panel calls a new read endpoint — use Supabase REST directly via the token: `GET https://<project>.supabase.co/rest/v1/users?deletion_requested_at=not.is.null&deleted_at=is.null&select=id,email,deletion_requested_at` — OR add a helper Edge Function `/dpo/pending-requests` (GET, operator-authenticated) that queries and returns the list. Choose the helper function approach (avoids CORS issues with direct PostgREST + RLS complexity)
-  - [ ] **IMPORTANT**: `SUPABASE_URL` is available in Deno.env — use it to construct API call URLs in the panel JS
+  - [ ] Panel JS uses `fetch()` to call existing Edge Functions via absolute URLs using the `__SUPABASE_URL__` token (replaced at serve time — see Dev Notes: Panel URL Canonical Pattern)
+  - [ ] To query pending erasure requests, the panel calls the helper Edge Function `dpo-pending-requests` (GET, operator-authenticated) — see T6a
+  - [ ] **IMPORTANT**: All `fetch()` calls in the panel JS must use absolute URLs with the `__SUPABASE_URL__` substitution token. Never use relative paths — see Dev Notes: Panel URL Canonical Pattern.
+  - [ ] Section 2 export display: wrap the exported data `<pre>` block in `<details><summary>Exported data (click to reveal)</summary><pre id="export-output"></pre></details>` so PII is not visible by default in screen recordings or shoulder-surfing
+  - [ ] NOTE (F12 — accepted): PII rendered in the export `<pre>` block is intentional per AC6(d) — the DPO is authorised to view it. The `<details>` wrapper is a low-cost shoulder-surfing mitigation. A future hardening sprint should offer download-to-file instead of in-browser display.
+  - [ ] Manual verification checklist (complete in Dev Agent Completion Notes — CI cannot cover browser behaviour): (a) login form rejects bad credentials with error message; (b) pending erasure list loads after login; (c) "Confirm Erasure" dialog appears before executing erasure; (d) logout clears `operatorToken` and returns to login screen
 
 - [ ] T6a — Create `supabase/functions/dpo-pending-requests/index.ts` (support for panel Section 1)
-  - [ ] GET-only method guard
+  - [ ] CORS preflight (non-optional): `if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })` — import corsHeaders from `../_shared/cors.ts`. Panel JS sends `Authorization` header which always triggers a CORS preflight; without this the endpoint will 405 in every browser.
+  - [ ] GET-only method guard (after OPTIONS check)
+  - [ ] Env var fast-fail (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   - [ ] Operator JWT verification via `verifyOperatorJwt()` from `_shared/auth.ts`
   - [ ] Query `SELECT id, email, deletion_requested_at FROM public.users WHERE deletion_requested_at IS NOT NULL AND deleted_at IS NULL ORDER BY deletion_requested_at ASC`
-  - [ ] Write `dpo_audit_log` entry: `action_type: 'audit_view'`, `target_user_id = operatorId` (consistent with audit-log pattern)
-  - [ ] Return `200 { requests: [...] }`
+  - [ ] Write `dpo_audit_log` entry: `action_type: 'audit_view'`, `target_user_id = operatorId` (consistent with audit-log pattern; FR-DPO-06 does not require a distinct action_type for queue views — `audit_view` covers all DPO read access)
+  - [ ] Return `200 { requests: Array<{ id: string, email: string | null, deletion_requested_at: string }> }` — shape matches the SELECT columns; panel JS uses `request.id` as `targetUserId` for erase calls and renders `email ?? '(email not available)'` (E3)
 
 - [ ] T7 — Create `packages/supabase/src/functions/user-erasure-request-service.ts` (AC: 2)
   - [ ] `UserErasureRequestService` class implementing `IDpoService` from `@exposure-buddy/core`
-  - [ ] `async requestErasure(userId: string): Promise<void>` calls `callEdgeFn('dpo-request-deletion', { userId })`
+  - [ ] `async requestErasure(_userId: string): Promise<void>` calls `callEdgeFn('dpo-request-deletion', {})` — userId is intentionally omitted from the request body; the Edge Function derives user identity exclusively from the verified Bearer JWT (BOLA prevention — never pass user-supplied identity in the body)
   - [ ] Export from `packages/supabase/src/functions/index.ts`
   - [ ] Export from `packages/supabase/src/index.ts`
 
@@ -128,28 +137,43 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
     - Remove import: `import { DpoServiceStub, type IDpoService, type PendingDeletionRecord } from '@exposure-buddy/core'`
     - Add imports: `import { UserErasureRequestService } from '../functions'` and `import type { IDpoService, PendingDeletionRecord } from '@exposure-buddy/core'`
     - Change `dpoServiceRef` default: `dpoService ?? new UserErasureRequestService()`
-  - [ ] The try-catch around `requestErasure()` (from Story 3.3 T18) is preserved unchanged
-  - [ ] After successful erasure, update MMKV `pending_deletion_request` status to `'completed'` (resolves deferred W1 from Story 2.4):
+  - [ ] In `requestAccountDeletion()`, write the 'pending' record to MMKV **before** the try-catch that calls `requestErasure()`, so the user has local evidence of submission regardless of network outcome (Step A — replaces the MMKV write that `DpoServiceStub` previously performed; `AuthProvider` now owns this write, making it invariant across all `IDpoService` implementations):
     ```typescript
-    // After try-catch block, before sessionSignOut:
+    // Step A — BEFORE the try-catch, before calling requestErasure():
     if (mmkvRef.current) {
-      const raw = mmkvRef.current.getString('pending_deletion_request')
-      if (raw) {
-        try {
+      // eslint-disable-next-line i18next/no-literal-string
+      const pendingRecord: PendingDeletionRecord = { userId: authState.userId!, requestedAt: new Date().toISOString(), status: 'pending' }
+      mmkvRef.current.set('pending_deletion_request', JSON.stringify(pendingRecord))
+      setPendingDeletion(pendingRecord)
+    }
+    ```
+  - [ ] The try-catch around `requestErasure()` (from Story 3.3 T18) is preserved unchanged
+  - [ ] After the try-catch, update MMKV `pending_deletion_request` status to `'completed'` (Step B — resolves deferred W1 from Story 2.4; the `if (raw)` guard now reliably finds the record written in Step A):
+    ```typescript
+    // Step B — AFTER try-catch block, before sessionSignOut:
+    if (mmkvRef.current) {
+      try {
+        // eslint-disable-next-line i18next/no-literal-string
+        const raw = mmkvRef.current.getString('pending_deletion_request')
+        if (raw) {
           const record = JSON.parse(raw) as PendingDeletionRecord
           mmkvRef.current.set('pending_deletion_request', JSON.stringify({ ...record, status: 'completed' }))
           setPendingDeletion({ ...record, status: 'completed' })
-        } catch { /* ignore parse error */ }
-      }
+        }
+      } catch { /* ignore parse error — status update is best-effort */ }
     }
     ```
 
 - [ ] T9 — Update `packages/supabase/src/database.types.ts`
-  - [ ] Add `deletion_requested_at: string | null` to `users.Row`
-  - [ ] Add `deletion_requested_at?: string | null` to `users.Insert`
-  - [ ] Add `deletion_requested_at?: string | null` to `users.Update`
+  - [ ] Current `users` table shape (M1 — do NOT modify existing fields, only add `deletion_requested_at`):
+    - `Row`: `{ id: string, email: string | null, created_at: string, deleted_at: string | null }`
+    - `Insert`: `{ id: string, email: string, created_at?: string, deleted_at?: string | null }`
+    - `Update`: `{ id?: string, email?: string | null, created_at?: string, deleted_at?: string | null }`
+  - [ ] Add `deletion_requested_at: string | null` to `users.Row` (after `deleted_at`)
+  - [ ] Add `deletion_requested_at?: string | null` to `users.Insert` (after `deleted_at`)
+  - [ ] Add `deletion_requested_at?: string | null` to `users.Update` (after `deleted_at`)
 
-- [ ] T10 — Create `supabase/seed.sql` (AC: 8)
+- [ ] T10 — Append to `supabase/seed.sql` (AC: 8) — file already exists; do NOT overwrite or truncate existing content; append the DPO operator seed block below all existing content
   - [ ] Document: seeding requires a manual step to create the Supabase Auth user first (use `supabase` CLI or Admin API — cannot be done in SQL alone)
   - [ ] Provide seed pattern:
     ```sql
@@ -170,6 +194,7 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
   - [ ] `turbo run typecheck` — all pass
   - [ ] `turbo run lint` — all clean
   - [ ] `turbo run test` — core and supabase pass/skip
+  - [ ] Panel smoke test (requires `supabase start`): `curl -s http://localhost:54321/functions/v1/dpo-panel | grep 'type="password"'` — non-empty result confirms AC6 (panel serves HTML with a login form)
 
 ## Dev Notes
 
@@ -286,7 +311,8 @@ The panel is a single self-contained HTML file served by the Edge Function. All 
 let operatorToken = null
 
 async function login(email, password) {
-  const res = await fetch('/functions/v1/dpo-login', {
+  // Use __SUPABASE_URL__ token — replaced at serve time by dpo-panel/index.ts
+  const res = await fetch('__SUPABASE_URL__/functions/v1/dpo-login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
@@ -305,20 +331,21 @@ function apiHeaders() {
 }
 
 async function loadPendingErasures() {
-  const res = await fetch('/functions/v1/dpo-pending-requests', {
+  const res = await fetch('__SUPABASE_URL__/functions/v1/dpo-pending-requests', {
     headers: apiHeaders()
   })
   // ... render table
 }
 ```
 
-Edge Function URLs follow the pattern `/functions/v1/<function-name>`. When deployed to Supabase, use the full URL `${SUPABASE_URL}/functions/v1/<name>`. In the panel HTML, use relative paths or inject the URL via template substitution in the Edge Function before serving.
+**Panel URL Canonical Pattern (F5):** All `fetch()` calls in the panel JS must use absolute URLs with the `__SUPABASE_URL__` substitution token. Do NOT use relative paths — they resolve against the caller's origin and break in local development (`http://localhost:54321/functions/v1/dpo-panel`) and any other non-root serving context.
 
 **To inject SUPABASE_URL into panel HTML:**
 ```typescript
 // In dpo-panel/index.ts:
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-const html = PANEL_HTML_TEMPLATE.replace('__SUPABASE_URL__', supabaseUrl)
+// Use global regex replace so ALL __SUPABASE_URL__ occurrences are substituted:
+const html = PANEL_HTML_TEMPLATE.replace(/__SUPABASE_URL__/g, supabaseUrl)
 return new Response(html, { headers: { 'Content-Type': 'text/html' } })
 ```
 
@@ -332,8 +359,11 @@ import type { IDpoService } from '@exposure-buddy/core'
 import { callEdgeFn } from './call-edge-fn'
 
 export class UserErasureRequestService implements IDpoService {
-  async requestErasure(userId: string): Promise<void> {
-    await callEdgeFn('dpo-request-deletion', { userId })
+  async requestErasure(_userId: string): Promise<void> {
+    // userId intentionally omitted from the request body (F1 — BOLA prevention).
+    // The Edge Function derives user identity exclusively from the verified Bearer JWT.
+    // Never pass user-supplied userId in the body of a user-authenticated endpoint.
+    await callEdgeFn('dpo-request-deletion', {})
   }
 }
 ```
@@ -370,10 +400,26 @@ const dpoServiceRef = useRef<IDpoService>(
 
 ### MMKV `pending_deletion_request` Status Update (resolves W1)
 
-Add this block in `requestAccountDeletion()` immediately after the try-catch (before `sessionSignOut`):
+**Context:** `DpoServiceStub` previously wrote the `{ status: 'pending' }` record to MMKV during `requestErasure()`. `UserErasureRequestService` does not — it only makes the network call. Story 3.4 moves the MMKV write into `AuthProvider` so it is invariant across all `IDpoService` implementations.
 
+`requestAccountDeletion()` requires **two** MMKV operations in sequence:
+
+**Step A — Write 'pending' BEFORE the try-catch (before calling `requestErasure()`):**
 ```typescript
-// Resolve W1: update MMKV record to 'completed' now that server-side request is submitted
+// F2: write 'pending' before requestErasure so evidence of submission exists
+// regardless of network outcome. Replaces the write DpoServiceStub previously did.
+if (mmkvRef.current) {
+  // eslint-disable-next-line i18next/no-literal-string
+  const pendingRecord: PendingDeletionRecord = { userId: authState.userId!, requestedAt: new Date().toISOString(), status: 'pending' }
+  mmkvRef.current.set('pending_deletion_request', JSON.stringify(pendingRecord))
+  setPendingDeletion(pendingRecord)
+}
+```
+
+**Step B — Update to 'completed' AFTER the try-catch (before `sessionSignOut`):**
+```typescript
+// Resolve W1: update MMKV record to 'completed' now that server-side request is submitted.
+// The if (raw) guard reliably finds the record written in Step A above.
 if (mmkvRef.current) {
   try {
     // eslint-disable-next-line i18next/no-literal-string
@@ -409,10 +455,12 @@ The query `SELECT id, email, deletion_requested_at FROM public.users WHERE delet
 ### `callEdgeFn` Constraint (inherited from Story 3.2)
 
 ```typescript
-await callEdgeFn<{ userId: string }>('dpo-request-deletion', { userId: userId })
+// Correct usage for dpo-request-deletion (empty body — identity from JWT):
+await callEdgeFn('dpo-request-deletion', {})
+// No generic needed — TypeScript infers TBody as {} which satisfies Record<string, unknown>
 ```
 
-`TBody extends Record<string, unknown>` — always use an object body, never a primitive.
+`TBody extends Record<string, unknown>` — always use an object body, never a primitive. For `dpo-request-deletion` specifically, pass an empty object `{}` — do NOT include `userId` in the body (F1/C2: server derives user identity from JWT only). (E2: omit the `Record<string, never>` generic — `{}` infers correctly.)
 
 ### packages/supabase/src/index.ts — State After Story 3.3
 
@@ -461,7 +509,7 @@ export { DpoService } from './functions'
 - `packages/supabase/src/index.ts` — add `UserErasureRequestService` export
 - `packages/supabase/src/auth/AuthProvider.tsx` — switch default; add MMKV status update
 - `packages/supabase/src/database.types.ts` — add `deletion_requested_at` to users
-- `supabase/seed.sql` — new or updated operator seeding instructions
+- `supabase/seed.sql` — APPEND operator seeding block; file already exists, do NOT overwrite or truncate existing content
 
 **No new RLS test files** — the `dpo_operators` table and `deletion_requested_at` column don't require new RLS test suites. The `/dpo/request-deletion` function is user-authenticated (covered by existing pattern).
 
@@ -503,3 +551,5 @@ None.
 | Date | Change |
 |---|---|
 | 2026-05-27 | Story 3.4 created — DPO Operator Panel (FR-DPO-07 second half) |
+| 2026-05-27 | Adversarial review CR pass — 6 fixes applied: F1 (remove userId from body/BOLA), F2 (MMKV pending write before requestErasure), F5 (canonical URL pattern, no relative paths), F6 (CORS OPTIONS in T6a), F7 (seed.sql append not create), F8 (falsifiable AC6 curl smoke test), F11 (empty-string credential guard); 4 accept-with-notes added: F3/F10 (JWT revocation deferred Epic 4), F9 (no-FK documented), F12 (details wrapper suggestion) |
+| 2026-05-27 | Story validation pass — 5 critical fixes (C1: T4 anon key in env-var list, C2: T3 body-parse prohibition, C3: erase body field targetUserId, C4: export body field targetUserId, C5: null email handling in panel); 3 enhancements (E1: CORS OPTIONS in T6, E2: callEdgeFn generic simplified, E3: dpo-pending-requests response shape specified); 2 minor items (M1: T9 current field snapshot, M2: audit log URL params) |
