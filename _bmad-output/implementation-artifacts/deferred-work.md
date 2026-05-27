@@ -1,5 +1,21 @@
 # Deferred Work
 
+## Deferred from: code review of 3-2-dpdpa-consent-schema-and-consent-record-edge-function (2026-05-26)
+
+- **D0 [HARD GATE]: consent_records retention strategy — pre-condition for Story 3.3** — `consent_records` uses `ON DELETE CASCADE` on the `auth.users` FK, meaning hard user-deletion immediately destroys consent records. DPDPA 2023 §8(7) requires consent records to be retained for account lifetime + 2 years post-deletion. Before any `auth.admin.deleteUser()` call is permitted in Story 3.3 (or any future story), a retention strategy must be designed and implemented: options include an archive table (copy before delete), orphaning rows (change FK to `ON DELETE SET NULL`), or a deferred cleanup job. This is a blocker for the erasure flow — do not ship Story 3.3 without resolving this. [`supabase/migrations/0004_consent_records.sql:8`]
+
+- **D1: No rate limiting or duplicate-insert guard on `/consent-record` Edge Function** — An authenticated user can insert unlimited consent records for the same `(user_id, purpose_id)` pair; the view surfaces only the latest but the table grows unboundedly. Add idempotency key or rate-limiting in a future operational hardening story. [`supabase/functions/consent-record/index.ts`]
+
+- **D2: `callEdgeFn` error opacity — caller cannot distinguish 400 / 401 / 500** — All Edge Function HTTP error responses surface as a `FunctionsHttpError` thrown without status context. Callers cannot distinguish retriable (5xx) from non-retriable (4xx) failures. Improve in a future error-handling pass. [`packages/supabase/src/functions/call-edge-fn.ts`]
+
+- **D3: `callEdgeFn` returns `Promise<void>` — success response body discarded** — If the Edge Function ever returns a useful body (e.g. inserted record ID for idempotency), the caller has no access to it without a breaking signature change. Revisit when needed. [`packages/supabase/src/functions/call-edge-fn.ts`]
+
+- **D4: `LOCAL_URL = 'http://localhost:54321'` hardcoded in RLS test** — Matches existing project test pattern; will silently fail if local Supabase runs on a different port. Configurable via env var in a future test-infra cleanup story. [`packages/supabase/__tests__/rls/consent_records.test.ts:10`]
+
+- **D5: Test password hardcoded in RLS test source** — Matches existing `profiles.test.ts` pattern; acceptable for local-only test users. Revisit if test pattern is ever used for staging environments. [`packages/supabase/__tests__/rls/consent_records.test.ts:17`]
+
+- **D6: `authState.userId` in `otp-verification.tsx` effect deps creates subtle re-trigger risk** — The `prevIsAuthenticated` ref guard is synchronous and should hold in practice, but `authState.userId` in the deps array means any session-object update can re-enter the consent path. Pre-existing pattern; not introduced by this story. [`apps/mobile/app/(auth)/otp-verification.tsx`]
+
 ## Deferred from: Epic 2 retrospective (2026-05-26) — Epic 9 candidates
 
 - **OTP consent-flow test coverage** — New branches in `otp-verification.tsx` introduced across Stories 2.2 and 2.4 have zero test coverage: consent write success path, consent write failure + retry path, pending deletion guard path. Two stories deferred this independently. Target: Epic 9 quality story. [`apps/mobile/app/(auth)/otp-verification.tsx`]

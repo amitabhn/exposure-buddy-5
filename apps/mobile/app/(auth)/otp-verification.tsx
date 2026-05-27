@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
-import { emitAccountCreated, ConsentRecordServiceStub, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
+import { emitAccountCreated, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
+import { ConsentRecordService } from '@exposure-buddy/supabase'
 
 type State = {
   code: string
@@ -123,7 +124,7 @@ export default function OtpVerificationScreen() {
 
       if (isNewAccount && authState.userId) {
         dispatch({ type: 'CONSENT_START' })
-        const consentService = new ConsentRecordServiceStub()
+        const consentService = new ConsentRecordService()
         consentService
           .recordConsent({
             timestampUtc: new Date().toISOString(),
@@ -154,7 +155,7 @@ export default function OtpVerificationScreen() {
     if (isAuthenticated && state.consentError && isNewAccount) {
       dispatch({ type: 'CLEAR_CONSENT_ERROR' })
       dispatch({ type: 'CONSENT_START' })
-      const consentService = new ConsentRecordServiceStub()
+      const consentService = new ConsentRecordService()
       consentService
         .recordConsent({
           timestampUtc: new Date().toISOString(),
