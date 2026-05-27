@@ -51,7 +51,7 @@ describe.skipIf(skipIfNoSupabase)('dpo_audit_log table RLS + immutability', () =
       password: TEST_PASSWORD,
       email_confirm: true,
     })
-    if (error ?? !data.user) {
+    if (error || !data.user) {
       throw new Error(`Failed to create test user: ${error?.message ?? 'null user'}`)
     }
     testUserId = data.user.id
@@ -106,6 +106,27 @@ describe.skipIf(skipIfNoSupabase)('dpo_audit_log table RLS + immutability', () =
 
     // RLS blocks INSERT — error expected
     expect(error).not.toBeNull()
+  })
+
+  it('[-] DELETE raises immutability trigger exception (even service_role)', async () => {
+    // Insert a fresh row to attempt deletion
+    const { data: freshRow, error: insertErr } = await serviceClient
+      .from('dpo_audit_log')
+      .insert(makeAuditRow({ action_type: 'audit_view' }))
+      .select('id')
+      .single()
+
+    expect(insertErr).toBeNull()
+    expect(freshRow?.id).toBeTruthy()
+
+    const { error } = await serviceClient
+      .from('dpo_audit_log')
+      .delete()
+      .eq('id', freshRow!.id)
+
+    // BEFORE trigger raises exception for ALL roles including service_role
+    expect(error).not.toBeNull()
+    expect(error?.message).toContain('dpo_audit_log is append-only')
   })
 
   it('[-] UPDATE raises immutability trigger exception (even service_role)', async () => {

@@ -1,6 +1,12 @@
 // dpo-audit-log/index.ts — DPO audit log read Edge Function (Story 3.3)
 // FR-DPO-06: read access is itself audited (every read writes an audit_view entry).
 // Restricted to dpo_operator role. Returns paginated dpo_audit_log entries.
+//
+// Access model (intentional): full audit log is visible to ALL authenticated dpo_operators.
+// In a single/small-DPO DPDPA deployment, restricting each operator to their own entries
+// would undermine oversight — a real audit trail must be visible to senior reviewers.
+// If per-operator scoping is required in a future multi-operator deployment, add
+// .eq('acting_operator_id', operator.operatorId) to the select query.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -12,6 +18,14 @@ const MAX_PAGE_SIZE = 100
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Patch 5: method guard — audit log reads are GET-only
+  if (req.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', Allow: 'GET' },
+    })
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''

@@ -17,6 +17,14 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Patch 5: method guard — erasure is a destructive POST-only operation
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', Allow: 'POST' },
+    })
+  }
+
   // Fast-fail: env vars must be present
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -67,39 +75,60 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const now = new Date().toISOString()
-  let failedStep: string | null = null
-
-  // Step 1: Null PII in public.users and set deleted_at
-  const { error: usersError } = await adminClient
-    .from('users')
-    .update({ email: null, deleted_at: now })
-    .eq('id', targetUserId)
-
-  if (usersError) {
-    console.error('dpo-erase-user: public.users update failed:', usersError)
-    failedStep = 'users'
+  // Patch 3: self-erasure guard — an operator must not be able to erase their own account.
+  // Doing so would destroy the actor identity in the audit trail and leave no recovery path.
+  if (targetUserId === operator.operatorId) {
+    return new Response(JSON.stringify({ error: 'Cannot erase own account' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
-  // Step 2: Null PII in public.profiles
-  if (!failedStep) {
-    const { error: profilesError } = await adminClient
-      .from('profiles')
-      .update({ display_name: null })
-      .eq('id', targetUserId)
+  const now = new Date().toISOString()
+  let failedStep: string | null = null
+  let notFound = false
 
-    if (profilesError) {
-      console.error('dpo-erase-user: public.profiles update failed:', profilesError)
-      failedStep = 'profiles'
+  // Steps 1+2 (atomic): null PII in public.users + public.profiles via a single DB transaction.
+  // perform_user_erasure() raises 'erasure_target_not_found' if user absent (Finding 8).
+  const { error: rpcError } = await adminClient.rpc('perform_user_erasure', {
+    p_target_user_id: targetUserId,
+  })
+
+  if (rpcError) {
+    if (rpcError.message?.includes('erasure_target_not_found')) {
+      notFound = true
+    } else {
+      console.error('dpo-erase-user: perform_user_erasure RPC failed:', rpcError)
+      failedStep = 'erasure_rpc'
     }
   }
 
-  // Step 3: Ban auth user (prevents re-login without deleting the row)
+  if (notFound) {
+    // Patch 1: log the not-found attempt before returning — FR-DPO-06 requires every
+    // DPO action (including probes against non-existent users) to produce an audit entry.
+    await adminClient.from('dpo_audit_log').insert({
+      action_type: 'erasure',
+      acting_operator_id: operator.operatorId,
+      target_user_id: targetUserId,
+      timestamp_utc: now,
+      outcome: 'failure',
+      metadata: { failed_step: 'user_not_found' },
+    })
+    return new Response(JSON.stringify({ error: 'Target user not found' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Step 3: Ban auth user + erase auth-layer email (prevents re-login; removes PII from auth schema)
+  // '876000h' = 100 years = permanent ban in Supabase Auth (ban_duration: 'none' = no ban — do NOT use)
+  // Email anonymised in auth.users (Finding 2 — auth schema PII must also be erased per DPDPA §9)
   // consent_records.user_id FK is ON DELETE SET NULL — DO NOT call deleteUser()
   if (!failedStep) {
     const { error: banError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+      email: `erased-${targetUserId}@void.invalid`,
       user_metadata: { deleted: true },
-      ban_duration: 'none',
+      ban_duration: '876000h',
     })
 
     if (banError) {
