@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
-import { DpoServiceStub, type IDpoService, type PendingDeletionRecord } from '@exposure-buddy/core'
+import type { IDpoService, PendingDeletionRecord } from '@exposure-buddy/core'
+import { DpoService } from '../functions'
 import { createSupabaseClient } from '../client'
 import { clearAuthState, getAuthState, getHasAuthedBefore, setAuthState, signOut as sessionSignOut, type AuthState } from './session'
 
@@ -47,7 +48,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [hasAuthedBefore, setHasAuthedBeforeLocal] = useState(false)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
   const dpoServiceRef = useRef<IDpoService>(
-    dpoService ?? new DpoServiceStub((key, val) => mmkvRef.current?.set(key, val))
+    dpoService ?? new DpoService()
   )
   // Flips to true once MMKV is available and the stored session has been bootstrapped
   // into the Supabase in-memory client. The auth listener ignores events until this fires
@@ -141,13 +142,21 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   async function requestAccountDeletion(): Promise<void> {
     if (!authState.userId) throw new Error('Cannot request erasure: no authenticated user')
     if (!mmkvRef.current) throw new Error('Cannot request erasure: storage not initialised')
+    // Live DpoService calls /dpo/erase-user Edge Function — resolves when server-side erasure confirmed
     await dpoServiceRef.current.requestErasure(authState.userId)
+    // Erasure confirmed server-side: update MMKV flag to 'completed' (resolves deferred W1)
     try {
       // eslint-disable-next-line i18next/no-literal-string
       const raw = mmkvRef.current.getString('pending_deletion_request')
-      if (raw) setPendingDeletion(JSON.parse(raw) as PendingDeletionRecord)
+      if (raw) {
+        const record = JSON.parse(raw) as PendingDeletionRecord
+        const completed: PendingDeletionRecord = { ...record, status: 'completed' }
+        // eslint-disable-next-line i18next/no-literal-string
+        mmkvRef.current.set('pending_deletion_request', JSON.stringify(completed))
+        setPendingDeletion(completed)
+      }
     } catch {
-      // Ignore parse error
+      // Ignore parse error — sign-out proceeds regardless
     }
     await sessionSignOut(mmkvRef.current)
   }

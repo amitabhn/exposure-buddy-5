@@ -8,18 +8,21 @@ export interface Database {
       users: {
         Row: {
           id: string
-          email: string
+          email: string | null
           created_at: string
+          deleted_at: string | null
         }
         Insert: {
           id: string
           email: string
           created_at?: string
+          deleted_at?: string | null
         }
         Update: {
           id?: string
-          email?: string
+          email?: string | null
           created_at?: string
+          deleted_at?: string | null
         }
       }
       profiles: {
@@ -42,7 +45,7 @@ export interface Database {
       consent_records: {
         Row: {
           id: string
-          user_id: string
+          user_id: string | null
           timestamp_utc: string
           purpose_id: string
           consent_version: string

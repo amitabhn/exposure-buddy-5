@@ -1,7 +1,7 @@
 export type PendingDeletionRecord = {
   userId: string
   requestedAt: string
-  status: 'pending'
+  status: 'pending' | 'completed'
 }
 
 export interface IDpoService {
