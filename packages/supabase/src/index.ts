@@ -15,3 +15,4 @@ export {
 export type { AuthState, MmkvKey, MMKV } from './auth/session'
 export type { PendingDeletionRecord } from '@exposure-buddy/core'
 export { ConsentRecordService } from './functions'
+export { DpoService } from './functions'

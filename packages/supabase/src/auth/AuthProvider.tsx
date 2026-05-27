@@ -141,7 +141,17 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   async function requestAccountDeletion(): Promise<void> {
     if (!authState.userId) throw new Error('Cannot request erasure: no authenticated user')
     if (!mmkvRef.current) throw new Error('Cannot request erasure: storage not initialised')
-    await dpoServiceRef.current.requestErasure(authState.userId)
+    // Model B (DPDPA §13): DpoServiceStub queues a pending_deletion_request to MMKV with status
+    // 'pending'; the DPO operator processes it via the Story 3.4 panel, which calls /dpo/erase-user.
+    // The live DpoService (packages/supabase/src/functions/dpo-service.ts) is available for Story
+    // 3.4 to inject — it is NOT the default here.
+    try {
+      await dpoServiceRef.current.requestErasure(authState.userId)
+    } catch (erasureError) {
+      // Stub should not throw under normal operation. Log and continue — the session is
+      // always cleared regardless (sign-out proceeds below). Finding 12 CR fix.
+      console.error('[AuthProvider] requestErasure failed — proceeding with sign-out:', erasureError)
+    }
     try {
       // eslint-disable-next-line i18next/no-literal-string
       const raw = mmkvRef.current.getString('pending_deletion_request')
