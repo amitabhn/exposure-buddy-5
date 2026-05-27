@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-27 # story 3-3 done
+last_updated: 2026-05-27 # story 3-4 done
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -67,7 +67,7 @@ development_status:
   3-1-crisis-keyword-detection-engine: done
   3-2-dpdpa-consent-schema-and-consent-record-edge-function: done
   3-3-dpo-edge-functions-and-audit-log: done
-  3-4-dpo-operator-panel: backlog
+  3-4-dpo-operator-panel: done
   3-5-dpo-appointment-privacy-notice-and-analytics-boundary: backlog
   epic-3-retrospective: optional
 

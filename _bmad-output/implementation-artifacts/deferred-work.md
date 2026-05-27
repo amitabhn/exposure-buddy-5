@@ -155,6 +155,22 @@
 - **D5: No false-positive test cases documenting known substring-match scope** — The test suite covers true-positive branches but has no tests asserting that common benign phrases ("suicide prevention", "I overdosed on coffee") do or do not trigger detection. Add documentation tests when the NLP approach is revisited. [`keywordDetector.test.ts`]
 
 
+## Deferred from: code review of 3-4-dpo-operator-panel (2026-05-27)
+
+- **D-3.4-1: CORS wildcard on operator-privileged DPO endpoints** — `_shared/cors.ts` sets `Access-Control-Allow-Origin: *`; pre-existing from Story 3.3 shared module; Bearer auth mitigates direct exploitation; tighten to panel origin in Epic 4 security-hardening story. [`supabase/functions/_shared/cors.ts`]
+
+- **D-3.4-2: No server-side audit log entry in `dpo-request-deletion` for user-initiated deletion requests** — DPDPA audit completeness enhancement; `action_type: 'deletion_request'` entry with user's ID would provide server-side evidence of receipt; out of story scope; add in a future audit-completeness story. [`supabase/functions/dpo-request-deletion/index.ts`]
+
+- **D-3.4-3: `dpo-logout` does not invalidate server-side Supabase JWT** — Accepted deferred F3/F10; JWT remains valid ≤8h after logout; mitigated by 8h TTL, `active=false` deactivation, small roster; file as Epic 4 SOC-2 hardening ticket. [`supabase/functions/dpo-logout/index.ts`]
+
+- **D-3.4-4: `confirmErasure` inline `onclick` attribute built via `JSON.stringify` (not HTML-attribute-escaped)** — Data is server-controlled so risk is low; `data-*` attributes + event delegation is the correct pattern; address in a UI hardening pass. [`supabase/functions/dpo-panel/index.ts:148`]
+
+- **D-3.4-5: No in-progress guard on `requestAccountDeletion` — concurrent invocations race on MMKV key** — UI layer should disable the delete button after first tap; no mutex specified in story; address if double-tap race is observed in testing. [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **D-3.4-6: No client-side UUID format validation in panel export form** — Server rejects invalid UUIDs; UX-only concern; add simple regex guard in a polish pass. [`supabase/functions/dpo-panel/index.ts`]
+
+- **D-3.4-7: `dpo-erase-user` partial erasure — RPC nulls PII but auth ban step has no rollback** — Pre-existing Story 3.3 Edge Function; partial erasure leaves `auth.users` un-banned after PII is nulled; compensating transaction needed for Epic 4. [`supabase/functions/dpo-erase-user/index.ts`]
+
 ## Deferred from: code review of 3-3-dpo-edge-functions-and-audit-log (2026-05-27)
 
 - **D-3.3-1: FK `ON DELETE SET NULL` migration comment incorrect for soft-delete path** — `supabase/migrations/0005_consent_records_retention.sql` comment states "orphaned after auth user deletion" but the erasure path never calls `deleteUser()` — only bans the auth user — so the `ON DELETE SET NULL` cascade never fires via this path. Behaviour is correct; comment misleads future readers. Correct when the migration comment can be updated without a re-run. [`supabase/migrations/0005_consent_records_retention.sql`]
