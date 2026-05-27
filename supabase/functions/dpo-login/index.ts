@@ -82,7 +82,9 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // Verify email exists in dpo_operators with active = true
+  // Verify email exists in dpo_operators with active = true, AND id matches JWT sub.
+  // The id check prevents a manually-inserted row with a mismatched UUID from passing —
+  // without it, audit attribution (acting_operator_id = JWT sub) would point to a non-existent row.
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   })
@@ -92,6 +94,7 @@ Deno.serve(async (req: Request) => {
     .select('id')
     .eq('email', email.trim())
     .eq('active', true)
+    .eq('id', user.id)
     .maybeSingle()
 
   if (operatorError || !operatorRow) {

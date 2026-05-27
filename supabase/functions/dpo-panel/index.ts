@@ -117,7 +117,11 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
 </div>
 
 <script>
+// IIFE — prevents operatorToken and all helpers from being accessible as window globals.
+// Functions used in onclick attributes are explicitly exported via window assignments below.
+(function() {
   // Token stored in closure — NOT localStorage, NOT cookie access (XSS mitigation)
+  // NOT a window global — IIFE prevents window.operatorToken access.
   let operatorToken = null;
   let currentAuditPage = 1;
   const PAGE_SIZE = 20;
@@ -133,6 +137,22 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
   function showEl(id) { document.getElementById(id).style.display = ''; }
   function hideEl(id) { document.getElementById(id).style.display = 'none'; }
   function setText(id, text) { document.getElementById(id).textContent = text; }
+
+  // ── Session expiry handler — detects 401 and redirects to login ────────────
+  // Returns true if the 401 was handled (caller should abort its flow).
+  function handleSessionExpiry(res) {
+    if (res.status === 401) {
+      operatorToken = null;
+      setText('login-error', 'Session expired. Please log in again.');
+      showEl('login-error');
+      hideEl('dashboard-section');
+      showEl('login-section');
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+      return true;
+    }
+    return false;
+  }
 
   // ── Login ──────────────────────────────────────────────────────────────────
   async function doLogin() {
@@ -195,6 +215,7 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
       });
       hideEl('erasure-loading');
       if (!res.ok) {
+        if (handleSessionExpiry(res)) return;
         setText('erasure-error', 'Failed to load pending requests.');
         showEl('erasure-error');
         return;
@@ -210,7 +231,8 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
         for (const req of requests) {
           // C5: null email renders as "(email not available)"
           const emailDisplay = req.email !== null && req.email !== undefined ? req.email : '(email not available)';
-          const date = new Date(req.deletion_requested_at).toLocaleString();
+          const d = new Date(req.deletion_requested_at);
+          const date = isNaN(d.getTime()) ? '(unknown date)' : d.toLocaleString();
           const tr = document.createElement('tr');
           tr.innerHTML =
             '<td>' + escHtml(emailDisplay) + '</td>' +
@@ -309,6 +331,7 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
       );
       hideEl('audit-loading');
       if (!res.ok) {
+        if (handleSessionExpiry(res)) return;
         setText('audit-error', 'Failed to load audit log.');
         showEl('audit-error');
         return;
@@ -354,6 +377,15 @@ const PANEL_HTML_TEMPLATE = `<!DOCTYPE html>
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+
+  // Expose functions referenced in onclick attributes.
+  // Only the minimum surface is exported — operatorToken remains encapsulated.
+  window.doLogin = doLogin;
+  window.doLogout = doLogout;
+  window.confirmErasure = confirmErasure;
+  window.doExport = doExport;
+  window.auditPage = auditPage;
+})();
 </script>
 </body>
 </html>`
@@ -372,9 +404,12 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // Inject SUPABASE_URL into all __SUPABASE_URL__ tokens (F5 — global replace)
+  // Inject SUPABASE_URL into all __SUPABASE_URL__ tokens (F5 — global replace).
+  // Escape for safe embedding into a JS single-quoted string context: backslashes and
+  // single quotes in the URL (unlikely but possible) would otherwise break the template.
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-  const html = PANEL_HTML_TEMPLATE.replace(/__SUPABASE_URL__/g, supabaseUrl)
+  const safeSupabaseUrl = supabaseUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  const html = PANEL_HTML_TEMPLATE.replace(/__SUPABASE_URL__/g, safeSupabaseUrl)
 
   return new Response(html, {
     status: 200,

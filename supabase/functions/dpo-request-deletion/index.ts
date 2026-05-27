@@ -52,6 +52,16 @@ Deno.serve(async (req: Request) => {
     })
   }
 
+  // AC3(a): explicitly reject DPO operator JWTs — this endpoint is for regular users only.
+  // A dpo_operator submitting here would pollute the pending-erasure queue with their own row.
+  const userRole = (user.app_metadata as Record<string, unknown> | null)?.['role'] as string | undefined
+  if (userRole === 'dpo_operator') {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // C2/BOLA prevention: do NOT parse the request body — user identity comes from JWT only.
   // The body is intentionally empty ({}); never trust a user-supplied userId in the body.
 

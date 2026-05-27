@@ -1,6 +1,6 @@
 # Story 3.4: DPO Operator Panel
 
-Status: review
+Status: done
 
 ## Story
 
@@ -40,7 +40,7 @@ So that DPDPA obligations are fulfilled with per-operator accountability and a J
 6. **`/dpo/panel` Edge Function (serves operator panel HTML)**
    Given the Edge Function is deployed at `supabase/functions/dpo-panel/index.ts`
    When a GET request is made
-   Then: (a) `Content-Type: text/html` response is returned; (b) the panel renders a login screen initially; (c) after login, the dashboard shows three sections: (1) pending erasure requests — users where `deletion_requested_at IS NOT NULL AND deleted_at IS NULL`, displayed with email and requested date; (2) pending export requests — a manual search-by-email form to initiate export; (3) paginated audit log viewer (read-only, calls `/dpo/audit-log`); (d) each erasure/export action has a confirmation step before executing; (e) the panel calls `/dpo/erase-user` and `/dpo/export-user` with the in-memory token as `Authorization: Bearer <token>`; (f) GET only for the HTML; panel JS uses POST/GET as appropriate for API calls
+   Then: (a) `Content-Type: text/html` response is returned; (b) the panel renders a login screen initially; (c) after login, the dashboard shows three sections: (1) pending erasure requests — users where `deletion_requested_at IS NOT NULL AND deleted_at IS NULL`, displayed with email and requested date; (2) export requests — a UUID input form to trigger export by user ID (note: original AC said "search-by-email" but T6/implementation correctly uses UUID; AC updated 2026-05-27 CR); (3) paginated audit log viewer (read-only, calls `/dpo/audit-log`); (d) each erasure/export action has a confirmation step before executing; (e) the panel calls `/dpo/erase-user` and `/dpo/export-user` with the in-memory token as `Authorization: Bearer <token>`; (f) GET only for the HTML; panel JS uses POST/GET as appropriate for API calls
 
 7. **Operator audit attribution**
    Given an authenticated DPO operator performs any rights action via the panel
@@ -580,6 +580,50 @@ None.
 - `packages/supabase/src/database.types.ts`
 - `supabase/seed.sql`
 
+## Review Findings
+
+### Decision-Needed
+
+- [x] [Review][Decision] **AC6 vs T6 spec inconsistency: Section 2 export input — email form (AC) vs UUID field (T6/implementation)** — RESOLVED: UUID is correct; AC6 text updated 2026-05-27. — AC6(c)(2) says "search-by-email form to initiate export." T6 task text and the committed implementation use a UUID input (`<label>User ID (UUID)</label>`). `dpo-export-user` also validates a UUID `targetUserId`, not an email. These cannot both be correct. Decision required: (a) Update AC to say "UUID input" and document the inconsistency; or (b) Implement email → UUID lookup before export. [`supabase/functions/dpo-panel/index.ts:88`]
+
+### Patch
+
+- [x] [Review][Patch] **`dpo-request-deletion` accepts DPO operator JWTs — "NOT dpo_operator" check absent** [`supabase/functions/dpo-request-deletion/index.ts:45`] — AC3(a) requires the function to validate a regular user JWT and explicitly reject `dpo_operator` role. Code calls `adminClient.auth.getUser(jwt)` and checks only `authError || !user` — no `app_metadata.role` check exists. A DPO operator JWT passes through and writes `deletion_requested_at` for the operator's own `user.id`, polluting the pending-erasure queue.
+
+- [x] [Review][Patch] **`operatorToken` declared as global `let` — not a true closure; accessible as `window.operatorToken`** [`supabase/functions/dpo-panel/index.ts:121`] — Spec/AC6 requires the token be "stored in closure — NOT localStorage." A top-level `let` in a `<script>` block is a global variable on `window`, equally readable by any injected or extension script. Fix: wrap the entire `<script>` in an IIFE `(function() { ... })()`.
+
+- [x] [Review][Patch] **`dpo-login` verifies `dpo_operators` row by email only — `id` not matched against JWT sub** [`supabase/functions/dpo-login/index.ts:90`] — The query `.eq('email', email.trim()).eq('active', true)` does not verify `.eq('id', user.id)`. A manually-inserted `dpo_operators` row with a mismatched UUID but the same email would pass the check, issuing a JWT whose `sub` does not correspond to any `dpo_operators.id`. Downstream `acting_operator_id` attribution breaks. Fix: add `.eq('id', user.id)` to the query.
+
+- [x] [Review][Patch] **`seed.sql` literal placeholder `'<auth-user-uuid>'` breaks `supabase db reset`** [`supabase/seed.sql:22`] — PostgreSQL rejects `'<auth-user-uuid>'` as an invalid UUID cast, aborting `supabase db reset`. Fix: comment out the INSERT by default with a note to uncomment after substituting the UUID, e.g. wrap in `-- INSERT INTO ...` or a DO block that checks for the placeholder.
+
+- [x] [Review][Patch] **`SUPABASE_URL` env var injected into JS `<script>` context without encoding** [`supabase/functions/dpo-panel/index.ts:307`] — `PANEL_HTML_TEMPLATE.replace(/__SUPABASE_URL__/g, supabaseUrl)` substitutes the raw env value into a JS string literal with no escaping. If `supabaseUrl` contains `'`, `"`, or `<`, the `const BASE_URL = '...'` assignment is broken JS (or injected code). Fix: use `JSON.stringify(supabaseUrl)` as the replacement value.
+
+- [x] [Review][Patch] **MMKV `pending_deletion_request` written as `'completed'` even when `requestErasure()` throws** [`packages/supabase/src/auth/AuthProvider.tsx:168`] — Step B unconditionally runs after the `catch` block. If the Edge Function call fails (network error, 500), the local record is still marked `'completed'` while the server never received the request. Fix: track success/failure of `requestErasure` and only write `'completed'` when the call succeeded; on failure, leave the record as `'pending'`.
+
+- [x] [Review][Patch] **`pending_deletion_request` MMKV key never cleared after `sessionSignOut`** [`packages/supabase/src/auth/AuthProvider.tsx`] — `sessionSignOut` / `clearAuthState` deletes `auth.state` but not `pending_deletion_request`. On the next app launch with a new (or re-authed) user, the bootstrap `useEffect` restores the stale `status: 'completed'` record, showing a ghost deletion state. Fix: delete `'pending_deletion_request'` from MMKV inside `requestAccountDeletion` after Step B (or in the `SIGNED_OUT` auth-change handler).
+
+- [x] [Review][Patch] **`new Date(req.deletion_requested_at).toLocaleString()` renders `"Invalid Date"` with no guard** [`supabase/functions/dpo-panel/index.ts:213`] — If a row has a malformed timestamp string (e.g., from direct DB edits), the Date constructor returns an Invalid Date object and `toLocaleString()` renders the literal text `"Invalid Date"` in the table with no error indicator. Fix: check `isNaN(date.getTime())` and render a fallback string like `"(unknown date)"`.
+
+- [x] [Review][Patch] **JWT expiry (~1 hour) not handled — panel shows generic errors after token expires, no re-login path** [`supabase/functions/dpo-panel/index.ts`] — Supabase access tokens expire in ~1 hour (JWT-governed). The `Max-Age=28800` cookie allows 8h. After expiry, all `fetch` calls to DPO endpoints return 401, but the panel's error handlers show generic messages (`"Failed to load pending requests."`, `"Erasure failed: 401"`) with no re-auth flow. Fix: detect `res.status === 401` in the `fetch` wrappers and redirect to the login screen (set `operatorToken = null`, call `showLoginScreen()`).
+
+- [x] [Review][Patch] **Redundant `if (mmkvRef.current)` guard in Step A creates silent-skip path** [`packages/supabase/src/auth/AuthProvider.tsx:149`] — The outer guard at line 144 already throws `Error('storage not initialised')` if `mmkvRef.current` is null, so the inner `if (mmkvRef.current)` at line 149 is logically dead code. However, in a race where the ref is cleared between the two checks (React Native lifecycle edge case), Step A silently skips without throwing while execution continues into `requestErasure()` and Step B. Fix: remove the redundant guard and capture `const mmkv = mmkvRef.current` at the top of the function (after the throw guard) and use that captured reference throughout.
+
+### Deferred
+
+- [x] [Review][Defer] **CORS wildcard `Access-Control-Allow-Origin: *` on operator-privileged DPO endpoints** — pre-existing, Story 3.3 shared `_shared/cors.ts` module; Bearer token authentication mitigates direct exploitation; tighten to panel origin in a security-hardening story [`supabase/functions/_shared/cors.ts`]
+
+- [x] [Review][Defer] **No server-side audit log entry in `dpo-request-deletion` for user-initiated requests** — valid DPDPA audit enhancement, out of this story's scope; consider adding `action_type: 'deletion_request'` entry in a future audit-completeness story [`supabase/functions/dpo-request-deletion/index.ts`]
+
+- [x] [Review][Defer] **`dpo-logout` does not invalidate the server-side JWT session** — explicitly accepted F3/F10, deferred to Epic 4 SOC-2 hardening; mitigated by 8h TTL, `active=false` deactivation, small roster [`supabase/functions/dpo-logout/index.ts`]
+
+- [x] [Review][Defer] **`confirmErasure` inline `onclick` attribute built via `JSON.stringify` — not HTML-attribute-escaped** — low risk (data is server-controlled); `data-*` + event delegation pattern is safer; address in a UI hardening pass [`supabase/functions/dpo-panel/index.ts:148`]
+
+- [x] [Review][Defer] **No in-progress guard on `requestAccountDeletion` — concurrent invocations race on MMKV key** — UI layer should disable delete button after first tap; no mutex specified in story; address if double-tap race is observed in testing [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- [x] [Review][Defer] **No client-side UUID format validation in export form before confirmation dialog** — server rejects invalid UUIDs; UX-only concern; add simple regex guard in a polish pass [`supabase/functions/dpo-panel/index.ts`]
+
+- [x] [Review][Defer] **`dpo-erase-user` partial erasure path: RPC nulls PII but auth ban fails — no rollback** — pre-existing Story 3.3 Edge Function, not introduced by this story; document as compensating-transaction gap for Epic 4 [`supabase/functions/dpo-erase-user/index.ts`]
+
 ## Change Log
 
 | Date | Change |
@@ -588,3 +632,4 @@ None.
 | 2026-05-27 | Adversarial review CR pass — 6 fixes applied: F1 (remove userId from body/BOLA), F2 (MMKV pending write before requestErasure), F5 (canonical URL pattern, no relative paths), F6 (CORS OPTIONS in T6a), F7 (seed.sql append not create), F8 (falsifiable AC6 curl smoke test), F11 (empty-string credential guard); 4 accept-with-notes added: F3/F10 (JWT revocation deferred Epic 4), F9 (no-FK documented), F12 (details wrapper suggestion) |
 | 2026-05-27 | Story validation pass — 5 critical fixes (C1: T4 anon key in env-var list, C2: T3 body-parse prohibition, C3: erase body field targetUserId, C4: export body field targetUserId, C5: null email handling in panel); 3 enhancements (E1: CORS OPTIONS in T6, E2: callEdgeFn generic simplified, E3: dpo-pending-requests response shape specified); 2 minor items (M1: T9 current field snapshot, M2: audit log URL params) |
 | 2026-05-27 | Story 3.4 implemented — all T1–T11 complete; typecheck ✅ lint ✅ core/supabase tests ✅; status → review |
+| 2026-05-27 | Code review pass — 1 decision resolved (AC6 UUID vs email — UUID correct), 10 patches applied: dpo_operator role exclusion in request-deletion; dpo-login id+email check; seed.sql INSERT commented out; SUPABASE_URL JS-safe encoding; IIFE closure for operatorToken; erasureSucceeded flag for MMKV completed status; MMKV key cleared after sessionSignOut; mmkvRef.current captured once (no redundant guard); Invalid Date guard on timestamp render; 401→re-login handler in panel. typecheck ✅ lint ✅; status → done |

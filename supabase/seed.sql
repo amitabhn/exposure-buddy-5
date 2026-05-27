@@ -16,11 +16,11 @@
 --   The response contains a "id" field — copy that UUID into the INSERT below.
 --
 -- STEP 2: Replace <auth-user-uuid> with the UUID returned by the Admin API call above,
---         then run supabase db reset (or execute this INSERT manually):
+--         then UNCOMMENT the INSERT below and run supabase db reset (or execute it manually):
 --
-INSERT INTO public.dpo_operators (id, email, name, active)
-VALUES ('<auth-user-uuid>', 'dpo@example.com', 'DPO Admin', true)
-ON CONFLICT (email) DO NOTHING;
+-- INSERT INTO public.dpo_operators (id, email, name, active)
+-- VALUES ('<auth-user-uuid>', 'dpo@example.com', 'DPO Admin', true)
+-- ON CONFLICT (email) DO NOTHING;
 --
 -- NOTE: The seed UUID must match the auth.users.id created by the Admin API call.
 -- An orphaned row (mismatched UUID) would allow the email-based login check to pass

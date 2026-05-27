@@ -141,37 +141,39 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
 
   async function requestAccountDeletion(): Promise<void> {
     if (!authState.userId) throw new Error('Cannot request erasure: no authenticated user')
-    if (!mmkvRef.current) throw new Error('Cannot request erasure: storage not initialised')
+    // Capture once — eliminates redundant guards below and prevents silent-skip if ref races.
+    const mmkv = mmkvRef.current
+    if (!mmkv) throw new Error('Cannot request erasure: storage not initialised')
 
     // Step A — Write 'pending' BEFORE the try-catch, before calling requestErasure()
     // (F2: write evidence of submission regardless of network outcome.
     //  Replaces the write DpoServiceStub previously did — now invariant across all IDpoService implementations.)
-    if (mmkvRef.current) {
-      // eslint-disable-next-line i18next/no-literal-string
-      const pendingRecord: PendingDeletionRecord = { userId: authState.userId!, requestedAt: new Date().toISOString(), status: 'pending' }
-      mmkvRef.current.set('pending_deletion_request', JSON.stringify(pendingRecord))
-      setPendingDeletion(pendingRecord)
-    }
+    // eslint-disable-next-line i18next/no-literal-string
+    const pendingRecord: PendingDeletionRecord = { userId: authState.userId!, requestedAt: new Date().toISOString(), status: 'pending' }
+    mmkv.set('pending_deletion_request', JSON.stringify(pendingRecord))
+    setPendingDeletion(pendingRecord)
 
     // Model B (DPDPA §13): UserErasureRequestService calls /dpo/request-deletion (user-authenticated)
     // to persist the deletion request server-side. DPO operator processes it via the Story 3.4 panel.
+    let erasureSucceeded = false
     try {
       await dpoServiceRef.current.requestErasure(authState.userId)
+      erasureSucceeded = true
     } catch (erasureError) {
       // Log and continue — the session is always cleared regardless (sign-out proceeds below).
       console.error('[AuthProvider] requestErasure failed — proceeding with sign-out:', erasureError)
     }
 
-    // Step B — Update to 'completed' AFTER the try-catch, before sessionSignOut
-    // (Resolves deferred W1: update MMKV record to 'completed' now that server-side request is submitted.
-    //  The if (raw) guard reliably finds the record written in Step A above.)
-    if (mmkvRef.current) {
+    // Step B — Update to 'completed' AFTER the try-catch, before sessionSignOut.
+    // Only written when server confirmed receipt (erasureSucceeded = true).
+    // On failure the record stays 'pending' — not falsely marked completed.
+    if (erasureSucceeded) {
       try {
         // eslint-disable-next-line i18next/no-literal-string
-        const raw = mmkvRef.current.getString('pending_deletion_request')
+        const raw = mmkv.getString('pending_deletion_request')
         if (raw) {
           const record = JSON.parse(raw) as PendingDeletionRecord
-          mmkvRef.current.set('pending_deletion_request', JSON.stringify({ ...record, status: 'completed' }))
+          mmkv.set('pending_deletion_request', JSON.stringify({ ...record, status: 'completed' }))
           setPendingDeletion({ ...record, status: 'completed' })
         }
       } catch {
@@ -179,7 +181,17 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       }
     }
 
-    await sessionSignOut(mmkvRef.current)
+    await sessionSignOut(mmkv)
+
+    // Clear the local pending deletion record after sign-out.
+    // Server-side deletion_requested_at is the authoritative state.
+    // Leaving the key intact would show a ghost record on next app launch with a different user.
+    try {
+      // eslint-disable-next-line i18next/no-literal-string
+      mmkv.delete('pending_deletion_request')
+    } catch {
+      // Best-effort — if MMKV is unavailable, nothing to clear
+    }
   }
 
   return (
