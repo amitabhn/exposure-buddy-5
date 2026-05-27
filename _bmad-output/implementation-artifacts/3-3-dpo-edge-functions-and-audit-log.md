@@ -42,10 +42,12 @@ So that DPDPA data subject rights can be processed with a complete, append-only 
    When a read request is made
    Then: (a) JWT validated and `dpo_operator` claim checked; (b) paginated `dpo_audit_log` entries returned; (c) a `dpo_audit_log` row with `action_type: 'audit_view'` is written for every read (read access is itself audited); (d) pagination via `?page=N&pageSize=M` query params
 
-7. **Live `DpoService` replaces stub in `AuthProvider`**
+7. **Model B: DPO-mediated erasure — `DpoServiceStub` remains the default in `AuthProvider`**
    Given Story 3.3 is complete
    When `AuthProvider.requestAccountDeletion()` is called on the mobile app
-   Then the live `DpoService` at `packages/supabase/src/functions/dpo-service.ts` is used by default (not `DpoServiceStub`); `DpoService` implements `IDpoService` and calls the `/dpo/erase-user` Edge Function; `packages/core/src/services/IDpoService.ts` `PendingDeletionRecord.status` union is extended to `'pending' | 'completed'`
+   Then `DpoServiceStub` (injected by default, same as Story 2.4) writes a `pending_deletion_request` record to MMKV with `status: 'pending'` and the user is signed out; the request enters a DPO review queue (surfaced in Story 3.4's operator panel); the live `DpoService` at `packages/supabase/src/functions/dpo-service.ts` is exported from `packages/supabase` and available for Story 3.4 to inject when the operator triggers actual erasure; `packages/core/src/services/IDpoService.ts` `PendingDeletionRecord.status` union is extended to `'pending' | 'completed'` (used by Story 3.4 to mark a request processed)
+
+   **Rationale — DPDPA §13 compliance:** A DPO-operator-mediated erasure flow (Model B) is fully DPDPA-compliant — the Act grants the right to erasure but does not mandate instant self-service execution. DPDPA Rules 2025 permit a reasonable processing window. The finding that `AuthProvider.requestAccountDeletion()` with the live `DpoService` always returns 401 (adversarial Finding 3) was a scope mismatch: the `/dpo/erase-user` Edge Function correctly requires `dpo_operator` JWT claim; regular users should never call it directly. The correct fix is to keep `DpoServiceStub` as the mobile-app default (queue the request) and have the DPO panel (Story 3.4) call `DpoService.requestErasure()` with an operator JWT. See Dev Notes § Model B Architecture.
 
 8. **Production-readiness gate**
    Given this story is complete
@@ -113,10 +115,10 @@ So that DPDPA data subject rights can be processed with a complete, append-only 
   - [x] Export from `packages/supabase/src/functions/index.ts` and `packages/supabase/src/index.ts`
 
 - [x] T9 — Update `packages/supabase/src/auth/AuthProvider.tsx` (AC: 7)
-  - [x] Import `DpoService` from `'../functions'`
-  - [x] Change default: `dpoService ?? new DpoService()` (replacing `new DpoServiceStub(...)`)
-  - [x] Remove `DpoServiceStub` import (no longer default; stays in packages/core for tests)
-  - [x] After successful `requestErasure()`, update MMKV `pending_deletion_request` to `status: 'completed'` (resolves deferred W1)
+  - [x] Keep `DpoServiceStub` as the default injection (Model B — user-initiated call queues the request; DPO operator processes via Story 3.4 panel)
+  - [x] Add comment to `requestAccountDeletion()` explaining Model B rationale and Story 3.4 handoff
+  - [x] Do NOT switch default to `DpoService` — `/dpo/erase-user` requires `dpo_operator` JWT; regular user JWT will always 401
+  - [x] Do NOT update MMKV to `status: 'completed'` here — `'completed'` is set by Story 3.4 after operator-triggered erasure
 
 - [x] T10 — Create `packages/supabase/__tests__/rls/dpo_audit_log.test.ts` (AC: 3)
   - [x] Follow `profiles.test.ts` pattern: `skipIfNoSupabase` guard, `beforeAll`/`afterAll`
@@ -211,6 +213,23 @@ await adminClient.auth.admin.updateUserById(targetUserId, {
   ban_duration: 'none',  // permanent ban in Supabase Auth
 })
 ```
+
+### Model B Architecture — DPO-Mediated Erasure (DPDPA §13)
+
+**Decision (2026-05-27 code review):** Self-service instant erasure (Model A — mobile app calls `/dpo/erase-user` directly) was rejected. The production model is **Model B: DPO-mediated erasure**.
+
+**How Model B works:**
+1. User taps "Delete my account" → `AuthProvider.requestAccountDeletion()` → `DpoServiceStub.requestErasure()` writes `pending_deletion_request: { userId, requestedAt, status: 'pending' }` to MMKV → user is signed out.
+2. Story 3.4 DPO operator panel surfaces all users with `pending_deletion_request` status (already specified in Story 3.4 AC: "pending erasure requests").
+3. DPO operator reviews and confirms → panel calls `/dpo/erase-user` Edge Function with `dpo_operator` JWT → erasure executes → `dpo_audit_log` entry written → MMKV record updated to `status: 'completed'`.
+
+**Why Model A fails technically:** `/dpo/erase-user` requires `app_metadata.role === 'dpo_operator'`. A regular mobile user's JWT will never carry this claim. Story 3.4 is the first time a `dpo_operator` JWT exists.
+
+**Why Model B is DPDPA-compliant:** DPDPA §13 grants the right to erasure. The Act does not mandate instant self-service execution. DPDPA Rules 2025 permit a reasonable processing window provided the mechanism is accessible and disclosed. The Privacy Notice (Story 3.5) must disclose the DPO-mediated mechanism and processing window.
+
+**Architecture alignment:** `core-architectural-decisions.md` specifies staged idempotent erasure logged to an `erasure_jobs` table (ARC-008 / FM-14). This table is a Story 3.4 deliverable, not Story 3.3. Story 3.3's `dpo_audit_log` is the tamper-proof companion record; `erasure_jobs` is the per-table status tracker for the staged erasure operation itself.
+
+**DpoService availability:** `DpoService` is exported from `packages/supabase` for Story 3.4 injection. It is NOT the `AuthProvider` default.
 
 ### DpoService → AuthProvider Wiring Change
 
@@ -330,7 +349,7 @@ None.
 - T6: Created `dpo-audit-log` Edge Function — paginated log reader with `?page` and `?pageSize` params. Self-audits every read via `action_type: 'audit_view'` with `target_user_id = operatorId`.
 - T7: Extended `PendingDeletionRecord.status` to `'pending' | 'completed'` in `packages/core/src/services/IDpoService.ts`.
 - T8: Created `packages/supabase/src/functions/dpo-service.ts` — live `DpoService` implementing `IDpoService`. Exported from `functions/index.ts` and `src/index.ts`.
-- T9: `AuthProvider.tsx` default changed from `new DpoServiceStub(...)` to `new DpoService()`. `requestAccountDeletion()` now updates MMKV `pending_deletion_request.status` to `'completed'` after successful erasure — resolves deferred item W1.
+- T9: `AuthProvider.tsx` reverted to `DpoServiceStub` as default (Model B decision — adversarial Finding 3 reclassified as scope mismatch). `requestAccountDeletion()` queues `pending_deletion_request` to MMKV with `status: 'pending'` and signs out. DPO operator processes via Story 3.4 panel using `DpoService` with operator JWT. MMKV `'completed'` status update deferred to Story 3.4.
 - T10: Created `dpo_audit_log.test.ts` RLS test with 4 assertions: service_role INSERT ✓, auth user INSERT blocked ✓, anon INSERT blocked ✓, UPDATE raises immutability trigger ✓. Tests skip (`passWithNoTests`) without local Supabase.
 - T11: typecheck 10/10 ✓, lint 7/7 ✓, core tests 11/11 ✓, supabase 16 skipped (no local Supabase). Mobile test failures are pre-existing on base commit e82a7a3 (react-test-renderer version mismatch).
 
@@ -351,7 +370,7 @@ None.
 - `packages/core/src/services/IDpoService.ts` — PendingDeletionRecord.status union extended
 - `packages/supabase/src/functions/index.ts` — DpoService export added
 - `packages/supabase/src/index.ts` — DpoService export added
-- `packages/supabase/src/auth/AuthProvider.tsx` — default DpoService, MMKV completed status
+- `packages/supabase/src/auth/AuthProvider.tsx` — Model B comment added; DpoServiceStub remains default
 - `packages/supabase/src/database.types.ts` — users.email nullable, users.deleted_at added, consent_records.user_id nullable
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — story 3-3 in-progress → review
 
@@ -360,3 +379,4 @@ None.
 | Date | Change |
 |---|---|
 | 2026-05-27 | Story 3.3 implemented: D0 FK migration, dpo_audit_log schema+trigger+RLS, 3 DPO Edge Functions, live DpoService, AuthProvider W1 fix, database.types.ts nullability updates |
+| 2026-05-27 | Code review (party mode): AC7 + T9 revised to Model B (DPO-mediated erasure). AuthProvider reverted to DpoServiceStub default. Finding 3 (401 from AuthProvider) reclassified as scope mismatch — by design. Model B architecture note added to Dev Notes. |

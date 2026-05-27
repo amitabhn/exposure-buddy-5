@@ -214,6 +214,11 @@ Structured session history export for clinical handoff or personal record-keepin
 **Source:** Story 2.2 decision record.
 **Notes:** MVP enforces 18+ via a self-declaration checkbox (Story 2.2). DPDPA 2023 Section 9 requires verifiable parental consent for processing data of minors. A parental consent flow is the post-MVP deliverable. Track alongside the mini-SPIN clinical sign-off (item 3.1) as both relate to user eligibility.
 
+### 4.5 Privacy Notice — Legal Content Drafting
+**What:** Draft the Privacy Notice legal document disclosing data processing activities, the DPO-mediated (Model B) erasure mechanism, the 30-day processing window, data categories collected, retention periods, and the DPO's identity and contact details.
+**Source:** Story 3.3 code review (2026-05-27); DPDPA §13 / DPDPA Rules 2025 accessibility requirement; Story 3.5 dependency.
+**Notes:** Story 3.5 handles the *technical deployment* of the Privacy Notice (in-app display, pre-signup gate, DPO appointment). The *legal content* must be drafted by legal counsel as a prerequisite for Story 3.5. Specific requirement surfaced in review: the notice must explicitly disclose that account deletion requests are processed by a DPO operator within a stated window (not instant self-service) — DPDPA Rules 2025 require this mechanism to be "accessible and disclosed." Content must be finalised before Story 3.5 begins. Block Story 3.5 on this deliverable.
+
 ---
 
 ## 5. Monetisation
