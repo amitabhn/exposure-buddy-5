@@ -66,6 +66,20 @@
       "cancelButton": "Cancel"
     }
   },
+  "onboarding": {
+    "stepIndicator": "Step {{current}} of {{total}}",
+    "welcome": {
+      "title": "Welcome to Exposure Buddy",
+      "body": "This app will guide you through Exposure and Response Prevention (ERP) — a proven approach to managing anxiety and OCD. Let's start by understanding your current distress levels.",
+      "cta": "Get started"
+    },
+    "assessment": {
+      "title": "Rate Your Distress"
+    },
+    "resumeFailed": {
+      "toast": "Couldn't restore your progress. Starting from step 1."
+    }
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
