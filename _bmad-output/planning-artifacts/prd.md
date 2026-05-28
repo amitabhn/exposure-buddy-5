@@ -20,7 +20,7 @@ workflowType: 'prd'
 classification:
   projectType: "three-surface cross-platform app (RN Android-primary, RN iOS, React web)"
   domain: "DTx-adjacent consumer wellness, SaMD-risk-aware, regulated digital mental health"
-  complexity: "medium-high — clinical ERP protocol fidelity, crisis detection, tri-jurisdiction compliance trajectory, offline/connectivity design"
+  complexity: "medium-high — structured graduated-challenge protocol fidelity, crisis detection, tri-jurisdiction compliance trajectory, offline/connectivity design"
   projectContext: "greenfield"
   primaryFailureMode: "Mode 2 — user quits (avoidance)"
   complianceTrajectory:
@@ -74,9 +74,9 @@ mvpScope:
 
 India has 197 million people living with mental health disorders — the largest such population in the world — and fewer than 9,000 psychiatrists to serve them. The treatment gap exceeds 80%. For the ~25–30 million Indians managing social anxiety, the most effective intervention — Exposure and Response Prevention (ERP) therapy — is inaccessible: cost-prohibitive, scarce, and heavily stigmatised.
 
-Exposure Buddy is a cross-platform mobile and web app that delivers self-directed ERP for social anxiety at ₹200–500/month, designed for urban Indian users. It guides users through graduated real-world exposures with structured pre-session briefing, real-time SUDS (Subjective Units of Distress Scale) logging, and debrief — making the habituation arc visible in live data. It is the only consumer app to deliver a structured ERP protocol specifically for social anxiety in India, built India-first: exposure templates, cultural framing, and compliance architecture are native to the Indian context from day one.
+Exposure Buddy is a cross-platform mobile and web self-help app that helps users gradually face and overcome the situations and fears they've been avoiding, at ₹200–500/month, designed for urban Indian users. It is not a therapy app and is not a substitute for professional medical care or any form of therapy. The app guides users through personalised, graduated real-world challenges with structured pre-challenge briefing, real-time SUDS (Subjective Units of Distress Scale) logging, and debrief — making progress visible in live data. Built India-first: challenge templates, cultural framing, and compliance architecture are native to the Indian context from day one.
 
-India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No incumbent — not Amaha, not Tele MANAS, not any international app — offers self-directed ERP for social anxiety. Phase 1 targets India launch (Months 1–6); Phase 2 expands to English-speaking international markets (Months 7–18).
+India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No incumbent — not Amaha, not Tele MANAS, not any international app — offers a structured self-help app for facing and overcoming social fears built specifically for India. Phase 1 targets India launch (Months 1–6); Phase 2 expands to English-speaking international markets (Months 7–18).
 
 ## Success Criteria
 
