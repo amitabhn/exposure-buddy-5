@@ -23,7 +23,7 @@ describe('AnimationContext', () => {
     expect(result.current.reduced).toBe(true)
   })
 
-  it('updates within one render cycle when reduceMotionChanged fires', () => {
+  it('updates within one render cycle when reduceMotionChanged fires', async () => {
     let capturedHandler: (isEnabled: unknown) => void = () => {}
     jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(
       (_event: unknown, handler: unknown) => {
@@ -33,6 +33,7 @@ describe('AnimationContext', () => {
     )
 
     const { result } = renderHook(() => useAnimation(), { wrapper })
+    await act(async () => {}) // flush isReduceMotionEnabled Promise
 
     act(() => {
       capturedHandler(true)
@@ -41,10 +42,11 @@ describe('AnimationContext', () => {
     expect(result.current.reduced).toBe(true)
   })
 
-  it('removes event listener on unmount', () => {
+  it('removes event listener on unmount', async () => {
     const removeMock = jest.fn()
     jest.spyOn(AccessibilityInfo, 'addEventListener').mockReturnValue({ remove: removeMock } as any)
     const { unmount } = renderHook(() => useAnimation(), { wrapper })
+    await act(async () => {}) // flush isReduceMotionEnabled Promise
     unmount()
     expect(removeMock).toHaveBeenCalledTimes(1)
   })
@@ -56,7 +58,7 @@ describe('AnimationContext', () => {
     expect(result.current.reduced).toBe(true)
   })
 
-  it('reflects last value after rapid successive reduceMotionChanged events', () => {
+  it('reflects last value after rapid successive reduceMotionChanged events', async () => {
     let capturedHandler: (isEnabled: unknown) => void = () => {}
     jest.spyOn(AccessibilityInfo, 'addEventListener').mockImplementation(
       (_event: unknown, handler: unknown) => {
@@ -66,6 +68,7 @@ describe('AnimationContext', () => {
     )
 
     const { result } = renderHook(() => useAnimation(), { wrapper })
+    await act(async () => {}) // flush isReduceMotionEnabled Promise
 
     act(() => {
       capturedHandler(true)
