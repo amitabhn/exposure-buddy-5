@@ -58,7 +58,7 @@ export default function SettingsScreen() {
 
       <TouchableOpacity
         style={styles.row}
-        onPress={() => router.push('/(auth)/privacy-notice')}
+        onPress={() => router.push('/privacy-notice')}
         accessibilityRole="link"
         accessibilityLabel={t('settings.privacy.privacyNotice')}
         accessibilityHint={t('legal.privacyNotice.accessibilityHint')}

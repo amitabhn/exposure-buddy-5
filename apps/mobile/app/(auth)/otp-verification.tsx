@@ -273,7 +273,7 @@ export default function OtpVerificationScreen() {
 
       <TouchableOpacity
         style={styles.privacyLink}
-        onPress={() => router.push('/(auth)/privacy-notice')}
+        onPress={() => router.push('/privacy-notice')}
         accessibilityRole="link"
         accessibilityLabel={t('legal.privacyNotice.title')}
         accessibilityHint={t('legal.privacyNotice.accessibilityHint')}

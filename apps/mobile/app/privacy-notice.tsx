@@ -1,7 +1,7 @@
 import { ScrollView, Text, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { PRIVACY_NOTICE_LAST_UPDATED } from '../../src/constants/legal'
+import { PRIVACY_NOTICE_LAST_UPDATED } from '../src/constants/legal'
 
 export default function PrivacyNoticeScreen() {
   const { t } = useTranslation()
