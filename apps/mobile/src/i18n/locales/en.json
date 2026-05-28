@@ -53,6 +53,7 @@
     "deleteAccountError": "Failed to submit deletion request. Please try again.",
     "privacy": {
       "title": "Privacy",
+      "privacyNotice": "Privacy Notice",
       "deleteAccount": "Delete my account"
     },
     "deletion": {
@@ -68,5 +69,46 @@
   "nav": {
     "home": "Home",
     "settings": "Settings"
+  },
+  "legal": {
+    "dpo": {
+      "title": "Data Protection Officer",
+      "contactLabel": "Contact",
+      "contactEmail": "privacy@exposure-buddy.com"
+    },
+    "privacyNotice": {
+      "title": "Privacy Notice",
+      "screenTitle": "Privacy Notice",
+      "accessibilityHint": "Opens the Privacy Notice screen",
+      "lastUpdated": "Last updated: {{date}}",
+      "dataController": {
+        "title": "Data Controller",
+        "details": "Exposure Buddy is the data controller for personal data processed through this app."
+      },
+      "dpoSection": {
+        "title": "Data Protection Officer",
+        "details": "Our DPO can be contacted at:"
+      },
+      "purposes": {
+        "title": "How We Use Your Data",
+        "details": "We process your personal data solely to support your use of Exposure Buddy, a self-help app designed to help you challenge fears and work toward reducing anxiety. Exposure Buddy is not a therapy app and is not a substitute for professional ERP therapy or any other form of clinical treatment. Data processing purposes: account authentication, fear-challenge session support, distress level tracking, fear ladder management, and progress visualisation."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "details": "Personal data is retained for the duration of your account. Consent records are retained for the account lifetime plus 2 years after deletion, as required by DPDPA 2023 §8(7). Account deletion enters a 30-day window, after which all personal data is permanently deleted."
+      },
+      "rights": {
+        "title": "Your Rights Under DPDPA 2023",
+        "details": "As a data principal under India's Digital Personal Data Protection Act 2023, you have the right to: access your personal data (contact the DPO to request an export); correction of inaccurate data; erasure of your personal data (via Settings → Privacy → Delete my account); and to withdraw consent (withdrawal is via full account deletion at MVP)."
+      },
+      "withdrawal": {
+        "title": "Withdrawing Consent",
+        "details": "You may withdraw consent by deleting your account from Settings → Privacy → Delete my account. A 30-day window applies before permanent deletion."
+      },
+      "thirdParty": {
+        "title": "Third-Party Processors",
+        "details": "Your data is processed by Supabase (database and authentication) and PowerSync (offline sync). No health data, session content, or PII is transmitted to any third-party analytics, advertising, or data-broker service."
+      }
+    }
   }
 }

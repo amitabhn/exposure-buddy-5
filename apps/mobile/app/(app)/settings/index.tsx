@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
 
 export default function SettingsScreen() {
   const { t } = useTranslation()
+  const router = useRouter()
   const { signOut, requestAccountDeletion } = useAuth()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -53,6 +55,16 @@ export default function SettingsScreen() {
       {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
 
       <Text style={styles.sectionTitle}>{t('settings.privacy.title')}</Text>
+
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => router.push('/privacy-notice')}
+        accessibilityRole="link"
+        accessibilityLabel={t('settings.privacy.privacyNotice')}
+        accessibilityHint={t('legal.privacyNotice.accessibilityHint')}
+      >
+        <Text style={styles.rowText}>{t('settings.privacy.privacyNotice')}</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.row, isDeletingAccount && styles.rowDisabled]}

@@ -255,6 +255,16 @@ export default function SignInScreen() {
         <Text style={styles.buttonText}>{t('auth.otp.sendCode')}</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.privacyLink}
+        onPress={() => router.push('/privacy-notice')}
+        accessibilityRole="link"
+        accessibilityLabel={t('legal.privacyNotice.title')}
+        accessibilityHint={t('legal.privacyNotice.accessibilityHint')}
+      >
+        <Text style={styles.privacyLinkText}>{t('legal.privacyNotice.title')}</Text>
+      </TouchableOpacity>
+
       {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') ? (
         <TouchableOpacity
           style={[styles.button, { backgroundColor: '#6b7280', marginTop: 8 }]}
@@ -359,5 +369,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  privacyLink: {
+    marginTop: 24,
+    alignSelf: 'center',
+  },
+  privacyLinkText: {
+    fontSize: 13,
+    color: '#6b7280',
+    textDecorationLine: 'underline',
   },
 })

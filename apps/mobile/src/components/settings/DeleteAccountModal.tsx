@@ -1,5 +1,6 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { DPO_EMAIL } from '../../constants/legal'
 
 interface DeleteAccountModalProps {
   visible: boolean
@@ -8,8 +9,6 @@ interface DeleteAccountModalProps {
   isLoading: boolean
 }
 
-// eslint-disable-next-line i18next/no-literal-string
-const DPO_EMAIL = 'privacy@exposure-buddy.com'
 // eslint-disable-next-line i18next/no-literal-string
 const ANIMATION_TYPE = 'fade' as const
 
