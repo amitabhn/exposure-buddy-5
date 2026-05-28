@@ -7,7 +7,7 @@ export default function PrivacyNoticeScreen() {
   const { t } = useTranslation()
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: t('legal.privacyNotice.screenTitle'), headerBackTitle: '' }} />
+      <Stack.Screen options={{ title: t('legal.privacyNotice.screenTitle') }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* legal.privacyNotice.screenTitle → Stack.Screen nav bar; .title → in-document h1 below */}
         <Text style={styles.h1} accessibilityRole="header">{t('legal.privacyNotice.title')}</Text>

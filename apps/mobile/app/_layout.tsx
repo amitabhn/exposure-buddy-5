@@ -73,7 +73,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ReducedMotionProvider>
           <ThemeProvider value={DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerBackButtonDisplayMode: 'minimal' }} />
+            </Stack>
             <PortalHost />
           </ThemeProvider>
         </ReducedMotionProvider>
