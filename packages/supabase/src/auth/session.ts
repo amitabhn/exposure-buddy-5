@@ -135,8 +135,12 @@ export function setOnboardingComplete(mmkv: MMKV, userId: string): void {
 export function getOnboardingProgress(mmkv: MMKV, userId: string): { step: number } | null {
   const raw = mmkv.getString(KV_KEYS.ONBOARDING_PROGRESS(userId))
   if (!raw) return null
-  // Intentionally throws on corrupt JSON — caller handles graceful degradation (AC5)
-  return JSON.parse(raw) as { step: number }
+  // Throws on corrupt JSON or invalid shape — caller handles graceful degradation (AC5)
+  const parsed = JSON.parse(raw) as { step: unknown }
+  if (typeof parsed?.step !== 'number' || !Number.isInteger(parsed.step) || parsed.step < 1) {
+    throw new Error('Invalid onboarding progress: step must be a positive integer')
+  }
+  return { step: parsed.step }
 }
 
 export function setOnboardingProgress(mmkv: MMKV, userId: string, progress: { step: number }): void {

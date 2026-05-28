@@ -43,15 +43,28 @@
   "onboarding": {
     "stepIndicator": "चरण {{current}} / {{total}}",
     "welcome": {
-      "title": "Exposure Buddy में आपका स्वागत है",
+      "title": "आपकी यात्रा यहाँ से शुरू होती है",
       "body": "Exposure Buddy आपको उन परिस्थितियों और डरों का धीरे-धीरे सामना करने में मदद करता है जिनसे आप बचते आए हैं — अपनी गति से। यह एक सेल्फ-हेल्प टूल है, न कि थेरेपी ऐप या पेशेवर देखभाल का विकल्प। आइए समझें कि अभी चीजें आपके लिए कैसी लग रही हैं।",
       "cta": "शुरू करें"
     },
-    "assessment": {
-      "title": "अपने तनाव का आकलन करें"
-    },
     "resumeFailed": {
       "toast": "आपकी प्रगति पुनर्स्थापित नहीं हो सकी। चरण 1 से शुरू कर रहे हैं।"
+    },
+    "overwhelmed": {
+      "cta": "Feeling overwhelmed?"
+    },
+    "fearLadder": {
+      "minimumItems": "Add at least 3 situations to continue.",
+      "maximumItems": "You've added the maximum of 10 situations."
+    },
+    "crisisDetected": {
+      "banner": "We noticed something in what you wrote. You're not alone."
+    },
+    "complete": {
+      "title": "You're ready to climb!",
+      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "titleSoft": "Your ladder is ready.",
+      "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready."
     }
   },
   "auth": {

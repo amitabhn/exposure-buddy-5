@@ -70,6 +70,11 @@ describe('getOnboardingProgress / setOnboardingProgress', () => {
     expect(getOnboardingProgress(mmkv as never, USER_ID)).toBeNull()
   })
 
+  it('returns { step: 2 } when progress is set to step 2 (T10.4)', () => {
+    setOnboardingProgress(mmkv as never, USER_ID, { step: 2 })
+    expect(getOnboardingProgress(mmkv as never, USER_ID)).toEqual({ step: 2 })
+  })
+
   it('round-trips { step } through MMKV', () => {
     setOnboardingProgress(mmkv as never, USER_ID, { step: 3 })
     expect(getOnboardingProgress(mmkv as never, USER_ID)).toEqual({ step: 3 })
@@ -77,6 +82,16 @@ describe('getOnboardingProgress / setOnboardingProgress', () => {
 
   it('throws on corrupt JSON (caller must handle — AC5)', () => {
     mmkv.set(KV_KEYS.ONBOARDING_PROGRESS(USER_ID), '{not-json}')
+    expect(() => getOnboardingProgress(mmkv as never, USER_ID)).toThrow()
+  })
+
+  it('throws when stored step is a string, not a number', () => {
+    mmkv.set(KV_KEYS.ONBOARDING_PROGRESS(USER_ID), JSON.stringify({ step: '2' }))
+    expect(() => getOnboardingProgress(mmkv as never, USER_ID)).toThrow()
+  })
+
+  it('throws when stored object is missing the step key', () => {
+    mmkv.set(KV_KEYS.ONBOARDING_PROGRESS(USER_ID), JSON.stringify({}))
     expect(() => getOnboardingProgress(mmkv as never, USER_ID)).toThrow()
   })
 })

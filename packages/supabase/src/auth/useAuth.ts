@@ -16,6 +16,7 @@ interface UseAuthResult {
   onboardingProgressStep: number | null
   setOnboardingProgressStep: (step: number) => void
   onboardingProgressReadFailed: boolean
+  isStorageDegraded: boolean
 }
 
 export function useAuth(): UseAuthResult {
@@ -31,6 +32,7 @@ export function useAuth(): UseAuthResult {
     onboardingProgressStep,
     setOnboardingProgressStep,
     onboardingProgressReadFailed,
+    isStorageDegraded,
   } = useContext(AuthContext)
   return {
     authState,
@@ -45,5 +47,6 @@ export function useAuth(): UseAuthResult {
     onboardingProgressStep,
     setOnboardingProgressStep,
     onboardingProgressReadFailed,
+    isStorageDegraded,
   }
 }

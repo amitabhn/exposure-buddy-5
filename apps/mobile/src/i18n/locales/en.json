@@ -69,15 +69,28 @@
   "onboarding": {
     "stepIndicator": "Step {{current}} of {{total}}",
     "welcome": {
-      "title": "Welcome to Exposure Buddy",
+      "title": "Your journey starts here",
       "body": "Exposure Buddy helps you gradually face the situations and fears you've been avoiding, at your own pace. It's a self-help tool — not a therapy app or a substitute for professional care. Let's start by understanding how things feel for you right now.",
       "cta": "Get started"
     },
-    "assessment": {
-      "title": "Rate Your Distress"
-    },
     "resumeFailed": {
       "toast": "Couldn't restore your progress. Starting from step 1."
+    },
+    "overwhelmed": {
+      "cta": "Feeling overwhelmed?"
+    },
+    "fearLadder": {
+      "minimumItems": "Add at least 3 situations to continue.",
+      "maximumItems": "You've added the maximum of 10 situations."
+    },
+    "crisisDetected": {
+      "banner": "We noticed something in what you wrote. You're not alone."
+    },
+    "complete": {
+      "title": "You're ready to climb!",
+      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "titleSoft": "Your ladder is ready.",
+      "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready."
     }
   },
   "nav": {

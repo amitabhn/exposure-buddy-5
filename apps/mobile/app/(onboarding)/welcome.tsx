@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -8,18 +8,18 @@ import { OnboardingStepIndicator } from '../../src/components/onboarding/Onboard
 export default function WelcomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { onboardingProgressStep, onboardingProgressReadFailed, setOnboardingProgressStep } = useAuth()
-  // Track whether we've already acted on the resume state — prevents re-navigation on re-render
+  const { isLoading, onboardingProgressStep, onboardingProgressReadFailed, setOnboardingProgressStep } = useAuth()
+  // Gate one-shot resume logic — only act after MMKV state has been populated.
   const resumeHandled = useRef(false)
 
   useEffect(() => {
+    if (isLoading) return  // wait for auth+MMKV state to settle before acting
     if (resumeHandled.current) return
     resumeHandled.current = true
 
     if (onboardingProgressReadFailed) {
-      // MMKV threw on progress read — toast is shown via the flag; stay on step 1
-      // Toast rendering is deferred to a future story that wires up a toast library.
-      // The flag is available via onboardingProgressReadFailed for AC5 compliance.
+      // MMKV threw on progress read — show toast (AC5) and stay on step 1
+      Alert.alert(t('onboarding.resumeFailed.toast'))
       return
     }
 
@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
       // Steps 3+ routes (ladder, complete) are created in Stories 4.3 and 4.4.
       // If progress is > 2, stay on welcome until those routes exist.
     }
-  }, [onboardingProgressStep, onboardingProgressReadFailed, router])
+  }, [isLoading, onboardingProgressStep, onboardingProgressReadFailed, router, t])
 
   function handleGetStarted() {
     setOnboardingProgressStep(1)

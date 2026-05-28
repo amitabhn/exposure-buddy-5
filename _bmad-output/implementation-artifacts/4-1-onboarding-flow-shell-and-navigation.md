@@ -1,6 +1,6 @@
 # Story 4.1: Onboarding Flow Shell & Navigation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -154,6 +154,33 @@ These were flagged as "done before Story 4.1 created" in the Epic 3 retrospectiv
 - [x] T12.1: `pnpm turbo typecheck` passes with zero errors
 - [x] T12.2: `pnpm turbo lint` passes with zero errors (including new `no-restricted-syntax` rule)
 - [x] T12.3: `pnpm turbo test` passes — including the fixed `react-test-renderer` suite from P1
+
+### Review Findings
+
+#### Decision Needed
+
+_(all resolved — see patches below)_
+
+#### Patches
+
+- [x] [Review][Patch] DN1→Patch: implement `Alert.alert(t('onboarding.resumeFailed.toast'))` in `welcome.tsx` when `onboardingProgressReadFailed` is true — replaces the deferred comment; satisfies AC5; add test asserting Alert.alert called with the toast key [apps/mobile/app/(onboarding)/welcome.tsx:19-24]
+- [x] [Review][Patch] DN2→Patch: bypass onboarding gate when MMKV is unavailable — if `mmkvRef.current === null && isAuthenticated`, skip the `!isOnboardingComplete` redirect in `(app)/_layout.tsx`; also fix `markOnboardingComplete()` to update `isOnboardingCompleteLocal` state even when the MMKV write is skipped [apps/mobile/app/(app)/_layout.tsx:17-19, packages/supabase/src/auth/AuthProvider.tsx:258-264]
+- [x] [Review][Patch] DN3→Patch: revert `assessment.tsx` to spec-mandated minimal stub; remove `onboarding.assessment.title` from `en.json` and `hi.json`; add it to Story 4.2 i18n scope instead [apps/mobile/app/(onboarding)/assessment.tsx, apps/mobile/src/i18n/locales/en.json:959-961]
+- [x] [Review][Patch] `resumeHandled` ref fires before async MMKV state is populated — cold start race: effect runs with `onboardingProgressStep === null`, sets ref, then blocks the re-run when the real value arrives [apps/mobile/app/(onboarding)/welcome.tsx:15-18]
+- [x] [Review][Patch] `getOnboardingProgress` trusts JSON shape without runtime validation — `JSON.parse(raw) as { step: number }` is a TypeScript assertion not a runtime check; corrupt or type-mismatched values propagate silently [packages/supabase/src/auth/session.ts:139]
+- [x] [Review][Patch] Token refresh re-reads onboarding MMKV state on every auth event — no per-userId guard as required by Dev Notes ("only read from MMKV once per userId — add a ref guard if needed"); causes redundant state updates and can flip `onboardingProgressReadFailed` mid-session [packages/supabase/src/auth/AuthProvider.tsx:168-178]
+- [x] [Review][Patch] Missing i18n keys for Stories 4.2-4.4 — Dev Notes explicitly require `overwhelmed`, `fearLadder`, `crisisDetected`, and `complete` sub-keys to be added now so the i18n test suite stays green; all absent from both `en.json` and `hi.json` [apps/mobile/src/i18n/locales/en.json]
+- [x] [Review][Patch] `welcome.title` value deviates from spec — `en.json` has "Welcome to Exposure Buddy"; Dev Notes §i18n specifies "Your journey starts here" [apps/mobile/src/i18n/locales/en.json]
+- [x] [Review][Patch] `(onboarding)/_layout.tsx` missing `isOnboardingComplete` guard — an authenticated user who has completed onboarding can deep-link into `/(onboarding)/welcome`, press "Get started", and overwrite their progress with step 1 [apps/mobile/app/(onboarding)/_layout.tsx:10-14]
+- [x] [Review][Patch] Test coverage gaps — T10.4 spec requires a `{ step: 2 }` test but only `{ step: 3 }` is tested in the round-trip; `welcome.test.tsx` title claims `>= 2` coverage but only tests `step: 2` not the `null → 2` async arrival scenario [packages/supabase/__tests__/session-onboarding.test.ts, apps/mobile/app/(onboarding)/welcome.test.tsx]
+- [x] [Review][Patch] `no-restricted-syntax` ESLint rule may clobber inherited entries — dismissed (false positive — `extends: ['eslint:recommended']` does not configure `no-restricted-syntax`; no clobbering occurs) [apps/mobile/.eslintrc.js:566-574]
+
+#### Deferred
+
+- [x] [Review][Defer] assessment.tsx — gesture disabled (`gestureEnabled: false`) with no back-button UI in stub [apps/mobile/app/(onboarding)/assessment.tsx:642] — deferred, Story 4.2 replaces stub content and adds back navigation per AC3
+- [x] [Review][Defer] `UseAuthResult` type duplicates `AuthContextValue` — parallel maintenance risk as context fields grow [packages/supabase/src/auth/useAuth.ts:9-16] — deferred, pre-existing pattern; refactor when auth module API is hardened
+- [x] [Review][Defer] `OnboardingStepIndicator` no out-of-range step validation — invalid `accessibilityValue.now` possible if step < 1 or > ONBOARDING_STEP_COUNT [apps/mobile/src/components/onboarding/OnboardingStepIndicator.tsx:13] — deferred, no out-of-range callers exist yet; add bounds check when Stories 4.3/4.4 introduce steps 3 and 4
+- [x] [Review][Defer] React 18 async batching race on token refresh — `onAuthStateChange` is a non-React async callback; multiple sequential `setState` calls could theoretically surface a momentary `isOnboardingComplete = false` in `(app)/_layout.tsx` between batches [packages/supabase/src/auth/AuthProvider.tsx:161-186] — deferred, theoretical; React 18 automatic batching should prevent this in practice
 
 ## Dev Notes
 

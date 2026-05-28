@@ -1,4 +1,5 @@
 import React from 'react'
+import { Alert } from 'react-native'
 import { render, fireEvent } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
@@ -31,13 +32,21 @@ jest.mock('../../src/components/onboarding/OnboardingStepIndicator', () => ({
 import WelcomeScreen from './welcome'
 
 describe('WelcomeScreen', () => {
+  let alertSpy: jest.SpyInstance
+
   beforeEach(() => {
     jest.clearAllMocks()
+    alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
     mockUseAuth.mockReturnValue({
+      isLoading: false,
       onboardingProgressStep: null,
       onboardingProgressReadFailed: false,
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
+  })
+
+  afterEach(() => {
+    alertSpy.mockRestore()
   })
 
   it('renders the title and CTA button', () => {
@@ -63,8 +72,20 @@ describe('WelcomeScreen', () => {
     expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  it('navigates to assessment when onboardingProgressStep >= 2', () => {
+  it('does not act while isLoading is true', () => {
     mockUseAuth.mockReturnValue({
+      isLoading: true,
+      onboardingProgressStep: 2,
+      onboardingProgressReadFailed: false,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
+    })
+    render(<WelcomeScreen />)
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('navigates to assessment when onboardingProgressStep is 2', () => {
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
       onboardingProgressStep: 2,
       onboardingProgressReadFailed: false,
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
@@ -73,13 +94,26 @@ describe('WelcomeScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/assessment')
   })
 
-  it('stays on welcome when onboardingProgressReadFailed is true', () => {
+  it('stays on welcome when onboardingProgressStep is > 2 (route not yet created)', () => {
     mockUseAuth.mockReturnValue({
+      isLoading: false,
+      onboardingProgressStep: 3,
+      onboardingProgressReadFailed: false,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
+    })
+    render(<WelcomeScreen />)
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('shows Alert and stays on welcome when onboardingProgressReadFailed is true', () => {
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
       onboardingProgressStep: null,
       onboardingProgressReadFailed: true,
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     render(<WelcomeScreen />)
+    expect(alertSpy).toHaveBeenCalledWith('onboarding.resumeFailed.toast')
     expect(mockReplace).not.toHaveBeenCalled()
   })
 })

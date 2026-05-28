@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-05-28 # story 3-5 done; epic-3 retro done; story 4-1 review
+last_updated: 2026-05-28 # story 3-5 done; epic-3 retro done; story 4-1 done (CR: 11 patches, 4 defer)
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -73,7 +73,7 @@ development_status:
 
   # ─── Epic 4: User Onboarding & Psychoeducation ────────────────────────────
   epic-4: in-progress
-  4-1-onboarding-flow-shell-and-navigation: review
+  4-1-onboarding-flow-shell-and-navigation: done
   4-2-fear-ladder-introduction-and-suds-calibration: backlog
   4-3-initial-fear-ladder-setup: backlog
   4-4-onboarding-completion-and-home-screen-entry: backlog

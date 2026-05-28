@@ -34,6 +34,10 @@ interface AuthContextValue {
   // True when MMKV threw on reading onboarding progress (corrupt key).
   // welcome.tsx uses this to show the resume-failed toast.
   onboardingProgressReadFailed: boolean
+  // True when MMKV initialisation failed (keystore unavailable). Auth state is
+  // in-memory only; onboarding flags cannot be read or written. App routes
+  // authenticated users directly to home in this state rather than onboarding.
+  isStorageDegraded: boolean
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -54,6 +58,7 @@ export const AuthContext = createContext<AuthContextValue>({
   onboardingProgressStep: null,
   setOnboardingProgressStep: () => {},
   onboardingProgressReadFailed: false,
+  isStorageDegraded: false,
 })
 
 interface AuthProviderProps {
@@ -89,7 +94,11 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [isOnboardingComplete, setIsOnboardingCompleteLocal] = useState(false)
   const [onboardingProgressStep, setOnboardingProgressStepLocal] = useState<number | null>(null)
   const [onboardingProgressReadFailed, setOnboardingProgressReadFailed] = useState(false)
+  const [isStorageDegraded, setIsStorageDegraded] = useState(false)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
+  // Tracks the userId for which onboarding state was last read from MMKV.
+  // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
+  const lastOnboardingReadUserIdRef = useRef<string | null>(null)
   const dpoServiceRef = useRef<IDpoService>(
     dpoService ?? new UserErasureRequestService()
   )
@@ -111,6 +120,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     if (mmkv === null) {
       if (!mmkvReadyRef.current) {
         mmkvReadyRef.current = true
+        setIsStorageDegraded(true)
         setIsLoading(false)
       }
       return
@@ -165,7 +175,9 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         // so consumers (via context) see it immediately without another MMKV read.
         setHasAuthedBeforeLocal(true)
         // Read onboarding state from MMKV now that userId is known (ARC-004).
-        if (store) {
+        // Guard by userId — token refreshes must not re-read and overwrite in-flight state.
+        if (store && session.user.id !== lastOnboardingReadUserIdRef.current) {
+          lastOnboardingReadUserIdRef.current = session.user.id
           setIsOnboardingCompleteLocal(getOnboardingComplete(store, session.user.id))
           try {
             const progress = getOnboardingProgress(store, session.user.id)
@@ -182,6 +194,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         setIsOnboardingCompleteLocal(false)
         setOnboardingProgressStepLocal(null)
         setOnboardingProgressReadFailed(false)
+        lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
     })
@@ -258,7 +271,10 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   function markOnboardingComplete(): void {
     const store = mmkvRef.current
     const userId = authState.userId
-    if (!store || !userId) return
+    if (!store || !userId) {
+      console.error('[AuthProvider] markOnboardingComplete called in degraded mode — cannot persist to MMKV')
+      return
+    }
     setOnboardingComplete(store, userId)
     setIsOnboardingCompleteLocal(true)
   }
@@ -284,6 +300,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       onboardingProgressStep,
       setOnboardingProgressStep,
       onboardingProgressReadFailed,
+      isStorageDegraded,
     }}>
       {children}
     </AuthContext.Provider>
