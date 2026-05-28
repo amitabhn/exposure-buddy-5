@@ -1,4 +1,6 @@
 import enJson from './locales/en.json'
+import hiJson from './locales/hi.json'
+import { PRIVACY_NOTICE_LAST_UPDATED } from '../constants/legal'
 
 const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/
 
@@ -19,5 +21,31 @@ describe('en.json key naming convention', () => {
 
     const violations = keys.filter((key) => !KEY_PATTERN.test(key))
     expect(violations).toEqual([])
+  })
+})
+
+describe('PRIVACY_NOTICE_LAST_UPDATED format', () => {
+  it('matches YYYY-MM-DD regex', () => {
+    expect(PRIVACY_NOTICE_LAST_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+type DeepPartial<T> = { [K in keyof T]?: DeepPartial<T[K]> }
+
+describe('hi.json partial merge — fallback safety', () => {
+  const hi = hiJson as DeepPartial<typeof enJson>
+
+  it('hi.json has settings.privacy.privacyNotice translation', () => {
+    expect(hi.settings?.privacy?.privacyNotice).toBe('गोपनीयता सूचना')
+  })
+
+  it('hi.json does NOT define settings.privacy.title — en fallback required', () => {
+    expect(hi.settings?.privacy?.title).toBeUndefined()
+    expect(enJson.settings.privacy.title).toBe('Privacy')
+  })
+
+  it('hi.json does NOT define auth.otp.sendCode — en fallback required', () => {
+    expect(hi.auth?.otp?.sendCode).toBeUndefined()
+    expect(enJson.auth.otp.sendCode).toBe('Send code')
   })
 })

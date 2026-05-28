@@ -155,6 +155,16 @@
 - **D5: No false-positive test cases documenting known substring-match scope** — The test suite covers true-positive branches but has no tests asserting that common benign phrases ("suicide prevention", "I overdosed on coffee") do or do not trigger detection. Add documentation tests when the NLP approach is revisited. [`keywordDetector.test.ts`]
 
 
+## Deferred from: code review of 3-5-dpo-appointment-privacy-notice-and-analytics-boundary (2026-05-28)
+
+- **F1: `device_context JSONB` has no structural PII enforcement** — No CHECK constraint limits JSONB keys; any caller can store arbitrary fields including PII once Phase 2 removes CHECK(false). Add an allowed-key constraint in the Phase 2 analytics activation migration. [`supabase/migrations/0011_analytics_events_stub.sql:7`]
+
+- **F2: Date format test validates YYYY-MM-DD pattern only; no freshness check** — `PRIVACY_NOTICE_LAST_UPDATED` test passes format regex but cannot detect a stale date after Privacy Notice content changes. DPDPA §7 compliance obligation is a process control, not an automated test invariant. [`apps/mobile/src/i18n/i18n.test.ts:27`]
+
+- **F3: Deep-link → `otp-verification` (no params) → `sign-in` → `(app)/` redirect loop** — Pre-existing routing contract from Story 2.2; not introduced by Story 3.5. [`apps/mobile/app/(auth)/otp-verification.tsx:97`]
+
+- **F4: `KEY_PATTERN` regex only validates `en.json` key naming; `hi.json` key typos uncaught** — Test suite structural conformance covers English locale only; a malformed key in a partial Hindi locale (e.g. capitalised first character) would silently pass. Extend to validate all registered locale files in a future i18n quality story. [`apps/mobile/src/i18n/i18n.test.ts:5`]
+
 ## Deferred from: code review of 3-4-dpo-operator-panel (2026-05-27)
 
 - **D-3.4-1: CORS wildcard on operator-privileged DPO endpoints** — `_shared/cors.ts` sets `Access-Control-Allow-Origin: *`; pre-existing from Story 3.3 shared module; Bearer auth mitigates direct exploitation; tighten to panel origin in Epic 4 security-hardening story. [`supabase/functions/_shared/cors.ts`]

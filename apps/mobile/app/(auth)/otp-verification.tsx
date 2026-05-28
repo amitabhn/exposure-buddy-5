@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
 import { emitAccountCreated, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
+import { DPO_EMAIL } from '../../src/constants/legal'
 import { ConsentRecordService } from '@exposure-buddy/supabase'
 
 type State = {
@@ -244,8 +245,7 @@ export default function OtpVerificationScreen() {
         accessibilityHint={t('auth.otp.codeHint')}
       />
 
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey, { dpoEmail: 'privacy@exposure-buddy.com' })}</Text> : null}
+      {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey, { dpoEmail: DPO_EMAIL })}</Text> : null}
 
       {state.consentError ? <Text style={styles.errorText}>{t(state.consentError)}</Text> : null}
 
@@ -269,6 +269,16 @@ export default function OtpVerificationScreen() {
         accessibilityRole="button"
       >
         <Text style={styles.resendText}>{t('auth.otp.resend')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.privacyLink}
+        onPress={() => router.push('/(auth)/privacy-notice')}
+        accessibilityRole="link"
+        accessibilityLabel={t('legal.privacyNotice.title')}
+        accessibilityHint={t('legal.privacyNotice.accessibilityHint')}
+      >
+        <Text style={styles.privacyLinkText}>{t('legal.privacyNotice.title')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -342,5 +352,14 @@ const styles = StyleSheet.create({
   resendText: {
     color: '#6b7280',
     fontSize: 14,
+  },
+  privacyLink: {
+    marginTop: 24,
+    alignSelf: 'center',
+  },
+  privacyLinkText: {
+    fontSize: 13,
+    color: '#6b7280',
+    textDecorationLine: 'underline',
   },
 })
