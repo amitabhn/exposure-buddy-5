@@ -74,6 +74,7 @@ export default function RootLayout() {
         <ReducedMotionProvider>
           <ThemeProvider value={DefaultTheme}>
             <Stack screenOptions={{ headerShown: false }}>
+              {/* eslint-disable-next-line i18next/no-literal-string */}
               <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerBackButtonDisplayMode: 'minimal' }} />
             </Stack>
             <PortalHost />
