@@ -2,7 +2,7 @@
 
 ## Quick orientation
 
-Expo + React Native mobile app implementing ERP (Exposure and Response Prevention) therapy. India-focused — DPDPA 2023 compliance is a hard requirement.
+Expo + React Native mobile app — a non-therapeutic self-help tool that helps users gradually face and overcome their fears. Not a replacement or substitute for ERP, CBT, or any form of professional therapy. India-focused — DPDPA 2023 compliance is a hard requirement.
 
 **Monorepo layout:**
 - `apps/mobile` — Expo Router app (Metro/Jest)

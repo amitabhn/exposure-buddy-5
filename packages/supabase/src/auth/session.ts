@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store'
 import { MMKV } from 'react-native-mmkv'
 import type { Session } from '@supabase/supabase-js'
 import { createSupabaseClient } from '../client'
+import { KV_KEYS } from '@exposure-buddy/core'
 
 export type { MMKV }
 
@@ -115,4 +116,33 @@ export async function signOut(mmkv: MMKV | null): Promise<void> {
   await SecureStore.deleteItemAsync('supabase_access_token').catch(() => {})
   // eslint-disable-next-line i18next/no-literal-string
   await SecureStore.deleteItemAsync('supabase_refresh_token').catch(() => {})
+}
+
+// ─── Onboarding MMKV helpers ─────────────────────────────────────────────────
+
+export function getOnboardingComplete(mmkv: MMKV, userId: string): boolean {
+  try {
+    return mmkv.getBoolean(KV_KEYS.ONBOARDING_COMPLETE(userId)) ?? false
+  } catch {
+    return false
+  }
+}
+
+export function setOnboardingComplete(mmkv: MMKV, userId: string): void {
+  mmkv.set(KV_KEYS.ONBOARDING_COMPLETE(userId), true)
+}
+
+export function getOnboardingProgress(mmkv: MMKV, userId: string): { step: number } | null {
+  const raw = mmkv.getString(KV_KEYS.ONBOARDING_PROGRESS(userId))
+  if (!raw) return null
+  // Throws on corrupt JSON or invalid shape — caller handles graceful degradation (AC5)
+  const parsed = JSON.parse(raw) as { step: unknown }
+  if (typeof parsed?.step !== 'number' || !Number.isInteger(parsed.step) || parsed.step < 1) {
+    throw new Error('Invalid onboarding progress: step must be a positive integer')
+  }
+  return { step: parsed.step }
+}
+
+export function setOnboardingProgress(mmkv: MMKV, userId: string, progress: { step: number }): void {
+  mmkv.set(KV_KEYS.ONBOARDING_PROGRESS(userId), JSON.stringify(progress))
 }

@@ -66,6 +66,33 @@
       "cancelButton": "Cancel"
     }
   },
+  "onboarding": {
+    "stepIndicator": "Step {{current}} of {{total}}",
+    "welcome": {
+      "title": "Your journey starts here",
+      "body": "Exposure Buddy helps you gradually face the situations and fears you've been avoiding, at your own pace. It's a self-help tool — not a therapy app or a substitute for professional care. Let's start by understanding how things feel for you right now.",
+      "cta": "Get started"
+    },
+    "resumeFailed": {
+      "toast": "Couldn't restore your progress. Starting from step 1."
+    },
+    "overwhelmed": {
+      "cta": "Feeling overwhelmed?"
+    },
+    "fearLadder": {
+      "minimumItems": "Add at least 3 situations to continue.",
+      "maximumItems": "You've added the maximum of 10 situations."
+    },
+    "crisisDetected": {
+      "banner": "We noticed something in what you wrote. You're not alone."
+    },
+    "complete": {
+      "title": "You're ready to climb!",
+      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "titleSoft": "Your ladder is ready.",
+      "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready."
+    }
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
@@ -91,7 +118,7 @@
       },
       "purposes": {
         "title": "How We Use Your Data",
-        "details": "We process your personal data solely to support your use of Exposure Buddy, a self-help app designed to help you challenge fears and work toward reducing anxiety. Exposure Buddy is not a therapy app and is not a substitute for professional ERP therapy or any other form of clinical treatment. Data processing purposes: account authentication, fear-challenge session support, distress level tracking, fear ladder management, and progress visualisation."
+        "details": "We process your personal data solely to support your use of Exposure Buddy, a self-help app designed to help you gradually face and overcome your fears. Exposure Buddy is not a therapy app and is not a substitute for professional medical care or any form of therapy. Data processing purposes: account authentication, challenge session support, distress level tracking, courage ladder management, and progress visualisation."
       },
       "retention": {
         "title": "Data Retention",

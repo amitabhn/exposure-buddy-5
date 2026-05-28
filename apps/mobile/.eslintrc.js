@@ -70,6 +70,18 @@ module.exports = {
         ],
       },
     ],
+    // Ban raw MMKV key string literals in apps/mobile — all keys must come from KV_KEYS
+    // in @exposure-buddy/core. (packages/supabase/auth/session.ts is exempt — it is not
+    // in apps/mobile and owns its own MMKV_KEYS constant for auth keys.)
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(getString|set|getBoolean|getNumber|delete)$/] > Literal:first-child",
+        message:
+          "Raw MMKV key string literals are banned in apps/mobile. Import KV_KEYS from '@exposure-buddy/core' and use a typed key constant.",
+      },
+    ],
     // Enforce complete useEffect dependency arrays — catches stale closures at lint time
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'error',

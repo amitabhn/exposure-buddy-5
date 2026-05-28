@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 4-1-onboarding-flow-shell-and-navigation (2026-05-28)
+
+- **4-1-D1: assessment.tsx — gesture disabled with no back-button UI** — `gestureEnabled: false` on the assessment stub screen with no alternative navigation. Story 4.2 replaces stub content and must add back navigation per AC3 ("back navigation is available on all steps except the first"). [`apps/mobile/app/(onboarding)/assessment.tsx:642`]
+
+- **4-1-D2: `UseAuthResult` type duplicates `AuthContextValue` — drift risk** — Both interfaces define the same 11+ fields independently with no `Pick<>` or shared type alias. Adding or changing a field in `AuthContextValue` requires a matching manual update in `UseAuthResult`. Refactor when the auth module's public API is hardened. [`packages/supabase/src/auth/useAuth.ts:9-16`]
+
+- **4-1-D3: `OnboardingStepIndicator` no out-of-range step validation** — `accessibilityValue={{ min: 1, max: 4, now: step }}` will be out of range if a future caller passes `step` outside `[1, ONBOARDING_STEP_COUNT]`, violating the ARIA progressbar contract. No out-of-range callers exist yet. Add bounds check (clamp or throw) when Stories 4.3/4.4 introduce steps 3 and 4. [`apps/mobile/src/components/onboarding/OnboardingStepIndicator.tsx:13`]
+
+- **4-1-D4: React 18 async batching race on token refresh** — `onAuthStateChange` is a non-React async SDK callback; multiple sequential `setState` calls inside it could theoretically surface a momentary inconsistent state in `(app)/_layout.tsx` between batch flushes. React 18 automatic batching should prevent this in practice. Monitor if users report unexpected onboarding re-entries post token refresh. [`packages/supabase/src/auth/AuthProvider.tsx:161-186`]
+
 ## Deferred from: code review of 3-2-dpdpa-consent-schema-and-consent-record-edge-function (2026-05-26)
 
 - **D0 [HARD GATE]: consent_records retention strategy — pre-condition for Story 3.3** — `consent_records` uses `ON DELETE CASCADE` on the `auth.users` FK, meaning hard user-deletion immediately destroys consent records. DPDPA 2023 §8(7) requires consent records to be retained for account lifetime + 2 years post-deletion. Before any `auth.admin.deleteUser()` call is permitted in Story 3.3 (or any future story), a retention strategy must be designed and implemented: options include an archive table (copy before delete), orphaning rows (change FK to `ON DELETE SET NULL`), or a deferred cleanup job. This is a blocker for the erasure flow — do not ship Story 3.3 without resolving this. [`supabase/migrations/0004_consent_records.sql:8`]

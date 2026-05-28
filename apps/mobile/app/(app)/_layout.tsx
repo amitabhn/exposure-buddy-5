@@ -7,14 +7,19 @@ import { useAuth, createSupabaseClient } from '@exposure-buddy/supabase'
 export default function AppLayout() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading, isAuthenticated, isOnboardingComplete, isStorageDegraded } = useAuth()
 
-  // Auth gate — never redirect while isLoading to prevent cold-start flash (ARC-004)
+  // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
+  // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
+  // Skip the onboarding gate in degraded mode (MMKV unavailable) — route authenticated
+  // users directly to the app rather than trapping them in an uncompletable onboarding loop.
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
+    } else if (!isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded) {
+      router.replace('/(onboarding)/welcome')
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [isLoading, isAuthenticated, isOnboardingComplete, isStorageDegraded, router])
 
   // Refresh session on foreground resume to catch token expiry during background suspension (ADR-008 §5b)
   useEffect(() => {

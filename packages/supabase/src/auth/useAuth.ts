@@ -11,10 +11,29 @@ interface UseAuthResult {
   requestAccountDeletion: () => Promise<void>
   pendingDeletion: PendingDeletionRecord | null
   hasAuthedBefore: boolean
+  isOnboardingComplete: boolean
+  markOnboardingComplete: () => void
+  onboardingProgressStep: number | null
+  setOnboardingProgressStep: (step: number) => void
+  onboardingProgressReadFailed: boolean
+  isStorageDegraded: boolean
 }
 
 export function useAuth(): UseAuthResult {
-  const { authState, isLoading, signOut, requestAccountDeletion, pendingDeletion, hasAuthedBefore } = useContext(AuthContext)
+  const {
+    authState,
+    isLoading,
+    signOut,
+    requestAccountDeletion,
+    pendingDeletion,
+    hasAuthedBefore,
+    isOnboardingComplete,
+    markOnboardingComplete,
+    onboardingProgressStep,
+    setOnboardingProgressStep,
+    onboardingProgressReadFailed,
+    isStorageDegraded,
+  } = useContext(AuthContext)
   return {
     authState,
     isLoading,
@@ -23,5 +42,11 @@ export function useAuth(): UseAuthResult {
     requestAccountDeletion,
     pendingDeletion,
     hasAuthedBefore,
+    isOnboardingComplete,
+    markOnboardingComplete,
+    onboardingProgressStep,
+    setOnboardingProgressStep,
+    onboardingProgressReadFailed,
+    isStorageDegraded,
   }
 }

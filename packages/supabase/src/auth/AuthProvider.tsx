@@ -3,7 +3,18 @@ import type { MMKV } from 'react-native-mmkv'
 import type { IDpoService, PendingDeletionRecord } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
-import { clearAuthState, getAuthState, getHasAuthedBefore, setAuthState, signOut as sessionSignOut, type AuthState } from './session'
+import {
+  clearAuthState,
+  getAuthState,
+  getHasAuthedBefore,
+  setAuthState,
+  signOut as sessionSignOut,
+  getOnboardingComplete,
+  setOnboardingComplete,
+  getOnboardingProgress,
+  setOnboardingProgress,
+  type AuthState,
+} from './session'
 
 interface AuthContextValue {
   authState: AuthState
@@ -15,6 +26,18 @@ interface AuthContextValue {
   // MMKV, survives sign-out, cleared on reinstall). The sign-in screen uses
   // this to pick between "Create account" and "Sign in" as the default tab.
   hasAuthedBefore: boolean
+  // Onboarding state — set from MMKV after auth is established (ARC-004).
+  isOnboardingComplete: boolean
+  markOnboardingComplete: () => void
+  onboardingProgressStep: number | null
+  setOnboardingProgressStep: (step: number) => void
+  // True when MMKV threw on reading onboarding progress (corrupt key).
+  // welcome.tsx uses this to show the resume-failed toast.
+  onboardingProgressReadFailed: boolean
+  // True when MMKV initialisation failed (keystore unavailable). Auth state is
+  // in-memory only; onboarding flags cannot be read or written. App routes
+  // authenticated users directly to home in this state rather than onboarding.
+  isStorageDegraded: boolean
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -30,6 +53,12 @@ export const AuthContext = createContext<AuthContextValue>({
   requestAccountDeletion: async () => {},
   pendingDeletion: null,
   hasAuthedBefore: false,
+  isOnboardingComplete: false,
+  markOnboardingComplete: () => {},
+  onboardingProgressStep: null,
+  setOnboardingProgressStep: () => {},
+  onboardingProgressReadFailed: false,
+  isStorageDegraded: false,
 })
 
 interface AuthProviderProps {
@@ -62,7 +91,14 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [isLoading, setIsLoading] = useState(true)
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletionRecord | null>(null)
   const [hasAuthedBefore, setHasAuthedBeforeLocal] = useState(false)
+  const [isOnboardingComplete, setIsOnboardingCompleteLocal] = useState(false)
+  const [onboardingProgressStep, setOnboardingProgressStepLocal] = useState<number | null>(null)
+  const [onboardingProgressReadFailed, setOnboardingProgressReadFailed] = useState(false)
+  const [isStorageDegraded, setIsStorageDegraded] = useState(false)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
+  // Tracks the userId for which onboarding state was last read from MMKV.
+  // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
+  const lastOnboardingReadUserIdRef = useRef<string | null>(null)
   const dpoServiceRef = useRef<IDpoService>(
     dpoService ?? new UserErasureRequestService()
   )
@@ -84,6 +120,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     if (mmkv === null) {
       if (!mmkvReadyRef.current) {
         mmkvReadyRef.current = true
+        setIsStorageDegraded(true)
         setIsLoading(false)
       }
       return
@@ -137,9 +174,27 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         // setAuthState already wrote the flag to MMKV; mirror it into local state
         // so consumers (via context) see it immediately without another MMKV read.
         setHasAuthedBeforeLocal(true)
+        // Read onboarding state from MMKV now that userId is known (ARC-004).
+        // Guard by userId — token refreshes must not re-read and overwrite in-flight state.
+        if (store && session.user.id !== lastOnboardingReadUserIdRef.current) {
+          lastOnboardingReadUserIdRef.current = session.user.id
+          setIsOnboardingCompleteLocal(getOnboardingComplete(store, session.user.id))
+          try {
+            const progress = getOnboardingProgress(store, session.user.id)
+            setOnboardingProgressStepLocal(progress?.step ?? null)
+            setOnboardingProgressReadFailed(false)
+          } catch {
+            setOnboardingProgressStepLocal(null)
+            setOnboardingProgressReadFailed(true)
+          }
+        }
       } else {
         if (store) clearAuthState(store)
         setAuthStateLocal(DEFAULT_AUTH_STATE)
+        setIsOnboardingCompleteLocal(false)
+        setOnboardingProgressStepLocal(null)
+        setOnboardingProgressReadFailed(false)
+        lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
     })
@@ -213,8 +268,40 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     }
   }
 
+  function markOnboardingComplete(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) {
+      console.error('[AuthProvider] markOnboardingComplete called in degraded mode — cannot persist to MMKV')
+      return
+    }
+    setOnboardingComplete(store, userId)
+    setIsOnboardingCompleteLocal(true)
+  }
+
+  function setOnboardingProgressStep(step: number): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    setOnboardingProgress(store, userId, { step })
+    setOnboardingProgressStepLocal(step)
+  }
+
   return (
-    <AuthContext.Provider value={{ authState, isLoading, signOut, requestAccountDeletion, pendingDeletion, hasAuthedBefore }}>
+    <AuthContext.Provider value={{
+      authState,
+      isLoading,
+      signOut,
+      requestAccountDeletion,
+      pendingDeletion,
+      hasAuthedBefore,
+      isOnboardingComplete,
+      markOnboardingComplete,
+      onboardingProgressStep,
+      setOnboardingProgressStep,
+      onboardingProgressReadFailed,
+      isStorageDegraded,
+    }}>
       {children}
     </AuthContext.Provider>
   )
