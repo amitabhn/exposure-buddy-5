@@ -1,5 +1,5 @@
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { act, render } from '@testing-library/react-native'
 import { Text } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ReducedMotionProvider, useAnimation } from '../src/contexts/AnimationContext'
@@ -15,7 +15,7 @@ function AnimationContextProbe() {
 }
 
 describe('_layout.tsx provider nesting', () => {
-  it('ReducedMotionProvider inside SafeAreaProvider provides AnimationContext to child tree', () => {
+  it('ReducedMotionProvider inside SafeAreaProvider provides AnimationContext to child tree', async () => {
     // Mirrors the nesting order in _layout.tsx: SafeAreaProvider → ReducedMotionProvider → children
     const { getByTestId } = render(
       <SafeAreaProvider>
@@ -24,6 +24,9 @@ describe('_layout.tsx provider nesting', () => {
         </ReducedMotionProvider>
       </SafeAreaProvider>,
     )
+    // Flush the AccessibilityInfo.isReduceMotionEnabled() Promise so the state
+    // update runs inside act() and does not produce a console.error warning.
+    await act(async () => {})
     // Context value is a boolean — undefined would indicate provider is missing from tree
     const probe = getByTestId('probe')
     expect(['true', 'false']).toContain(probe.props.children)

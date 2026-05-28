@@ -595,6 +595,104 @@ useEffect(() => {
 
 ---
 
+## Edge Function Security Pre-Flight Checklist
+
+Before submitting any Supabase Edge Function for code review, verify every item below. These failure modes were all caught as HIGH-severity review findings in Epic 3 — none are hypothetical.
+
+### 1. HTTP method guard
+Every function must enforce the allowed method(s) after the CORS preflight check:
+```typescript
+if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
+```
+Functions serving GET (e.g. `dpo-audit-log`) use `!== 'GET'`. Functions serving both use a set check.
+
+### 2. User identity from JWT only — never from request body (BOLA prevention)
+```typescript
+// ❌ BOLA vulnerability — caller can supply any userId they want
+const { targetUserId } = await req.json()
+await db.update('users', { deleted_at: now() }).where({ id: targetUserId })
+
+// ✅ identity from verified JWT only
+const { user } = await adminClient.auth.getUser(jwt)
+await db.update('users', { deleted_at: now() }).where({ id: user.id })
+```
+**Exception:** Operator-targeted actions (DPO erasing another user's data) must supply the target ID in the body AND verify the caller's JWT role (`dpo_operator`) before using the body field.
+
+### 3. Env var HTML injection — use `JSON.stringify` when substituting into JS strings
+If an Edge Function serves HTML with inline JavaScript and substitutes an env var:
+```typescript
+// ❌ raw substitution — breaks if SUPABASE_URL contains ' or "
+PANEL_HTML.replace(/__SUPABASE_URL__/g, supabaseUrl)
+
+// ✅ JSON-encode the value so it is safe as a JS string literal
+PANEL_HTML.replace(/__SUPABASE_URL__/g, JSON.stringify(supabaseUrl))
+```
+
+### 4. Bearer token extraction — use `startsWith` + `slice`, not `replace`
+```typescript
+// ❌ fragile — silent mismatch if header has extra spaces or wrong casing
+const jwt = req.headers.get('Authorization')?.replace('Bearer ', '')
+
+// ✅ from _shared/auth.ts — always use this helper
+const jwt = extractBearerToken(req)  // returns null if missing or malformed; caller returns 401
+```
+
+### 5. Privileged token storage — closure, not window global
+If an Edge Function serves HTML with a JS credential (e.g. the DPO panel operator token):
+```typescript
+// ❌ window-accessible — readable by any script on the page
+let operatorToken = null
+
+// ✅ IIFE closure — not accessible as window.operatorToken
+(function () {
+  let operatorToken = null
+  // all panel JS inside this IIFE
+})()
+```
+
+### 6. `SECURITY DEFINER` functions — pin `search_path`
+Any PL/pgSQL function marked `SECURITY DEFINER` must set `search_path` to prevent schema injection:
+```sql
+CREATE FUNCTION perform_user_erasure(p_target_user_id UUID) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public   -- ← required; without this, attacker-controlled search_path applies
+AS $$
+```
+
+### 7. Env var fast-fail guard at function start
+Every function must fail fast if required env vars are absent rather than producing a cryptic 500:
+```typescript
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+if (!supabaseUrl || !serviceRoleKey) {
+  return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 })
+}
+```
+
+### 8. Self-action guard on operator endpoints
+Operators must not be able to target themselves on destructive endpoints:
+```typescript
+if (targetUserId === operatorId) {
+  return new Response(JSON.stringify({ error: 'Cannot perform this action on own account' }), { status: 400 })
+}
+```
+
+### Checklist summary (copy into story task)
+```
+[ ] HTTP method guard (after OPTIONS preflight)
+[ ] JWT-only user identity — no body-supplied userId for auth actions
+[ ] Env var fast-fail guard at function start
+[ ] Bearer token extraction via _shared/auth.ts extractBearerToken()
+[ ] SECURITY DEFINER functions have SET search_path = public
+[ ] JS string interpolation uses JSON.stringify for env var values
+[ ] Privileged in-memory credentials in IIFE closure, not window global
+[ ] Self-action guard on operator-targeted destructive endpoints
+```
+
+---
+
 ## Anti-Patterns
 
 **8a — Importing database.types.ts outside packages/supabase**

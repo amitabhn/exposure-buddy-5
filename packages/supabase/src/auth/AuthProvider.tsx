@@ -41,6 +41,22 @@ interface AuthProviderProps {
   dpoService?: IDpoService
 }
 
+// ─── AuthProvider state invariants ───────────────────────────────────────────
+// isLoading:       true until mmkvReadyRef flips AND onAuthStateChange fires once.
+//                  Exception: also set false if mmkv===null (degraded mode) or if
+//                  stored token setSession() fails (fallback when listener won't fire).
+// mmkvReadyRef:    Guards the onAuthStateChange listener from firing before the stored
+//                  session is bootstrapped. Set in the mmkv useEffect; never reset.
+// hasAuthedBefore: Written true on any SIGNED_IN event; NEVER cleared by sign-out
+//                  (by design — persists across sign-out for sign-in screen defaulting).
+// pendingDeletion: Written in requestAccountDeletion() Step A (before requestErasure call),
+//                  updated to 'completed' in Step B (only if requestErasure succeeded),
+//                  and cleared to null after sessionSignOut. Never carries over to a
+//                  subsequent user session on the same device.
+// authState:       Driven exclusively by onAuthStateChange. Callers must not infer auth
+//                  identity from any other source — only from useAuth() → authState.userId.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps): React.ReactElement {
   const [authState, setAuthStateLocal] = useState<AuthState>(DEFAULT_AUTH_STATE)
   const [isLoading, setIsLoading] = useState(true)
@@ -189,6 +205,9 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     try {
       // eslint-disable-next-line i18next/no-literal-string
       mmkv.delete('pending_deletion_request')
+      // Mirror MMKV deletion into React state — AuthProvider is not unmounted on sign-out,
+      // so without this the context would still expose a stale 'completed' record.
+      setPendingDeletion(null)
     } catch {
       // Best-effort — if MMKV is unavailable, nothing to clear
     }
