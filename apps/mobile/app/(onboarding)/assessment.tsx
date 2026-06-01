@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import * as ExpoCrypto from 'expo-crypto'
 import { useAuth } from '@exposure-buddy/supabase'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { SudsCalibrationWidget } from '../../src/components/onboarding/SudsCalibrationWidget'
 import { getAdapter } from '../../src/sync/adapter'
+
+// Pure-JS UUID v4 — avoids native module dependency (crypto global absent in Hermes without polyfill)
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
 
 export default function AssessmentScreen() {
   const { t } = useTranslation()
@@ -27,7 +34,7 @@ export default function AssessmentScreen() {
     try {
       // eslint-disable-next-line i18next/no-literal-string
       await getAdapter().enqueue('user_onboarding_metadata', 'INSERT', {
-        id: ExpoCrypto.randomUUID(),  // client-generated UUID: offline-first pattern
+        id: generateUUID(),  // client-generated UUID: offline-first pattern
         user_id: userId,
         suds_calibration_value: selectedValue,
         completed_at: new Date().toISOString(),
