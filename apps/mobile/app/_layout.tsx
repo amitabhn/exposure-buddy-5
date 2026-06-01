@@ -76,7 +76,7 @@ export default function RootLayout() {
           <ThemeProvider value={DefaultTheme}>
             <Stack screenOptions={{ headerShown: false }}>
               {/* eslint-disable-next-line i18next/no-literal-string */}
-              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: () => null, headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
             </Stack>
             <PortalHost />
           </ThemeProvider>

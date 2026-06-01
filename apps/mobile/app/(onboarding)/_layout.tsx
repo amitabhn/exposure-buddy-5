@@ -21,7 +21,7 @@ export default function OnboardingLayout() {
     <Stack
       screenOptions={({ navigation }) => ({
         headerShown: navigation.canGoBack(),
-        headerTitle: () => null,
+        headerTitle: '',
         headerShadowVisible: false,
         headerStyle: { backgroundColor: '#ffffff' },
         headerLeft: () => <BackButton />,
