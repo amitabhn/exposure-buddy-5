@@ -29,13 +29,11 @@ jest.mock('../../src/components/onboarding/OnboardingStepIndicator', () => ({
   OnboardingStepIndicator: () => null,
 }))
 
-const mockOnChange = jest.fn()
-
 jest.mock('../../src/components/onboarding/SudsCalibrationWidget', () => {
   const { TouchableOpacity } = require('react-native')
   return {
     SudsCalibrationWidget: ({ onChange }: { onChange: (v: number) => void }) => (
-      <TouchableOpacity testID="suds-widget" onPress={() => onChange(7)}>
+      <TouchableOpacity testID="suds-widget" accessibilityRole="none" onPress={() => onChange(7)}>
       </TouchableOpacity>
     ),
   }

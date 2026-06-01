@@ -1,6 +1,6 @@
 # Story 4.2: Fear Ladder Introduction & SUDS Calibration
 
-Status: review
+Status: done
 
 ## Story
 
@@ -663,6 +663,21 @@ CI gates: typecheck ✅ lint ✅ test ✅ (54 Jest tests, 11 suites — up 11 te
 - `apps/mobile/src/i18n/locales/en.json` — UPDATED
 - `apps/mobile/src/i18n/locales/hi.json` — UPDATED
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — UPDATED
+
+### Review Findings — formal code review (2026-06-01)
+
+- [x] [Review][Decision] "Feeling overwhelmed?" crisis link inaccessible during onboarding — `(app)/_layout.tsx` gate redirects `!isOnboardingComplete` users to welcome; resolved: moved `crisis.tsx` from `(app)/` to `(onboarding)/` and updated assessment.tsx navigation to `/(onboarding)/crisis`; Epic 5 can relocate the real screen appropriately [`apps/mobile/app/(onboarding)/crisis.tsx`, `apps/mobile/app/(onboarding)/assessment.tsx:62`]
+
+- [x] [Review][Patch] RLS DELETE test will give false pass — no-policy DELETE in Supabase/PostgreSQL returns `error: null` (0 rows affected, no permission error); fixed: after DELETE, query the row and assert `toHaveLength(1)` (row still exists) [`packages/supabase/__tests__/rls/user_onboarding_metadata.test.ts`]
+- [x] [Review][Patch] `getByRole('button')` ambiguous in assessment test — mock `SudsCalibrationWidget` renders bare `<TouchableOpacity>` which defaults to `accessibilityRole="button"`; two elements with role="button" exist; fixed: added `accessibilityRole="none"` to the mock's `TouchableOpacity` [`apps/mobile/app/(onboarding)/assessment.test.tsx`]
+- [x] [Review][Patch] `mockOnChange` declared but never referenced in assessment test — dead variable; fixed: removed [`apps/mobile/app/(onboarding)/assessment.test.tsx`]
+- [x] [Review][Patch] `accessibilityState.checked` not asserted in widget test — AC2 requires checked-state wiring; fixed: added `expect(target.props.accessibilityState.checked).toBe(true)` to the selected-target test case [`apps/mobile/src/components/onboarding/SudsCalibrationWidget.test.tsx`]
+
+- [x] [Review][Defer] Enqueue failure leaves MMKV at step 3 with no server record — `setOnboardingProgressStep(3)` committed before enqueue; catch path returns without navigating; next cold start routes to ladder stub; calibration value IS in MMKV so offline-first intent preserved; documented in 4-2-D2 — deferred, pre-existing [`apps/mobile/app/(onboarding)/assessment.tsx:handleNext`]
+- [x] [Review][Defer] Double-tap creates second outbox entry violating UNIQUE(user_id) when real adapter wired — no in-flight guard on `handleNext`; stub swallows silently today; Epic 6 ON CONFLICT note covers idempotency; documented in 4-2-D1 — deferred, pre-existing [`apps/mobile/app/(onboarding)/assessment.tsx:handleNext`]
+- [x] [Review][Defer] PowerSync `user_onboarding_metadata` schema omits `id` column — client UUID in enqueue payload won't be tracked as row identity by PowerSync sync engine when Epic 6 wires real adapter — deferred, pre-existing (Epic 6 scope) [`packages/sync/src/schema.ts`]
+- [x] [Review][Defer] `setSudsCalibration` has no in-memory fallback in degraded-storage mode — unlike `setOnboardingProgressStep` (mirrors to React state), SUDS value is lost when MMKV unavailable; enqueue still uses `selectedValue` from local state so session flow completes — deferred, pre-existing [`packages/supabase/src/auth/AuthProvider.tsx`]
+- [x] [Review][Defer] `getAdapter()` eagerly instantiates `PowerSyncSyncAdapter` at module-import time — if constructor throws, error surfaces at import not call time; stub constructor is trivial today — deferred, pre-existing (Epic 6 scope) [`apps/mobile/src/sync/adapter.ts`]
 
 ## Change Log
 

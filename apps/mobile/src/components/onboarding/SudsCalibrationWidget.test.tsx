@@ -59,5 +59,6 @@ describe('SudsCalibrationWidget', () => {
     const target = getByLabelText('5 out of 10')
     expect(target).toBeTruthy()
     expect(target).toHaveStyle({ backgroundColor: '#111827' })
+    expect(target.props.accessibilityState.checked).toBe(true)
   })
 })

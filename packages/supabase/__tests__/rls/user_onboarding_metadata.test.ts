@@ -132,11 +132,17 @@ describe.skipIf(skipIfNoSupabase)('user_onboarding_metadata table RLS', () => {
     const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
     await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
 
-    // No DELETE policy exists — Supabase returns an error
-    const { error } = await clientA
+    // No DELETE policy exists — RLS silently filters the row (0 rows affected, no error).
+    // Verify denial by confirming the row still exists after the attempt.
+    await clientA
       .from('user_onboarding_metadata')
       .delete()
       .eq('user_id', userAId)
-    expect(error).not.toBeNull()
+
+    const { data } = await clientA
+      .from('user_onboarding_metadata')
+      .select('*')
+      .eq('user_id', userAId)
+    expect(data).toHaveLength(1)
   })
 })

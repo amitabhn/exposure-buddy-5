@@ -59,7 +59,7 @@ export default function AssessmentScreen() {
 
         {/* "Feeling overwhelmed?" — persistent, always visible */}
         <TouchableOpacity
-          onPress={() => router.push('/(app)/crisis')}
+          onPress={() => router.push('/(onboarding)/crisis')}
           accessibilityRole="link"
           accessibilityLabel={t('onboarding.overwhelmed.cta')}
           style={styles.overwhelmedLink}

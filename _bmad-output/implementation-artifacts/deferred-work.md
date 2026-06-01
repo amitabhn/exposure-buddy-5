@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 4-2-fear-ladder-introduction-and-suds-calibration (2026-06-01)
+
+- **4-2-D4: Enqueue error leaves MMKV at step 3 with no server record** — `setOnboardingProgressStep(3)` is committed before enqueue; on catch the function returns without navigating; next cold start routes to `/(onboarding)/ladder` stub; calibration value is in MMKV so offline-first intent is preserved but server row is absent. Epic 6 durable outbox must deliver the queued row; documented in 4-2-D2. [`apps/mobile/app/(onboarding)/assessment.tsx:handleNext`]
+
+- **4-2-D5: PowerSync `user_onboarding_metadata` schema omits `id` column** — The enqueue payload includes a client-generated UUID (`crypto.randomUUID()`) as the primary key, but `packages/sync/src/schema.ts` does not declare an `id` column for this table. When Epic 6 wires the real adapter, PowerSync's sync engine will not track the client UUID as row identity, causing a schema mismatch on sync. Add `id: column.text` to the `user_onboarding_metadata` table definition in `schema.ts` before Epic 6. [`packages/sync/src/schema.ts`]
+
+- **4-2-D6: `setSudsCalibration` has no in-memory fallback in degraded-storage mode** — Unlike `setOnboardingProgressStep` (which mirrors to `setOnboardingProgressStepLocal` React state), `setSudsCalibration` writes only to MMKV. In degraded mode the SUDS value is lost permanently; session flow still completes (enqueue uses `selectedValue` from local state). Add a React state mirror if calibration recovery in degraded mode is required. [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **4-2-D7: `getAdapter()` eagerly instantiates `PowerSyncSyncAdapter` at module-import time** — The module-level `const _adapter = new PowerSyncSyncAdapter()` runs at import time. If the constructor ever throws (future dependency or init order change), the error surfaces at import rather than at the call site, making the failure hard to trace. Convert to lazy init in Epic 6 when the real adapter is wired. [`apps/mobile/src/sync/adapter.ts`]
+
 ## Deferred from: adversarial review of 4-2-fear-ladder-introduction-and-suds-calibration (2026-06-01)
 
 - **4-2-D1: `user_onboarding_metadata` re-submission via back-nav** — Back-navigate from ladder re-mounts assessment (`router.push` intentional in welcome.tsx flow), which re-enables the widget and allows a second `enqueue()` call. The `UNIQUE(user_id)` constraint added in the migration will reject the second insert at the DB layer; Epic 6's real outbox adapter should use `ON CONFLICT (user_id) DO UPDATE` for idempotent upsert semantics. No UX affordance (e.g. toast on duplicate attempt) is specified for MVP. [`apps/mobile/app/(onboarding)/assessment.tsx`, `supabase/migrations/0012_user_onboarding_metadata.sql`]
