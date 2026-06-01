@@ -47,6 +47,28 @@ Dim overlay. `CalmMeOverlay` rendered in root `_layout.tsx` above `<Stack>` with
 
 ---
 
+## Pattern 10 — Back Navigation
+
+**Rule:** Every screen that has a previous screen in the navigation stack shows an icon-only back button (left-pointing chevron) in the top-left of the navigation header. No back-button text label. Platform-default iOS back label text is explicitly suppressed.
+
+**Header spec:** White (`#ffffff`) background, no shadow, no visible title. The back chevron is the only visible header element. The header is hidden entirely on first screens — no empty header bar left behind.
+
+**When shown:** The back button appears when `navigation.canGoBack()` is true for the current screen. On first screens in each Stack (welcome, sign-in) the condition is false, so the header does not render.
+
+**Exceptions:**
+- **`ladder`** — Reached via `router.replace` from assessment. Welcome remains in the stack so `canGoBack()` is true, but back navigation is suppressed via explicit `headerShown: false`. Reason: the user completed the SUDS calibration step; allowing back would let them skip it.
+- **`GroundingPrompt`** — Back navigation deliberately omitted. Forward-only grounding is a therapeutic decision. See `component-strategy.md § GroundingPrompt`.
+
+**Tap target:** 44×44pt visual (not hitSlop) — `width: 44, height: 44` on the container. Meets the 44×44pt visual-dimension accessibility requirement.
+
+**Accessibility:** `accessibilityRole="button"`, `accessibilityLabel="Go back"`.
+
+**Implementation:** `BackButton` component at `apps/mobile/src/components/navigation/BackButton.tsx`. Wired once per Stack layout via `screenOptions={({ navigation }) => ({ headerShown: navigation.canGoBack(), headerLeft: () => <BackButton />, ... })}`. Per-screen suppression via `<Stack.Screen options={{ headerShown: false }} />`.
+
+**Icon spec:** 12×12pt box, `borderTopWidth: 2` + `borderLeftWidth: 2`, colour `#111827`, `transform: [{ rotate: '-45deg' }]`. No external icon-library dependency.
+
+---
+
 ## Pattern 9 — Progress Delivery
 
 **Principle:** Progress is delivered, not stored. It surfaces at re-entry moments — not in a stats tab the user must seek out.
