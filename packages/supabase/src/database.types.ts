@@ -1,94 +1,369 @@
-// Hand-authored database types skeleton.
-// Will be replaced by `supabase gen types typescript` output in a later story.
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      users: {
+      analytics_events: {
         Row: {
+          created_at: string | null
+          device_context: Json | null
+          event_type: string
           id: string
-          email: string | null
-          created_at: string
-          deleted_at: string | null
-          deletion_requested_at: string | null
+          session_token: string | null
+          user_pseudonym: string | null
         }
         Insert: {
-          id: string
-          email: string
-          created_at?: string
-          deleted_at?: string | null
-          deletion_requested_at?: string | null
+          created_at?: string | null
+          device_context?: Json | null
+          event_type: string
+          id?: string
+          session_token?: string | null
+          user_pseudonym?: string | null
         }
         Update: {
+          created_at?: string | null
+          device_context?: Json | null
+          event_type?: string
           id?: string
-          email?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          deletion_requested_at?: string | null
+          session_token?: string | null
+          user_pseudonym?: string | null
         }
-      }
-      profiles: {
-        Row: {
-          id: string
-          display_name: string | null
-          created_at: string
-        }
-        Insert: {
-          id: string
-          display_name?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          display_name?: string | null
-          created_at?: string
-        }
+        Relationships: []
       }
       consent_records: {
         Row: {
-          id: string
-          user_id: string | null
-          timestamp_utc: string
-          purpose_id: string
           consent_version: string
-          withdrawal_status: boolean
           created_at: string
+          id: string
+          purpose_id: string
+          timestamp_utc: string
+          user_id: string | null
+          withdrawal_status: boolean
         }
         Insert: {
-          id?: string
-          user_id: string
-          timestamp_utc: string
-          purpose_id: string
           consent_version: string
-          withdrawal_status?: boolean
           created_at?: string
+          id?: string
+          purpose_id: string
+          timestamp_utc: string
+          user_id?: string | null
+          withdrawal_status?: boolean
         }
         Update: {
-          id?: string
-          user_id?: string
-          timestamp_utc?: string
-          purpose_id?: string
           consent_version?: string
-          withdrawal_status?: boolean
           created_at?: string
+          id?: string
+          purpose_id?: string
+          timestamp_utc?: string
+          user_id?: string | null
+          withdrawal_status?: boolean
         }
+        Relationships: []
+      }
+      dpo_audit_log: {
+        Row: {
+          acting_operator_id: string
+          action_type: string
+          id: string
+          metadata: Json | null
+          outcome: string
+          target_user_id: string
+          timestamp_utc: string
+        }
+        Insert: {
+          acting_operator_id: string
+          action_type: string
+          id?: string
+          metadata?: Json | null
+          outcome: string
+          target_user_id: string
+          timestamp_utc?: string
+        }
+        Update: {
+          acting_operator_id?: string
+          action_type?: string
+          id?: string
+          metadata?: Json | null
+          outcome?: string
+          target_user_id?: string
+          timestamp_utc?: string
+        }
+        Relationships: []
+      }
+      dpo_operators: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      user_onboarding_metadata: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          suds_calibration_value: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          suds_calibration_value: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          suds_calibration_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          deletion_requested_at: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
+          email: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       user_consent_status: {
         Row: {
-          id: string
-          user_id: string
-          timestamp_utc: string
-          purpose_id: string
-          consent_version: string
-          withdrawal_status: boolean
-          created_at: string
+          consent_version: string | null
+          created_at: string | null
+          id: string | null
+          purpose_id: string | null
+          timestamp_utc: string | null
+          user_id: string | null
+          withdrawal_status: boolean | null
         }
+        Relationships: []
       }
     }
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Functions: {
+      perform_user_erasure: {
+        Args: { p_target_user_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

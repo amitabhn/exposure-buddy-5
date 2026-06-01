@@ -27,9 +27,11 @@ export default function WelcomeScreen() {
       // Resume to saved step
       if (onboardingProgressStep === 2) {
         router.replace('/(onboarding)/assessment')
+      } else if (onboardingProgressStep === 3) {
+        router.replace('/(onboarding)/ladder')
       }
-      // Steps 3+ routes (ladder, complete) are created in Stories 4.3 and 4.4.
-      // If progress is > 2, stay on welcome until those routes exist.
+      // Steps 4+ routes (complete) are created in Story 4.4.
+      // If progress is > 3, stay on welcome until that route exists.
     }
   }, [isLoading, onboardingProgressStep, onboardingProgressReadFailed, router, t])
 

@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: adversarial review of 4-2-fear-ladder-introduction-and-suds-calibration (2026-06-01)
+
+- **4-2-D1: `user_onboarding_metadata` re-submission via back-nav** — Back-navigate from ladder re-mounts assessment (`router.push` intentional in welcome.tsx flow), which re-enables the widget and allows a second `enqueue()` call. The `UNIQUE(user_id)` constraint added in the migration will reject the second insert at the DB layer; Epic 6's real outbox adapter should use `ON CONFLICT (user_id) DO UPDATE` for idempotent upsert semantics. No UX affordance (e.g. toast on duplicate attempt) is specified for MVP. [`apps/mobile/app/(onboarding)/assessment.tsx`, `supabase/migrations/0012_user_onboarding_metadata.sql`]
+
+- **4-2-D2: `enqueue()` error handling stub — Epic 6 must fill** — `handleNext` contains a try/catch with a `console.error` and early return. The `TODO(Epic 6)` comment marks where a user-visible error toast and retry path must be added when `PowerSyncSyncAdapter` is replaced by the real durable outbox. The stub never throws, so this path is untested at MVP. **Addendum (code review 2026-06-01):** On the error path, `setOnboardingProgressStep(3)` has already been called before the catch; on next app relaunch `welcome.tsx` will route the user to `/(onboarding)/ladder` (step 3) rather than back to assessment. This is intentional offline-first behaviour — the calibration value IS locally persisted in MMKV. Epic 6 must ensure the outbox eventually delivers the row. [`apps/mobile/app/(onboarding)/assessment.tsx:handleNext`]
+
+- **4-2-D3: Practice scenario cultural validation** — `onboarding.assessment.practiceScenario` uses a Western clinical baseline ("short speech to 5 strangers") that has not been validated against the India target population. Content is an i18n key (safe to change without code change). Requires India user research before production; flagged as PLACEHOLDER in `en.json`. [`apps/mobile/src/i18n/locales/en.json`]
+
 ## Deferred from: code review of 4-1-onboarding-flow-shell-and-navigation (2026-05-28)
 
 - **4-1-D1: assessment.tsx — gesture disabled with no back-button UI** — `gestureEnabled: false` on the assessment stub screen with no alternative navigation. Story 4.2 replaces stub content and must add back navigation per AC3 ("back navigation is available on all steps except the first"). [`apps/mobile/app/(onboarding)/assessment.tsx:642`]

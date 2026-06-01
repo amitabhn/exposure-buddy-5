@@ -1,11 +1,16 @@
 import { Schema, Table, column } from '@powersync/react-native'
 
-// PowerSync local SQLite schema — mirrors the Supabase users table.
-// Additional tables are added as Epic 2+ stories land.
 const users = new Table({
   email: column.text,
   created_at: column.text,
 })
 
-export const AppSchema = new Schema({ users })
+const user_onboarding_metadata = new Table({
+  user_id: column.text,
+  suds_calibration_value: column.integer,
+  completed_at: column.text,
+  created_at: column.text,
+})
+
+export const AppSchema = new Schema({ users, user_onboarding_metadata })
 export type Database = (typeof AppSchema)['types']
