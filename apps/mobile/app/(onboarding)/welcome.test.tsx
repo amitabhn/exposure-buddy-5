@@ -94,10 +94,21 @@ describe('WelcomeScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/assessment')
   })
 
-  it('stays on welcome when onboardingProgressStep is > 2 (route not yet created)', () => {
+  it('navigates to ladder when onboardingProgressStep is 3', () => {
     mockUseAuth.mockReturnValue({
       isLoading: false,
       onboardingProgressStep: 3,
+      onboardingProgressReadFailed: false,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
+    })
+    render(<WelcomeScreen />)
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/ladder')
+  })
+
+  it('stays on welcome when onboardingProgressStep is > 3 (route not yet created)', () => {
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
+      onboardingProgressStep: 4,
       onboardingProgressReadFailed: false,
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })

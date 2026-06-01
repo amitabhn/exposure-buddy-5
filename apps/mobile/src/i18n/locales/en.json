@@ -79,6 +79,19 @@
     "overwhelmed": {
       "cta": "Feeling overwhelmed?"
     },
+    "assessment": {
+      "title": "What is a fear ladder?",
+      "body1": "A fear ladder is a list of situations that make you anxious, arranged from least to most scary. You start at the bottom and work your way up — one step at a time.",
+      "body2": "Exposure and Response Prevention (ERP) works by helping your nervous system learn that the feared situation is manageable. The anxiety peaks, then drops — every time you face it.",
+      "body3": "Courage here doesn't mean feeling no fear. It means taking one small step even when it feels uncomfortable.",
+      "calibrationTitle": "Let's practise the distress scale",
+      "practiceScenario": "Imagine you're about to give a short speech to 5 strangers. How anxious would you feel right now?",
+      "calibrationLabel": "Rate your distress (0–10)",
+      "sudsAnchor0": "No distress",
+      "sudsAnchor5": "Moderate",
+      "sudsAnchor10": "Extreme distress",
+      "cta": "Next"
+    },
     "fearLadder": {
       "minimumItems": "Add at least 3 situations to continue.",
       "maximumItems": "You've added the maximum of 10 situations."

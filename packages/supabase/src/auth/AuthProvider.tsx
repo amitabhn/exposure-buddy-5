@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
 import type { IDpoService, PendingDeletionRecord } from '@exposure-buddy/core'
+import { KV_KEYS } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
 import {
@@ -38,6 +39,7 @@ interface AuthContextValue {
   // in-memory only; onboarding flags cannot be read or written. App routes
   // authenticated users directly to home in this state rather than onboarding.
   isStorageDegraded: boolean
+  setSudsCalibration: (value: number) => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -59,6 +61,7 @@ export const AuthContext = createContext<AuthContextValue>({
   setOnboardingProgressStep: () => {},
   onboardingProgressReadFailed: false,
   isStorageDegraded: false,
+  setSudsCalibration: () => {},
 })
 
 interface AuthProviderProps {
@@ -287,6 +290,17 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     setOnboardingProgressStepLocal(step)
   }
 
+  function setSudsCalibration(value: number): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) {
+      console.error('[AuthProvider] setSudsCalibration called in degraded mode — cannot persist to MMKV')
+      return
+    }
+    store.set(KV_KEYS.SUDS_CALIBRATION(userId), value)
+    // value is stored as a number type. Downstream readers MUST use store.getNumber(key), not store.getString(key).
+  }
+
   return (
     <AuthContext.Provider value={{
       authState,
@@ -301,6 +315,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       setOnboardingProgressStep,
       onboardingProgressReadFailed,
       isStorageDegraded,
+      setSudsCalibration,
     }}>
       {children}
     </AuthContext.Provider>
