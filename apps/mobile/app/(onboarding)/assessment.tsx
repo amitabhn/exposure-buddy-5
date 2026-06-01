@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import * as ExpoCrypto from 'expo-crypto'
 import { useAuth } from '@exposure-buddy/supabase'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { SudsCalibrationWidget } from '../../src/components/onboarding/SudsCalibrationWidget'
@@ -26,7 +27,7 @@ export default function AssessmentScreen() {
     try {
       // eslint-disable-next-line i18next/no-literal-string
       await getAdapter().enqueue('user_onboarding_metadata', 'INSERT', {
-        id: crypto.randomUUID(),  // client-generated UUID: offline-first pattern
+        id: ExpoCrypto.randomUUID(),  // client-generated UUID: offline-first pattern
         user_id: userId,
         suds_calibration_value: selectedValue,
         completed_at: new Date().toISOString(),

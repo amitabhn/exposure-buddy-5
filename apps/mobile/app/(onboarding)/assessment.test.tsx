@@ -45,12 +45,16 @@ jest.mock('../../src/sync/adapter', () => ({
   getAdapter: () => ({ enqueue: mockEnqueue }),
 }))
 
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => 'test-uuid-1234-0000-0000-000000000000',
+}))
+
 import AssessmentScreen from './assessment'
 
 describe('AssessmentScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.spyOn(crypto, 'randomUUID').mockReturnValue('test-uuid-1234-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`)
+    // expo-crypto is mocked at module level above
     mockUseAuth.mockReturnValue({
       isLoading: false,
       userId: 'user-123',
