@@ -23,6 +23,7 @@ export default function OnboardingLayout() {
         headerShown: navigation.canGoBack(),
         headerTitle: '',
         headerShadowVisible: false,
+        // eslint-disable-next-line i18next/no-literal-string
         headerStyle: { backgroundColor: '#ffffff' },
         headerLeft: () => <BackButton />,
         headerBackVisible: false,
