@@ -9,7 +9,25 @@
 
 ---
 
-## Custom Components — MVP (11)
+## Custom Components — MVP (12)
+
+### `BackButton`
+
+**Purpose:** Icon-only back button rendered in the navigation header on any screen with a previous screen in the stack.
+
+**Usage:** All Stack screens where `navigation.canGoBack()` is true. Configured once per Stack layout via `screenOptions.headerLeft`; never imported directly by screen files.
+
+**Anatomy:** Left-pointing chevron — 12×12pt box with `borderTopWidth` + `borderLeftWidth` at 2pt, rotated −45°. No text label.
+
+**States:** Single. Shown only when the enclosing header is visible (header visibility is itself conditional on `navigation.canGoBack()`).
+
+**Tap target:** 44×44pt visual container (`width: 44, height: 44`) — meets the visual-dimension accessibility requirement, not reliant on hitSlop.
+
+**Accessibility:** `accessibilityRole="button"`, `accessibilityLabel="Go back"`.
+
+**Suppression:** Screens reached via `router.replace` where back-navigation is intentionally blocked (e.g. `ladder.tsx` post-assessment) use `<Stack.Screen options={{ headerShown: false }} />` to override the layout default.
+
+---
 
 ### `HomeStateCard`
 

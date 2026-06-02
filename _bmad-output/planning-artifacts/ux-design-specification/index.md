@@ -101,6 +101,7 @@
     - [Pattern 7 — Mode Register Transitions](./ux-consistency-patterns.md#pattern-7-mode-register-transitions)
     - [Pattern 8 — Recommendation Transparency](./ux-consistency-patterns.md#pattern-8-recommendation-transparency)
     - [Pattern 9 — Progress Delivery](./ux-consistency-patterns.md#pattern-9-progress-delivery)
+    - [Pattern 10 — Back Navigation](./ux-consistency-patterns.md#pattern-10-back-navigation)
   - [Responsive Design & Accessibility](./responsive-design-accessibility.md)
     - [Responsive Strategy](./responsive-design-accessibility.md#responsive-strategy)
     - [Accessibility Strategy](./responsive-design-accessibility.md#accessibility-strategy)

@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router'
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
+import { BackButton } from '../src/components/navigation/BackButton'
 import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { initErrorHandler } from '../src/error-handler'
@@ -75,7 +76,7 @@ export default function RootLayout() {
           <ThemeProvider value={DefaultTheme}>
             <Stack screenOptions={{ headerShown: false }}>
               {/* eslint-disable-next-line i18next/no-literal-string */}
-              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerBackButtonDisplayMode: 'minimal' }} />
+              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
             </Stack>
             <PortalHost />
           </ThemeProvider>

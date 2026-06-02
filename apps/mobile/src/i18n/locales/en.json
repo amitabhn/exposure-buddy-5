@@ -1,6 +1,7 @@
 {
   "common": {
-    "appName": "Exposure Buddy"
+    "appName": "Exposure Buddy",
+    "back": "Go back"
   },
   "error": {
     "notFoundTitle": "Oops!",

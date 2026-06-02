@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { useAuth } from '@exposure-buddy/supabase'
+import { BackButton } from '../../src/components/navigation/BackButton'
 
 export default function OnboardingLayout() {
   const router = useRouter()
@@ -16,5 +17,17 @@ export default function OnboardingLayout() {
     }
   }, [isLoading, isAuthenticated, isOnboardingComplete, router])
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  return (
+    <Stack
+      screenOptions={({ navigation }) => ({
+        headerShown: navigation.canGoBack(),
+        headerTitle: '',
+        headerShadowVisible: false,
+        // eslint-disable-next-line i18next/no-literal-string
+        headerStyle: { backgroundColor: '#ffffff' },
+        headerLeft: () => <BackButton />,
+        headerBackVisible: false,
+      })}
+    />
+  )
 }
