@@ -6,6 +6,7 @@ export const KV_KEYS = {
   ONBOARDING_PROGRESS:          (userId: string) => `onboarding:progress:${userId}`,
   SUDS_CALIBRATION:             (userId: string) => `suds:calibration:${userId}`,
   CRISIS_FLAGGED_IN_ONBOARDING: (userId: string) => `onboarding:crisis:${userId}`,
+  FIRST_HOME_VISIT_SEEN:        (userId: string) => `first_home_visit_seen:${userId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.

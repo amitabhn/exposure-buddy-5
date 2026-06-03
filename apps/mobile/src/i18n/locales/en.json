@@ -115,7 +115,16 @@
       "title": "You're ready to climb!",
       "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
       "titleSoft": "Your ladder is ready.",
-      "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready."
+      "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready.",
+      "cta": "Start your journey",
+      "itemCount": "You've added {{count}} situations to your Courage Ladder"
+    }
+  },
+  "home": {
+    "readyToStart": "Your Courage Ladder is ready. Let's go!",
+    "welcomeBack": "Welcome back. Keep going.",
+    "calmMe": {
+      "cta": "Feeling overwhelmed?"
     }
   },
   "nav": {

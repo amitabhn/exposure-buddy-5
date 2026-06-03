@@ -1,5 +1,23 @@
 # Deferred Work
 
+## Deferred from: code review of 4-4-onboarding-completion-and-home-screen-entry (2026-06-03)
+
+- **4-4-D1: `markOnboardingComplete()` ordering vs Expo Router concurrent render** — The spec assumes calling `markOnboardingComplete()` before `router.replace('/(app)/index')` guarantees `isOnboardingComplete = true` before `(app)/_layout.tsx` mounts, relying on React 18 event-handler batching. Expo Router navigation triggers a new render cycle; whether this batching holds across the router boundary is an architectural assumption shared by all onboarding stories. Monitor if users report unexpected onboarding re-entry post-completion. [`packages/supabase/src/auth/AuthProvider.tsx`, `apps/mobile/app/(app)/_layout.tsx`]
+
+- **4-4-D2: Degraded-mode `markOnboardingComplete()` no-op saved by undocumented `isStorageDegraded` escape hatch** — In degraded mode, `markOnboardingComplete()` returns without flipping `isOnboardingComplete`. Navigation still proceeds. `(app)/_layout.tsx` guard includes `!isStorageDegraded`, which prevents a redirect loop. The spec never documents this escape hatch. Pre-existing pattern; document in a future architectural clarity pass. [`packages/supabase/src/auth/AuthProvider.tsx`, `apps/mobile/app/(app)/_layout.tsx`]
+
+- **4-4-D3: `FearLadderItem.status` permitted values unspecified** — `status: string` is a deliberate stub. Epic 6 will define real schema values and the selector's `status === 'pending'` filter must be validated against that schema. [`packages/core/src/selectors/fearLadder.ts`]
+
+- **4-4-D4: `FIRST_HOME_VISIT_SEEN` MMKV key not cleared on account deletion** — User-scoped MMKV keys (like all onboarding keys) persist across sign-out. If the same userId re-registers, `firstHomeVisitSeen` would be stale `true`, skipping the "ready to start" greeting. Address in the MMKV key hygiene audit (Epic 9, Story 9-4). [`packages/core/src/constants/kvKeys.ts`]
+
+- **4-4-CR-D1: `resolveLowestPendingItem` sort has no tiebreaker for equal `position` values** — No secondary sort key (e.g. `id` or `created_at`) defined; sort order is engine-dependent if two items share the same position integer. Moot while the function is called with `[]` in Story 4.4; Epic 6 defines real schema and should add a tiebreaker. [`packages/core/src/selectors/fearLadder.ts`]
+
+- **4-4-CR-D2: Auth listener MMKV reads deferred to `TOKEN_REFRESHED` if `SIGNED_IN` fires before MMKV ready** — Pre-existing auth pattern: if `mmkvReadyRef.current = false` when the initial `SIGNED_IN` event fires, the listener returns early and `isLoading` stays `true`, blocking premature renders. The MMKV read (including new `firstHomeVisitSeen` + `crisisFlaggedInOnboarding` reads) happens on the next event where `lastOnboardingReadUserIdRef.current` is still `null`. Recovery path works; window is covered by loading state. [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **4-4-CR-D3: `calm-me` `Stack.Screen` registration orphaned if file moves** — Root `_layout.tsx` registers `<Stack.Screen name="calm-me">`. If `calm-me.tsx` is moved to `(app)/` or `(onboarding)/` when Epic 7 fills the stub, the root registration becomes orphaned and `router.push('/calm-me')` from `HomeScreen` would silently fail. Structural note; no current bug. [`apps/mobile/app/_layout.tsx`]
+
+- **4-4-CR-D4: `CourageLadderEntryCard` SUDS label lacks range clamping** — `"Anxiety: X/10"` renders `predictedSuds` raw without bounds check. If PowerSync data ever carries values outside 0–10 (e.g. due to a sync conflict or migration error), the label misleads. Add clamping or a fallback in the Epic 6 data validation story. [`packages/ui/src/components/CourageLadderEntryCard.tsx`]
+
 ## Deferred from: code review of 4-3-initial-fear-ladder-setup (2026-06-02)
 
 - **4-3-W1: UUID uses `Math.random()`** — Client-generated UUIDs for `fear_ladder_items.id` use a non-cryptographic PRNG (same pattern as `assessment.tsx`). Low collision risk at MVP scale; server-side `gen_random_uuid()` is the authoritative PK once synced. Address in an Epic 9 security-hardening pass if client-generated IDs are retained. [`apps/mobile/app/(onboarding)/ladder.tsx:22`]

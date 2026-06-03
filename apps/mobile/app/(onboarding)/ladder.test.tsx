@@ -170,7 +170,7 @@ describe('LadderScreen', () => {
 
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
-      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/complete')
+      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '3' } })
     })
   })
 })

@@ -127,7 +127,7 @@ export default function LadderScreen() {
   async function handleNext() {
     if (items.length < MIN_ITEMS || !userId) return
     setOnboardingProgressStep(4)
-    router.replace('/(onboarding)/complete')
+    router.replace({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
   }
 
   const canProceed = items.length >= MIN_ITEMS

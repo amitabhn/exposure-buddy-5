@@ -20,6 +20,9 @@ interface UseAuthResult {
   setCrisisFlaggedInOnboarding: () => void
   onboardingProgressReadFailed: boolean
   isStorageDegraded: boolean
+  crisisFlaggedInOnboarding: boolean
+  firstHomeVisitSeen: boolean
+  markFirstHomeVisitSeen: () => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -38,6 +41,9 @@ export function useAuth(): UseAuthResult {
     setCrisisFlaggedInOnboarding,
     onboardingProgressReadFailed,
     isStorageDegraded,
+    crisisFlaggedInOnboarding,
+    firstHomeVisitSeen,
+    markFirstHomeVisitSeen,
   } = useContext(AuthContext)
   return {
     authState,
@@ -56,5 +62,8 @@ export function useAuth(): UseAuthResult {
     setCrisisFlaggedInOnboarding,
     onboardingProgressReadFailed,
     isStorageDegraded,
+    crisisFlaggedInOnboarding,
+    firstHomeVisitSeen,
+    markFirstHomeVisitSeen,
   }
 }

@@ -19,10 +19,10 @@ module.exports = {
   },
   overrides: [
     {
-      // primitives/ is the React Native abstraction layer — react-native imports are
+      // primitives/ and components/ are the React Native abstraction layers — react-native imports are
       // required here by design. Approved exception: removing only the react-native
       // pattern while keeping all other boundary restrictions intact.
-      files: ['src/primitives/**'],
+      files: ['src/primitives/**', 'src/components/**'],
       rules: {
         'no-restricted-imports': [
           'error',
