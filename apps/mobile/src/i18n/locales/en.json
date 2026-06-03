@@ -95,7 +95,18 @@
     },
     "fearLadder": {
       "minimumItems": "Add at least 3 situations to continue.",
-      "maximumItems": "You've added the maximum of 10 situations."
+      "maximumItems": "You've added the maximum of 10 situations.",
+      "title": "Build your Courage Ladder",
+      "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
+      "descriptionLabel": "Describe the situation",
+      "descriptionPlaceholder": "e.g. Riding the elevator alone",
+      "predictedSudsLabel": "How anxious would you feel? (0–10)",
+      "addCta": "Add to ladder",
+      "addAnother": "Add another situation",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "sudsDisplay": "Predicted anxiety: {{value}}/10",
+      "nextCta": "Next"
     },
     "crisisDetected": {
       "banner": "We noticed something in what you wrote. You're not alone."

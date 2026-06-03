@@ -17,6 +17,7 @@ interface UseAuthResult {
   setOnboardingProgressStep: (step: number) => void
   userId: string | null
   setSudsCalibration: (value: number) => void
+  setCrisisFlaggedInOnboarding: () => void
   onboardingProgressReadFailed: boolean
   isStorageDegraded: boolean
 }
@@ -34,6 +35,7 @@ export function useAuth(): UseAuthResult {
     onboardingProgressStep,
     setOnboardingProgressStep,
     setSudsCalibration,
+    setCrisisFlaggedInOnboarding,
     onboardingProgressReadFailed,
     isStorageDegraded,
   } = useContext(AuthContext)
@@ -51,6 +53,7 @@ export function useAuth(): UseAuthResult {
     setOnboardingProgressStep,
     userId: authState.userId,
     setSudsCalibration,
+    setCrisisFlaggedInOnboarding,
     onboardingProgressReadFailed,
     isStorageDegraded,
   }

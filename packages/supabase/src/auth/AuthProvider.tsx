@@ -40,6 +40,7 @@ interface AuthContextValue {
   // authenticated users directly to home in this state rather than onboarding.
   isStorageDegraded: boolean
   setSudsCalibration: (value: number) => void
+  setCrisisFlaggedInOnboarding: () => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -62,6 +63,7 @@ export const AuthContext = createContext<AuthContextValue>({
   onboardingProgressReadFailed: false,
   isStorageDegraded: false,
   setSudsCalibration: () => {},
+  setCrisisFlaggedInOnboarding: () => {},
 })
 
 interface AuthProviderProps {
@@ -301,6 +303,16 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     // value is stored as a number type. Downstream readers MUST use store.getNumber(key), not store.getString(key).
   }
 
+  function setCrisisFlaggedInOnboarding(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) {
+      console.error('[AuthProvider] setCrisisFlaggedInOnboarding called in degraded mode — cannot persist to MMKV')
+      return
+    }
+    store.set(KV_KEYS.CRISIS_FLAGGED_IN_ONBOARDING(userId), true)
+  }
+
   return (
     <AuthContext.Provider value={{
       authState,
@@ -316,6 +328,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       onboardingProgressReadFailed,
       isStorageDegraded,
       setSudsCalibration,
+      setCrisisFlaggedInOnboarding,
     }}>
       {children}
     </AuthContext.Provider>

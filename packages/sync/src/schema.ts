@@ -12,5 +12,17 @@ const user_onboarding_metadata = new Table({
   created_at: column.text,
 })
 
-export const AppSchema = new Schema({ users, user_onboarding_metadata })
+const fear_ladder_items = new Table({
+  id: column.text,
+  user_id: column.text,
+  description: column.text,
+  predicted_suds: column.integer,
+  actual_suds: column.integer,
+  position: column.integer,
+  status: column.text,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+export const AppSchema = new Schema({ users, user_onboarding_metadata, fear_ladder_items })
 export type Database = (typeof AppSchema)['types']
