@@ -145,6 +145,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fear_ladder_items: {
+        Row: {
+          actual_suds: number | null
+          created_at: string | null
+          description: string
+          id: string
+          position: number
+          predicted_suds: number
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_suds?: number | null
+          created_at?: string | null
+          description: string
+          id?: string
+          position: number
+          predicted_suds: number
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_suds?: number | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          position?: number
+          predicted_suds?: number
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -160,6 +196,30 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      therapist_patient_relationships: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          id: string
+          patient_user_id: string
+          therapist_user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          patient_user_id: string
+          therapist_user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          patient_user_id?: string
+          therapist_user_id?: string
         }
         Relationships: []
       }

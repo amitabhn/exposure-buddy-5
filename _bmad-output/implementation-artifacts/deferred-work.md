@@ -1,5 +1,19 @@
 # Deferred Work
 
+## Deferred from: code review of 4-3-initial-fear-ladder-setup (2026-06-02)
+
+- **4-3-W1: UUID uses `Math.random()`** — Client-generated UUIDs for `fear_ladder_items.id` use a non-cryptographic PRNG (same pattern as `assessment.tsx`). Low collision risk at MVP scale; server-side `gen_random_uuid()` is the authoritative PK once synced. Address in an Epic 9 security-hardening pass if client-generated IDs are retained. [`apps/mobile/app/(onboarding)/ladder.tsx:22`]
+
+- **4-3-W2: `handleNext` sets progress step before navigation completes** — `setOnboardingProgressStep(4)` is called before `router.replace` resolves; if navigation is cancelled or crashes, MMKV progress is permanently at 4 and the user skips the ladder on next launch. Pre-existing pattern from Story 4.2; Epic 6 durable outbox should address progress-state atomicity. [`apps/mobile/app/(onboarding)/ladder.tsx:109`]
+
+- **4-3-W3: `userId` null mid-flight between auth guard and enqueue** — Session expiry between the `if (!userId) return` guard and `getAdapter().enqueue(...)` means the item is queued with a valid-looking userId that no longer has an active session; RLS rejects the INSERT silently at sync time while local state shows the item. General session management concern; address when the real outbox adapter is wired in Epic 6. [`apps/mobile/app/(onboarding)/ladder.tsx:49`]
+
+- **4-3-W4: No `accessibilityHint` on description TextInput** — The fear-item description field has `accessibilityLabel` but no `accessibilityHint` explaining that the input may surface support resources. Given the mental-health sensitivity of this field, a hint improves clarity for screen reader users. Add in a future accessibility polish pass. [`apps/mobile/src/components/onboarding/FearItemForm.tsx:39`]
+
+- **4-3-D1: `swapItems` `reorder_positions` envelope — Epic 6 connector contract** — `apps/mobile/app/(onboarding)/ladder.tsx` enqueues reorder as a custom `{ type: 'reorder_positions', itemAId, itemANewPosition, itemBId, itemBNewPosition, updatedAt }` envelope (not column-shaped). Current adapter is a no-op stub; the real Epic 6 connector must handle this type and translate it into two SQL UPDATEs for `fear_ladder_items`. Documented at the call site with a comment. [`apps/mobile/app/(onboarding)/ladder.tsx`]
+
+- **4-3-D5: `UNIQUE(user_id, position)` on `fear_ladder_items` — consider in Epic 6 migration** — No unique DB constraint on `(user_id, position)`. App-layer stale-closure bugs fixed in this story (P5/P6). Add `DEFERRABLE INITIALLY DEFERRED UNIQUE(user_id, position)` in the Epic 6 migration that wires the real connector, when concurrent writes from multiple devices become possible. [`supabase/migrations/0013_fear_ladder_items.sql`]
+
 ## Deferred from: code review of 4-2-fear-ladder-introduction-and-suds-calibration (2026-06-01)
 
 - **4-2-D4: Enqueue error leaves MMKV at step 3 with no server record** — `setOnboardingProgressStep(3)` is committed before enqueue; on catch the function returns without navigating; next cold start routes to `/(onboarding)/ladder` stub; calibration value is in MMKV so offline-first intent is preserved but server row is absent. Epic 6 durable outbox must deliver the queued row; documented in 4-2-D2. [`apps/mobile/app/(onboarding)/assessment.tsx:handleNext`]

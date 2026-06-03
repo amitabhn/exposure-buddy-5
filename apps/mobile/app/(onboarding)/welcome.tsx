@@ -29,9 +29,10 @@ export default function WelcomeScreen() {
         router.replace('/(onboarding)/assessment')
       } else if (onboardingProgressStep === 3) {
         router.replace('/(onboarding)/ladder')
+      } else if (onboardingProgressStep === 4) {
+        router.replace('/(onboarding)/complete')
       }
-      // Steps 4+ routes (complete) are created in Story 4.4.
-      // If progress is > 3, stay on welcome until that route exists.
+      // Steps 5+ — stay on welcome (no route exists; steps > 4 not used at MVP)
     }
   }, [isLoading, onboardingProgressStep, onboardingProgressReadFailed, router, t])
 
