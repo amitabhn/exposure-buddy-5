@@ -5,3 +5,5 @@ export { color, motion, haptic, spacing, radius, tapTarget, typography, groundin
 export type { DmSerifSurface } from './tokens/theme'
 export { AccessiblePressable } from './primitives/AccessiblePressable'
 export { AccessibleText } from './primitives/AccessibleText'
+export { CourageLadderEntryCard } from './components/CourageLadderEntryCard'
+export type { CourageLadderEntryCardProps } from './components/CourageLadderEntryCard'

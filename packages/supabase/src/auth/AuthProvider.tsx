@@ -41,6 +41,9 @@ interface AuthContextValue {
   isStorageDegraded: boolean
   setSudsCalibration: (value: number) => void
   setCrisisFlaggedInOnboarding: () => void
+  crisisFlaggedInOnboarding: boolean
+  firstHomeVisitSeen: boolean
+  markFirstHomeVisitSeen: () => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -64,6 +67,9 @@ export const AuthContext = createContext<AuthContextValue>({
   isStorageDegraded: false,
   setSudsCalibration: () => {},
   setCrisisFlaggedInOnboarding: () => {},
+  crisisFlaggedInOnboarding: false,
+  firstHomeVisitSeen: false,
+  markFirstHomeVisitSeen: () => {},
 })
 
 interface AuthProviderProps {
@@ -100,6 +106,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [onboardingProgressStep, setOnboardingProgressStepLocal] = useState<number | null>(null)
   const [onboardingProgressReadFailed, setOnboardingProgressReadFailed] = useState(false)
   const [isStorageDegraded, setIsStorageDegraded] = useState(false)
+  const [crisisFlaggedInOnboarding, setCrisisFlaggedInOnboardingLocal] = useState(false)
+  const [firstHomeVisitSeen, setFirstHomeVisitSeenLocal] = useState(false)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
   // Tracks the userId for which onboarding state was last read from MMKV.
   // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
@@ -192,6 +200,12 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
             setOnboardingProgressStepLocal(null)
             setOnboardingProgressReadFailed(true)
           }
+          setCrisisFlaggedInOnboardingLocal(
+            store.getBoolean(KV_KEYS.CRISIS_FLAGGED_IN_ONBOARDING(session.user.id)) ?? false
+          )
+          setFirstHomeVisitSeenLocal(
+            store.getBoolean(KV_KEYS.FIRST_HOME_VISIT_SEEN(session.user.id)) ?? false
+          )
         }
       } else {
         if (store) clearAuthState(store)
@@ -199,6 +213,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         setIsOnboardingCompleteLocal(false)
         setOnboardingProgressStepLocal(null)
         setOnboardingProgressReadFailed(false)
+        setCrisisFlaggedInOnboardingLocal(false)
+        setFirstHomeVisitSeenLocal(false)
         lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
@@ -311,6 +327,18 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       return
     }
     store.set(KV_KEYS.CRISIS_FLAGGED_IN_ONBOARDING(userId), true)
+    setCrisisFlaggedInOnboardingLocal(true)
+  }
+
+  function markFirstHomeVisitSeen(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) {
+      console.error('[AuthProvider] markFirstHomeVisitSeen called in degraded mode — cannot persist to MMKV')
+      return
+    }
+    store.set(KV_KEYS.FIRST_HOME_VISIT_SEEN(userId), true)
+    setFirstHomeVisitSeenLocal(true)
   }
 
   return (
@@ -329,6 +357,9 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       isStorageDegraded,
       setSudsCalibration,
       setCrisisFlaggedInOnboarding,
+      crisisFlaggedInOnboarding,
+      firstHomeVisitSeen,
+      markFirstHomeVisitSeen,
     }}>
       {children}
     </AuthContext.Provider>
