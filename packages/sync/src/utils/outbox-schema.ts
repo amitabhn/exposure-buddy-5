@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const OutboxOperationSchema = z.enum(['INSERT', 'UPDATE', 'DELETE'])
+export const OutboxOperationSchema = z.enum(['INSERT', 'UPDATE', 'DELETE', 'reorder_positions'])
 export type OutboxOperation = z.infer<typeof OutboxOperationSchema>
 
 export const OutboxEntrySchema = z.object({

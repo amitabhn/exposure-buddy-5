@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router'
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BackButton } from '../src/components/navigation/BackButton'
 import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -70,19 +71,23 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider mmkv={mmkv}>
-      <SafeAreaProvider>
-        <ReducedMotionProvider>
-          <ThemeProvider value={DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              {/* eslint-disable-next-line i18next/no-literal-string */}
-              <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-              <Stack.Screen name="calm-me" options={{ headerShown: false }} />
-            </Stack>
-            <PortalHost />
-          </ThemeProvider>
-        </ReducedMotionProvider>
-      </SafeAreaProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider mmkv={mmkv}>
+        <SafeAreaProvider>
+          <ReducedMotionProvider>
+            <ThemeProvider value={DefaultTheme}>
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* eslint-disable-next-line i18next/no-literal-string */}
+                <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+                <Stack.Screen name="calm-me" options={{ headerShown: false }} />
+                {/* eslint-disable-next-line i18next/no-literal-string */}
+                <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+              </Stack>
+              <PortalHost />
+            </ThemeProvider>
+          </ReducedMotionProvider>
+        </SafeAreaProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   )
 }

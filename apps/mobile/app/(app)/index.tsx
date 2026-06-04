@@ -45,7 +45,7 @@ export default function HomeScreen() {
         ref={cardRef}
         ladderItemCount={0}
         lowestPendingItem={lowestPendingItem}
-        onPress={() => {/* Epic 5: router.push to full ladder screen */}}
+        onPress={() => router.push('/ladder')}
       />
 
       <TouchableOpacity

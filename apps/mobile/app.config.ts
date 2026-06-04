@@ -19,6 +19,7 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
+    'react-native-gesture-handler',
     'expo-router',
     'expo-localization',
     // @sentry/react-native/expo plugin removed — requires sentry-cli binary which

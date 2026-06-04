@@ -1,5 +1,17 @@
 # Deferred Work
 
+## Deferred from: code review of 5-1-full-courage-ladder-screen (2026-06-04)
+
+- **5-1-D1: No rollback on optimistic add/edit when enqueue fails** — `setItems(optimistic)` fires before `await enqueue(...)`; the `catch` only logs; `closeForm()` is unconditional. With the no-op stub this is invisible, but when Epic 6 wires a real adapter, failed enqueues leave ghost items (add path) or stale edits (edit path) in the UI with no user feedback and no way to retry. Rollback logic (`setItems(prev)`) should be added to both catch blocks when the real adapter is wired. [`apps/mobile/app/ladder.tsx:84–127`]
+
+- **5-1-D2: Inconsistent `reorder_positions` enqueue convention between screens** — The onboarding ladder (`apps/mobile/app/(onboarding)/ladder.tsx`) enqueues position swaps as `operation: 'UPDATE'` with a `{ type: 'reorder_positions', ... }` payload. The new ladder screen (`apps/mobile/app/ladder.tsx`) uses `operation: 'reorder_positions'` directly (as per Story 5.1 spec). Epic 6's outbox connector must handle both conventions, or one path will be silently dropped. Reconcile the envelope format before implementing the connector. [`apps/mobile/app/ladder.tsx:138` vs `apps/mobile/app/(onboarding)/ladder.tsx`]
+
+- **5-1-D3: Accessibility focus timing race for non-empty list state** — The 100 ms `setTimeout` for `AccessibilityInfo.setAccessibilityFocus` fires before `DraggableFlatList` has laid out and attached `firstInteractiveRef` to the first item row when items exist. Currently `useFearLadderItems` returns `[]` (stub), so the Add button always gets focused. When Epic 6 replaces the stub with live data, focus will land on the wrong element. Add a ref-callback or a longer/adaptive delay before Epic 6. [`apps/mobile/app/ladder.tsx:38–52`]
+
+- **5-1-D4: Position number duplication risk when Epic 6 wires real data** — `position: items.length + 1` is computed from the optimistic local state snapshot at submit time. If the sync effect (`useEffect` on `remoteItems`) runs between two adds and resets `items` from the stub (empty), the next add reuses position `1`, creating duplicate position integers in the outbox. Assign positions server-side or use a stable monotonic counter when the real connector is implemented. [`apps/mobile/app/ladder.tsx:103`]
+
+- **5-1-D5: Non-integer SUDS value from database not validated in edit path** — `item.predictedSuds` is typed as `number` with no integer constraint. A decimal value arriving from a future database migration or sync conflict (e.g., `7.5`) would be displayed in the TextInput and re-enqueued as `predicted_suds: 7.5` without rounding or rejection. Add `Math.round()` or integer validation in `openEditForm` when the real data path is wired. [`apps/mobile/app/ladder.tsx:246–249`]
+
 ## Deferred from: code review of 4-4-onboarding-completion-and-home-screen-entry (2026-06-03)
 
 - **4-4-D1: `markOnboardingComplete()` ordering vs Expo Router concurrent render** — The spec assumes calling `markOnboardingComplete()` before `router.replace('/(app)/index')` guarantees `isOnboardingComplete = true` before `(app)/_layout.tsx` mounts, relying on React 18 event-handler batching. Expo Router navigation triggers a new render cycle; whether this batching holds across the router boundary is an architectural assumption shared by all onboarding stories. Monitor if users report unexpected onboarding re-entry post-completion. [`packages/supabase/src/auth/AuthProvider.tsx`, `apps/mobile/app/(app)/_layout.tsx`]
