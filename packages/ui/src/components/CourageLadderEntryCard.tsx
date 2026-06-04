@@ -26,7 +26,7 @@ export const CourageLadderEntryCard = React.forwardRef<
         </View>
       ) : (
         <Text style={styles.placeholder}>
-          {ladderItemCount === 0 ? 'Your ladder is being set up…' : 'No pending items'}
+          {ladderItemCount === 0 ? 'Add your first situation to get started.' : 'No pending items'}
         </Text>
       )}
     </TouchableOpacity>
