@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-03 # story 4-1 done; story 4-2 done; story 4-3 done; story 4-4 done
+last_updated: 2026-06-04 # story 4-1 done; story 4-2 done; story 4-3 done; story 4-4 done; epic-4 retro done; story 5-1 done
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -77,11 +77,11 @@ development_status:
   4-2-fear-ladder-introduction-and-suds-calibration: done
   4-3-initial-fear-ladder-setup: done
   4-4-onboarding-completion-and-home-screen-entry: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # ─── Epic 5: Courage Ladder ───────────────────────────────────────────────
-  epic-5: backlog
-  5-1-full-courage-ladder-screen: backlog
+  epic-5: in-progress
+  5-1-full-courage-ladder-screen: done
   5-2-erp-session-start-and-suds-entry: backlog
   5-3-erp-session-completion-debrief-and-home-state: backlog
   5-4-clinician-access-schema-and-rls-policies: backlog

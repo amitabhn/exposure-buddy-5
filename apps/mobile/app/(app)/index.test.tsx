@@ -108,4 +108,10 @@ describe('HomeScreen', () => {
     })
     expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
   })
+
+  it('CourageLadderEntryCard onPress navigates to /ladder', () => {
+    const { getByTestId } = render(<HomeScreen />)
+    fireEvent.press(getByTestId('courage-card'))
+    expect(mockPush).toHaveBeenCalledWith('/ladder')
+  })
 })

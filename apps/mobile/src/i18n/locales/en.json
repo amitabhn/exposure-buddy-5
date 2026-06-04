@@ -127,6 +127,25 @@
       "cta": "Feeling overwhelmed?"
     }
   },
+  "ladder": {
+    "title": "Your Courage Ladder",
+    "addItem": "Add situation",
+    "emptyState": "Your Courage Ladder is empty. Add your first situation to get started.",
+    "editItem": "Edit situation",
+    "saveItem": "Save",
+    "cancel": "Cancel",
+    "descriptionLabel": "Situation",
+    "descriptionPlaceholder": "Describe the situation...",
+    "sudsLabel": "Anxiety level (0–10)",
+    "statusPending": "Pending",
+    "statusInProgress": "In progress",
+    "statusCompleted": "Completed",
+    "reorderHint": "Long-press to reorder",
+    "crisis": {
+      "banner": "This situation might feel very distressing. Remember, you can take it slow.",
+      "cta": "I need support"
+    }
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
