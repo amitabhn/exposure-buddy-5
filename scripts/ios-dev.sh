@@ -13,11 +13,11 @@ if ! supabase status --workdir "$ROOT" > /dev/null 2>&1; then
 fi
 
 # Clear any stale Metro process on the default port so expo start is non-interactive.
-METRO_PID=$(lsof -ti :8081 2>/dev/null || true)
-if [ -n "$METRO_PID" ]; then
-  echo "Stopping stale Metro process on port 8081 (pid $METRO_PID)..."
-  kill "$METRO_PID" 2>/dev/null || true
-  sleep 1
+# lsof may return multiple pids; pipe through xargs so each is killed individually.
+if lsof -ti :8081 2>/dev/null | grep -q .; then
+  echo "Stopping stale Metro process on port 8081..."
+  lsof -ti :8081 2>/dev/null | xargs kill 2>/dev/null || true
+  sleep 2
 fi
 
 exec pnpm --filter exposure-buddy-mobile exec expo start --ios
