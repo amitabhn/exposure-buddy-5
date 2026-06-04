@@ -48,6 +48,7 @@ describe('HomeScreen', () => {
     mockUseAuth.mockReturnValue({
       firstHomeVisitSeen: false,
       markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
+      authState: { userId: 'user-123' },
     })
   })
 
@@ -66,6 +67,7 @@ describe('HomeScreen', () => {
     mockUseAuth.mockReturnValue({
       firstHomeVisitSeen: true,
       markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
+      authState: { userId: 'user-123' },
     })
     const { getByText } = render(<HomeScreen />)
     expect(getByText('home.welcomeBack')).toBeTruthy()
@@ -80,6 +82,19 @@ describe('HomeScreen', () => {
     mockUseAuth.mockReturnValue({
       firstHomeVisitSeen: true,
       markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
+      authState: { userId: 'user-123' },
+    })
+    render(<HomeScreen />)
+    expect(mockMarkFirstHomeVisitSeen).not.toHaveBeenCalled()
+  })
+
+  it('does NOT call markFirstHomeVisitSeen when userId is not yet available', () => {
+    // Simulates the race condition where the home screen mounts before
+    // onAuthStateChange has populated authState.userId.
+    mockUseAuth.mockReturnValue({
+      firstHomeVisitSeen: false,
+      markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
+      authState: { userId: null },
     })
     render(<HomeScreen />)
     expect(mockMarkFirstHomeVisitSeen).not.toHaveBeenCalled()

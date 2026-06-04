@@ -9,17 +9,19 @@ import { resolveLowestPendingItem } from '@exposure-buddy/core'
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { firstHomeVisitSeen, markFirstHomeVisitSeen } = useAuth()
+  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
 
   useEffect(() => {
-    if (!firstHomeVisitSeen) {
+    // Guard on userId: the home screen can mount before onAuthStateChange populates
+    // authState.userId, which would cause markFirstHomeVisitSeen to fail silently.
+    // Re-running when userId arrives ensures the flag is written on first visit.
+    if (!firstHomeVisitSeen && authState.userId) {
       markFirstHomeVisitSeen()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // mount-only — dep array intentionally empty
+  }, [authState.userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timeout = setTimeout(() => {

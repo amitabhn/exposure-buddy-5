@@ -333,8 +333,15 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   function markFirstHomeVisitSeen(): void {
     const store = mmkvRef.current
     const userId = authState.userId
-    if (!store || !userId) {
-      console.error('[AuthProvider] markFirstHomeVisitSeen called in degraded mode — cannot persist to MMKV')
+    if (!userId) {
+      // Caller must guard on authState.userId before calling — this is a bug in the caller.
+      console.error('[AuthProvider] markFirstHomeVisitSeen called before userId is available')
+      return
+    }
+    if (!store) {
+      // MMKV unavailable (degraded mode) — update local state only so the greeting
+      // does not repeat within this session; flag cannot be persisted across sessions.
+      setFirstHomeVisitSeenLocal(true)
       return
     }
     store.set(KV_KEYS.FIRST_HOME_VISIT_SEEN(userId), true)
