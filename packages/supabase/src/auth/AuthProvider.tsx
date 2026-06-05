@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
-import type { IDpoService, PendingDeletionRecord } from '@exposure-buddy/core'
+import type { IDpoService, PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
 import { KV_KEYS } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
@@ -44,6 +44,12 @@ interface AuthContextValue {
   crisisFlaggedInOnboarding: boolean
   firstHomeVisitSeen: boolean
   markFirstHomeVisitSeen: () => void
+  // Session MMKV helpers (Story 5.2+) — follow same pattern as setSudsCalibration
+  sessionRecoveryData: SessionRecoveryData | null
+  setSessionInProgress: (data: SessionRecoveryData) => void
+  clearSessionInProgress: () => void
+  setSessionIntention: (sessionId: string, text: string) => void
+  clearSessionIntention: (sessionId: string) => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -70,6 +76,11 @@ export const AuthContext = createContext<AuthContextValue>({
   crisisFlaggedInOnboarding: false,
   firstHomeVisitSeen: false,
   markFirstHomeVisitSeen: () => {},
+  sessionRecoveryData: null,
+  setSessionInProgress: () => {},
+  clearSessionInProgress: () => {},
+  setSessionIntention: () => {},
+  clearSessionIntention: () => {},
 })
 
 interface AuthProviderProps {
@@ -108,6 +119,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [isStorageDegraded, setIsStorageDegraded] = useState(false)
   const [crisisFlaggedInOnboarding, setCrisisFlaggedInOnboardingLocal] = useState(false)
   const [firstHomeVisitSeen, setFirstHomeVisitSeenLocal] = useState(false)
+  const [sessionRecoveryData, setSessionRecoveryDataLocal] = useState<SessionRecoveryData | null>(null)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
   // Tracks the userId for which onboarding state was last read from MMKV.
   // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
@@ -206,6 +218,14 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
           setFirstHomeVisitSeenLocal(
             store.getBoolean(KV_KEYS.FIRST_HOME_VISIT_SEEN(session.user.id)) ?? false
           )
+          // Read in-progress session recovery data (Story 5.2+). Gated on auth per ADR-004.
+          try {
+            const raw = store.getString(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
+            setSessionRecoveryDataLocal(raw ? (JSON.parse(raw) as SessionRecoveryData) : null)
+          } catch {
+            store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
+            setSessionRecoveryDataLocal(null)
+          }
         }
       } else {
         if (store) clearAuthState(store)
@@ -215,6 +235,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         setOnboardingProgressReadFailed(false)
         setCrisisFlaggedInOnboardingLocal(false)
         setFirstHomeVisitSeenLocal(false)
+        setSessionRecoveryDataLocal(null)
         lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
@@ -330,6 +351,34 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     setCrisisFlaggedInOnboardingLocal(true)
   }
 
+  function setSessionInProgress(data: SessionRecoveryData): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.SESSION_IN_PROGRESS(userId), JSON.stringify(data))
+    setSessionRecoveryDataLocal(data)
+  }
+
+  function clearSessionInProgress(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.delete(KV_KEYS.SESSION_IN_PROGRESS(userId))
+    setSessionRecoveryDataLocal(null)
+  }
+
+  function setSessionIntention(sessionId: string, text: string): void {
+    const store = mmkvRef.current
+    if (!store) return
+    store.set(KV_KEYS.SESSION_INTENTION(sessionId), text)
+  }
+
+  function clearSessionIntention(sessionId: string): void {
+    const store = mmkvRef.current
+    if (!store) return
+    store.delete(KV_KEYS.SESSION_INTENTION(sessionId))
+  }
+
   function markFirstHomeVisitSeen(): void {
     const store = mmkvRef.current
     const userId = authState.userId
@@ -367,6 +416,11 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       crisisFlaggedInOnboarding,
       firstHomeVisitSeen,
       markFirstHomeVisitSeen,
+      sessionRecoveryData,
+      setSessionInProgress,
+      clearSessionInProgress,
+      setSessionIntention,
+      clearSessionIntention,
     }}>
       {children}
     </AuthContext.Provider>

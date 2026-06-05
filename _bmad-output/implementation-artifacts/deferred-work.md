@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: spec review of 5-2-erp-session-start-and-suds-entry (2026-06-04)
+
+- **5-2-D1: userId null race in recovery modal End CTA** — Auth expiry race between the recovery modal's initial display and the user tapping End could leave SESSION_IN_PROGRESS under the wrong MMKV key (`session:in_progress:null`). Requires deeper auth lifecycle hardening out of scope for this story. [AC7 / (app)/_layout.tsx]
+
+- **5-2-D2: active→grounding crash gap — ended_at never set on intermediate crash** — If the app crashes between the Stop Exposure navigation push to grounding and the abandonment enqueue executing in grounding.tsx, the exposure_sessions row is left with `status: 'started'` and null `ended_at`. Fixing requires persisting ended_at at the navigation boundary (e.g., writing it to MMKV before navigating). Epic 6 retry/recovery obligation. [AC11, AC13]
+
+- **5-2-D3: Analytics events (session.started, session.abandoned) not specified** — Architecture event schema requires `domain.verb` events; no session lifecycle analytics are emitted in this story. Add to Epic 6 or a dedicated analytics story. [Architecture §Analytics event schema]
+
+- **5-2-D4: sudsReadingsCount initial value ambiguity vs pre-session reading guard** — Depends on D3 (useState vs useReducer decision) and Story 5.3 COMPLETE_SESSION guard design. If count starts at 0, the pre-session reading (enqueued in intent.tsx) is not counted toward the guard, blocking completion until at least one in-session log. Revisit when implementing active.tsx and Story 5.3. [AC6, AC11]
+
 ## Deferred from: code review of 5-1-full-courage-ladder-screen (2026-06-04)
 
 - **5-1-D1: No rollback on optimistic add/edit when enqueue fails** — `setItems(optimistic)` fires before `await enqueue(...)`; the `catch` only logs; `closeForm()` is unconditional. With the no-op stub this is invisible, but when Epic 6 wires a real adapter, failed enqueues leave ghost items (add path) or stale edits (edit path) in the UI with no user feedback and no way to retry. Rollback logic (`setItems(prev)`) should be added to both catch blocks when the real adapter is wired. [`apps/mobile/app/ladder.tsx:84–127`]

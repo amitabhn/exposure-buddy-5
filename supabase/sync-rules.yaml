@@ -1,0 +1,26 @@
+# PowerSync sync rules — preparatory stub for Epic 6.
+# The stub adapter in apps/mobile/src/sync/adapter.ts makes this file preparatory only;
+# Epic 6 configures, deploys, and validates these rules against a live PowerSync instance.
+
+bucket_definitions:
+  user_data:
+    # Sync all rows belonging to the authenticated user
+    parameters: SELECT token_parameters.user_id AS user_id
+
+    data:
+      # fear_ladder_items — column renamed actual_suds → peak_suds in migration 0015
+      - SELECT id, user_id, description, predicted_suds, peak_suds, position, status, created_at, updated_at
+        FROM public.fear_ladder_items
+        WHERE user_id = bucket.user_id
+
+      - SELECT id, user_id, fear_item_id, session_type, status,
+               pre_session_intention, post_session_reflection,
+               started_at, ended_at, expires_at, created_at
+        FROM public.exposure_sessions
+        WHERE user_id = bucket.user_id
+
+      # suds_readings — no user_id; sync via exposure_sessions join
+      - SELECT sr.id, sr.session_id, sr.suds_value, sr.recorded_at
+        FROM public.suds_readings sr
+        JOIN public.exposure_sessions es ON es.id = sr.session_id
+        WHERE es.user_id = bucket.user_id

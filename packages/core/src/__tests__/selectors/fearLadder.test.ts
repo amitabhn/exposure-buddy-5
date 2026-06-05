@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { resolveLowestPendingItem } from '../../selectors/fearLadder'
 
 const makeItem = (id: string, position: number, status = 'pending') => ({
-  id, description: `Situation ${id}`, predictedSuds: 5, position, status,
+  id, description: `Situation ${id}`, predictedSuds: 5, position, status, peakSuds: null,
 })
 
 describe('resolveLowestPendingItem', () => {

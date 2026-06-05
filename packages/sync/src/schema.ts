@@ -17,12 +17,31 @@ const fear_ladder_items = new Table({
   user_id: column.text,
   description: column.text,
   predicted_suds: column.integer,
-  actual_suds: column.integer,
+  peak_suds: column.integer,
   position: column.integer,
   status: column.text,
   created_at: column.text,
   updated_at: column.text,
 })
 
-export const AppSchema = new Schema({ users, user_onboarding_metadata, fear_ladder_items })
+const exposure_sessions = new Table({
+  user_id: column.text,
+  fear_item_id: column.text,
+  session_type: column.text,
+  status: column.text,
+  pre_session_intention: column.text,
+  post_session_reflection: column.text,
+  started_at: column.text,
+  ended_at: column.text,
+  expires_at: column.integer,  // bigint → integer in PowerSync schema
+  created_at: column.text,
+})
+
+const suds_readings = new Table({
+  session_id: column.text,
+  suds_value: column.integer,
+  recorded_at: column.text,
+})
+
+export const AppSchema = new Schema({ users, user_onboarding_metadata, fear_ladder_items, exposure_sessions, suds_readings })
 export type Database = (typeof AppSchema)['types']

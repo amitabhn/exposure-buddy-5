@@ -99,6 +99,7 @@
   "ladder": {
     "title": "Your Courage Ladder",
     "addItem": "Add situation",
+    "startSession": "Start session",
     "emptyState": "Your Courage Ladder is empty. Add your first situation to get started.",
     "editItem": "Edit situation",
     "saveItem": "Save",
@@ -113,6 +114,52 @@
     "crisis": {
       "banner": "This situation might feel very distressing. Remember, you can take it slow.",
       "cta": "I need support"
+    }
+  },
+  "session": {
+    "recovery": {
+      "title": "You have an unfinished session",
+      "body": "You were in the middle of an exposure. Would you like to resume where you left off?",
+      "resume": "Resume session",
+      "end": "End session"
+    },
+    "intent": {
+      "title": "Before you begin",
+      "sudsLabel": "How anxious do you feel right now?",
+      "intentionPrompt": "Would you like to write yourself a note?",
+      "intentionPlaceholder": "What do you expect to feel? What do you want to remember after?",
+      "intentionRecommended": "Recommended when anxiety is 7 or above — it helps to have words to come back to.",
+      "continue": "Continue"
+    },
+    "pause": {
+      "title": "Take a moment",
+      "body": "You're about to face something that takes courage. Take a slow breath before you begin.",
+      "begin": "I'm ready to begin"
+    },
+    "active": {
+      "title": "In session",
+      "logSuds": "Log how I'm feeling",
+      "sudsModalTitle": "How anxious are you right now?",
+      "logButton": "Log",
+      "stopExposure": "Stop exposure",
+      "calmMe": "Need support?"
+    },
+    "grounding": {
+      "affirmation": "You showed real courage by starting. Whatever you're feeling right now is okay.",
+      "breathingPrompt": "Take three slow breaths. In through your nose, out through your mouth. Let your body settle.",
+      "resume": "I can keep going",
+      "confirmStop": "I need to stop"
+    },
+    "abandoned": {
+      "message": "Stopping when you need to is an act of self-awareness. You can try again whenever you feel ready."
+    },
+    "suds": {
+      "anchor0": "0 — Completely calm",
+      "anchor2": "2 — Very mild",
+      "anchor4": "4 — Mild",
+      "anchor6": "6 — Moderate",
+      "anchor8": "8 — Severe",
+      "anchor10": "10 — Worst imaginable"
     }
   },
   "home": {

@@ -7,6 +7,11 @@ export const KV_KEYS = {
   SUDS_CALIBRATION:             (userId: string) => `suds:calibration:${userId}`,
   CRISIS_FLAGGED_IN_ONBOARDING: (userId: string) => `onboarding:crisis:${userId}`,
   FIRST_HOME_VISIT_SEEN:        (userId: string) => `first_home_visit_seen:${userId}`,
+  // JSON-serialised SessionRecoveryData blob { sessionId, fearItemId, preSuds, description }.
+  // Read via JSON.parse with try/catch; corrupt key = clear and ignore. (Story 5.2+)
+  SESSION_IN_PROGRESS:          (userId: string) => `session:in_progress:${userId}`,
+  // Optional intention text written in intent.tsx; cleared on abandonment and completion.
+  SESSION_INTENTION:            (sessionId: string) => `session:intention:${sessionId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.
