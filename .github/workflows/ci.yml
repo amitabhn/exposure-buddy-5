@@ -116,7 +116,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify actual_suds was fully renamed to peak_suds
         run: |
-          if grep -r "actual_suds" packages/ apps/ supabase/migrations/ | grep -v "0015_rename"; then
+          if grep -r "actual_suds" packages/ apps/ supabase/migrations/ | grep -v "0015_rename\|0013_fear_ladder_items"; then
             echo "FAIL: 'actual_suds' reference found outside the rename migration (AC1 / Story 5.2)"
             echo "All references must use 'peak_suds'. See supabase/migrations/0015_rename_actual_suds_to_peak_suds.sql"
             exit 1
