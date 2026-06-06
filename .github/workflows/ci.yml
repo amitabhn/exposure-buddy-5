@@ -108,11 +108,26 @@ jobs:
           fi
           echo "PASS: @supabase/supabase-js boundary is clean"
 
+  # ─── Gate 6: actual_suds rename guard (AC1 / Story 5.2) ────────────────────
+  actual-suds-rename-gate:
+    name: "AC1 — no actual_suds references post-migration"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual_suds was fully renamed to peak_suds
+        run: |
+          if grep -r "actual_suds" packages/ apps/ supabase/migrations/ | grep -v "0015_rename"; then
+            echo "FAIL: 'actual_suds' reference found outside the rename migration (AC1 / Story 5.2)"
+            echo "All references must use 'peak_suds'. See supabase/migrations/0015_rename_actual_suds_to_peak_suds.sql"
+            exit 1
+          fi
+          echo "PASS: no actual_suds references found"
+
   # ─── Build ──────────────────────────────────────────────────────────────────
   build:
     name: "Build all packages"
     runs-on: ubuntu-latest
-    needs: [core-boundary-gate, dark-mode-gate, web-import-gate, sdk-dep-audit, supabase-import-gate]
+    needs: [core-boundary-gate, dark-mode-gate, web-import-gate, sdk-dep-audit, supabase-import-gate, actual-suds-rename-gate]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

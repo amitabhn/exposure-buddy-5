@@ -56,4 +56,13 @@ describe('exposure-session mapper', () => {
     expect(session.endedAt).toBeNull()
     expect(session.expiresAt).toBeNull()
   })
+
+  it('round-trips non-null expires_at (epoch ms number)', () => {
+    const expiresAt = 1700000000000 + 21600000 // epoch ms + 6h
+    const rowWithExpiry: ExposureSessionRow = { ...ROW, expires_at: expiresAt }
+    const session = toExposureSession(rowWithExpiry)
+    expect(session.expiresAt).toBe(expiresAt)
+    const back = fromExposureSession(session)
+    expect(back.expires_at).toBe(expiresAt)
+  })
 })

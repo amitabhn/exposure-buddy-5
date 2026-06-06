@@ -37,8 +37,8 @@ describe.skipIf(skipIfNoSupabase)('exposure_sessions table RLS', () => {
       password: TEST_PASSWORD,
       email_confirm: true,
     })
-    if (errorA ?? !a.user) throw new Error(`Failed to create user A: ${errorA?.message ?? 'null user'}`)
-    if (errorB ?? !b.user) throw new Error(`Failed to create user B: ${errorB?.message ?? 'null user'}`)
+    if (errorA || !a.user) throw new Error(`Failed to create user A: ${errorA?.message ?? 'null user'}`)
+    if (errorB || !b.user) throw new Error(`Failed to create user B: ${errorB?.message ?? 'null user'}`)
     userAId = a.user.id
     userBId = b.user.id
 
@@ -52,7 +52,7 @@ describe.skipIf(skipIfNoSupabase)('exposure_sessions table RLS', () => {
       })
       .select('id')
       .single()
-    if (seedError ?? !session) throw new Error(`Failed to seed exposure_sessions: ${seedError?.message ?? 'null row'}`)
+    if (seedError || !session) throw new Error(`Failed to seed exposure_sessions: ${seedError?.message ?? 'null row'}`)
     sessionAId = session.id
   })
 

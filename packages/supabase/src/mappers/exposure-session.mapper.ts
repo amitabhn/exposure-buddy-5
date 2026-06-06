@@ -9,7 +9,7 @@ export interface ExposureSessionRow {
   status: string
   pre_session_intention: string | null
   post_session_reflection: string | null
-  started_at: string | null
+  started_at: string
   ended_at: string | null
   expires_at: number | null
   created_at: string | null
@@ -24,7 +24,7 @@ export function toExposureSession(row: ExposureSessionRow): ExposureSession {
     status: row.status as ExposureSession['status'],
     preSessionIntention: row.pre_session_intention,
     postSessionReflection: row.post_session_reflection,
-    startedAt: row.started_at ?? new Date(0).toISOString(),
+    startedAt: row.started_at,
     endedAt: row.ended_at,
     expiresAt: row.expires_at,
     createdAt: row.created_at ?? new Date(0).toISOString(),

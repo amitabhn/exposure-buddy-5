@@ -215,10 +215,12 @@ export default function LadderScreen() {
                   <TouchableOpacity
                     style={styles.startSessionButton}
                     onPress={() => {
-                      // T7.2: If a session is already in progress, surface recovery modal instead
+                      // T7.2: If a session is already in progress, navigate to (app) home where
+                      // the recovery modal renders, rather than starting a second session which
+                      // would orphan the in-progress fear_ladder_items row.
                       if (sessionRecoveryData) {
-                        // sessionRecoveryData being non-null causes the recovery modal to show;
-                        // do not navigate to /session/intent (would orphan the in-progress item)
+                        // eslint-disable-next-line i18next/no-literal-string
+                        router.replace('/(app)/index')
                         return
                       }
                       const sessionId = generateUUID()

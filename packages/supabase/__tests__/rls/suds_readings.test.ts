@@ -37,8 +37,8 @@ describe.skipIf(skipIfNoSupabase)('suds_readings table RLS', () => {
       password: TEST_PASSWORD,
       email_confirm: true,
     })
-    if (errorA ?? !a.user) throw new Error(`Failed to create user A: ${errorA?.message ?? 'null user'}`)
-    if (errorB ?? !b.user) throw new Error(`Failed to create user B: ${errorB?.message ?? 'null user'}`)
+    if (errorA || !a.user) throw new Error(`Failed to create user A: ${errorA?.message ?? 'null user'}`)
+    if (errorB || !b.user) throw new Error(`Failed to create user B: ${errorB?.message ?? 'null user'}`)
     userAId = a.user.id
     userBId = b.user.id
 
@@ -48,7 +48,7 @@ describe.skipIf(skipIfNoSupabase)('suds_readings table RLS', () => {
       .insert({ user_id: userAId, session_type: 'erp', status: 'started' })
       .select('id')
       .single()
-    if (sessionError ?? !session) throw new Error(`Failed to seed session: ${sessionError?.message ?? 'null row'}`)
+    if (sessionError || !session) throw new Error(`Failed to seed session: ${sessionError?.message ?? 'null row'}`)
     sessionAId = session.id
 
     const { error: readingError } = await serviceClient
@@ -71,7 +71,7 @@ describe.skipIf(skipIfNoSupabase)('suds_readings table RLS', () => {
     }
   })
 
-  it('[+] authenticated user can read their own readings', async () => {
+  it('[+] authenticated user can read and insert their own readings', async () => {
     if (!userAId || !sessionAId) throw new Error('Test setup failed')
     const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
     await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
@@ -83,6 +83,11 @@ describe.skipIf(skipIfNoSupabase)('suds_readings table RLS', () => {
     expect(error).toBeNull()
     expect(data!.length).toBeGreaterThanOrEqual(1)
     expect(data![0]!.session_id).toBe(sessionAId)
+
+    const { error: insertError } = await clientA
+      .from('suds_readings')
+      .insert({ session_id: sessionAId, suds_value: 5 })
+    expect(insertError).toBeNull()
   })
 
   it('[-] cross-user SELECT is blocked (RLS subquery join enforced)', async () => {

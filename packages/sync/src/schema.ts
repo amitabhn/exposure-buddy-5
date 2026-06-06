@@ -33,7 +33,7 @@ const exposure_sessions = new Table({
   post_session_reflection: column.text,
   started_at: column.text,
   ended_at: column.text,
-  expires_at: column.integer,  // bigint → integer in PowerSync schema
+  expires_at: column.real,  // BIGINT epoch-ms; column.real (64-bit float) avoids 32-bit overflow
   created_at: column.text,
 })
 

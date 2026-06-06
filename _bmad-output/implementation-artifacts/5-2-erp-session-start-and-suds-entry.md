@@ -1,6 +1,6 @@
 # Story 5.2: ERP Session — Start & SUDS Entry
 
-Status: review
+Status: done
 
 ## Story
 
@@ -287,6 +287,80 @@ so that I can track my anxiety arc during the exposure (FR-ERP-01, FR-ERP-02).
 - [x] [Review][Defer] **W3 — Analytics events (session.started, session.abandoned) not specified** [Architecture §Analytics] — deferred, intentionally absent from story scope; add to Epic 6 or a dedicated analytics story
 - [x] [Review][Defer] **W4 — sudsReadingsCount initial value ambiguity vs pre-session reading** — deferred, depends on D3 decision and Story 5.3 completion guard design; revisit when implementing active.tsx
 
+#### Code Review — Group A: DB & Sync (2026-06-05)
+
+> 2 decision-needed, 6 patch, 3 defer, 4 dismissed. Reviewed by bmad-code-review (Blind Hunter + Edge Case Hunter + Acceptance Auditor).
+
+- [x] [Review][Decision→Patch] **D1 — INSERT policy allows client-supplied `expires_at` and initial `status: 'completed'`** ✅ Applied — Added `supabase/migrations/0019_session_insert_guard.sql`: `BEFORE INSERT` trigger `trg_session_insert_guard` that NULLs `expires_at` and coerces `status = 'started'` on every INSERT, enforcing server-authoritative invariants at the DB layer. [AC2, AC4]
+
+- [x] [Review][Decision→Patch] **D2 — `FOR ALL` on `suds_readings` implicitly permits user DELETE** ✅ Applied — Replaced `suds_readings_own_session FOR ALL` with separate `suds_readings_select_own` (SELECT) and `suds_readings_insert_own` (INSERT) policies in `0017_suds_readings.sql`. Readings are now append-only; correction path is INSERT a new reading. Decision rationale documented in SQL comment. Fat-finger correction UX deferred to future story (W8 in deferred-work.md). [AC3]
+
+- [x] [Review][Patch] **P1 — `database.types.ts` not regenerated — `actual_suds` still present, new tables absent** ✅ Applied — Regenerated via `supabase db reset && supabase gen types typescript --local`. Now includes `exposure_sessions`, `suds_readings`, `peak_suds`; `actual_suds` removed. [`packages/supabase/src/database.types.ts`] [AC1, AC2, AC3]
+
+- [x] [Review][Patch] **P2 — `expires_at: column.integer` causes epoch-ms overflow in PowerSync** ✅ Applied — Changed `expires_at: column.integer` to `column.real` (64-bit float, safe to 2^53) in `packages/sync/src/schema.ts`. [`packages/sync/src/schema.ts`] [AC4]
+
+- [x] [Review][Patch] **P3 — `suds_readings` missing index on `session_id`** ✅ Applied — Added `CREATE INDEX idx_suds_readings_session_id ON public.suds_readings (session_id)` to `0017_suds_readings.sql`. [`supabase/migrations/0017_suds_readings.sql`] [AC3]
+
+- [x] [Review][Patch] **P4 — Trigger NULL guard uses `<>` instead of `IS DISTINCT FROM`** ✅ Applied — Changed `OLD.status <> 'completed'` to `OLD.status IS DISTINCT FROM 'completed'` in `0018_set_session_expires_at_trigger.sql`. [`supabase/migrations/0018_set_session_expires_at_trigger.sql`] [AC4]
+
+- [x] [Review][Patch] **P5 — `started_at` missing NOT NULL constraint** ✅ Applied — Added `NOT NULL` to `started_at TIMESTAMPTZ NOT NULL DEFAULT now()` in `0016_exposure_sessions.sql`. [`supabase/migrations/0016_exposure_sessions.sql`] [AC2]
+
+- [x] [Review][Patch] **P6 — AC1/T10.4 CI gate for `actual_suds` not added to CI pipeline** ✅ Applied — Added Gate 6 `actual-suds-rename-gate` to `.github/workflows/ci.yml`; blocks build if `actual_suds` appears outside `0015_rename` migration. [AC1, T10.4]
+
+- [x] [Review][Defer] **W5 — Plaintext sync of `pre_session_intention`/`post_session_reflection` to all devices** [`supabase/sync-rules.yaml`] — deferred, Epic 6 sync configuration scope; DPDPA multi-device sensitivity to be addressed in Epic 6 sync hardening story
+- [x] [Review][Defer] **W6 — `fear_item_id ON DELETE SET NULL` silently orphans `peak_suds` update** [`supabase/migrations/0016_exposure_sessions.sql`] — deferred, service-role-only path; no user DELETE policy on `fear_ladder_items`; Epic 6 connector must guard against null `fearItemId` before writing `peak_suds`
+- [x] [Review][Defer] **W7 — Trigger re-stamps `expires_at` if session status is reset and re-completed** [`supabase/migrations/0018_set_session_expires_at_trigger.sql`] — deferred, service-role-only scenario; application layer never resets a completed session; no action needed at app level
+
+#### Code Review — Group B: Core Domain (2026-06-05)
+
+> 0 decision-needed, 0 patch, 2 defer, 10 dismissed. Acceptance Auditor: all ACs satisfied. Clean.
+
+- [x] [Review][Defer] **W9 — `SESSION_INTENTION` orphaned if `SESSION_IN_PROGRESS` is corrupted or unexpectedly cleared** [`packages/core/src/constants/kvKeys.ts`] — deferred, MMKV key hygiene concern; `SESSION_INTENTION` is keyed by `sessionId` which is only discoverable via the recovery blob; if the blob is corrupt/cleared outside the normal abandonment/completion path, the intention text persists in MMKV indefinitely; address in Epic 9 Story 9.4 MMKV key hygiene audit
+- [x] [Review][Defer] **W10 — `TRANSITION_GUARD_FAILED` and `INVALID_TRANSITION` indistinguishable from a truly unknown event type** [`packages/core/src/erp/session-state-machine.ts`] — deferred, debugging ergonomics only; TypeScript prevents unknown event types at compile time; both codes have correct semantics for all reachable runtime paths; defer to a future diagnostic improvement if observability tooling requires finer-grained error codes
+
+#### Code Review — Group C: Supabase Package (2026-06-05)
+
+> 0 decision-needed, 5 patch, 4 defer, 9 dismissed. Reviewed by bmad-code-review (Blind Hunter + Edge Case Hunter + Acceptance Auditor).
+
+- [x] [Review][Patch] **P1 — `??` used instead of `||` in RLS test error guards** ✅ Applied — Changed `??` to `||` in all 5 error guard conditions across `exposure_sessions.test.ts` (lines 40, 41, 55) and `suds_readings.test.ts` (lines 40, 41, 51). [`packages/supabase/__tests__/rls/exposure_sessions.test.ts`, `suds_readings.test.ts`]
+- [x] [Review][Patch] **P2 — `ExposureSessionRow.started_at` typed `string | null` but DB Row is non-nullable** ✅ Applied — Changed `started_at: string | null` to `started_at: string` in `ExposureSessionRow`; removed dead-code `?? new Date(0).toISOString()` fallback in `toExposureSession` (now `startedAt: row.started_at` directly). [`packages/supabase/src/mappers/exposure-session.mapper.ts`]
+- [x] [Review][Patch] **P3 — `SessionRecoveryData.fearItemId` typed `string` (non-nullable) but spec requires `string | null`** ✅ Applied — Changed `fearItemId: string` to `fearItemId: string | null` in `SessionRecoveryData`; added null guard in `handleRecoveryEnd` (skip fear_ladder_items enqueue if null); null-safe URL encoding in `handleRecoveryResume`. [`packages/core/src/types/session-recovery-data.ts`, `apps/mobile/app/(app)/_layout.tsx`]
+- [x] [Review][Patch] **P4 — `suds_readings` [+] RLS test has no INSERT assertion (AC5 "own-row read/write")** ✅ Applied — Added INSERT assertion to `[+] authenticated user can read and insert their own readings` test; test now asserts both SELECT (existing) and INSERT of a new reading. [`packages/supabase/__tests__/rls/suds_readings.test.ts`]
+- [x] [Review][Patch] **P5 — Round-trip test never exercises non-null `expires_at`** ✅ Applied — Added `round-trips non-null expires_at (epoch ms number)` test case verifying `expires_at: 1700000000000 + 21600000` survives toExposureSession→fromExposureSession intact. [`packages/supabase/__tests__/mappers/exposure-session.mapper.test.ts`]
+
+- [x] [Review][Defer] **W11 — `fromExposureSession` test asserts only 5 of 11 fields** [`packages/supabase/__tests__/mappers/exposure-session.mapper.test.ts`] — deferred, minor coverage gap; the `round-trip is lossless` test covers all 11 fields transitively via `toEqual`; strengthening the individual fromExposureSession test is a low-value improvement
+- [x] [Review][Defer] **W12 — `SESSION_INTENTION` MMKV keys never cleared on sign-out** [`packages/supabase/src/auth/AuthProvider.tsx`] — deferred, pre-existing; same root cause as W9 (Group B); sign-out clears `sessionRecoveryData` React state and MMKV blob but not the intention text; address in Epic 9 Story 9.4 MMKV key hygiene audit
+- [x] [Review][Defer] **W13 — `setSessionInProgress`/`clearSessionInProgress` silently no-op when called pre-auth** [`packages/supabase/src/auth/AuthProvider.tsx:352-368`] — deferred, pre-existing pattern consistent with all other MMKV helpers in AuthProvider (markFirstHomeVisitSeen, setSudsCalibration etc.); callers are gated on `isAuthenticated` at the call site
+- [x] [Review][Defer] **W14 — `ExposureSessionRow` is hand-rolled rather than aliasing `Database['public']['Tables']['exposure_sessions']['Row']`** [`packages/supabase/src/mappers/exposure-session.mapper.ts`] — deferred, architectural preference; the concrete divergence (started_at nullability) is addressed by P2; using the generated type directly is a future refactor
+
+#### Code Review — Group D: Mobile App (2026-06-06)
+
+> 0 decision-needed, 3 patch, 2 defer, 5 dismissed. Reviewed by bmad-code-review (Blind Hunter + Edge Case Hunter + Acceptance Auditor).
+
+- [x] [Review][Patch] **P1 — `grounding.tsx:22` dead code: `authState` destructured and `userId` declared but never used** — `const userId = authState.userId` is never referenced in the function body; abandonment flow uses `clearSessionInProgress()` and `clearSessionIntention(sessionId)` which internalize auth state; `authState` should be removed from the destructure. [`apps/mobile/app/session/grounding.tsx:21-22`] Fix: `const { clearSessionInProgress, clearSessionIntention } = useAuth()`
+
+- [x] [Review][Patch] **P2 — Recovery modal `showRecoveryModal` remains `true` after `handleRecoveryResume` navigates to session screen** — `handleRecoveryResume` pushes to `/session/active` but does not clear `sessionRecoveryData` or set any dismissal flag; `showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null` stays `true`; on Android (where React Navigation native stack's `detachInactiveScreens` defaults to `false`), `(app)/_layout.tsx` stays mounted and its `Modal` renders as a native overlay on top of the session screen, blocking interaction. India-first context (Android-heavy market) makes this a priority. [`apps/mobile/app/(app)/_layout.tsx:86`] Fix: add `const [recoveryModalDismissed, setRecoveryModalDismissed] = useState(false)` state; include `&& !recoveryModalDismissed` in `showRecoveryModal`; call `setRecoveryModalDismissed(true)` in `handleRecoveryResume`; reset via `useEffect(() => { if (!sessionRecoveryData) setRecoveryModalDismissed(false) }, [sessionRecoveryData])`.
+
+- [x] [Review][Patch] **P3 — `ladder.tsx` T7.2 guard silently no-ops; spec requires recovery modal trigger** — When `sessionRecoveryData !== null`, pressing "Start session" executes an empty `return` with no user feedback and no modal trigger; comment incorrectly states "sessionRecoveryData being non-null causes the recovery modal to show" (the modal only renders in `(app)/_layout.tsx`, not on the ladder screen); AC8/T7.2 spec requires "trigger the recovery modal (via shared state or navigation)". [`apps/mobile/app/ladder.tsx:219-223`] Fix: replace the bare `return` with `router.replace('/(app)/index'); return` — navigating back to the `(app)` tab causes the recovery modal (which is visible whenever `sessionRecoveryData !== null`) to render.
+
+- [x] [Review][Defer] **W15 — Abandonment MMKV clears and navigation unconditionally execute outside the try/catch in `grounding.tsx`** [`apps/mobile/app/session/grounding.tsx:52-56`] — deferred, by-design for MVP; the user chose to stop — MMKV cleanup and navigation should proceed regardless of enqueue outcome (stub adapter never throws); same pattern as prior stories; broader offline/enqueue-failure recovery is covered by 5-2-D2
+
+- [x] [Review][Defer] **W16 — `SudsScale` buttons use `accessibilityRole="button"` instead of `"radio"` for mutually exclusive selection** [`apps/mobile/src/components/session/SudsScale.tsx:32-34`] — deferred, spec does not require `"radio"`; mutually exclusive semantics are better expressed as `"radio"` per ARIA; defer to Story 9.3 accessibility audit
+
+#### Code Review — Group E: Planning Docs (2026-06-06)
+
+> 0 decision-needed, 5 patch, 0 defer, 0 dismissed. Reviewed by bmad-code-review.
+
+- [x] [Review][Patch] **P1 — `sprint-status.yaml` shows `in-progress` for 5.2 but story spec is at `review` status** ✅ Applied — Changed `5-2-erp-session-start-and-suds-entry: in-progress` to `review` and updated `last_updated` comment. [`_bmad-output/implementation-artifacts/sprint-status.yaml:85,38`]
+
+- [x] [Review][Patch] **P2 — Dev Notes schema snapshot for `exposure_sessions` missing `NOT NULL` on `started_at`** ✅ Applied — Patch Group-A P5 added `NOT NULL` to the migration; Dev Notes snapshot updated to match: `started_at TIMESTAMPTZ NOT NULL DEFAULT now()`. [`_bmad-output/implementation-artifacts/5-2-erp-session-start-and-suds-entry.md § Migration 0016`]
+
+- [x] [Review][Patch] **P3 — Dev Notes schema snapshot for `suds_readings` still shows `FOR ALL` RLS policy** ✅ Applied — Patch Group-A D2 split `FOR ALL` into separate SELECT + INSERT policies; Dev Notes snapshot updated to show `suds_readings_select_own` (SELECT) + `suds_readings_insert_own` (INSERT) with append-only comment. [`_bmad-output/implementation-artifacts/5-2-erp-session-start-and-suds-entry.md § Migration 0017`]
+
+- [x] [Review][Patch] **P4 — Dev Notes schema snapshot for trigger uses `<>` instead of `IS DISTINCT FROM`** ✅ Applied — Patch Group-A P4 fixed the trigger; Dev Notes snapshot updated: `OLD.status IS DISTINCT FROM 'completed'`. [`_bmad-output/implementation-artifacts/5-2-erp-session-start-and-suds-entry.md § Migration 0018`]
+
+- [x] [Review][Patch] **P5 — Migration 0019 (`session_insert_guard` trigger) not documented in Dev Notes** ✅ Applied — Added Migration 0019 section with the `trg_session_insert_guard` BEFORE INSERT trigger that coerces `status = 'started'` and NULLs `expires_at` on every INSERT. Marked as added-in-code-review so future readers understand it was not in the original spec. [`_bmad-output/implementation-artifacts/5-2-erp-session-start-and-suds-entry.md § Migration 0019`]
+
 ---
 
 ## Dev Notes
@@ -314,7 +388,7 @@ CREATE TABLE IF NOT EXISTS public.exposure_sessions (
   status                TEXT        NOT NULL DEFAULT 'started' CHECK (status IN ('started', 'completed', 'abandoned')),
   pre_session_intention TEXT,
   post_session_reflection TEXT,
-  started_at            TIMESTAMPTZ DEFAULT now(),
+  started_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   ended_at              TIMESTAMPTZ,
   expires_at            BIGINT,     -- epoch ms; set by trigger on completion; never client-set
   created_at            TIMESTAMPTZ DEFAULT now()
@@ -355,14 +429,17 @@ CREATE TABLE IF NOT EXISTS public.suds_readings (
 
 ALTER TABLE public.suds_readings ENABLE ROW LEVEL SECURITY;
 
--- RLS via join: user can read/write readings for sessions they own
-CREATE POLICY "suds_readings_own_session"
-  ON public.suds_readings FOR ALL
+-- RLS via join: user can read/insert readings for sessions they own (append-only; no DELETE/UPDATE)
+CREATE POLICY "suds_readings_select_own"
+  ON public.suds_readings FOR SELECT
   USING (
     session_id IN (
       SELECT id FROM public.exposure_sessions WHERE user_id = auth.uid()
     )
-  )
+  );
+
+CREATE POLICY "suds_readings_insert_own"
+  ON public.suds_readings FOR INSERT
   WITH CHECK (
     session_id IN (
       SELECT id FROM public.exposure_sessions WHERE user_id = auth.uid()
@@ -378,7 +455,7 @@ COMMENT ON TABLE public.suds_readings IS
 CREATE OR REPLACE FUNCTION public.set_session_expires_at()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+  IF NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed' THEN
     NEW.expires_at := EXTRACT(EPOCH FROM now())::bigint * 1000 + 21600000;
   END IF;
   RETURN NEW;
@@ -389,6 +466,26 @@ CREATE TRIGGER set_session_expires_at
   BEFORE UPDATE ON public.exposure_sessions
   FOR EACH ROW
   EXECUTE FUNCTION public.set_session_expires_at();
+```
+
+**Migration 0019: `session_insert_guard` trigger** *(added in code review — not in original spec)*
+```sql
+-- Enforces server-authoritative invariants on every INSERT:
+--   • status is coerced to 'started' (client must not pre-set 'completed'/'abandoned')
+--   • expires_at is NULLed (must only be set by the set_session_expires_at trigger on completion)
+CREATE OR REPLACE FUNCTION public.session_insert_guard()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.status     := 'started';
+  NEW.expires_at := NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_session_insert_guard
+  BEFORE INSERT ON public.exposure_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.session_insert_guard();
 ```
 
 ---

@@ -3,7 +3,7 @@
 // Read via JSON.parse with try/catch; corrupt key = clear and ignore.
 export interface SessionRecoveryData {
   sessionId: string
-  fearItemId: string
+  fearItemId: string | null
   preSuds: number
   description: string
 }

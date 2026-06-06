@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.exposure_sessions (
   status                  TEXT        NOT NULL DEFAULT 'started' CHECK (status IN ('started', 'completed', 'abandoned')),
   pre_session_intention   TEXT,
   post_session_reflection TEXT,
-  started_at              TIMESTAMPTZ DEFAULT now(),
+  started_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
   ended_at                TIMESTAMPTZ,
   expires_at              BIGINT,     -- epoch ms; set by trigger on completion; never client-set
   created_at              TIMESTAMPTZ DEFAULT now()

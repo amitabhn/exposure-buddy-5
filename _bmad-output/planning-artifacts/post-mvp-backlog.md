@@ -151,6 +151,11 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Source:** FR-SOM-01, FR-SOM-02; deferred from Epic 7 during final validation (MVP covers box breathing + 5-4-3-2-1 only).
 **Notes:** Box breathing (Story 7.2) and 5-4-3-2-1 (Story 7.3) are the two MVP somatic techniques. The breathing coach config (`packages/core/src/config/breathingCoach.ts`) already documents the extension point for additional breathing patterns (item 1.7 above covers user-configurable timer/cycles). Each new technique needs its own animated visual guide (FR-SOM-02). Bhramari and Nadi Shodhana require audio-free visual pacing designs — Indian pranayama techniques with culturally resonant framing.
 
+### 1.30 Motivational Quote on Home Screen
+**What:** Display a rotating motivational quote on the home screen to encourage users before or between exposure sessions.
+**Source:** Product backlog (added 2026-06-06).
+**Notes:** Quote content requires clinical tone review — copy should feel grounded and ERP-consistent, not generic self-help. Consider varying quotes by home screen state (e.g., a different message on first visit vs. after completing a session). Store quotes in `packages/core/src/config/` alongside other content configs (cf. `calmMeConfig.ts` affirmation pattern). India-context and culturally resonant framing preferred. If quotes rotate, add a daily or session-based rotation key to `KV_KEYS` to avoid showing the same quote on every render.
+
 ---
 
 ## 2. Phase 2 — Content & Therapeutic Tracks

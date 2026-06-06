@@ -18,8 +18,7 @@ export default function GroundingScreen() {
     preSuds: string
   }>()
 
-  const { authState, clearSessionInProgress, clearSessionIntention } = useAuth()
-  const userId = authState.userId
+  const { clearSessionInProgress, clearSessionIntention } = useAuth()
 
   async function handleConfirmStop() {
     // grounding.stopped event → grounding→abandoned

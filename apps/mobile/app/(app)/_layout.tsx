@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,13 @@ export default function AppLayout() {
     clearSessionInProgress,
     clearSessionIntention,
   } = useAuth()
+  // Local dismissal flag: hides the modal after Resume without clearing session data,
+  // so the recovery blob remains available if the app is force-quit mid-session again.
+  // Resets automatically when sessionRecoveryData is cleared (abandonment/completion).
+  const [recoveryModalDismissed, setRecoveryModalDismissed] = useState(false)
+  useEffect(() => {
+    if (!sessionRecoveryData) setRecoveryModalDismissed(false)
+  }, [sessionRecoveryData])
 
   // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
   // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
@@ -43,10 +50,11 @@ export default function AppLayout() {
 
   function handleRecoveryResume() {
     if (!sessionRecoveryData) return
+    setRecoveryModalDismissed(true)
     const { sessionId, fearItemId, description, preSuds } = sessionRecoveryData
     router.push(
       // eslint-disable-next-line i18next/no-literal-string
-      `/session/active?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description)}&preSuds=${preSuds}`
+      `/session/active?sessionId=${sessionId}&fearItemId=${fearItemId != null ? encodeURIComponent(fearItemId) : ''}&description=${encodeURIComponent(description)}&preSuds=${preSuds}`
     )
   }
 
@@ -63,14 +71,16 @@ export default function AppLayout() {
         status: 'abandoned',
         ended_at: endedAt,
       })
-      // eslint-disable-next-line i18next/no-literal-string
-      await getAdapter().enqueue('fear_ladder_items', 'UPDATE', {
-        id: fearItemId,
+      if (fearItemId) {
         // eslint-disable-next-line i18next/no-literal-string
-        status: 'pending',
-        updated_at: endedAt,
-        updatedAt: Date.now(),
-      })
+        await getAdapter().enqueue('fear_ladder_items', 'UPDATE', {
+          id: fearItemId,
+          // eslint-disable-next-line i18next/no-literal-string
+          status: 'pending',
+          updated_at: endedAt,
+          updatedAt: Date.now(),
+        })
+      }
     } catch (err) {
       console.error('[AppLayout] recovery end enqueue failed:', err)
     }
@@ -79,9 +89,10 @@ export default function AppLayout() {
     clearSessionIntention(sessionId)
   }
 
-  // Recovery modal is shown when authenticated + not loading + a session was in progress.
+  // Recovery modal is shown when authenticated + not loading + a session was in progress + not dismissed.
   // Modal is NOT shown during loading (isLoading === true) per AC7.
-  const showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null
+  // recoveryModalDismissed hides the modal after Resume without clearing session data (Android safety).
+  const showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null && !recoveryModalDismissed
 
   return (
     <>
