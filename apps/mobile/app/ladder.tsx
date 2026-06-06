@@ -21,7 +21,7 @@ function generateUUID(): string {
 export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { userId } = useAuth()
+  const { userId, sessionRecoveryData } = useAuth()
   const remoteItems = useFearLadderItems(userId)
   const [items, setItems] = useState<FearLadderItem[]>([...remoteItems].sort((a, b) => a.position - b.position))
   const [crisisDetected, setCrisisDetected] = useState(false)
@@ -104,6 +104,7 @@ export default function LadderScreen() {
         position: items.length + 1,
         // eslint-disable-next-line i18next/no-literal-string
         status: 'pending',
+        peakSuds: null,
       }
       setItems(prev => [...prev, newItem])  // optimistic
       try {
@@ -113,7 +114,7 @@ export default function LadderScreen() {
           user_id: userId,
           description: newItem.description,
           predicted_suds: newItem.predictedSuds,
-          actual_suds: null,
+          peak_suds: null,
           position: newItem.position,
           // eslint-disable-next-line i18next/no-literal-string
           status: 'pending',
@@ -208,6 +209,32 @@ export default function LadderScreen() {
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Text style={styles.dragHandle}>⠿</Text>
                 </TouchableOpacity>
+                {/* T7.1: "Start session" button — only for pending items */}
+                {/* T7.2: Guard against starting while another session is in progress */}
+                {item.status === 'pending' && (
+                  <TouchableOpacity
+                    style={styles.startSessionButton}
+                    onPress={() => {
+                      // T7.2: If a session is already in progress, navigate to (app) home where
+                      // the recovery modal renders, rather than starting a second session which
+                      // would orphan the in-progress fear_ladder_items row.
+                      if (sessionRecoveryData) {
+                        // eslint-disable-next-line i18next/no-literal-string
+                        router.replace('/(app)/index')
+                        return
+                      }
+                      const sessionId = generateUUID()
+                      router.push(
+                        // eslint-disable-next-line i18next/no-literal-string
+                        `/session/intent?fearItemId=${item.id}&sessionId=${sessionId}&description=${encodeURIComponent(item.description)}&predictedSuds=${item.predictedSuds}`
+                      )
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('ladder.startSession')}, ${item.description}`}
+                  >
+                    <Text style={styles.startSessionText}>{t('ladder.startSession')}</Text>
+                  </TouchableOpacity>
+                )}
               </ScaleDecorator>
             )
           }}
@@ -289,6 +316,8 @@ const styles = StyleSheet.create({
   crisisBanner: { backgroundColor: '#fef2f2', borderRadius: 8, padding: 12, marginHorizontal: 24, marginTop: 12, borderWidth: 1, borderColor: '#fecaca' },
   crisisText: { fontSize: 14, color: '#991b1b', lineHeight: 20, marginBottom: 4 },
   crisisLink: { fontSize: 13, color: '#991b1b', textDecorationLine: 'underline' },
+  startSessionButton: { backgroundColor: '#1d4ed8', borderRadius: 6, paddingVertical: 8, paddingHorizontal: 14, marginHorizontal: 4, marginBottom: 4, alignSelf: 'flex-start' },
+  startSessionText: { color: '#ffffff', fontSize: 13, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   formContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 48, backgroundColor: '#ffffff' },
   formTitle: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 24 },
   formLabel: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 6 },

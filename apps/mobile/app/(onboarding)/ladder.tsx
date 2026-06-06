@@ -66,7 +66,7 @@ export default function LadderScreen() {
         user_id: userId,
         description: newItem.description,
         predicted_suds: newItem.predictedSuds,
-        actual_suds: null,
+        peak_suds: null,
         position: newItem.position,
         // eslint-disable-next-line i18next/no-literal-string
         status: 'pending',

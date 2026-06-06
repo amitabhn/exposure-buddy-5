@@ -10,6 +10,7 @@ export interface FearLadderItemSummary {
 // Full item type includes status for filtering; summary omits it for the card prop
 export interface FearLadderItem extends FearLadderItemSummary {
   status: string
+  peakSuds: number | null
 }
 
 export function resolveLowestPendingItem(items: FearLadderItem[]): FearLadderItemSummary | null {

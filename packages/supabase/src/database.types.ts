@@ -145,12 +145,62 @@ export type Database = {
         }
         Relationships: []
       }
+      exposure_sessions: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          expires_at: number | null
+          fear_item_id: string | null
+          id: string
+          post_session_reflection: string | null
+          pre_session_intention: string | null
+          session_type: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          expires_at?: number | null
+          fear_item_id?: string | null
+          id?: string
+          post_session_reflection?: string | null
+          pre_session_intention?: string | null
+          session_type?: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          expires_at?: number | null
+          fear_item_id?: string | null
+          id?: string
+          post_session_reflection?: string | null
+          pre_session_intention?: string | null
+          session_type?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exposure_sessions_fear_item_id_fkey"
+            columns: ["fear_item_id"]
+            isOneToOne: false
+            referencedRelation: "fear_ladder_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fear_ladder_items: {
         Row: {
-          actual_suds: number | null
           created_at: string | null
           description: string
           id: string
+          peak_suds: number | null
           position: number
           predicted_suds: number
           status: string
@@ -158,10 +208,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          actual_suds?: number | null
           created_at?: string | null
           description: string
           id?: string
+          peak_suds?: number | null
           position: number
           predicted_suds: number
           status?: string
@@ -169,10 +219,10 @@ export type Database = {
           user_id: string
         }
         Update: {
-          actual_suds?: number | null
           created_at?: string | null
           description?: string
           id?: string
+          peak_suds?: number | null
           position?: number
           predicted_suds?: number
           status?: string
@@ -198,6 +248,35 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      suds_readings: {
+        Row: {
+          id: string
+          recorded_at: string | null
+          session_id: string
+          suds_value: number
+        }
+        Insert: {
+          id?: string
+          recorded_at?: string | null
+          session_id: string
+          suds_value: number
+        }
+        Update: {
+          id?: string
+          recorded_at?: string | null
+          session_id?: string
+          suds_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suds_readings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exposure_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       therapist_patient_relationships: {
         Row: {

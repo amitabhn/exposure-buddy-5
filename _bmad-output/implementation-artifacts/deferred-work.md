@@ -1,5 +1,48 @@
 # Deferred Work
 
+## Deferred from: code review of 5-2-erp-session-start-and-suds-entry — Group D: Mobile App (2026-06-06)
+
+- **5-2-W15: Abandonment MMKV cleanup and navigation execute unconditionally outside try/catch in `grounding.tsx`** — `clearSessionInProgress()`, `clearSessionIntention()`, and `router.push('/session/abandoned')` run regardless of whether the two enqueue calls succeeded or failed. Intentional MVP design: the user chose to stop, so cleanup must always happen; the no-op stub never throws. Broader offline/enqueue-failure recovery covered by 5-2-D2. [`apps/mobile/app/session/grounding.tsx:52-56`]
+
+- **5-2-W16: `SudsScale` buttons use `accessibilityRole="button"` instead of the more semantically correct `"radio"` for mutually exclusive selection** — ARIA's `radiogroup`/`radio` pattern would better express that only one value can be selected at a time. Not required by the current spec; defer to Story 9.3 accessibility audit. [`apps/mobile/src/components/session/SudsScale.tsx:32-34`]
+
+## Deferred from: code review of 5-2-erp-session-start-and-suds-entry — Group C: Supabase Package (2026-06-05)
+
+- **5-2-W11: `fromExposureSession` test asserts only 5 of 11 fields** — The individual `fromExposureSession` test in `exposure-session.mapper.test.ts` checks only `id`, `user_id`, `fear_item_id`, `session_type`, `status`; the remaining 6 fields (`pre_session_intention`, `post_session_reflection`, `started_at`, `ended_at`, `expires_at`, `created_at`) are only covered transitively by the round-trip test. Minor coverage gap; the `round-trip is lossless` test fully compensates via `toEqual`. [`packages/supabase/__tests__/mappers/exposure-session.mapper.test.ts`]
+
+- **5-2-W12: `SESSION_INTENTION` MMKV keys never cleared on sign-out** — AuthProvider sign-out branch clears `sessionRecoveryData` and the `SESSION_IN_PROGRESS` blob, but `SESSION_INTENTION(sessionId)` is never deleted because the sessionId is unknown at sign-out time. Intention text persists across sign-outs and for future users on shared devices. Same root cause as W9; address together in Epic 9 Story 9.4 MMKV key hygiene audit. [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **5-2-W13: `setSessionInProgress`/`clearSessionInProgress` silently no-op when called pre-auth** — If a screen calls `setSessionInProgress` before `authState.userId` is populated (e.g., auth hydration race on cold-start), the function returns without writing to MMKV and `sessionRecoveryData` stays null. Pre-existing pattern shared with all other MMKV helpers in AuthProvider; callers are gated on `isAuthenticated` at call sites, making this unreachable in normal operation. [`packages/supabase/src/auth/AuthProvider.tsx:352-368`]
+
+- **5-2-W14: `ExposureSessionRow` hand-rolled rather than aliasing generated `Database` type** — `exposure-session.mapper.ts` defines its own `ExposureSessionRow` interface instead of using `Database['public']['Tables']['exposure_sessions']['Row']` from `database.types.ts` (which is legitimately importable within `packages/supabase`). The hand-rolled type will silently drift from the generated type on future schema changes. The concrete divergence (started_at nullability) is fixed by P2. Resolve in a future mapper refactor pass. [`packages/supabase/src/mappers/exposure-session.mapper.ts`]
+
+## Deferred from: code review of 5-2-erp-session-start-and-suds-entry — Group B: Core Domain (2026-06-05)
+
+- **5-2-W9: `SESSION_INTENTION` MMKV key orphaned on unexpected SESSION_IN_PROGRESS clear** — `KV_KEYS.SESSION_INTENTION(sessionId)` is only clearable if the `sessionId` is known; the only place it's stored is in the `SESSION_IN_PROGRESS` blob. If that blob is corrupted or cleared outside the normal abandonment/completion path (e.g. OS storage pressure, sign-out without active session cleanup), the intention text persists in MMKV indefinitely with no expiry mechanism. Address in Epic 9 Story 9.4 MMKV key hygiene audit. [`packages/core/src/constants/kvKeys.ts`]
+
+- **5-2-W10: State machine error codes don't distinguish "wrong state for valid event" from "truly unknown event"** — `TRANSITIONS[state]?.[event.type]` returns `undefined` for both a valid event sent to the wrong state and an event type unknown to the machine. Both produce `INVALID_TRANSITION`. TypeScript prevents unknown events at compile time, so this is a runtime debugging ergonomics concern only. Defer to a future diagnostic improvement story if observability tooling requires finer-grained error codes. [`packages/core/src/erp/session-state-machine.ts`]
+
+## Deferred from: code review of 5-2-erp-session-start-and-suds-entry — Group A: DB & Sync (2026-06-05)
+
+- **5-2-W8: Fat-finger SUDS correction UX (in-session undo)** — `suds_readings` are now append-only (immutable RLS). The correction path is INSERT a new reading (single-entry submit already supports this). A future story should add an explicit in-session undo affordance: e.g. a "Undo last entry" action within the active session screen that INSERTs a corrective reading with the revised value and a note. No DELETE or UPDATE at the DB level. [`apps/mobile/app/session/active.tsx`]
+
+
+- **5-2-W5: Plaintext sync of `pre_session_intention`/`post_session_reflection` to all devices** — Both free-text fields containing personal anxiety content are included in `sync-rules.yaml` SELECT with no encryption or exclusion. In a multi-device scenario, content lands in on-device SQLite on every authenticated device. DPDPA 2023 sensitivity classification and any field-level encryption decisions deferred to Epic 6 sync hardening story. [`supabase/sync-rules.yaml`]
+
+- **5-2-W6: `fear_item_id ON DELETE SET NULL` silently orphans `peak_suds` update** — If a `fear_ladder_items` row is deleted (currently only possible via service-role), associated `exposure_sessions.fear_item_id` becomes NULL. Story 5.2+ logic that writes `peak_suds` back to the fear item on session completion will silently skip the update with no error signal. Epic 6 connector must guard against null `fearItemId` before writing `peak_suds`. [`supabase/migrations/0016_exposure_sessions.sql`]
+
+- **5-2-W7: Trigger re-stamps `expires_at` if a completed session is reset and re-completed** — The guard `OLD.status IS DISTINCT FROM 'completed'` (once P4 is applied) prevents re-stamp on idempotent updates, but if a service-role operation resets `status` to `'started'` and then back to `'completed'`, the trigger fires again and overwrites `expires_at`. Application layer never performs this sequence; no action needed at the app level. [`supabase/migrations/0018_set_session_expires_at_trigger.sql`]
+
+## Deferred from: spec review of 5-2-erp-session-start-and-suds-entry (2026-06-04)
+
+- **5-2-D1: userId null race in recovery modal End CTA** — Auth expiry race between the recovery modal's initial display and the user tapping End could leave SESSION_IN_PROGRESS under the wrong MMKV key (`session:in_progress:null`). Requires deeper auth lifecycle hardening out of scope for this story. [AC7 / (app)/_layout.tsx]
+
+- **5-2-D2: active→grounding crash gap — ended_at never set on intermediate crash** — If the app crashes between the Stop Exposure navigation push to grounding and the abandonment enqueue executing in grounding.tsx, the exposure_sessions row is left with `status: 'started'` and null `ended_at`. Fixing requires persisting ended_at at the navigation boundary (e.g., writing it to MMKV before navigating). Epic 6 retry/recovery obligation. [AC11, AC13]
+
+- **5-2-D3: Analytics events (session.started, session.abandoned) not specified** — Architecture event schema requires `domain.verb` events; no session lifecycle analytics are emitted in this story. Add to Epic 6 or a dedicated analytics story. [Architecture §Analytics event schema]
+
+- **5-2-D4: sudsReadingsCount initial value ambiguity vs pre-session reading guard** — Depends on D3 (useState vs useReducer decision) and Story 5.3 COMPLETE_SESSION guard design. If count starts at 0, the pre-session reading (enqueued in intent.tsx) is not counted toward the guard, blocking completion until at least one in-session log. Revisit when implementing active.tsx and Story 5.3. [AC6, AC11]
+
 ## Deferred from: code review of 5-1-full-courage-ladder-screen (2026-06-04)
 
 - **5-1-D1: No rollback on optimistic add/edit when enqueue fails** — `setItems(optimistic)` fires before `await enqueue(...)`; the `catch` only logs; `closeForm()` is unconditional. With the no-op stub this is invisible, but when Epic 6 wires a real adapter, failed enqueues leave ghost items (add path) or stale edits (edit path) in the UI with no user feedback and no way to retry. Rollback logic (`setItems(prev)`) should be added to both catch blocks when the real adapter is wired. [`apps/mobile/app/ladder.tsx:84–127`]

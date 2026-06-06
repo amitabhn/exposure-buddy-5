@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { AuthContext } from './AuthProvider'
 import type { AuthState } from './session'
-import type { PendingDeletionRecord } from '@exposure-buddy/core'
+import type { PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
 
 interface UseAuthResult {
   authState: AuthState
@@ -23,6 +23,11 @@ interface UseAuthResult {
   crisisFlaggedInOnboarding: boolean
   firstHomeVisitSeen: boolean
   markFirstHomeVisitSeen: () => void
+  sessionRecoveryData: SessionRecoveryData | null
+  setSessionInProgress: (data: SessionRecoveryData) => void
+  clearSessionInProgress: () => void
+  setSessionIntention: (sessionId: string, text: string) => void
+  clearSessionIntention: (sessionId: string) => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -44,6 +49,11 @@ export function useAuth(): UseAuthResult {
     crisisFlaggedInOnboarding,
     firstHomeVisitSeen,
     markFirstHomeVisitSeen,
+    sessionRecoveryData,
+    setSessionInProgress,
+    clearSessionInProgress,
+    setSessionIntention,
+    clearSessionIntention,
   } = useContext(AuthContext)
   return {
     authState,
@@ -65,5 +75,10 @@ export function useAuth(): UseAuthResult {
     crisisFlaggedInOnboarding,
     firstHomeVisitSeen,
     markFirstHomeVisitSeen,
+    sessionRecoveryData,
+    setSessionInProgress,
+    clearSessionInProgress,
+    setSessionIntention,
+    clearSessionIntention,
   }
 }
