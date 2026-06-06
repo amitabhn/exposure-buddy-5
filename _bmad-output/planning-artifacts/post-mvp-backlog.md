@@ -156,6 +156,11 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Source:** Product backlog (added 2026-06-06).
 **Notes:** Quote content requires clinical tone review — copy should feel grounded and ERP-consistent, not generic self-help. Consider varying quotes by home screen state (e.g., a different message on first visit vs. after completing a session). Store quotes in `packages/core/src/config/` alongside other content configs (cf. `calmMeConfig.ts` affirmation pattern). India-context and culturally resonant framing preferred. If quotes rotate, add a daily or session-based rotation key to `KV_KEYS` to avoid showing the same quote on every render.
 
+### 1.31 Region-Tunable Content Tone
+**What:** Make the app's content tone configurable per region so that copy — psychoeducation, nudges, session prompts, affirmations — can be calibrated to cultural and clinical norms without changing i18n keys or shipping a new build.
+**Source:** Product backlog (added 2026-06-06).
+**Notes:** MVP ships with a single India-tuned tone. As the app expands to other markets (Phase 2), the same translated string may need a different register — e.g. more directive in some Western clinical traditions, more indirect and relationally framed in South/East Asian contexts. Recommended approach: introduce a `toneProfile` dimension alongside locale in `packages/core/src/config/` (e.g. `toneProfile: 'india-v1' | 'western-clinical'`); i18n keys stay unchanged, but a tone-variant content layer selects between alternate phrasings. Requires a content review workflow so clinicians can approve tone variants per region before shipping. Connects to item 4-2-D3 (practice scenario cultural validation) and item 1.30 (quote framing).
+
 ---
 
 ## 2. Phase 2 — Content & Therapeutic Tracks
