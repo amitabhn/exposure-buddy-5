@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: post-MVP navigation review (2026-06-04)
+
+- **NAV-D1: Ladder as a dedicated bottom tab** — The current UX design specifies the Ladder screen as reachable from the `CourageLadderEntryCard` on the Home screen (FR-LADDER-01: "screen reachable from the home screen entry card"), not as a bottom tab. The tab bar is intentionally Home + Settings only at MVP. If a Ladder tab is added post-MVP, it requires a UX design update (tab bar structure, icon, active/inactive states) and a PRD change before implementation. [`apps/mobile/app/(app)/_layout.tsx`, `_bmad-output/planning-artifacts/epics.md:FR-LADDER-01`]
+
 ## Deferred from: code review of 5-2-erp-session-start-and-suds-entry — Group D: Mobile App (2026-06-06)
 
 - **5-2-W15: Abandonment MMKV cleanup and navigation execute unconditionally outside try/catch in `grounding.tsx`** — `clearSessionInProgress()`, `clearSessionIntention()`, and `router.push('/session/abandoned')` run regardless of whether the two enqueue calls succeeded or failed. Intentional MVP design: the user chose to stop, so cleanup must always happen; the no-op stub never throws. Broader offline/enqueue-failure recovery covered by 5-2-D2. [`apps/mobile/app/session/grounding.tsx:52-56`]
