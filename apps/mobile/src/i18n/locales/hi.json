@@ -82,7 +82,8 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
-      "nextCta": "Next"
+      "nextCta": "Next",
+      "skipCta": "छोड़ें"
     },
     "crisisDetected": {
       "banner": "We noticed something in what you wrote. You're not alone."

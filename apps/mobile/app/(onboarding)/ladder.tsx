@@ -125,12 +125,12 @@ export default function LadderScreen() {
   }
 
   async function handleNext() {
-    if (items.length < MIN_ITEMS || !userId) return
+    if (!userId) return
     setOnboardingProgressStep(4)
     router.replace({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
   }
 
-  const canProceed = items.length >= MIN_ITEMS
+  const canSkip = items.length === 0
 
   return (
     <>
@@ -215,20 +215,13 @@ export default function LadderScreen() {
           <Text style={styles.overwhelmedText}>{t('onboarding.overwhelmed.cta')}</Text>
         </TouchableOpacity>
 
-        {/* Minimum items helper — both helper text and disabled button visible simultaneously (AC 7) */}
-        {!canProceed && (
-          <Text style={styles.helper}>{t('onboarding.fearLadder.minimumItems')}</Text>
-        )}
-
         <TouchableOpacity
-          style={[styles.button, !canProceed && styles.buttonDisabled]}
+          style={styles.button}
           onPress={handleNext}
-          disabled={!canProceed}
           accessibilityRole="button"
-          accessibilityLabel={t('onboarding.fearLadder.nextCta')}
-          accessibilityState={{ disabled: !canProceed }}
+          accessibilityLabel={canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}
         >
-          <Text style={styles.buttonText}>{t('onboarding.fearLadder.nextCta')}</Text>
+          <Text style={styles.buttonText}>{canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
