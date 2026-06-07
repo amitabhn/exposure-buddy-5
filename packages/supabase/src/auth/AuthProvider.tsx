@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
-import type { IDpoService, PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
+import type { IDpoService, PendingDeletionRecord, SessionRecoveryData, DebriefPendingData } from '@exposure-buddy/core'
 import { KV_KEYS } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
@@ -50,6 +50,13 @@ interface AuthContextValue {
   clearSessionInProgress: () => void
   setSessionIntention: (sessionId: string, text: string) => void
   clearSessionIntention: (sessionId: string) => void
+  // Debrief pending state (Story 5.3+)
+  debriefPendingData: DebriefPendingData | null
+  setDebriefPending: (data: DebriefPendingData) => void
+  clearDebriefPending: () => void
+  updateDebriefReflectionSubmitted: () => void
+  hasSessionIntention: (sessionId: string) => boolean
+  getSessionIntention: (sessionId: string) => string | null
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -81,6 +88,12 @@ export const AuthContext = createContext<AuthContextValue>({
   clearSessionInProgress: () => {},
   setSessionIntention: () => {},
   clearSessionIntention: () => {},
+  debriefPendingData: null,
+  setDebriefPending: () => {},
+  clearDebriefPending: () => {},
+  updateDebriefReflectionSubmitted: () => {},
+  hasSessionIntention: () => false,
+  getSessionIntention: () => null,
 })
 
 interface AuthProviderProps {
@@ -120,6 +133,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [crisisFlaggedInOnboarding, setCrisisFlaggedInOnboardingLocal] = useState(false)
   const [firstHomeVisitSeen, setFirstHomeVisitSeenLocal] = useState(false)
   const [sessionRecoveryData, setSessionRecoveryDataLocal] = useState<SessionRecoveryData | null>(null)
+  const [debriefPendingData, setDebriefPendingDataLocal] = useState<DebriefPendingData | null>(null)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
   // Tracks the userId for which onboarding state was last read from MMKV.
   // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
@@ -226,6 +240,12 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
             store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
             setSessionRecoveryDataLocal(null)
           }
+          // Read debrief pending data (Story 5.3+).
+          const rawDebrief = store.getString(KV_KEYS.SESSION_DEBRIEF_PENDING(session.user.id))
+          setDebriefPendingDataLocal(rawDebrief ? (() => {
+            try { return JSON.parse(rawDebrief) as DebriefPendingData }
+            catch { store.delete(KV_KEYS.SESSION_DEBRIEF_PENDING(session.user.id)); return null }
+          })() : null)
         }
       } else {
         if (store) clearAuthState(store)
@@ -236,6 +256,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         setCrisisFlaggedInOnboardingLocal(false)
         setFirstHomeVisitSeenLocal(false)
         setSessionRecoveryDataLocal(null)
+        setDebriefPendingDataLocal(null)
         lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
@@ -379,6 +400,50 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     store.delete(KV_KEYS.SESSION_INTENTION(sessionId))
   }
 
+  function hasSessionIntention(sessionId: string): boolean {
+    const store = mmkvRef.current
+    if (!store) return false
+    const text = store.getString(KV_KEYS.SESSION_INTENTION(sessionId))
+    return !!(text && text.trim().length > 0)
+  }
+
+  function getSessionIntention(sessionId: string): string | null {
+    const store = mmkvRef.current
+    if (!store) return null
+    return store.getString(KV_KEYS.SESSION_INTENTION(sessionId)) ?? null
+  }
+
+  function setDebriefPending(data: DebriefPendingData): void {
+    const store = mmkvRef.current
+    if (!store || !authState.userId) return
+    store.set(KV_KEYS.SESSION_DEBRIEF_PENDING(authState.userId), JSON.stringify(data))
+    setDebriefPendingDataLocal(data)
+  }
+
+  function clearDebriefPending(): void {
+    const store = mmkvRef.current
+    if (!store || !authState.userId) return
+    store.delete(KV_KEYS.SESSION_DEBRIEF_PENDING(authState.userId))
+    setDebriefPendingDataLocal(null)
+  }
+
+  function updateDebriefReflectionSubmitted(): void {
+    const store = mmkvRef.current
+    if (!store || !authState.userId) return
+    const raw = store.getString(KV_KEYS.SESSION_DEBRIEF_PENDING(authState.userId))
+    if (!raw) return
+    try {
+      const data = JSON.parse(raw) as DebriefPendingData
+      const updated = { ...data, reflectionSubmitted: true }
+      store.set(KV_KEYS.SESSION_DEBRIEF_PENDING(authState.userId), JSON.stringify(updated))
+      setDebriefPendingDataLocal(updated)
+    } catch {
+      // Corrupt key — delete and ignore
+      store.delete(KV_KEYS.SESSION_DEBRIEF_PENDING(authState.userId))
+      setDebriefPendingDataLocal(null)
+    }
+  }
+
   function markFirstHomeVisitSeen(): void {
     const store = mmkvRef.current
     const userId = authState.userId
@@ -421,6 +486,12 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       clearSessionInProgress,
       setSessionIntention,
       clearSessionIntention,
+      debriefPendingData,
+      setDebriefPending,
+      clearDebriefPending,
+      updateDebriefReflectionSubmitted,
+      hasSessionIntention,
+      getSessionIntention,
     }}>
       {children}
     </AuthContext.Provider>

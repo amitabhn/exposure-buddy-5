@@ -142,7 +142,20 @@
       "sudsModalTitle": "How anxious are you right now?",
       "logButton": "Log",
       "stopExposure": "Stop exposure",
-      "calmMe": "Need support?"
+      "calmMe": "Need support?",
+      "completeExposure": "Complete exposure",
+      "completionModalTitle": "How are you feeling now?",
+      "finishSession": "Finish session"
+    },
+    "debrief": {
+      "title": "Your session is complete",
+      "reflectionPrompt": "What would you like to remember about this?",
+      "reflectionPlaceholder": "What happened? What surprised you? What do you want to carry forward?",
+      "done": "Done",
+      "letterIntro": "Before you began, you wrote this to yourself:",
+      "acknowledgement": "You faced what you were afraid of. That matters.",
+      "acknowledgementNoImprovement": "You showed up. That takes real courage, even when it's hard.",
+      "crisisHeading": "If you need support right now:"
     },
     "grounding": {
       "affirmation": "You showed real courage by starting. Whatever you're feeling right now is okay.",
@@ -167,6 +180,15 @@
     "welcomeBack": "Welcome back. Keep going.",
     "calmMe": {
       "cta": "Feeling overwhelmed?"
+    },
+    "state7": {
+      "ctaLetter": "Read the note you wrote yourself",
+      "acknowledgement": "You completed an exposure. Take a moment to notice how you feel.",
+      "windowLabel": "Reflection window"
+    },
+    "state8": {
+      "contextCard": "You completed an exposure recently. When you're ready, take a moment to reflect.",
+      "cta": "Reflect now"
     }
   },
   "auth": {
