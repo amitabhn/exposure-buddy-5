@@ -12,6 +12,10 @@ export const KV_KEYS = {
   SESSION_IN_PROGRESS:          (userId: string) => `session:in_progress:${userId}`,
   // Optional intention text written in intent.tsx; cleared on abandonment and completion.
   SESSION_INTENTION:            (sessionId: string) => `session:intention:${sessionId}`,
+  // JSON-serialised DebriefPendingData blob written on session completion.
+  // completedAtMs + 21600000 = local expiry proxy (Epic 6 replaces with server expires_at via PowerSync).
+  // Cleared on: reflection submitted + window resolved, OR late debrief submitted.
+  SESSION_DEBRIEF_PENDING:      (userId: string) => `session:debrief_pending:${userId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.

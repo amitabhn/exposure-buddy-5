@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { AuthContext } from './AuthProvider'
 import type { AuthState } from './session'
-import type { PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
+import type { PendingDeletionRecord, SessionRecoveryData, DebriefPendingData } from '@exposure-buddy/core'
 
 interface UseAuthResult {
   authState: AuthState
@@ -28,6 +28,13 @@ interface UseAuthResult {
   clearSessionInProgress: () => void
   setSessionIntention: (sessionId: string, text: string) => void
   clearSessionIntention: (sessionId: string) => void
+  // Debrief pending state (Story 5.3+)
+  debriefPendingData: DebriefPendingData | null
+  setDebriefPending: (data: DebriefPendingData) => void
+  clearDebriefPending: () => void
+  updateDebriefReflectionSubmitted: () => void
+  hasSessionIntention: (sessionId: string) => boolean
+  getSessionIntention: (sessionId: string) => string | null
 }
 
 export function useAuth(): UseAuthResult {
@@ -54,6 +61,12 @@ export function useAuth(): UseAuthResult {
     clearSessionInProgress,
     setSessionIntention,
     clearSessionIntention,
+    debriefPendingData,
+    setDebriefPending,
+    clearDebriefPending,
+    updateDebriefReflectionSubmitted,
+    hasSessionIntention,
+    getSessionIntention,
   } = useContext(AuthContext)
   return {
     authState,
@@ -80,5 +93,11 @@ export function useAuth(): UseAuthResult {
     clearSessionInProgress,
     setSessionIntention,
     clearSessionIntention,
+    debriefPendingData,
+    setDebriefPending,
+    clearDebriefPending,
+    updateDebriefReflectionSubmitted,
+    hasSessionIntention,
+    getSessionIntention,
   }
 }

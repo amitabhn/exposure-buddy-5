@@ -6,11 +6,12 @@ jest.mock('react-i18next', () => ({
 }))
 
 const mockRouterPush = jest.fn()
+const mockRouterReplace = jest.fn()
 
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useLocalSearchParams: jest.fn(),
-  useRouter: () => ({ push: mockRouterPush, replace: jest.fn() }),
+  useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
 }))
 
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
@@ -34,10 +35,30 @@ jest.mock('../../src/components/session/SudsScale', () => ({
   },
 }))
 
+const mockHasSessionIntention = jest.fn().mockReturnValue(false)
+const mockSetDebriefPending = jest.fn()
+const mockClearSessionInProgress = jest.fn()
+const mockUseAuth = jest.fn()
+
+jest.mock('@exposure-buddy/supabase', () => ({
+  useAuth: () => mockUseAuth(),
+}))
+
+jest.mock('@exposure-buddy/core', () => ({
+  transition: jest.fn(() => ({ ok: true })),
+}))
+
 const { useLocalSearchParams } = require('expo-router')
+const { transition } = require('@exposure-buddy/core')
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockUseAuth.mockReturnValue({
+    authState: { userId: 'user-123' },
+    hasSessionIntention: mockHasSessionIntention,
+    setDebriefPending: mockSetDebriefPending,
+    clearSessionInProgress: mockClearSessionInProgress,
+  })
   useLocalSearchParams.mockReturnValue({
     sessionId: 'session-uuid-1',
     fearItemId: 'item-uuid-1',
@@ -48,7 +69,7 @@ beforeEach(() => {
 
 const ActiveScreen = require('./active').default
 
-describe('ActiveScreen', () => {
+describe('ActiveScreen — existing tests', () => {
   it('renders fear item description from params', () => {
     const { getByText } = render(<ActiveScreen />)
     expect(getByText('Test situation')).toBeTruthy()
@@ -97,5 +118,140 @@ describe('ActiveScreen', () => {
     const { getByLabelText } = render(<ActiveScreen />)
     await act(async () => { fireEvent.press(getByLabelText('session.active.calmMe')) })
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me')
+  })
+})
+
+describe('ActiveScreen — maxSudsLogged initialisation', () => {
+  it('initialises maxSudsLogged from preSuds param', async () => {
+    useLocalSearchParams.mockReturnValue({
+      sessionId: 'session-uuid-1',
+      fearItemId: 'item-uuid-1',
+      description: 'Test situation',
+      preSuds: '7',
+    })
+    // Open completion modal, pick SUDS 5 (lower than preSuds=7)
+    // peakSuds should be max(7, 5) = 7
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockSetDebriefPending).toHaveBeenCalledWith(
+        expect.objectContaining({ peakSuds: 7 })
+      )
+    })
+  })
+})
+
+describe('ActiveScreen — completion modal', () => {
+  it('completion modal opens on Complete Exposure tap', async () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    expect(getByLabelText('session.active.finishSession')).toBeTruthy()
+  })
+
+  it('completion modal shows SudsScale buttons', async () => {
+    const { getByLabelText, getAllByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    const buttons = getAllByTestId(/^suds-btn-/)
+    expect(buttons).toHaveLength(11)
+  })
+
+  it('Finish session button is disabled when no SUDS selected', async () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    const finishBtn = getByLabelText('session.active.finishSession')
+    expect(finishBtn.props.accessibilityState?.disabled ?? finishBtn.props.disabled).toBeTruthy()
+  })
+})
+
+describe('ActiveScreen — handleCompleteSession happy path', () => {
+  it('enqueues suds_readings, exposure_sessions, and fear_ladder_items on complete', async () => {
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockEnqueue).toHaveBeenCalledWith('suds_readings', 'INSERT', expect.objectContaining({ suds_value: 4 }))
+      expect(mockEnqueue).toHaveBeenCalledWith('exposure_sessions', 'UPDATE', expect.objectContaining({ status: 'completed' }))
+      expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'UPDATE', expect.objectContaining({ status: 'completed' }))
+    })
+  })
+
+  it('calls setDebriefPending with correct payload', async () => {
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockSetDebriefPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'session-uuid-1',
+          debriefSuds: 4,
+          hasLetter: false,
+          reflectionSubmitted: false,
+        })
+      )
+    })
+  })
+
+  it('calls clearSessionInProgress after completion', async () => {
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockClearSessionInProgress).toHaveBeenCalled()
+    })
+  })
+
+  it('navigates to /session/debrief with all required params', async () => {
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        expect.stringContaining('/session/debrief')
+      )
+    })
+    const debriefCall = mockRouterPush.mock.calls.find((c: string[]) => c[0]?.includes('/session/debrief'))
+    expect(debriefCall).toBeDefined()
+    const callArg = debriefCall![0] as string
+    expect(callArg).toContain('sessionId=session-uuid-1')
+    expect(callArg).toContain('debriefSuds=4')
+    expect(callArg).toContain('preSuds=6')
+    expect(callArg).toContain('peakSuds=')
+    expect(callArg).toContain('completedAtMs=')
+  })
+
+  it('skips fear_ladder_items enqueue when fearItemId is null/empty', async () => {
+    useLocalSearchParams.mockReturnValue({
+      sessionId: 'session-uuid-1',
+      fearItemId: '',
+      description: 'Test situation',
+      preSuds: '6',
+    })
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockEnqueue).not.toHaveBeenCalledWith('fear_ladder_items', expect.anything(), expect.anything())
+    })
+  })
+
+  it('double-tap guard: isCompletingSession prevents re-entry while completion is in flight', async () => {
+    // Hold enqueue pending to freeze the completion mid-flight
+    mockEnqueue.mockReturnValue(new Promise(() => {}))
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await act(async () => {})
+    // One enqueue fired (suds_readings INSERT) then hangs — downstream steps not reached
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
+    expect(mockSetDebriefPending).not.toHaveBeenCalled()
+    expect(mockClearSessionInProgress).not.toHaveBeenCalled()
   })
 })

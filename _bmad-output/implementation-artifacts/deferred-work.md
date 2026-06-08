@@ -1,5 +1,25 @@
 # Deferred Work
 
+## Deferred from: verification of 5-3-erp-session-completion-debrief-and-home-state (2026-06-08)
+
+- **VER-5-3-1: `isCompletingSession` survives Fast Refresh on the success path** — In `apps/mobile/app/session/active.tsx`, `handleCompleteSession` only resets `setIsCompletingSession(false)` in the `!result.ok` early-return and the `catch` block. On the success path the screen `router.push`es to debrief and the active screen unmounts in production, so the stuck flag is invisible. During dev, Fast Refresh preserves component state across edits — a subsequent fresh session lands on `active.tsx` with `isCompletingSession=true` from the previous attempt, and the "Finish session" button renders gray and ignores taps. Workaround: full reload (Cmd+R). Production behaviour is correct; consider adding a `useEffect` cleanup or resetting the flag immediately after the navigation `router.push` for dev ergonomics. [`apps/mobile/app/session/active.tsx:77-83, 153`]
+
+- **VER-5-3-2: `session/_layout.tsx` leaves swipe-back enabled on `debrief`; "Done is the only exit" is implicit** — `pause`, `active`, and `grounding` explicitly set `gestureEnabled: false`; `debrief` inherits the default (enabled). A user can swipe back from debrief without committing reflection; the state-7/8 entry on home preserves `SESSION_DEBRIEF_PENDING` so the flow still works correctly on return. The behaviour is benign but undocumented — neither the spec nor a code comment mentions that the gestural exit is intentional. Add either a `gestureEnabled: false` on debrief (if Done should be the only exit) or a comment on `session/_layout.tsx` explaining why debrief is allowed to be gesturally dismissed. [`apps/mobile/app/session/_layout.tsx`]
+
+## Deferred from: backlog review (2026-06-07)
+
+- **OB-D1: Onboarding screen should not mandate entry of challenges** — The current onboarding ladder setup requires users to enter fear ladder items before proceeding. This is a UX friction point; users should be able to skip challenge entry during onboarding and add items later from the main Courage Ladder screen. Requires UX design update for the skip flow and a change to the onboarding progress gate logic. [`apps/mobile/app/(onboarding)/ladder.tsx`]
+
+## Deferred from: code review of 5-3-erp-session-completion-debrief-and-home-state (2026-06-07)
+
+- **CR-5-3-1: `hasLetter` in `DebriefPendingData` can diverge from live MMKV state** — Home screen uses the stored `hasLetter` field to choose state-7 CTA text; `debrief.tsx` re-reads live MMKV via `getSessionIntention()`. If `SESSION_INTENTION` is cleared between session completion and home render (e.g., prior debrief), home shows "Read your letter" CTA but debrief opens to Branch B/C. Two sources of truth; resolve in Epic 6 when PowerSync makes the session's intent queryable. [`apps/mobile/app/(app)/index.tsx`, `apps/mobile/app/session/debrief.tsx`]
+
+- **CR-5-3-2: State machine transition failure shows no user feedback** — When `transition('active', { type: 'session.completed', ... })` returns `!result.ok`, `isCompletingSession` is reset and the function returns silently. The "Finish session" button re-enables, but the user receives no error message. Acceptable for MVP (button re-enables, trigger condition is effectively unreachable in normal operation). [`apps/mobile/app/session/active.tsx:83`]
+
+- **CR-5-3-3: Debrief screen Branch tests do not assert opposite branch content is absent** — `debrief.test.tsx` Branch B and C tests verify the expected acknowledgement text is present but do not assert that the other branch's content is absent. A regression where multiple branches render simultaneously would pass undetected. Scope: Epic 9 test quality audit. [`apps/mobile/app/session/debrief.test.tsx`]
+
+- **CR-5-3-4: `authProvider.debrief.test.ts` tests inline reimplementations of MMKV helpers** — The Vitest test file tests locally-defined copies of `setDebriefPending`, `updateDebriefReflectionSubmitted`, etc. rather than the actual `AuthProvider` functions. Divergence between the test copy and the production implementation would be invisible. Architectural limitation of testing hooks/closures without a full React context harness; address in Epic 9 test infrastructure work. [`packages/supabase/__tests__/auth/authProvider.debrief.test.ts`]
+
 ## Deferred from: post-MVP navigation review (2026-06-04)
 
 - **NAV-D1: Ladder as a dedicated bottom tab** — The current UX design specifies the Ladder screen as reachable from the `CourageLadderEntryCard` on the Home screen (FR-LADDER-01: "screen reachable from the home screen entry card"), not as a bottom tab. The tab bar is intentionally Home + Settings only at MVP. If a Ladder tab is added post-MVP, it requires a UX design update (tab bar structure, icon, active/inactive states) and a PRD change before implementation. [`apps/mobile/app/(app)/_layout.tsx`, `_bmad-output/planning-artifacts/epics.md:FR-LADDER-01`]
@@ -301,6 +321,24 @@
 - **D-3.4-6: No client-side UUID format validation in panel export form** — Server rejects invalid UUIDs; UX-only concern; add simple regex guard in a polish pass. [`supabase/functions/dpo-panel/index.ts`]
 
 - **D-3.4-7: `dpo-erase-user` partial erasure — RPC nulls PII but auth ban step has no rollback** — Pre-existing Story 3.3 Edge Function; partial erasure leaves `auth.users` un-banned after PII is nulled; compensating transaction needed for Epic 4. [`supabase/functions/dpo-erase-user/index.ts`]
+
+## Deferred from: spec review of 5-3-erp-session-completion-debrief-and-home-state (2026-06-07)
+
+- **5-3-W1: `resolveDisplayState()`/`formatTimeRemaining()` snapshot** — Both values are computed once at mount with `Date.now()`; the displayed countdown freezes and state-7→state-8 transition never fires while the screen is open. Epic 6 replaces with real-time countdown and PowerSync `expires_at`. [T6.2, T6.5 — `apps/mobile/app/(app)/index.tsx`]
+
+- **5-3-W2: `SESSION_DEBRIEF_PENDING` key persists after state-7 complete + window expiry** — After the user submits their state-7 reflection, `resolveDisplayState` correctly returns `'default'`, so no visible bug; but the MMKV key is never deleted and persists indefinitely. Epic 6 lifecycle cleanup required. [T2.1, T5.3 — `packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **5-3-W3: Sign-out race in `updateDebriefReflectionSubmitted`** — Async gap between `enqueue()` and `updateDebriefReflectionSubmitted()` call; sign-out during this window causes the MMKV write to silently no-op (`authState.userId` becomes null), leaving `reflectionSubmitted: false` on next login and home showing state 8 despite the reflection having been submitted. Pre-existing MMKV atomicity limitation. [T2.1 — `packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **5-3-W4: Simultaneous `SESSION_IN_PROGRESS` + `SESSION_DEBRIEF_PENDING` on app kill** — If the app is killed between writing `SESSION_DEBRIEF_PENDING` (step 6) and deleting `SESSION_IN_PROGRESS` (step 7) in `handleCompleteSession`, both keys are present on next launch. The recovery modal (Story 5.2) and debrief state would both activate simultaneously. Epic 6 recovery flow should detect and resolve this contradiction. [T4.4 — `apps/mobile/app/session/active.tsx`]
+
+- **5-3-W5: `getSessionIntention`/`hasSessionIntention` store-only guard** — Dev Notes correctly specify that these session-scoped functions need only the MMKV store guard (no userId guard). This is an implementation detail for T2.1 — covered in Dev Notes §AuthProvider additions summary. [Dev Notes]
+
+- **5-3-W6: SudsArcChart individual dot accessibility** — Each dot renders with no per-value accessibility label; screen readers hear only the container-level `accessibilityLabel`. Full per-reading description deferred to Epic 9 accessibility audit (Story 9-3). [T3.1 — `packages/ui/src/components/SudsArcChart.tsx`]
+
+- **5-3-W7: Crisis contact phone numbers not localised** — Hardcoded English numeral strings in i18n keys for Indian crisis helplines. MVP scope decision; revisit if the app adds non-English speaking users or the numbers change. [T5.2 — `apps/mobile/app/session/debrief.tsx`]
+
+- **5-3-W8: `resolveDisplayState`/`formatTimeRemaining` belong in `packages/core`** — Both are pure derivation functions with no RN dependencies. Per the derived-state pattern they should live in `packages/core`. Epic 6 extracts them to `resolveHomeScreenState()` as explicitly documented in the spec with inline comments. **Addendum (verification 2026-06-08):** the 6h post-exposure window is duplicated as a literal `21600000` in `apps/mobile/app/session/debrief.tsx` (late-debrief detection) and as `POST_EXPOSURE_WINDOW_MS = 6 * 60 * 60 * 1000` in `apps/mobile/app/(app)/index.tsx`. The two will silently drift if one is changed. The packages/core extraction should expose a single `POST_EXPOSURE_WINDOW_MS` constant and have both files import it. [T6.2, T6.5 — `apps/mobile/app/(app)/index.tsx`, `apps/mobile/app/session/debrief.tsx`]
 
 ## Deferred from: code review of 3-3-dpo-edge-functions-and-audit-log (2026-05-27)
 
