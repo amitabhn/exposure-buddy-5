@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: verification of 5-3-erp-session-completion-debrief-and-home-state (2026-06-08)
+
+- **VER-5-3-1: `isCompletingSession` survives Fast Refresh on the success path** — In `apps/mobile/app/session/active.tsx`, `handleCompleteSession` only resets `setIsCompletingSession(false)` in the `!result.ok` early-return and the `catch` block. On the success path the screen `router.push`es to debrief and the active screen unmounts in production, so the stuck flag is invisible. During dev, Fast Refresh preserves component state across edits — a subsequent fresh session lands on `active.tsx` with `isCompletingSession=true` from the previous attempt, and the "Finish session" button renders gray and ignores taps. Workaround: full reload (Cmd+R). Production behaviour is correct; consider adding a `useEffect` cleanup or resetting the flag immediately after the navigation `router.push` for dev ergonomics. [`apps/mobile/app/session/active.tsx:77-83, 153`]
+
+- **VER-5-3-2: `session/_layout.tsx` leaves swipe-back enabled on `debrief`; "Done is the only exit" is implicit** — `pause`, `active`, and `grounding` explicitly set `gestureEnabled: false`; `debrief` inherits the default (enabled). A user can swipe back from debrief without committing reflection; the state-7/8 entry on home preserves `SESSION_DEBRIEF_PENDING` so the flow still works correctly on return. The behaviour is benign but undocumented — neither the spec nor a code comment mentions that the gestural exit is intentional. Add either a `gestureEnabled: false` on debrief (if Done should be the only exit) or a comment on `session/_layout.tsx` explaining why debrief is allowed to be gesturally dismissed. [`apps/mobile/app/session/_layout.tsx`]
+
 ## Deferred from: backlog review (2026-06-07)
 
 - **OB-D1: Onboarding screen should not mandate entry of challenges** — The current onboarding ladder setup requires users to enter fear ladder items before proceeding. This is a UX friction point; users should be able to skip challenge entry during onboarding and add items later from the main Courage Ladder screen. Requires UX design update for the skip flow and a change to the onboarding progress gate logic. [`apps/mobile/app/(onboarding)/ladder.tsx`]
@@ -332,7 +338,7 @@
 
 - **5-3-W7: Crisis contact phone numbers not localised** — Hardcoded English numeral strings in i18n keys for Indian crisis helplines. MVP scope decision; revisit if the app adds non-English speaking users or the numbers change. [T5.2 — `apps/mobile/app/session/debrief.tsx`]
 
-- **5-3-W8: `resolveDisplayState`/`formatTimeRemaining` belong in `packages/core`** — Both are pure derivation functions with no RN dependencies. Per the derived-state pattern they should live in `packages/core`. Epic 6 extracts them to `resolveHomeScreenState()` as explicitly documented in the spec with inline comments. [T6.2, T6.5 — `apps/mobile/app/(app)/index.tsx`]
+- **5-3-W8: `resolveDisplayState`/`formatTimeRemaining` belong in `packages/core`** — Both are pure derivation functions with no RN dependencies. Per the derived-state pattern they should live in `packages/core`. Epic 6 extracts them to `resolveHomeScreenState()` as explicitly documented in the spec with inline comments. **Addendum (verification 2026-06-08):** the 6h post-exposure window is duplicated as a literal `21600000` in `apps/mobile/app/session/debrief.tsx` (late-debrief detection) and as `POST_EXPOSURE_WINDOW_MS = 6 * 60 * 60 * 1000` in `apps/mobile/app/(app)/index.tsx`. The two will silently drift if one is changed. The packages/core extraction should expose a single `POST_EXPOSURE_WINDOW_MS` constant and have both files import it. [T6.2, T6.5 — `apps/mobile/app/(app)/index.tsx`, `apps/mobile/app/session/debrief.tsx`]
 
 ## Deferred from: code review of 3-3-dpo-edge-functions-and-audit-log (2026-05-27)
 
