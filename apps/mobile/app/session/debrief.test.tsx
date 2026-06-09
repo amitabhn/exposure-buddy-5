@@ -134,8 +134,8 @@ describe('DebriefScreen — FR-ADVERSE-01 crisis contacts', () => {
     useLocalSearchParams.mockReturnValue({ ...baseParams, debriefSuds: '8', peakSuds: '6' })
     const { getByLabelText } = render(<DebriefScreen />)
     expect(getByLabelText('iCall: 9152987821')).toBeTruthy()
-    expect(getByLabelText('Vandrevala Foundation: 1860-2662-345')).toBeTruthy()
-    expect(getByLabelText('NIMHANS: 080-46110007')).toBeTruthy()
+    expect(getByLabelText('Vandrevala Foundation: 9999-666-555')).toBeTruthy()
+    expect(getByLabelText('Tele MANAS: 1800-891-4416')).toBeTruthy()
   })
 
   it('shows crisis contacts when peakSuds = 8 and debriefSuds = 6', () => {
