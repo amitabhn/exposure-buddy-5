@@ -10,7 +10,7 @@ note: "Comprehensive feature list for team organization. All features drawn from
 
 ---
 
-## Phase 1 — MVP (Target: Months 1–6)
+## MVP — Core Platform (Target: Months 1–6)
 
 ### Onboarding & Anxiety Profile
 - [ ] Welcome flow explaining ERP therapy and how the app works
@@ -99,6 +99,25 @@ note: "Comprehensive feature list for team organization. All features drawn from
 
 ---
 
+## Phase 1 — India Launch
+
+### India Compliance & Localisation
+- [ ] DPDPA 2023 compliance: DPO appointed, explicit granular consent flows, 72-hour breach notification, data principal rights
+- [ ] India crisis helplines hardcoded and available offline: Tele MANAS 14416, KIRAN 1800-599-0019, iCall 9152987821, Vandrevala Foundation 9999-666-555, AASRA +91-22-27546669
+- [ ] Hindi language support: full UI and content translation
+- [ ] Hindi crisis keyword detection (Devanagari script) embedded in client binary
+- [ ] mini-SPIN ≥6 referral threshold: clinical input obtained before go-live
+- [ ] India-specific exposure content: workplace hierarchy, family dynamics, marriage pressure, joint family context
+- [ ] India payment methods: UPI, Paytm, credit/debit
+- [ ] India-specific community: regional language groups, cultural context matching
+
+### India Infrastructure
+- [ ] Android-primary validation: all core ERP flows pass performance NFRs on 2GB RAM, Android 10+, 4G
+- [ ] Load testing to 10,000 concurrent active users before go-live
+- [ ] Backend SLA validated for India business hours (06:00–24:00 IST)
+
+---
+
 ## Phase 2 — Growth (Target: Months 7–12)
 
 ### Full Therapist Dashboard
@@ -178,14 +197,8 @@ note: "Comprehensive feature list for team organization. All features drawn from
 - [ ] EAP integration pathway: connect with Employee Assistance Programs
 - [ ] Insurance / payer partnership pathway: PEPM contract model (NOCD/Cigna reference)
 
-### India Market Launch
-- [ ] Hindi language support: full UI and content translation
+### Regional Language Expansion
 - [ ] Regional language support: Marathi, Tamil, Telugu (evaluate by demand)
-- [ ] India-specific exposure content: workplace hierarchy, family dynamics, marriage pressure, joint family context
-- [ ] Localized pricing: ₹200–500/month subscription tiers
-- [ ] India payment methods: UPI, Paytm, credit/debit
-- [ ] India-specific community: regional language groups, cultural context matching
-- [ ] Corporate wellness partnerships: B2B India enterprise channel (fastest-growing segment)
 
 ### Clinical Outcomes & Research
 - [ ] De-identified outcomes dataset: aggregate SUDS reduction, completion rates (IRB protocol required)
@@ -221,7 +234,7 @@ note: "Comprehensive feature list for team organization. All features drawn from
 
 ## Technical Milestones (Cross-Phase)
 
-### MVP Technical Gates (Phase 1 — must complete before launch)
+### MVP Technical Gates (must complete before launch)
 - [ ] HIPAA infrastructure in place: Supabase Team + BAA + RLS + audit log
 - [ ] Offline sync verified: Outbox Pattern + CRDT tested for conflict scenarios
 - [ ] Security audit: third-party penetration test + vulnerability assessment

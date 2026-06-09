@@ -41,7 +41,7 @@ This document provides the complete epic and story breakdown for exposure-buddy,
 FR-AUTH-01: Users authenticate using email address or phone number; both paths use OTP verification
 FR-AUTH-02: Logged-out users access all 3 preview challenges without authentication; challenge completions are stored on-device only (local storage, no backend record); on account creation, local completions are written to the user's account (re-assign, not copy); if the user already has a completion for a given challenge, the existing record is kept (first-completion-wins); anonymous progress is intentionally not retained across app reinstalls
 FR-SAFE-01: Account creation presents two mandatory checkboxes before the creation action executes: (1) user is 18+ and (2) Exposure Buddy is a general health and wellness app and its content is not valid for medico-legal proceedings; account creation is disabled until both boxes are checked
-FR-ONBOARD-01: Users complete the 3-question mini-SPIN questionnaire during onboarding (each item scored 0–4, maximum score 12); three-tier response based on score: (1) score 0–3 — no message, proceed to app; (2) score 4–5 — inline soft advisory shown, no tap required, user proceeds; (3) score ≥6 — full referral screen with iCall, Vandrevala Foundation, and NIMHANS contacts, explicit acknowledgement tap required before proceeding; full app access granted after acknowledgement at any score; ≥6 threshold pending clinical sign-off for Indian urban adult population in a wellness (non-SaMD) context
+FR-ONBOARD-01: Users complete the 3-question mini-SPIN questionnaire during onboarding (each item scored 0–4, maximum score 12); three-tier response based on score: (1) score 0–3 — no message, proceed to app; (2) score 4–5 — inline soft advisory shown, no tap required, user proceeds; (3) score ≥6 — full referral screen with market-configured crisis resource contacts, explicit acknowledgement tap required before proceeding; full app access granted after acknowledgement at any score; ≥6 referral threshold requires clinical input before go-live in each launch market
 FR-ONBOARD-02: Users complete a 3–4 question conversational symptom check followed by a 15-item safety behaviour checklist; responses stored and used to personalise initial hierarchy template suggestions
 FR-ONBOARD-03: Psychoeducation on the anxiety cycle presented inline immediately before the user's first exposure; avoidance explainer presented at the moment a safety behaviour item is selected — not as a front-loaded module
 ~~FR-GATE-01: REMOVED~~ — The exposure hierarchy is immediately accessible after onboarding; no prerequisite session required before building the courage ladder
@@ -64,7 +64,7 @@ FR-NOTIF-01: After 2 consecutive days of inactivity, one re-engagement notificat
 FR-NOTIF-02: Notification content contains no streak counters, missed-day counts, streak-reset warnings, or loss-framing constructs
 FR-NOTIF-03: Users control notification delivery timing and can opt out of individual notification types from app settings; opt-out honoured immediately
 FR-NOTIF-04: A push notification is sent 3 hours after an exposure session is completed if the user has not yet submitted their post-session reflection and the 6-hour reflection window is still open; notification copy is non-punitive and frames the window as still available; once dispatched, the session is marked notified (window_notified_at) and no further window-close notifications are sent for that session; users with no registered push token are skipped without error
-FR-CRISIS-01: Hardcoded keyword pre-filter runs on user-entered text fields; detection triggers immediate in-app display of crisis resources (iCall +91-9152987821, Vandrevala Foundation 1860-2662-345, NIMHANS 080-46110007) — contacts are hardcoded strings that display without a network call
+FR-CRISIS-01: Hardcoded keyword pre-filter runs on user-entered text fields; detection triggers immediate in-app display of market-configured crisis resource contacts — contacts are hardcoded strings that display without a network call
 FR-CRISIS-02: Crisis keyword list covers English and Hindi; embedded in client binary; updated via app release only
 FR-CRISIS-03: SOS panic button rendered persistently on all screens during an active ERP session; activating it launches a breathing coach and 5-4-3-2-1 grounding sequence in an overlay without terminating or navigating away from the session
 FR-I18N-01: All user-facing strings externalised to a localisation layer; no UI string hardcoded in application code; English is the only content locale at MVP launch
@@ -73,8 +73,8 @@ FR-ANALYTICS-01: First-party analytics capture two Day 1 primary metrics: (1) co
 FR-ANALYTICS-02: No user health data, session content, SUDS records, or PII transmitted to any third-party analytics, advertising, or data-broker service
 FR-ANALYTICS-BOUNDARY-01: No analytics event writes occur in Phase 1 (MVP); all candidate Phase 1 events (SUDS ratings, session completions, step completions, abandonment status) are classified as clinical session data and stored in the session schema only; the analytics_events table exists in the Phase 1 migration as a schema stub with a CHECK constraint permitting zero event_name values at MVP; adding an event name requires a database migration with explicit approval from both the lead clinician (clinical necessity test) and data controller (DPDPA purpose limitation test); when Phase 2 analytics activate, raw SUDS values and session_id are classified as health data and prohibited in analytics_events — permitted analytics fields are limited to device context, UI interaction timing, and pseudonymous session_token (SHA-256(session_id), irreversible)
 FR-SUDS-ANCHOR-01: The SUDS scale displays a static set of reference anchors on every interaction where a rating is collected (pre-exposure rating, in-session SUDS log, daily check-in, and debrief); static label set: 0 = completely calm, 2 = very mild, 4 = mild, 6 = moderate, 8 = severe, 10 = worst imaginable; anchors rendered as inline subtext visible at all times during rating entry — not behind a tooltip or expandable control
-FR-ADVERSE-01: When a user logs a SUDS entry of ≥8 during an active ERP session, the app immediately presents a non-blocking grounding offer (banner or prompt) with the option to open the CalmMe overlay (breathing + 5-4-3-2-1 sequence); the offer does not terminate the session and is dismissible; when the debrief exit SUDS rating is ≥8, crisis resource contacts (iCall, Vandrevala Foundation, NIMHANS) are displayed inline on the debrief screen alongside standard debrief content
-FR-ADVERSE-02: When a daily check-in SUDS rating is ≥8, crisis resource contacts (iCall, Vandrevala Foundation, NIMHANS) are displayed inline on the somatic technique routing screen alongside the technique recommendation; the contacts are visible without any additional tap or navigation
+FR-ADVERSE-01: When a user logs a SUDS entry of ≥8 during an active ERP session, the app immediately presents a non-blocking grounding offer (banner or prompt) with the option to open the CalmMe overlay (breathing + 5-4-3-2-1 sequence); the offer does not terminate the session and is dismissible; when the debrief exit SUDS rating is ≥8, market-configured crisis resource contacts are displayed inline on the debrief screen alongside standard debrief content
+FR-ADVERSE-02: When a daily check-in SUDS rating is ≥8, market-configured crisis resource contacts are displayed inline on the somatic technique routing screen alongside the technique recommendation; the contacts are visible without any additional tap or navigation
 FR-DPO-01: A Data Protection Officer is appointed before India launch; the DPO's contact email is published in the in-app Privacy Notice and accessible from app settings without authentication
 FR-DPO-02: Users submit data export requests from Settings → Privacy → Request my data; each request is logged in the dpo_audit_log table with timestamp, requesting user_id, and request type; export is delivered to the user's registered email within 72 hours of request
 FR-DPO-03: Users submit account deletion requests from Settings → Privacy → Delete my account; deletion enters a 30-day soft-delete window during which the account is inaccessible to the user; after 30 days, all personal data is permanently deleted except records required for DPDPA 2023 compliance retention (consent records retained for account lifetime plus 2 years post-deletion)
@@ -101,7 +101,7 @@ NFR-PERF-02: ERP session SUDS log operations — from user tap to confirmed loca
 NFR-PERF-03: Daily check-in submission routes the user to the recommended technique screen in <1 second from tap on target device profile
 NFR-OFFLINE-01: All three ERP session phases (pre-session briefing, active SUDS logging, debrief) function fully without data loss when the device has no network connectivity at any point during the session
 NFR-OFFLINE-02: Session data logged during offline ERP sessions syncs automatically within 30 seconds of connectivity restoration; no user action required; no log entry lost
-NFR-OFFLINE-03: Crisis resource contacts (iCall, Vandrevala Foundation, NIMHANS) stored on-device and display without a network call at all times
+NFR-OFFLINE-03: Crisis resource contacts stored on-device and display without a network call at all times
 NFR-REL-01: Backend API achieves 99.5% uptime during India business hours (06:00–24:00 IST) as measured by uptime monitoring at 1-minute resolution
 NFR-REL-02: If the app crashes during an active ERP session, all SUDS log entries recorded before the crash are recoverable on the first restart following the crash; no in-session data permanently lost
 NFR-SEC-01: All user health data (anxiety ratings, SUDS records, session logs, symptom check responses, safety behaviour data) encrypted at rest using AES-256 and in transit using TLS 1.3 minimum
@@ -324,7 +324,7 @@ Users select a calming technique and receive a mandatory pre-exposure briefing b
 
 ### Epic 7: Calm Me, Grounding & Crisis Support Toolkit
 
-Users access the persistent Calm Me SOS overlay with courage affirmation and technique selection, a breathing coach (box breathing, 4-4-4-4 pattern), the 5-4-3-2-1 sensory grounding exercise, the helpline signpost screen (iCall, Vandrevala Foundation, NIMHANS — config-driven), and the fully-implemented mandatory grounding screen for mid-session stops.
+Users access the persistent Calm Me SOS overlay with courage affirmation and technique selection, a breathing coach (box breathing, 4-4-4-4 pattern), the 5-4-3-2-1 sensory grounding exercise, the helpline signpost screen (market-configured, config-driven via `packages/core/src/config/helplines.ts`), and the fully-implemented mandatory grounding screen for mid-session stops.
 
 **FRs covered at MVP:** FR-CRISIS-03 (persistent SOS overlay during sessions), FR-SOM-01 (partial: box breathing + 5-4-3-2-1), FR-SOM-02 (partial: visual-only pacing for covered techniques)
 **Post-MVP:** FR-CBT-01, FR-CBT-02, FR-CBT-03 (thought record, cognitive distortions, behavioural experiment), FR-SOM-01/FR-SOM-02 remaining techniques (4-7-8, Bhramari, Nadi Shodhana, body scan), FR-CHECKIN-01 (daily check-in), FR-ADVERSE-02 (check-in ≥8 crisis contacts)
@@ -350,10 +350,12 @@ Users view SUDS trend graphs (weekly and monthly), a chronological exposure hist
 
 *(Verification and audit epic — all infrastructure and implementation constraints were addressed in the epic that introduced each feature. This epic proves the system meets its non-functional requirements under production conditions.)*
 
-i18n full locale coverage confirmed (all strings use `t()` calls, no literals) and RTL rendering validated. Accessibility audit: 5 VoiceOver/TalkBack flows on physical devices. RLS policy coverage audit across all epics. Performance benchmarks validated on target device profile. Offline resilience edge-case testing (conflict resolution, sync queue overflow, 2G fallback on Indian networks). Device compatibility matrix complete. Load testing: 10,000 concurrent users at India launch.
+**MVP cut (Stories 9.1–9.8):** Accessibility audit, offline resilience, MMKV hygiene, E2E smoke suite, error/empty state UX, performance budget, haptic/sound degradation.
 
-**FRs covered:** FR-I18N-01, FR-I18N-02
-**NFR verification:** NFR-PERF-01 (<3s cold start P90), NFR-OFFLINE-01–03 (edge cases), NFR-REL-01 (99.5% uptime), NFR-REL-02 (crash recovery), NFR-SEC-01–06 (audit), NFR-DEVICE-01–02, NFR-ACCESS-01 (full audit), NFR-SCALE-01 (load test)
+**Phase 1 India gate (Story 9.9):** i18n full locale coverage + Hindi activation, RTL rendering validation, 2G fallback on Indian networks, device compatibility matrix, load testing to 10,000 concurrent users.
+
+**FRs covered:** FR-I18N-01, FR-I18N-02 *(Phase 1 gate — Story 9.9)*
+**NFR verification:** NFR-PERF-01 (<3s cold start P90), NFR-OFFLINE-01–03 (edge cases), NFR-REL-01 (99.5% uptime), NFR-REL-02 (crash recovery), NFR-SEC-01–06 (audit), NFR-DEVICE-01–02, NFR-ACCESS-01 (full audit), NFR-SCALE-01 (load test) *(NFR-SCALE-01, NFR-DEVICE-01 India profile, and 2G offline testing are Phase 1 gate — Story 9.9)*
 **Architecture:** ARC-004 (MMKV storage hardening), ARC-005 (PowerSync adapter full validation), ARC-012 (analytics boundary confirmation)
 
 ---
@@ -1460,9 +1462,11 @@ export interface Helpline {
   displayNumber: string; // formatted for display
 }
 export const HELPLINES: Helpline[] = [
-  { id: 'icall',      name: 'iCall',                number: '9152987821',  displayNumber: '9152987821' },
-  { id: 'vandrevala', name: 'Vandrevala Foundation', number: '18602662345', displayNumber: '1860-2662-345' },
-  { id: 'nimhans',    name: 'NIMHANS',               number: '08046110007', displayNumber: '080-46110007' },
+  { id: 'telemanas',  name: 'Tele MANAS',            number: '18008914416', displayNumber: '1800-891-4416' },
+  { id: 'kiran',      name: 'KIRAN',                 number: '18005990019', displayNumber: '1800-599-0019' },
+  { id: 'icall',      name: 'iCall',                 number: '9152987821',  displayNumber: '9152987821'    },
+  { id: 'vandrevala', name: 'Vandrevala Foundation',  number: '9999666555',  displayNumber: '9999-666-555'  },
+  { id: 'aasra',      name: 'AASRA',                 number: '02227546669', displayNumber: '+91-22-27546669' },
 ];
 ```
 This file contains only data and types — no `Linking` import, no RN dependencies; ARC-003 is satisfied; Story 7.4 wires it to the UI
@@ -2139,3 +2143,43 @@ So that I can use the app discreetly without losing any therapeutic feedback (UX
 **Given** the breathing coach specifically
 **When** the device is on silent
 **Then** the 4-4-4-4 box breathing cycle is communicated entirely through the animated visual (circle scale, background colour shift, and text label "Breathe in" / "Hold" / "Breathe out"); audio is an enhancement, not a requirement; a manual test on a muted device is documented in the story close-out checklist
+
+---
+
+### Story 9.9: i18n Coverage, Hindi Activation & Phase 1 India Launch Verification ⚑ Phase 1 Gate
+
+> **Phase 1 gate — must complete before India launch; not required for the initial MVP cut.**
+
+As a developer closing out the India launch,
+I want locale coverage verified end-to-end, Hindi activated, RTL rendering validated, the India device profile confirmed, and load testing passed,
+So that every Phase 1 India-specific launch requirement is machine-verified before any Indian user reaches the app (FR-I18N-01, FR-I18N-02, NFR-SCALE-01, NFR-DEVICE-01).
+
+**Acceptance Criteria:**
+
+**Given** the full app source tree
+**When** the i18n coverage audit runs
+**Then** a script (or CI step) confirms no user-facing string is hardcoded — every visible string in `apps/mobile` routes through a `t()` call or is a `tel:` / `mailto:` URI literal in crisis contacts; any violation is a P0 blocker; the audit covers all screens introduced in Epics 2–9
+
+**Given** `packages/core/src/i18n/locales/en.json` and `packages/core/src/i18n/locales/hi.json`
+**When** this story is implemented
+**Then** `hi.json` contains a translation for every key present in `en.json`; no key is missing or has an English placeholder value; the existing Jest key-structure test in Story 1.6 is extended to assert key parity between `en.json` and `hi.json`; the Hindi locale is activated in the app's i18n configuration (not just scaffolded as a stub)
+
+**Given** the app is running with the Hindi locale active
+**When** any screen is rendered
+**Then** all strings render in Devanagari script without layout overflow, clipping, or broken wrapping; the SUDS slider labels, session phase headers, debrief copy, onboarding prompts, and Calm Me affirmation are all verified; a manual walkthrough of the core ERP session flow in Hindi is documented in the story close-out checklist
+
+**Given** RTL layout support is implemented (scaffolded in Story 1.6)
+**When** the device locale is set to an RTL language (e.g. Arabic for test purposes)
+**Then** all screens render with correct RTL mirroring — navigation arrows reverse, text alignment flips, and no element overflows its container; the RTL audit covers the home screen, hierarchy builder, ERP session flow, debrief, and Calm Me overlay
+
+**Given** the India device reference profile (Android, 2GB RAM, Snapdragon 439 or equivalent — Redmi 9A / Samsung Galaxy M02 tier)
+**When** the device compatibility matrix is completed
+**Then** all functional requirements pass on this profile with no regressions against the performance budgets established in Story 9.7; the compatibility matrix is documented in `apps/mobile/docs/device-compatibility.md`; testing may use an emulator with 2× CPU throttle if a physical device is unavailable
+
+**Given** network conditions on Indian mobile networks
+**When** the 2G fallback scenario is tested
+**Then** all three ERP session phases (pre-session briefing, active SUDS logging, debrief) complete without data loss when network is throttled to 2G (≤50 kbps downstream) or dropped entirely during an active session; the sync queue drains correctly when connectivity is restored; crisis resource contacts render without a network call; this test extends the offline integration tests from Story 9.2 with the 2G throttle condition
+
+**Given** the production backend
+**When** the load test runs
+**Then** a load test simulating 10,000 concurrent active users is executed against the production (or production-equivalent staging) backend; all API endpoints used in the core ERP session loop respond within NFR-PERF-02 targets (SUDS log write ≤500ms P95) under load; no errors exceed 0.1% error rate; results are documented in `apps/mobile/docs/load-test-results.md`; the load test must complete and pass before the India launch date is confirmed

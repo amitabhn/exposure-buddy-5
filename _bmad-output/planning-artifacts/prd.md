@@ -1,9 +1,11 @@
 ---
 stepsCompleted: ["step-01-init", "step-02-discovery", "step-e-01-discovery", "step-e-02-review", "step-e-03-edit"]
-lastEdited: "2026-05-07"
+lastEdited: "2026-06-07"
 editHistory:
   - date: "2026-05-07"
     changes: "Added all 9 BMAD body sections: Executive Summary, Success Criteria, Product Scope, User Journeys, Domain Requirements, Innovation Analysis, Project-Type Requirements, Functional Requirements, Non-Functional Requirements"
+  - date: "2026-06-07"
+    changes: "Reframed India from primary market to example/launch market; removed cost objective from Executive Summary and Success Criteria; split MVP section into MVP (core platform) and Phase 1 (India launch) — India-specific compliance and localisation items moved to Phase 1"
 inputDocuments:
   - "_bmad-output/planning-artifacts/product-brief-exposure-buddy.md"
   - "_bmad-output/planning-artifacts/milestone-features-exposure-buddy.md"
@@ -24,7 +26,8 @@ classification:
   projectContext: "greenfield"
   primaryFailureMode: "Mode 2 — user quits (avoidance)"
   complianceTrajectory:
-    mvp: "DPDPA 2023 (India) — health data as special category, explicit granular consent, DPO required, 72-hour breach notification"
+    mvp: "Platform security baseline — AES-256 at rest, TLS 1.3 in transit, RLS on all health data tables; on-device crisis detection; first-party analytics only"
+    phase1: "DPDPA 2023 (India) — health data as special category, explicit granular consent, DPO required, 72-hour breach notification"
     phase2: "HIPAA (US) — Supabase BAA, RLS enforcement, PHI audit log, AES-256 + TLS 1.3; UK/EU GDPR — special category health data, data subject rights, supervisory authority notification"
     phase3: "EU AI Act — high-risk AI classification likely for mental health AI features; CDSCO SaMD monitoring for India"
     architectureNote: "MVP data model and RLS policies must be HIPAA-compatible and GDPR-compatible by design to avoid data layer rebuild at Phase 2"
@@ -32,7 +35,7 @@ mvpScope:
   in:
     - "Taste experience: 3 preview challenges; logged-in → home; logged-out → Sign In / Sign Up / Try a Challenge"
     - "Auth: email or phone + OTP"
-    - "mini-SPIN questionnaire (3-item): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory; score ≥6 full referral screen (iCall/Vandrevala/NIMHANS) with acknowledgement required; clinical sign-off pending for ≥6 threshold in Indian urban adult wellness context"
+    - "mini-SPIN questionnaire (3-item): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory; score ≥6 full referral screen (crisis resource contacts) with acknowledgement required"
     - "Conversational symptom check (3–4 questions) + safety behaviour checklist (15-item)"
     - "Psychoeducation inline (not front-loaded): anxiety cycle before first exposure; avoidance explainer at safety behaviour selection"
     - "Exposure readiness gate: REMOVED — hierarchy immediately accessible after onboarding; no prerequisite session required"
@@ -43,10 +46,10 @@ mvpScope:
     - "Daily check-in → technique routing: score ≥7 somatic first; 4–6 grounding; 1–3 cognitive/exposure"
     - "Progress tracking: SUDS trend graph, exposure history"
     - "Re-engagement notifications: Day 2 + Day 5; warm language; no streak/guilt"
-    - "Crisis keyword detection: hardcoded pre-filter, English + Hindi, Tier 1/2, iCall/Vandrevala/NIMHANS hardcoded"
+    - "Crisis keyword detection: hardcoded pre-filter, English, Tier 1/2, generic crisis resource contacts hardcoded"
     - "SOS panic button: breathing coach + grounding, accessible mid-session"
-    - "i18n architecture: English content only; framework supports Hindi, other Indian regional, and international languages"
-    - "DPDPA 2023 compliance (non-negotiable)"
+    - "i18n architecture: English content only; framework supports additional locales without code changes"
+    - "Security baseline: AES-256 at rest, TLS 1.3, RLS on all health data tables, first-party analytics only"
     - "Platform: React Native (Android-primary, iOS) + React web, mid-range device optimised"
     - "First-party analytics: core loop retention + SUDS cadence as Day 1 metrics"
   deferred:
@@ -72,11 +75,11 @@ mvpScope:
 
 ## Executive Summary
 
-India has 197 million people living with mental health disorders — the largest such population in the world — and fewer than 9,000 psychiatrists to serve them. The treatment gap exceeds 80%. For the ~25–30 million Indians managing social anxiety, the most effective intervention — Exposure and Response Prevention (ERP) therapy — is inaccessible: cost-prohibitive, scarce, and heavily stigmatised.
+The global treatment gap for mental health disorders is sharpest in high-growth, therapist-scarce markets where effective interventions remain cost-prohibitive, inaccessible, and heavily stigmatised. For the hundreds of millions managing social anxiety worldwide, the most effective intervention — Exposure and Response Prevention (ERP) therapy — is out of reach for the vast majority. India illustrates the scale: 197 million people living with mental health disorders, fewer than 9,000 psychiatrists, a treatment gap exceeding 80%, and an estimated 25–30 million managing social anxiety — yet no structured self-help app exists specifically for facing and overcoming social fears.
 
-Exposure Buddy is a cross-platform mobile and web self-help app that helps users gradually face and overcome the situations and fears they've been avoiding, at ₹200–500/month, designed for urban Indian users. It is not a therapy app and is not a substitute for professional medical care or any form of therapy. The app guides users through personalised, graduated real-world challenges with structured pre-challenge briefing, real-time SUDS (Subjective Units of Distress Scale) logging, and debrief — making progress visible in live data. Built India-first: challenge templates, cultural framing, and compliance architecture are native to the Indian context from day one.
+Exposure Buddy is a cross-platform mobile and web self-help app that helps users gradually face and overcome the situations and fears they've been avoiding. It is not a therapy app and is not a substitute for professional medical care or any form of therapy. The app guides users through personalised, graduated real-world challenges with structured pre-challenge briefing, real-time SUDS (Subjective Units of Distress Scale) logging, and debrief — making progress visible in live data.
 
-India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No incumbent — not Amaha, not Tele MANAS, not any international app — offers a structured self-help app for facing and overcoming social fears built specifically for India. Phase 1 targets India launch (Months 1–6); Phase 2 expands to English-speaking international markets (Months 7–18).
+The mental health app market in Asia-Pacific grows at 17.55% CAGR. No incumbent offers a structured self-help app for facing and overcoming social fears. The MVP delivers the core ERP platform; Phase 1 launches in India with market-specific compliance and localisation; Phase 2 expands to English-speaking international markets (Months 7–18).
 
 ## Success Criteria
 
@@ -90,10 +93,9 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 - <5% monthly churn for paid subscribers
 - 2–4× conversion rate for users who complete one full exposure before paywall vs. those who do not
 
-**India Business Objectives (Year 1):**
+**Phase 1 Launch Objectives (Year 1):**
 - 10,000 MAU within 12 months of India launch
 - 100+ active verified clinician accounts generating referrals within 12 months
-- Positive unit economics at 12 months: LTV > 3× CAC at ₹200–500/month pricing
 - 1–2 signed corporate wellness pilot contracts (B2B India channel)
 
 **Day 1 Leading Indicators:**
@@ -102,12 +104,12 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 
 ## Product Scope
 
-### MVP — India Launch (Months 1–6)
+### MVP — Core Platform
 
 **In scope:**
 - Taste experience: 3 preview challenges accessible without authentication; logged-in users route to home; logged-out users route to Sign In / Sign Up / Try a Challenge
 - Authentication: email or phone number verified by OTP
-- mini-SPIN questionnaire (3-item, 0–4 per item, max 12): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory (no tap required); score ≥6 full referral screen (iCall, Vandrevala Foundation, NIMHANS) with explicit acknowledgement tap required before proceeding; full app access granted at any score; clinical sign-off pending for ≥6 threshold in Indian urban adult wellness context
+- mini-SPIN questionnaire (3-item, 0–4 per item, max 12): 3-tier response — score 0–3 no message; score 4–5 inline soft advisory (no tap required); score ≥6 full referral screen with crisis resource contacts and explicit acknowledgement tap required before proceeding; full app access granted at any score
 - Conversational symptom check (3–4 questions) + 15-item safety behaviour checklist
 - Psychoeducation inline, not front-loaded: anxiety cycle presented immediately before the user's first exposure; avoidance explainer presented at the moment a safety behaviour is selected
 - Exposure readiness gate: REMOVED — the exposure hierarchy is immediately accessible after onboarding; no prerequisite session required before building the courage ladder
@@ -118,13 +120,13 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 - Daily check-in with technique routing: score ≥7 → somatic techniques first; score 4–6 → grounding; score 1–3 → cognitive work or exposure
 - Progress tracking: SUDS trend graph, chronological exposure history log
 - Re-engagement notifications: sent on Day 2 and Day 5 of inactivity using warm, non-punitive language; no streak counters, loss-framing, or guilt mechanics
-- Crisis keyword detection: hardcoded pre-filter covering English and Hindi; triggers display of Tier 1/2 crisis resources — iCall (+91-9152987821), Vandrevala Foundation (1860-2662-345), NIMHANS (080-46110007) — hardcoded and available offline
+- Crisis keyword detection: hardcoded pre-filter covering English; triggers display of Tier 1/2 crisis resources — hardcoded and available offline; market-specific helpline numbers configured per launch market
 - SOS panic button: accessible from any screen during an active session; launches breathing coach and grounding sequence without navigating away from session context
-- i18n architecture: English content at launch; localisation framework supports Hindi, other Indian regional languages, and international languages without code changes
-- DPDPA 2023 compliance: non-negotiable before India go-live; includes DPO appointment, granular consent flows, 72-hour breach notification, and data principal rights
+- i18n architecture: English content at launch; localisation framework supports additional locales without code changes; RTL layout support implemented at MVP even if no RTL language launches at MVP
 - Sign-up safeguards: two mandatory checkbox confirmations at account creation — (1) user is 18+ and (2) user acknowledges Exposure Buddy is a general health and wellness app and its content is not valid for medico-legal proceedings; account creation is blocked without both
-- Platform: React Native (Android-primary, iOS) + React web; optimised for mid-range Android devices (2GB RAM, Android 10+)
+- Platform: React Native (Android + iOS) + React web; optimised for mid-range devices
 - First-party analytics: core loop retention and SUDS cadence captured as Day 1 primary metrics; no health data transmitted to third-party analytics services
+- Security baseline: AES-256 at rest, TLS 1.3 in transit, RLS on all health data tables
 
 **Deferred:**
 - ACT track (values clarification, Leaves on a Stream, Committed Action) → Phase 2
@@ -140,6 +142,18 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 - EU AI Act compliance → Phase 3 (AI features)
 - Corporate wellness module → Phase 3
 - Pricing and monetisation mechanics → post-MVP
+
+### Phase 1 — India Launch
+
+**In scope (additions to MVP core platform):**
+- DPDPA 2023 compliance: non-negotiable before India go-live; includes DPO appointment, granular consent flows, 72-hour breach notification, and data principal rights
+- India crisis resources — national helplines hardcoded and offline-available: Tele MANAS 14416 / 1800-891-4416 (govt, toll-free, 24×7); KIRAN 1800-599-0019 (govt, toll-free, 24×7); iCall 9152987821 (Mon–Sat 10 AM–8 PM); Vandrevala Foundation 9999-666-555 (24×7); AASRA +91-22-27546669 (24×7)
+- Crisis keyword detection extended to Hindi (Devanagari script); English + Hindi list embedded in client binary
+- mini-SPIN ≥6 referral threshold: clinical input required
+- i18n: Hindi locale activated; framework ready for Indian regional languages (Marathi, Tamil, Telugu) in Phase 2
+- Platform profile validated for India's market: Android-primary (2GB RAM, Android 10+, 4G with intermittent drops); all core ERP flows pass performance NFRs on this profile
+- Backend SLA scoped to India business hours (06:00–24:00 IST)
+- Load testing to 10,000 concurrent active users completed before India go-live
 
 ### Phase 2 — Global English Markets (Months 7–18)
 - US and international English launch
@@ -163,7 +177,7 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 
 ## User Journeys
 
-### JU-01: Urban Indian Professional (Primary — ages 22–38)
+### JU-01: Urban Professional (ages 22–38)
 
 **Goal:** Manage social anxiety in workplace and social settings (meetings, hierarchy, family pressure)
 **Entry point:** Google Play Store search or WhatsApp peer recommendation
@@ -225,7 +239,7 @@ India's mental health app market grows at 17.55% CAGR within Asia-Pacific. No in
 
 ## Domain Requirements
 
-### India — Primary Market
+### Phase 1 Launch Market — India
 
 **Governing framework:** Digital Personal Data Protection Act 2023 (DPDPA 2023); DPDP Rules 2025 target full enforcement by May 2027.
 
@@ -323,7 +337,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 - All core ERP session flows — pre-session briefing, real-time SUDS logging at all intervals, debrief — must function without network connectivity
 - Session data written to local storage during active exposure; automatic background sync within 30 seconds of connectivity restoration; no user action required
-- Crisis resource contacts (iCall, Vandrevala Foundation, NIMHANS) stored locally and displayed without a network call
+- Crisis resource contacts stored locally and displayed without a network call
 
 ### Internationalisation
 
@@ -350,7 +364,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### App Store Compliance
 
-- **Google Play (Android):** Mental health app content policy requires inclusion of crisis support resources for apps addressing mental health — crisis contacts (iCall, Vandrevala Foundation, NIMHANS) satisfy this requirement; no unsubstantiated health claims ("treats", "cures", "diagnoses" anxiety) may appear in store listing, app description, or in-app copy; intended-use declaration in Domain Requirements governs all claim language
+- **Google Play (Android):** Mental health app content policy requires inclusion of crisis support resources for apps addressing mental health — market-configured crisis contacts satisfy this requirement; no unsubstantiated health claims ("treats", "cures", "diagnoses" anxiety) may appear in store listing, app description, or in-app copy; intended-use declaration in Domain Requirements governs all claim language
 - **Apple App Store (iOS):** Rule 5.1.1 (health/medical) requires apps that offer health-related services to clearly disclose scope and limitations; the medico-legal disclaimer (FR-SAFE-01) and intended-use declaration satisfy this requirement; apps in the mental health category must provide crisis resources — satisfied by FR-CRISIS-01; the 18+ age gate (FR-SAFE-01) satisfies age-rating requirements
 
 ## Functional Requirements
@@ -367,7 +381,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Onboarding
 
-- **FR-ONBOARD-01:** Users complete the 3-item mini-SPIN questionnaire during onboarding (each item scored 0–4, maximum score 12); three-tier response: score 0–3 — no message, proceed to app; score 4–5 — inline soft advisory shown, no tap required, user proceeds; score ≥6 — full referral screen with iCall, Vandrevala Foundation, and NIMHANS contacts, explicit acknowledgement tap required before proceeding; full app access granted after acknowledgement at any score; ≥6 threshold pending clinical sign-off for Indian urban adult population in a wellness (non-SaMD) context
+- **FR-ONBOARD-01:** Users complete the 3-item mini-SPIN questionnaire during onboarding (each item scored 0–4, maximum score 12); three-tier response: score 0–3 — no message, proceed to app; score 4–5 — inline soft advisory shown, no tap required, user proceeds; score ≥6 — full referral screen with market-configured crisis resource contacts, explicit acknowledgement tap required before proceeding; full app access granted after acknowledgement at any score; ≥6 referral threshold requires clinical input before go-live in each launch market
 - **FR-ONBOARD-02:** Users complete a 3–4 question conversational symptom check followed by a 15-item safety behaviour checklist during onboarding; responses are stored and used to personalise the initial hierarchy template suggestions
 - **FR-ONBOARD-03:** Psychoeducation on the anxiety cycle is presented inline immediately before the user's first exposure is introduced; the avoidance explainer is presented at the moment a safety behaviour item is selected — not as a standalone front-loaded module
 
@@ -416,7 +430,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Crisis Detection and Safety
 
-- **FR-CRISIS-01:** A hardcoded keyword pre-filter runs on user-entered text fields; detection of a crisis keyword triggers an immediate in-app display of Tier 1 and Tier 2 crisis resources: iCall (+91-9152987821), Vandrevala Foundation (1860-2662-345), NIMHANS (080-46110007); contacts are hardcoded strings that display without a network call
+- **FR-CRISIS-01:** A hardcoded keyword pre-filter runs on user-entered text fields; detection of a crisis keyword triggers an immediate in-app display of Tier 1 and Tier 2 crisis resources; contacts are market-configured hardcoded strings that display without a network call
 - **FR-CRISIS-02:** The crisis keyword list covers English and Hindi; the list is embedded in the client and updated via app release, not remote configuration
 - **FR-CRISIS-03:** An SOS panic button is rendered persistently on all screens during an active ERP session; activating it launches a breathing coach and 5-4-3-2-1 grounding sequence in an overlay that does not terminate or navigate away from the active session
 
@@ -442,11 +456,11 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 - **NFR-OFFLINE-01:** All three ERP session phases (pre-session briefing, active SUDS logging, debrief) function fully and without data loss when the device has no network connectivity at any point during the session
 - **NFR-OFFLINE-02:** Session data logged during offline ERP sessions syncs automatically within 30 seconds of connectivity restoration; no user action is required to initiate sync; no log entry is lost
-- **NFR-OFFLINE-03:** Crisis resource contacts (iCall, Vandrevala Foundation, NIMHANS) are stored on-device and display without a network call at all times
+- **NFR-OFFLINE-03:** Crisis resource contacts are stored on-device and display without a network call at all times
 
 ### Reliability
 
-- **NFR-REL-01:** The backend API achieves 99.5% uptime during India business hours (06:00–24:00 IST) as measured by uptime monitoring at 1-minute resolution
+- **NFR-REL-01:** The backend API achieves 99.5% uptime during the primary business hours of the active launch market as measured by uptime monitoring at 1-minute resolution; Phase 1 India scope: 06:00–24:00 IST
 - **NFR-REL-02:** If the app crashes during an active ERP session, all SUDS log entries recorded before the crash are recoverable on the first restart following the crash; no in-session data is permanently lost
 
 ### Security and Compliance

@@ -177,18 +177,18 @@ export default function DebriefScreen() {
               <Text style={styles.crisisContact}>iCall: 9152987821</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => Linking.openURL('tel:18602662345')}
+              onPress={() => Linking.openURL('tel:9999666555')}
               accessibilityRole="link"
-              accessibilityLabel="Vandrevala Foundation: 1860-2662-345"
+              accessibilityLabel="Vandrevala Foundation: 9999-666-555"
             >
-              <Text style={styles.crisisContact}>Vandrevala Foundation: 1860-2662-345</Text>
+              <Text style={styles.crisisContact}>Vandrevala Foundation: 9999-666-555</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => Linking.openURL('tel:08046110007')}
+              onPress={() => Linking.openURL('tel:18008914416')}
               accessibilityRole="link"
-              accessibilityLabel="NIMHANS: 080-46110007"
+              accessibilityLabel="Tele MANAS: 1800-891-4416"
             >
-              <Text style={styles.crisisContact}>NIMHANS: 080-46110007</Text>
+              <Text style={styles.crisisContact}>Tele MANAS: 1800-891-4416</Text>
             </TouchableOpacity>
             {/* eslint-enable i18next/no-literal-string */}
           </View>
