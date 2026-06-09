@@ -14,11 +14,11 @@ inputs:
 
 ## Executive Summary
 
-India has over 197 million people living with mental health disorders — the largest such population in the world — yet fewer than 9,000 psychiatrists to serve them. The treatment gap exceeds 80%: most people who need mental health care never receive it. For the millions managing social anxiety, the most effective treatment — Exposure Response Prevention (ERP) therapy — is virtually inaccessible: too expensive, too scarce, and too stigmatised to seek in person.
+The global treatment gap for mental health disorders is sharpest in high-growth, therapist-scarce markets where effective interventions remain cost-prohibitive, inaccessible, and heavily stigmatised. For the hundreds of millions managing social anxiety worldwide, the most effective treatment — Exposure Response Prevention (ERP) therapy — is out of reach for the vast majority. India illustrates the scale: 197 million people living with mental health disorders, fewer than 9,000 psychiatrists, and a treatment gap exceeding 80%.
 
-Exposure Buddy is a cross-platform mobile and web app that puts self-directed ERP in users' hands: guiding them through graduated real-world exposures, tracking anxiety reduction in real time, and connecting users with accountability partners and optionally a verified therapist. It is the first consumer app to deliver a structured ERP protocol specifically for social anxiety in India — in Hindi, at ₹200–500/month, designed for the cultural realities of urban Indian life.
+Exposure Buddy is a cross-platform mobile and web app that puts self-directed ERP in users' hands: guiding them through graduated real-world exposures, tracking anxiety reduction in real time, and connecting users with accountability partners and optionally a verified therapist. It is the first consumer app to deliver a structured ERP protocol specifically for social anxiety — launching in India, designed for the cultural realities of urban Indian life.
 
-India's mental health app market is the fastest-growing segment within Asia-Pacific at 17.55% CAGR. No incumbent — not Amaha, not the government's Tele MANAS, not any international app — offers self-directed ERP for social anxiety. The gap is wide open. A global expansion to English-speaking markets follows in Phase 2, but India is the founding opportunity.
+The mental health app market in Asia-Pacific grows at 17.55% CAGR. No incumbent — not Amaha, not the government's Tele MANAS, not any international app — offers self-directed ERP for social anxiety. The MVP launches in India; Phase 1 delivers the India-specific compliance and localisation layer; Phase 2 expands to English-speaking international markets.
 
 ## The Problem
 
@@ -60,7 +60,7 @@ Exposure Buddy guides users through the clinical ERP protocol at consumer scale,
 
 ## Who This Serves
 
-**Primary — The Urban Indian Professional (ages 22–38):** Working in IT, finance, or services in Bangalore, Mumbai, Delhi, Hyderabad, or Pune. Experiences social anxiety in workplace settings — presenting to seniors, navigating hierarchy, asserting themselves in meetings — and in social situations shaped by family pressure and expectations. Smartphone-native. Willing to pay ₹200–500/month for something that works. Discovers the app via Google Play Store or WhatsApp-driven peer recommendation.
+**Urban Professional (ages 22–38) — India Launch Cohort:** Working in IT, finance, or services in Bangalore, Mumbai, Delhi, Hyderabad, or Pune. Experiences social anxiety in workplace settings — presenting to seniors, navigating hierarchy, asserting themselves in meetings — and in social situations shaped by family pressure and expectations. Smartphone-native. Discovers the app via Google Play Store or WhatsApp-driven peer recommendation.
 
 **Secondary — The Therapy Adjunct User (ages 25–50):** Already working with a therapist or counsellor. Uses the app for between-session ERP homework. Lower acquisition cost, higher retention. In India, this segment is urban, educated, and often navigating dual pressures of career and family.
 
@@ -100,27 +100,28 @@ Wysa is the strongest incumbent to watch: it has India presence, FDA validation,
 - <5% monthly churn for paid subscribers
 - 2–4× conversion rate for users who complete one full exposure before paywall
 
-**India business objectives (Year 1):**
+**Phase 1 launch objectives (Year 1):**
 - 10,000 MAU within 12 months of India launch
 - 100+ active verified clinician users generating referrals within 12 months
-- Positive unit economics at 12 months (LTV > 3× CAC at ₹200–500/mo pricing)
 - 1–2 corporate wellness pilot contracts (B2B India channel)
 
 ## Scope & Roadmap
 
-**MVP — India Launch (Months 1–6):**
-- Hindi language support from day one; English as secondary
-- Anxiety profile and personalised exposure hierarchy builder (India-contextualised templates)
+**MVP — Core Platform:**
+- Anxiety profile and personalised exposure hierarchy builder
 - Full ERP session flow: briefing → real-world exposure → SUDS logging → debrief
 - In-the-Moment SOS: panic support, breathing coach, grounding
 - Progress tracking: SUDS trend graphs, streaks, milestone badges
-- Basic therapist portal: progress export, session summaries; therapist NMC verification
-- Anonymous accountability community: small matched groups, wins feed
-- Freemium model: free core features, Premium Individual at ₹199–499/month
 - Sign-up safeguards: age confirmation (18+) and medico-legal disclaimer (required checkboxes)
-- Cross-platform: Android (primary), iOS, web (React Native + React)
-- DPDPA 2023-compliant infrastructure from day one (explicit consent flows, DPO appointed)
-- Android-optimised: mid-range device performance, low-bandwidth resilience
+- Cross-platform: Android + iOS + web (React Native + React)
+- Security baseline: AES-256 at rest, TLS 1.3, RLS on all health data tables
+
+**Phase 1 — India Launch:**
+- DPDPA 2023-compliant infrastructure (explicit consent flows, DPO appointed)
+- Hindi language support; English as primary content locale
+- India-contextualised exposure templates (workplace hierarchy, family dynamics, social settings)
+- India national crisis helplines hardcoded and available offline
+- Android-primary optimisation: mid-range device performance (2GB RAM, Android 10+), low-bandwidth resilience
 
 **Phase 2 — Global English Markets (Months 7–18):**
 - US and international English launch
@@ -143,7 +144,7 @@ Wysa is the strongest incumbent to watch: it has India presence, FDA validation,
 
 ## Regulatory & Compliance
 
-### India (Primary Market)
+### Phase 1 Launch Market — India
 
 India has no direct HIPAA equivalent. The governing framework is the **Digital Personal Data Protection Act 2023 (DPDPA)** with DPDP Rules 2025 (full enforcement by May 2027). DISHA (the proposed sector-specific healthcare privacy law) was never enacted; its provisions were folded into DPDPA. Key obligations:
 

@@ -236,7 +236,7 @@ Structured session history export for clinical handoff or personal record-keepin
 ### 5.1 Pricing and Monetisation Mechanics
 **What:** Freemium tier limits, subscription paywall, in-app purchase flow, pricing strategy for India (₹200–500/month).
 **Source:** PRD deferred scope.
-**Notes:** The PRD documents the target pricing range and LTV/CAC goal (LTV > 3× CAC). All features are currently ungated. Post-MVP: determine feature gating strategy, integrate payment provider (Razorpay for India), implement subscription management.
+**Notes:** All features are currently ungated. Post-MVP: determine pricing and feature gating strategy, integrate payment provider (Razorpay for India), implement subscription management.
 
 ---
 
