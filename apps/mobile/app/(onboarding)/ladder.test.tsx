@@ -86,25 +86,36 @@ describe('LadderScreen', () => {
     })
   })
 
-  it('hides FearItemForm and shows maximumItems after 10 items', async () => {
-    const { getByTestId, queryByTestId, getByText } = render(<LadderScreen />)
+  it('shows soft nudge after 8 items and form remains accessible', async () => {
+    const { getByTestId, queryByTestId } = render(<LadderScreen />)
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       fireEvent.press(getByTestId('form-add'))
-      await waitFor(() => {
-        if (i < 9) {
-          expect(getByTestId('add-another-button')).toBeTruthy()
-        }
-      })
-      if (i < 9) {
-        fireEvent.press(getByTestId('add-another-button'))
-      }
+      await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
+      fireEvent.press(getByTestId('add-another-button'))
     }
 
     await waitFor(() => {
-      expect(getByText('onboarding.fearLadder.maximumItems')).toBeTruthy()
-      expect(queryByTestId('form-add')).toBeNull()
-      expect(queryByTestId('add-another-button')).toBeNull()
+      expect(getByTestId('ladder-nudge')).toBeTruthy()
+      expect(queryByTestId('form-add')).toBeTruthy()
+    })
+  })
+
+  it('dismisses the nudge when "Got it" is pressed and form stays accessible', async () => {
+    const { getByTestId, queryByTestId } = render(<LadderScreen />)
+
+    for (let i = 0; i < 8; i++) {
+      fireEvent.press(getByTestId('form-add'))
+      await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
+      fireEvent.press(getByTestId('add-another-button'))
+    }
+
+    await waitFor(() => expect(getByTestId('ladder-nudge')).toBeTruthy())
+    fireEvent.press(getByTestId('ladder-nudge').findByProps({ accessibilityRole: 'button' }))
+
+    await waitFor(() => {
+      expect(queryByTestId('ladder-nudge')).toBeNull()
+      expect(queryByTestId('form-add')).toBeTruthy()
     })
   })
 

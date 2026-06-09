@@ -71,7 +71,8 @@
     },
     "fearLadder": {
       "minimumItems": "Add at least 3 situations to continue.",
-      "maximumItems": "You've added the maximum of 10 situations.",
+      "ladderNudge": "यह एक अच्छी सूची है — ज़्यादातर लोगों को 10–15 स्थितियाँ पर्याप्त लगती हैं।",
+      "ladderNudgeDismiss": "समझ गया",
       "title": "Build your Courage Ladder",
       "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
       "descriptionLabel": "Describe the situation",
