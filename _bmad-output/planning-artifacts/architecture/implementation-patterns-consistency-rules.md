@@ -151,6 +151,10 @@ Transition: NORMAL → CRISIS_PAUSED (immediate on detection) → CRISIS_WRITE_W
 
 ## Process Patterns
 
+**Story size gate:** Any story with more than 8 acceptance criteria must be flagged for explicit split review before the story file is created. Story 5.2 (13 ACs: schema + state machine + 5 screens + recovery modal) is the reference case — it produced disproportionate review overhead and a slow implementation feedback loop. When splitting, group by layer: DB/domain in one story, screens/UX in the next.
+
+**Stub screen back navigation:** Every stub screen (a screen whose content is a placeholder for a future story) MUST include a `BackButton` or a `router.back()` CTA. Forward-only navigation is a deliberate therapeutic decision for specific screens (e.g., `pause.tsx`, `grounding.tsx`) and must be explicitly documented in the story's acceptance criteria — it is NOT the default. A stub with no back navigation leaves the user with no recovery path except a full app restart.
+
 **Loading states:** Per-component local state. PowerSync usePowerSync hook for sync status — never duplicated in component state. No loading skeleton for cached PowerSync data.
 
 **Error recovery:** Network errors — silent retry via PowerSync. Domain errors — actionable plain-language message; never raw error strings. Crisis — no error state; always succeeds on-device.

@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { SudsArcChart, typography } from '@exposure-buddy/ui'
 import type { DmSerifSurface } from '@exposure-buddy/ui'
+import { POST_EXPOSURE_WINDOW_MS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 
 // Compile-time guard — this screen is the prediction-reality-reveal DM Serif surface (UX-DR21)
@@ -116,7 +117,7 @@ export default function DebriefScreen() {
 
       // State-8 late debrief (window expired): clear pending data entirely
       // State-7 path (window open): mark reflection submitted, keep for home display
-      const isLateDebrief = parseInt(completedAtMs ?? '0') + 21600000 <= Date.now()
+      const isLateDebrief = parseInt(completedAtMs ?? '0') + POST_EXPOSURE_WINDOW_MS <= Date.now()
       if (isLateDebrief) {
         clearDebriefPending()
       } else {

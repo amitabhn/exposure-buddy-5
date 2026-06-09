@@ -1326,6 +1326,26 @@ So that I know exactly what to do next without hunting through the app (FR-HOME-
 **When** the state 3 screen renders
 **Then** every visible string uses `t()` from i18next; no raw string literals appear in the component; CI lint passes
 
+**Given** `PowerSyncProvider` has not yet been wired into the app root and `useFearLadderItems` still returns `[]`
+**When** this story is implemented
+**Then** `PowerSyncProvider` is added to `apps/mobile/app/_layout.tsx` wrapping the root navigator; `useFearLadderItems` is replaced with a real `usePowerSyncQuery` call against the local PowerSync SQLite `fear_ladder_items` table; `exposure_sessions` active-thread check uses `usePowerSyncQuery` (not a direct Supabase call); `PowerSyncSyncAdapter` is replaced with the real durable outbox connector; `packages/sync/src/schema.ts` `user_onboarding_metadata` table gains `id: column.text` (deferred from 4-2-D5); the `reorder_positions` enqueue convention inconsistency between `(onboarding)/ladder.tsx` (UPDATE envelope) and `ladder.tsx` (operation string) is reconciled in the upload handler — both paths produce the same two-row position UPDATE at the server; after this story the ladder screen renders real `fear_ladder_items` data for authenticated users
+
+**Given** `fear_ladder_items.status` is currently typed as `string` with no permitted values defined (4-4-D3)
+**When** this story wires real data and implements the selector
+**Then** the migration for this story adds `CHECK (status IN ('pending', 'completed'))` to the `fear_ladder_items` table; `packages/core/src/types/fearLadder.ts` exports `FearLadderItemStatus = 'pending' | 'completed'`; `FearLadderItem.status` is typed as `FearLadderItemStatus` (not `string`); `resolveLowestPendingItem` in `packages/core/src/selectors/fearLadder.ts` references the typed value; the sort tiebreaker for equal `position` values is resolved by adding a secondary sort on `id ASC` so ordering is deterministic regardless of engine (4-4-CR-D1); `CourageLadderEntryCard` clamps `predictedSuds` to `[0, 10]` before rendering the "Anxiety: X/10" label (4-4-CR-D4)
+
+**Given** concurrent writes from multiple devices can produce duplicate position integers on `fear_ladder_items` (4-3-D5)
+**When** the migration for this story runs
+**Then** `ALTER TABLE fear_ladder_items ADD CONSTRAINT uq_user_position UNIQUE (user_id, position) DEFERRABLE INITIALLY DEFERRED` executes successfully; the constraint is deferrable so bulk reorder swaps within a single transaction can temporarily violate uniqueness without a constraint error; the PowerSync upload handler wraps `reorder_positions` operations in a single deferred transaction
+
+**Given** the home screen countdown (states 7 and 8) is computed once at mount and never refreshes (5-3-W1)
+**When** the home screen is open and `debriefPendingData` is non-null
+**Then** `resolveHomeScreenState` is re-evaluated on a 60-second `setInterval` while the screen is focused (via `useFocusEffect`); the displayed countdown from `formatTimeRemaining` updates each tick; when the 6-hour window expires the display transitions from state 7 to state 8 without a full re-mount; the interval is cleared on blur and on unmount
+
+**Given** the user has real `fear_ladder_items` data and needs to correct or remove an entry
+**When** the user opens the edit form for a ladder item (5-1-D6)
+**Then** a "Remove item" destructive action is visible within the edit modal; tapping it shows a confirmation alert with `t('ladder.delete.confirm')` (canonical English: "Remove this item from your ladder?") and two options — "Remove" (destructive) and "Cancel"; on confirm the item is removed from local state optimistically and a `delete` operation is enqueued to the outbox; if the enqueue fails, local state is rolled back and an error message is shown; on next sync the row is hard-deleted from Supabase (RLS-gated to `user_id = auth.uid()`); swipe-to-delete is not required — the in-modal button is the sole delete affordance at this story
+
 ---
 
 ### Story 6.3: Home Screen Progressing State (State 4)

@@ -4,24 +4,12 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CourageLadderEntryCard } from '@exposure-buddy/ui'
-import { resolveLowestPendingItem } from '@exposure-buddy/core'
-
-// Determine home state for states 7 and 8.
-// Epic 6: replace with resolveHomeScreenState() from packages/core + PowerSync data.
-const POST_EXPOSURE_WINDOW_MS = 6 * 60 * 60 * 1000  // 6 hours in ms
-
-type HomeDisplayState = 'default' | 'post-exposure' | 'expired'
-
-function formatTimeRemaining(completedAtMs: number | undefined): string {
-  if (!completedAtMs) return ''
-  const windowExpiry = completedAtMs + POST_EXPOSURE_WINDOW_MS
-  const remaining = windowExpiry - Date.now()
-  if (remaining <= 0) return ''
-  const hours = Math.floor(remaining / (60 * 60 * 1000))
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / 60000)
-  // Epic 6: replace clientMs+6h proxy with server expires_at from PowerSync
-  return `${hours}h ${minutes}m remaining`  // Display only — expires_at epoch is authoritative
-}
+import {
+  resolveLowestPendingItem,
+  resolveHomeScreenState,
+  formatTimeRemaining,
+} from '@exposure-buddy/core'
+import type { HomeDisplayState } from '@exposure-buddy/core'
 
 export default function HomeScreen() {
   const { t } = useTranslation()
@@ -54,22 +42,9 @@ export default function HomeScreen() {
   // PowerSync no-op stub — real items populate when Epic 6 wires the connector
   const lowestPendingItem = resolveLowestPendingItem([])
 
-  // Epic 6: replace completedAtMs+6h proxy with PowerSync expires_at; extract to
-  // resolveHomeScreenState() in packages/core
-  const nowMs = Date.now()
-  function resolveDisplayState(): HomeDisplayState {
-    // eslint-disable-next-line i18next/no-literal-string
-    if (!debriefPendingData) return 'default'
-    const windowExpiry = debriefPendingData.completedAtMs + POST_EXPOSURE_WINDOW_MS
-    // eslint-disable-next-line i18next/no-literal-string
-    if (nowMs < windowExpiry) return 'post-exposure'           // state 7
-    // eslint-disable-next-line i18next/no-literal-string
-    if (!debriefPendingData.reflectionSubmitted) return 'expired'  // state 8
-    // eslint-disable-next-line i18next/no-literal-string
-    return 'default'  // reflection done AND window expired → fall through to state 3
-  }
-
-  const displayState = resolveDisplayState()
+  // Epic 6: replace completedAtMs+6h proxy with PowerSync expires_at; expand to full
+  // 10-state resolveHomeScreenState() including states 3 and 4.
+  const displayState: HomeDisplayState = resolveHomeScreenState(debriefPendingData)
 
   function buildDebriefUrl(extraParams?: string): string {
     if (!debriefPendingData) return ''

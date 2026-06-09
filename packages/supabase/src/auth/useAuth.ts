@@ -1,8 +1,11 @@
 import { useContext } from 'react'
 import { AuthContext } from './AuthProvider'
+import { OnboardingContext } from './OnboardingProvider'
 import type { AuthState } from './session'
 import type { PendingDeletionRecord, SessionRecoveryData, DebriefPendingData } from '@exposure-buddy/core'
 
+// Merged view of AuthContext + OnboardingContext. All existing callers continue to work
+// without change — the split is an internal implementation detail.
 interface UseAuthResult {
   authState: AuthState
   isLoading: boolean
@@ -11,24 +14,25 @@ interface UseAuthResult {
   requestAccountDeletion: () => Promise<void>
   pendingDeletion: PendingDeletionRecord | null
   hasAuthedBefore: boolean
+  isStorageDegraded: boolean
+  userId: string | null
+  // Onboarding state — served from OnboardingContext
   isOnboardingComplete: boolean
   markOnboardingComplete: () => void
   onboardingProgressStep: number | null
   setOnboardingProgressStep: (step: number) => void
-  userId: string | null
+  onboardingProgressReadFailed: boolean
   setSudsCalibration: (value: number) => void
   setCrisisFlaggedInOnboarding: () => void
-  onboardingProgressReadFailed: boolean
-  isStorageDegraded: boolean
   crisisFlaggedInOnboarding: boolean
   firstHomeVisitSeen: boolean
   markFirstHomeVisitSeen: () => void
+  // Session state — served from AuthContext
   sessionRecoveryData: SessionRecoveryData | null
   setSessionInProgress: (data: SessionRecoveryData) => void
   clearSessionInProgress: () => void
   setSessionIntention: (sessionId: string, text: string) => void
   clearSessionIntention: (sessionId: string) => void
-  // Debrief pending state (Story 5.3+)
   debriefPendingData: DebriefPendingData | null
   setDebriefPending: (data: DebriefPendingData) => void
   clearDebriefPending: () => void
@@ -38,66 +42,40 @@ interface UseAuthResult {
 }
 
 export function useAuth(): UseAuthResult {
-  const {
-    authState,
-    isLoading,
-    signOut,
-    requestAccountDeletion,
-    pendingDeletion,
-    hasAuthedBefore,
-    isOnboardingComplete,
-    markOnboardingComplete,
-    onboardingProgressStep,
-    setOnboardingProgressStep,
-    setSudsCalibration,
-    setCrisisFlaggedInOnboarding,
-    onboardingProgressReadFailed,
-    isStorageDegraded,
-    crisisFlaggedInOnboarding,
-    firstHomeVisitSeen,
-    markFirstHomeVisitSeen,
-    sessionRecoveryData,
-    setSessionInProgress,
-    clearSessionInProgress,
-    setSessionIntention,
-    clearSessionIntention,
-    debriefPendingData,
-    setDebriefPending,
-    clearDebriefPending,
-    updateDebriefReflectionSubmitted,
-    hasSessionIntention,
-    getSessionIntention,
-  } = useContext(AuthContext)
+  const auth = useContext(AuthContext)
+  const onboarding = useContext(OnboardingContext)
   return {
-    authState,
-    isLoading,
-    isAuthenticated: authState.session !== null,
-    signOut,
-    requestAccountDeletion,
-    pendingDeletion,
-    hasAuthedBefore,
-    isOnboardingComplete,
-    markOnboardingComplete,
-    onboardingProgressStep,
-    setOnboardingProgressStep,
-    userId: authState.userId,
-    setSudsCalibration,
-    setCrisisFlaggedInOnboarding,
-    onboardingProgressReadFailed,
-    isStorageDegraded,
-    crisisFlaggedInOnboarding,
-    firstHomeVisitSeen,
-    markFirstHomeVisitSeen,
-    sessionRecoveryData,
-    setSessionInProgress,
-    clearSessionInProgress,
-    setSessionIntention,
-    clearSessionIntention,
-    debriefPendingData,
-    setDebriefPending,
-    clearDebriefPending,
-    updateDebriefReflectionSubmitted,
-    hasSessionIntention,
-    getSessionIntention,
+    authState: auth.authState,
+    isLoading: auth.isLoading,
+    isAuthenticated: auth.authState.session !== null,
+    signOut: auth.signOut,
+    requestAccountDeletion: auth.requestAccountDeletion,
+    pendingDeletion: auth.pendingDeletion,
+    hasAuthedBefore: auth.hasAuthedBefore,
+    isStorageDegraded: auth.isStorageDegraded,
+    userId: auth.authState.userId,
+    // Onboarding (OnboardingContext)
+    isOnboardingComplete: onboarding.isOnboardingComplete,
+    markOnboardingComplete: onboarding.markOnboardingComplete,
+    onboardingProgressStep: onboarding.onboardingProgressStep,
+    setOnboardingProgressStep: onboarding.setOnboardingProgressStep,
+    onboardingProgressReadFailed: onboarding.onboardingProgressReadFailed,
+    setSudsCalibration: onboarding.setSudsCalibration,
+    setCrisisFlaggedInOnboarding: onboarding.setCrisisFlaggedInOnboarding,
+    crisisFlaggedInOnboarding: onboarding.crisisFlaggedInOnboarding,
+    firstHomeVisitSeen: onboarding.firstHomeVisitSeen,
+    markFirstHomeVisitSeen: onboarding.markFirstHomeVisitSeen,
+    // ERP session (AuthContext)
+    sessionRecoveryData: auth.sessionRecoveryData,
+    setSessionInProgress: auth.setSessionInProgress,
+    clearSessionInProgress: auth.clearSessionInProgress,
+    setSessionIntention: auth.setSessionIntention,
+    clearSessionIntention: auth.clearSessionIntention,
+    debriefPendingData: auth.debriefPendingData,
+    setDebriefPending: auth.setDebriefPending,
+    clearDebriefPending: auth.clearDebriefPending,
+    updateDebriefReflectionSubmitted: auth.updateDebriefReflectionSubmitted,
+    hasSessionIntention: auth.hasSessionIntention,
+    getSessionIntention: auth.getSessionIntention,
   }
 }
