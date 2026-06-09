@@ -350,10 +350,12 @@ Users view SUDS trend graphs (weekly and monthly), a chronological exposure hist
 
 *(Verification and audit epic — all infrastructure and implementation constraints were addressed in the epic that introduced each feature. This epic proves the system meets its non-functional requirements under production conditions.)*
 
-i18n full locale coverage confirmed (all strings use `t()` calls, no literals) and RTL rendering validated. Accessibility audit: 5 VoiceOver/TalkBack flows on physical devices. RLS policy coverage audit across all epics. Performance benchmarks validated on target device profile. Offline resilience edge-case testing (conflict resolution, sync queue overflow, 2G fallback on Indian networks). Device compatibility matrix complete. Load testing: 10,000 concurrent users at India launch.
+**MVP cut (Stories 9.1–9.8):** Accessibility audit, offline resilience, MMKV hygiene, E2E smoke suite, error/empty state UX, performance budget, haptic/sound degradation.
 
-**FRs covered:** FR-I18N-01, FR-I18N-02
-**NFR verification:** NFR-PERF-01 (<3s cold start P90), NFR-OFFLINE-01–03 (edge cases), NFR-REL-01 (99.5% uptime), NFR-REL-02 (crash recovery), NFR-SEC-01–06 (audit), NFR-DEVICE-01–02, NFR-ACCESS-01 (full audit), NFR-SCALE-01 (load test)
+**Phase 1 India gate (Story 9.9):** i18n full locale coverage + Hindi activation, RTL rendering validation, 2G fallback on Indian networks, device compatibility matrix, load testing to 10,000 concurrent users.
+
+**FRs covered:** FR-I18N-01, FR-I18N-02 *(Phase 1 gate — Story 9.9)*
+**NFR verification:** NFR-PERF-01 (<3s cold start P90), NFR-OFFLINE-01–03 (edge cases), NFR-REL-01 (99.5% uptime), NFR-REL-02 (crash recovery), NFR-SEC-01–06 (audit), NFR-DEVICE-01–02, NFR-ACCESS-01 (full audit), NFR-SCALE-01 (load test) *(NFR-SCALE-01, NFR-DEVICE-01 India profile, and 2G offline testing are Phase 1 gate — Story 9.9)*
 **Architecture:** ARC-004 (MMKV storage hardening), ARC-005 (PowerSync adapter full validation), ARC-012 (analytics boundary confirmation)
 
 ---
@@ -2141,3 +2143,43 @@ So that I can use the app discreetly without losing any therapeutic feedback (UX
 **Given** the breathing coach specifically
 **When** the device is on silent
 **Then** the 4-4-4-4 box breathing cycle is communicated entirely through the animated visual (circle scale, background colour shift, and text label "Breathe in" / "Hold" / "Breathe out"); audio is an enhancement, not a requirement; a manual test on a muted device is documented in the story close-out checklist
+
+---
+
+### Story 9.9: i18n Coverage, Hindi Activation & Phase 1 India Launch Verification ⚑ Phase 1 Gate
+
+> **Phase 1 gate — must complete before India launch; not required for the initial MVP cut.**
+
+As a developer closing out the India launch,
+I want locale coverage verified end-to-end, Hindi activated, RTL rendering validated, the India device profile confirmed, and load testing passed,
+So that every Phase 1 India-specific launch requirement is machine-verified before any Indian user reaches the app (FR-I18N-01, FR-I18N-02, NFR-SCALE-01, NFR-DEVICE-01).
+
+**Acceptance Criteria:**
+
+**Given** the full app source tree
+**When** the i18n coverage audit runs
+**Then** a script (or CI step) confirms no user-facing string is hardcoded — every visible string in `apps/mobile` routes through a `t()` call or is a `tel:` / `mailto:` URI literal in crisis contacts; any violation is a P0 blocker; the audit covers all screens introduced in Epics 2–9
+
+**Given** `packages/core/src/i18n/locales/en.json` and `packages/core/src/i18n/locales/hi.json`
+**When** this story is implemented
+**Then** `hi.json` contains a translation for every key present in `en.json`; no key is missing or has an English placeholder value; the existing Jest key-structure test in Story 1.6 is extended to assert key parity between `en.json` and `hi.json`; the Hindi locale is activated in the app's i18n configuration (not just scaffolded as a stub)
+
+**Given** the app is running with the Hindi locale active
+**When** any screen is rendered
+**Then** all strings render in Devanagari script without layout overflow, clipping, or broken wrapping; the SUDS slider labels, session phase headers, debrief copy, onboarding prompts, and Calm Me affirmation are all verified; a manual walkthrough of the core ERP session flow in Hindi is documented in the story close-out checklist
+
+**Given** RTL layout support is implemented (scaffolded in Story 1.6)
+**When** the device locale is set to an RTL language (e.g. Arabic for test purposes)
+**Then** all screens render with correct RTL mirroring — navigation arrows reverse, text alignment flips, and no element overflows its container; the RTL audit covers the home screen, hierarchy builder, ERP session flow, debrief, and Calm Me overlay
+
+**Given** the India device reference profile (Android, 2GB RAM, Snapdragon 439 or equivalent — Redmi 9A / Samsung Galaxy M02 tier)
+**When** the device compatibility matrix is completed
+**Then** all functional requirements pass on this profile with no regressions against the performance budgets established in Story 9.7; the compatibility matrix is documented in `apps/mobile/docs/device-compatibility.md`; testing may use an emulator with 2× CPU throttle if a physical device is unavailable
+
+**Given** network conditions on Indian mobile networks
+**When** the 2G fallback scenario is tested
+**Then** all three ERP session phases (pre-session briefing, active SUDS logging, debrief) complete without data loss when network is throttled to 2G (≤50 kbps downstream) or dropped entirely during an active session; the sync queue drains correctly when connectivity is restored; crisis resource contacts render without a network call; this test extends the offline integration tests from Story 9.2 with the 2G throttle condition
+
+**Given** the production backend
+**When** the load test runs
+**Then** a load test simulating 10,000 concurrent active users is executed against the production (or production-equivalent staging) backend; all API endpoints used in the core ERP session loop respond within NFR-PERF-02 targets (SUDS log write ≤500ms P95) under load; no errors exceed 0.1% error rate; results are documented in `apps/mobile/docs/load-test-results.md`; the load test must complete and pass before the India launch date is confirmed
