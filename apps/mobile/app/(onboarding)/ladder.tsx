@@ -8,7 +8,7 @@ import { FearItemForm } from '../../src/components/onboarding/FearItemForm'
 import { getAdapter } from '../../src/sync/adapter'
 
 const MIN_ITEMS = 3
-const MAX_ITEMS = 10
+const NUDGE_THRESHOLD = 8
 
 interface FearItem {
   id: string
@@ -32,6 +32,7 @@ export default function LadderScreen() {
   const [items, setItems] = useState<FearItem[]>([])
   const [crisisDetected, setCrisisDetected] = useState(false)
   const [showForm, setShowForm] = useState(true)
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
   const crisisFlagWrittenRef = useRef(false)
   const itemsRef = useRef<FearItem[]>([])
   const isAddingRef = useRef(false)
@@ -125,12 +126,12 @@ export default function LadderScreen() {
   }
 
   async function handleNext() {
-    if (items.length < MIN_ITEMS || !userId) return
+    if (!userId) return
     setOnboardingProgressStep(4)
     router.replace({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
   }
 
-  const canProceed = items.length >= MIN_ITEMS
+  const canSkip = items.length === 0
 
   return (
     <>
@@ -172,11 +173,11 @@ export default function LadderScreen() {
           </View>
         ))}
 
-        {/* Form / Add another / Maximum */}
-        {items.length < MAX_ITEMS && showForm && (
+        {/* Form / Add another */}
+        {showForm && (
           <FearItemForm onSave={handleAddItem} onCrisisDetected={handleCrisisDetected} />
         )}
-        {items.length < MAX_ITEMS && !showForm && (
+        {!showForm && (
           <TouchableOpacity
             testID="add-another-button"
             style={styles.addAnother}
@@ -187,8 +188,19 @@ export default function LadderScreen() {
             <Text style={styles.addAnotherText}>{t('onboarding.fearLadder.addAnother')}</Text>
           </TouchableOpacity>
         )}
-        {items.length >= MAX_ITEMS && (
-          <Text style={styles.helper}>{t('onboarding.fearLadder.maximumItems')}</Text>
+
+        {/* Soft nudge at 8+ items — dismissible, no hard cap */}
+        {items.length >= NUDGE_THRESHOLD && !nudgeDismissed && (
+          <View style={styles.nudge} testID="ladder-nudge">
+            <Text style={styles.nudgeText}>{t('onboarding.fearLadder.ladderNudge')}</Text>
+            <TouchableOpacity
+              onPress={() => setNudgeDismissed(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('onboarding.fearLadder.ladderNudgeDismiss')}
+            >
+              <Text style={styles.nudgeDismiss}>{t('onboarding.fearLadder.ladderNudgeDismiss')}</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Crisis banner */}
@@ -215,20 +227,13 @@ export default function LadderScreen() {
           <Text style={styles.overwhelmedText}>{t('onboarding.overwhelmed.cta')}</Text>
         </TouchableOpacity>
 
-        {/* Minimum items helper — both helper text and disabled button visible simultaneously (AC 7) */}
-        {!canProceed && (
-          <Text style={styles.helper}>{t('onboarding.fearLadder.minimumItems')}</Text>
-        )}
-
         <TouchableOpacity
-          style={[styles.button, !canProceed && styles.buttonDisabled]}
+          style={styles.button}
           onPress={handleNext}
-          disabled={!canProceed}
           accessibilityRole="button"
-          accessibilityLabel={t('onboarding.fearLadder.nextCta')}
-          accessibilityState={{ disabled: !canProceed }}
+          accessibilityLabel={canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}
         >
-          <Text style={styles.buttonText}>{t('onboarding.fearLadder.nextCta')}</Text>
+          <Text style={styles.buttonText}>{canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
@@ -254,7 +259,9 @@ const styles = StyleSheet.create({
   crisisLink: { fontSize: 13, color: '#991b1b', textDecorationLine: 'underline' },
   overwhelmedLink: { marginTop: 20, alignSelf: 'center' },
   overwhelmedText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
-  helper: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginTop: 8 },
+  nudge: { backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 1, borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  nudgeText: { fontSize: 13, color: '#166534', lineHeight: 18, flex: 1 },
+  nudgeDismiss: { fontSize: 13, color: '#166534', fontWeight: '600', textDecorationLine: 'underline' },
   button: { alignSelf: 'stretch', backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   buttonDisabled: { backgroundColor: '#d1d5db' },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

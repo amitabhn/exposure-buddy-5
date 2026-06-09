@@ -71,7 +71,8 @@
     },
     "fearLadder": {
       "minimumItems": "Add at least 3 situations to continue.",
-      "maximumItems": "You've added the maximum of 10 situations.",
+      "ladderNudge": "यह एक अच्छी सूची है — ज़्यादातर लोगों को 10–15 स्थितियाँ पर्याप्त लगती हैं।",
+      "ladderNudgeDismiss": "समझ गया",
       "title": "Build your Courage Ladder",
       "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
       "descriptionLabel": "Describe the situation",
@@ -82,10 +83,11 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
-      "nextCta": "Next"
+      "nextCta": "Next",
+      "skipCta": "छोड़ें"
     },
     "crisisDetected": {
-      "banner": "We noticed something in what you wrote. You're not alone."
+      "banner": "लगता है अभी आप बहुत कठिन वक्त से गुज़र रहे हैं। आपको यह अकेले नहीं झेलना है — नीचे सहायता ढूँढें।"
     },
     "complete": {
       "title": "You're ready to climb!",

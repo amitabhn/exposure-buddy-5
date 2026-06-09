@@ -72,61 +72,50 @@ describe('LadderScreen', () => {
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
   })
 
-  it('Next button is disabled with fewer than 3 items', () => {
+  it('Skip button is shown and enabled with 0 items', () => {
     const { getByRole } = render(<LadderScreen />)
-    const button = getByRole('button', { name: 'onboarding.fearLadder.nextCta' })
-    expect(button.props.accessibilityState.disabled).toBe(true)
+    const button = getByRole('button', { name: 'onboarding.fearLadder.skipCta' })
+    expect(button.props.disabled).toBeFalsy()
   })
 
-  it('shows minimumItems helper text with fewer than 3 items', () => {
-    const { getByText, getByRole } = render(<LadderScreen />)
-    expect(getByText('onboarding.fearLadder.minimumItems')).toBeTruthy()
-    const button = getByRole('button', { name: 'onboarding.fearLadder.nextCta' })
-    expect(button.props.accessibilityState.disabled).toBe(true)
-  })
-
-  it('Next enabled and helper hidden after 3 items added', async () => {
-    const { getByTestId, queryByText, getByRole } = render(<LadderScreen />)
-
-    // Add item 1
+  it('Next button is shown and enabled after 1 item added', async () => {
+    const { getByTestId, getByRole } = render(<LadderScreen />)
     fireEvent.press(getByTestId('form-add'))
-    await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
-    fireEvent.press(getByTestId('add-another-button'))
-
-    // Add item 2
-    fireEvent.press(getByTestId('form-add'))
-    await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
-    fireEvent.press(getByTestId('add-another-button'))
-
-    // Add item 3
-    fireEvent.press(getByTestId('form-add'))
-
     await waitFor(() => {
-      const button = getByRole('button', { name: 'onboarding.fearLadder.nextCta' })
-      expect(button.props.accessibilityState.disabled).toBe(false)
-      expect(queryByText('onboarding.fearLadder.minimumItems')).toBeNull()
+      expect(getByRole('button', { name: 'onboarding.fearLadder.nextCta' })).toBeTruthy()
     })
   })
 
-  it('hides FearItemForm and shows maximumItems after 10 items', async () => {
-    const { getByTestId, queryByTestId, getByText } = render(<LadderScreen />)
+  it('shows soft nudge after 8 items and form remains accessible', async () => {
+    const { getByTestId, queryByTestId } = render(<LadderScreen />)
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       fireEvent.press(getByTestId('form-add'))
-      await waitFor(() => {
-        if (i < 9) {
-          expect(getByTestId('add-another-button')).toBeTruthy()
-        }
-      })
-      if (i < 9) {
-        fireEvent.press(getByTestId('add-another-button'))
-      }
+      await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
+      fireEvent.press(getByTestId('add-another-button'))
     }
 
     await waitFor(() => {
-      expect(getByText('onboarding.fearLadder.maximumItems')).toBeTruthy()
-      expect(queryByTestId('form-add')).toBeNull()
-      expect(queryByTestId('add-another-button')).toBeNull()
+      expect(getByTestId('ladder-nudge')).toBeTruthy()
+      expect(queryByTestId('form-add')).toBeTruthy()
+    })
+  })
+
+  it('dismisses the nudge when "Got it" is pressed and form stays accessible', async () => {
+    const { getByTestId, queryByTestId } = render(<LadderScreen />)
+
+    for (let i = 0; i < 8; i++) {
+      fireEvent.press(getByTestId('form-add'))
+      await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
+      fireEvent.press(getByTestId('add-another-button'))
+    }
+
+    await waitFor(() => expect(getByTestId('ladder-nudge')).toBeTruthy())
+    fireEvent.press(getByTestId('ladder-nudge').findByProps({ accessibilityRole: 'button' }))
+
+    await waitFor(() => {
+      expect(queryByTestId('ladder-nudge')).toBeNull()
+      expect(queryByTestId('form-add')).toBeTruthy()
     })
   })
 
@@ -147,30 +136,29 @@ describe('LadderScreen', () => {
     })
   })
 
-  it('pressing Next when ≥3 items calls setOnboardingProgressStep(4) and navigates to complete', async () => {
+  it('pressing Skip with 0 items calls setOnboardingProgressStep(4) and navigates to complete with count 0', async () => {
+    const { getByRole } = render(<LadderScreen />)
+    fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.skipCta' }))
+    await waitFor(() => {
+      expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
+      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '0' } })
+    })
+  })
+
+  it('pressing Next with 1 item calls setOnboardingProgressStep(4) and navigates to complete', async () => {
     const { getByTestId, getByRole } = render(<LadderScreen />)
-
-    // Add 3 items
-    fireEvent.press(getByTestId('form-add'))
-    await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
-    fireEvent.press(getByTestId('add-another-button'))
-
-    fireEvent.press(getByTestId('form-add'))
-    await waitFor(() => expect(getByTestId('add-another-button')).toBeTruthy())
-    fireEvent.press(getByTestId('add-another-button'))
 
     fireEvent.press(getByTestId('form-add'))
 
     await waitFor(() => {
-      const button = getByRole('button', { name: 'onboarding.fearLadder.nextCta' })
-      expect(button.props.accessibilityState.disabled).toBe(false)
+      expect(getByRole('button', { name: 'onboarding.fearLadder.nextCta' })).toBeTruthy()
     })
 
     fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.nextCta' }))
 
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '3' } })
+      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
     })
   })
 })
