@@ -41,7 +41,7 @@ So that I feel recognised and know what to do in the next 6 hours (FR-ERP-03).
 
    Given the exit/debrief SUDS rating ≥ 8 OR `peakSuds` (max across all session readings) ≥ 8 ⚠ *flag for clinician review*
    When the debrief screen renders
-   Then crisis resource contacts are displayed inline as tappable links: iCall (9152987821), Vandrevala Foundation (1860-2662-345), NIMHANS (080-46110007); each contact renders as a `TouchableOpacity` with `onPress={() => Linking.openURL('tel:...')}` and `accessibilityRole="link"`; these appear on ALL three branches when the threshold is met; they appear alongside standard debrief content (not replacing it)
+   Then crisis resource contacts are displayed inline as tappable links: iCall (9152987821), Vandrevala Foundation (9999-666-555), Tele MANAS (1800-891-4416); each contact renders as a `TouchableOpacity` with `onPress={() => Linking.openURL('tel:...')}` and `accessibilityRole="link"`; these appear on ALL three branches when the threshold is met; they appear alongside standard debrief content (not replacing it)
 
 6. **Debrief reflection submission and navigation**
 
@@ -340,18 +340,18 @@ So that I feel recognised and know what to do in the next 6 hours (FR-ERP-03).
         <Text style={styles.crisisContact}>iCall: 9152987821</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => Linking.openURL('tel:18602662345')}
+        onPress={() => Linking.openURL('tel:9999666555')}
         accessibilityRole="link"
-        accessibilityLabel="Vandrevala Foundation: 1860-2662-345"
+        accessibilityLabel="Vandrevala Foundation: 9999-666-555"
       >
-        <Text style={styles.crisisContact}>Vandrevala Foundation: 1860-2662-345</Text>
+        <Text style={styles.crisisContact}>Vandrevala Foundation: 9999-666-555</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => Linking.openURL('tel:08046110007')}
+        onPress={() => Linking.openURL('tel:18008914416')}
         accessibilityRole="link"
-        accessibilityLabel="NIMHANS: 080-46110007"
+        accessibilityLabel="Tele MANAS: 1800-891-4416"
       >
-        <Text style={styles.crisisContact}>NIMHANS: 080-46110007</Text>
+        <Text style={styles.crisisContact}>Tele MANAS: 1800-891-4416</Text>
       </TouchableOpacity>
     </View>
   )}
