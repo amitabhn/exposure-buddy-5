@@ -367,10 +367,11 @@ Add to `apps/mobile/src/i18n/locales/en.json` under a new top-level `"onboarding
   },
   "fearLadder": {
     "minimumItems": "Add at least 3 situations to continue.",
-    "maximumItems": "You've added the maximum of 10 situations."
+    "ladderNudge": "That's a solid ladder — most people find 10–15 situations gives enough range.",
+    "ladderNudgeDismiss": "Got it"
   },
   "crisisDetected": {
-    "banner": "We noticed something in what you wrote. You're not alone."
+    "banner": "It sounds like what you're facing feels very heavy right now. You don't have to manage this alone — tap below to find support."
   },
   "complete": {
     "title": "You're ready to climb!",

@@ -1040,9 +1040,9 @@ So that my Courage Ladder starts from where I actually am (FR-HIER-01, FR-HIER-0
 **When** they tap the "Next" button
 **Then** the button remains disabled AND `t('onboarding.fearLadder.minimumItems')` is shown as inline helper text below the item list — not as a toast or modal; both the disabled state and the helper text are visible simultaneously
 
-**Given** the user has reached 10 items
+**Given** the user has 8 or more items and has not dismissed the nudge
 **When** the list renders
-**Then** the "Add another" button is hidden; `t('onboarding.fearLadder.maximumItems')` is shown as inline text
+**Then** a dismissible advisory banner is shown (`t('onboarding.fearLadder.ladderNudge')`) with a "Got it" button (`t('onboarding.fearLadder.ladderNudgeDismiss')`); the form and "Add another" button remain accessible; there is no maximum item count (per UX-DR27)
 
 **Given** the user types into the description field
 **When** `detectCrisisKeywords(description)` returns `true`

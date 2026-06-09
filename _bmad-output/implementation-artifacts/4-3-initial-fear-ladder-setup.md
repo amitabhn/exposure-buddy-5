@@ -47,10 +47,10 @@ So that my Courage Ladder starts from where I actually am (FR-HIER-01, FR-HIER-0
    When they tap the "Next" button
    Then the button remains disabled AND `t('onboarding.fearLadder.minimumItems')` is shown as inline helper text below the item list — not as a toast or modal; both the disabled state and the helper text are visible simultaneously
 
-8. **Maximum 10 items gate**
-   Given the user has reached 10 items
+8. **Soft nudge at 8+ items** *(updated — hard cap removed per UX-DR27)*
+   Given the user has 8 or more items and has not dismissed the nudge
    When the list renders
-   Then the "Add another" button is hidden; `t('onboarding.fearLadder.maximumItems')` is shown as inline text
+   Then a dismissible advisory banner is shown (`t('onboarding.fearLadder.ladderNudge')`) with a "Got it" button (`t('onboarding.fearLadder.ladderNudgeDismiss')`); the form and "Add another" button remain accessible; there is no maximum item count
 
 9. **Crisis keyword detection**
    Given the user types into the description field
@@ -113,7 +113,7 @@ So that my Courage Ladder starts from where I actually am (FR-HIER-01, FR-HIER-0
 
 ### T7 — i18n keys (AC: 1, 7, 8, 9)
 
-- [x] T7.1: Add `fearLadder` form keys to `apps/mobile/src/i18n/locales/en.json` (see Dev Notes for full key list) — note: `minimumItems`, `maximumItems`, `crisisDetected.banner` are **already present**; only add the new keys listed in Dev Notes
+- [x] T7.1: Add `fearLadder` form keys to `apps/mobile/src/i18n/locales/en.json` (see Dev Notes for full key list) — note: `minimumItems`, `ladderNudge`, `ladderNudgeDismiss`, `crisisDetected.banner` are **already present**; only add the new keys listed in Dev Notes (`maximumItems` was removed — do not re-add)
 - [x] T7.2: Add matching keys to `hi.json` as English-text placeholders (same pattern as all existing onboarding keys in hi.json)
 
 ### T8 — `FearItemForm` component (AC: 1, 9)
@@ -133,7 +133,7 @@ So that my Courage Ladder starts from where I actually am (FR-HIER-01, FR-HIER-0
 - [x] T9.3: Render `<OnboardingStepIndicator step={3} />`
 - [x] T9.4: State: `items: FearItem[]` (empty array), `crisisDetected: boolean` (false), `showForm: boolean` (true — form visible initially)
 - [x] T9.5: Render items list with Move Up / Move Down buttons (see Dev Notes)
-- [x] T9.6: Render `<FearItemForm>` when `items.length < MAX_ITEMS`; render "Add another" button when `items.length < MAX_ITEMS && !showForm`; render maximumItems text when `items.length >= MAX_ITEMS`
+- [x] T9.6: Render `<FearItemForm>` unconditionally when `showForm`; render "Add another" button when `!showForm`; render dismissible soft nudge banner (`testID="ladder-nudge"`) when `items.length >= NUDGE_THRESHOLD (8) && !nudgeDismissed` — no hard cap
 - [x] T9.7: `handleAddItem(description, predictedSuds)`: assigns next sequential position, enqueues to `fear_ladder_items` via `adapter.enqueue('fear_ladder_items', 'INSERT', {...})`, updates local state; on error: log + return without updating state (item not added)
 - [x] T9.8: `handleMoveUp(index)` / `handleMoveDown(index)`: delegate to `swapItems(indexA, indexB)` — single `adapter.enqueue('fear_ladder_items', 'UPDATE', { type: 'reorder_positions', ... })` call then update local state; on error: log + return without updating local state
 - [x] T9.9: Crisis banner: show `t('onboarding.crisisDetected.banner')` with `onboarding.overwhelmed.cta` link to `/(onboarding)/crisis` when `crisisDetected === true`; `crisisFlagWrittenRef` prevents duplicate MMKV writes
@@ -465,7 +465,7 @@ import { FearItemForm } from '../../src/components/onboarding/FearItemForm'
 import { getAdapter } from '../../src/sync/adapter'
 
 const MIN_ITEMS = 3
-const MAX_ITEMS = 10
+const NUDGE_THRESHOLD = 8
 
 interface FearItem {
   id: string
@@ -531,7 +531,7 @@ export default function LadderScreen() {
       return
     }
     setItems(prev => [...prev, newItem])
-    setShowForm(false)  // always hide form after add; user taps "Add another" to re-show; MAX_ITEMS case handled by render
+    setShowForm(false)  // always hide form after add; user taps "Add another" to re-show; nudge shown at NUDGE_THRESHOLD, no hard cap
   }
 
   async function swapItems(indexA: number, indexB: number) {
@@ -609,12 +609,13 @@ export default function LadderScreen() {
           </View>
         ))}
 
-        {/* Form / Add another / Maximum */}
-        {items.length < MAX_ITEMS && showForm && (
+        {/* Form / Add another */}
+        {showForm && (
           <FearItemForm onSave={handleAddItem} onCrisisDetected={handleCrisisDetected} />
         )}
-        {items.length < MAX_ITEMS && !showForm && (
+        {!showForm && (
           <TouchableOpacity
+            testID="add-another-button"
             style={styles.addAnother}
             onPress={() => setShowForm(true)}
             accessibilityRole="button"
@@ -623,8 +624,14 @@ export default function LadderScreen() {
             <Text style={styles.addAnotherText}>{t('onboarding.fearLadder.addAnother')}</Text>
           </TouchableOpacity>
         )}
-        {items.length >= MAX_ITEMS && (
-          <Text style={styles.helper}>{t('onboarding.fearLadder.maximumItems')}</Text>
+        {/* Soft nudge at 8+ items — dismissible, no hard cap (UX-DR27) */}
+        {items.length >= NUDGE_THRESHOLD && !nudgeDismissed && (
+          <View style={styles.nudge} testID="ladder-nudge">
+            <Text style={styles.nudgeText}>{t('onboarding.fearLadder.ladderNudge')}</Text>
+            <TouchableOpacity onPress={() => setNudgeDismissed(true)} accessibilityRole="button" accessibilityLabel={t('onboarding.fearLadder.ladderNudgeDismiss')}>
+              <Text style={styles.nudgeDismiss}>{t('onboarding.fearLadder.ladderNudgeDismiss')}</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Crisis banner */}
@@ -755,14 +762,15 @@ Add step-4 case to the resume `useEffect` (current code handles steps 2 and 3):
 
 ### i18n keys to add
 
-**Only add these new keys** — `fearLadder.minimumItems`, `fearLadder.maximumItems`, `crisisDetected.banner`, `complete.*` already exist in both `en.json` and `hi.json`.
+**Only add these new keys** — `fearLadder.minimumItems`, `fearLadder.ladderNudge`, `fearLadder.ladderNudgeDismiss`, `crisisDetected.banner`, `complete.*` already exist in both `en.json` and `hi.json`. (`fearLadder.maximumItems` was removed — do not add it.)
 
 Add under the existing `"onboarding"."fearLadder"` key in `en.json`:
 
 ```json
 "fearLadder": {
-  "minimumItems": "Add at least 3 situations to continue.",    // already present — do NOT re-add
-  "maximumItems": "You've added the maximum of 10 situations.",// already present — do NOT re-add
+  "minimumItems": "Add at least 3 situations to continue.",           // already present — do NOT re-add
+  "ladderNudge": "That's a solid ladder — most people find 10–15 situations gives enough range.", // already present — do NOT re-add
+  "ladderNudgeDismiss": "Got it",                                     // already present — do NOT re-add
   "title": "Build your Courage Ladder",
   "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
   "descriptionLabel": "Describe the situation",
@@ -816,7 +824,8 @@ Required test cases:
 3. `Next button is disabled with fewer than 3 items` — `getByRole('button', { name: 'onboarding.fearLadder.nextCta' })` has `accessibilityState.disabled === true`; use `getByRole('button', { name: ... })` to disambiguate from other buttons on screen
 4. `shows minimumItems helper text with fewer than 3 items` — `getByText('onboarding.fearLadder.minimumItems')` exists; both helper and disabled button visible simultaneously
 5. `Next enabled and helper hidden after 3 items added` — press `form-add` → press `add-another-button` → press `form-add` → press `add-another-button` → press `form-add`; assert Next not disabled; assert `minimumItems` text absent (after adding, form is hidden and "Add another" renders, hence the alternating taps)
-6. `hides FearItemForm and shows maximumItems after 10 items` — loop: press `form-add`, then press `add-another-button` (except after the 10th press); after the 10th add, assert `maximumItems` text present, assert `form-add` absent, assert `add-another-button` absent
+6. `shows soft nudge after 8 items and form remains accessible` — loop: press `form-add` then `add-another-button` 8 times; after 8th add assert `testID="ladder-nudge"` present and `form-add` still accessible
+6b. `dismisses nudge when "Got it" pressed and form stays accessible` — same setup to 8 items; press the dismiss button inside `ladder-nudge`; assert nudge gone, `form-add` still present
 7. `shows crisis banner when onCrisisDetected fires` — press `testID="form-crisis"`; assert `getByText('onboarding.crisisDetected.banner')` exists
 8. `calls setCrisisFlaggedInOnboarding exactly once even when onCrisisDetected fires multiple times` — press `testID="form-crisis"` twice; assert `mockSetCrisisFlaggedInOnboarding` called once
 9. `pressing Next when ≥3 items calls setOnboardingProgressStep(4) and navigates to complete` — add 3 items, press Next; wrap in `waitFor`; assert `mockSetOnboardingProgressStep` called with 4; assert `mockReplace` called with `'/(onboarding)/complete'`
