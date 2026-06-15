@@ -3,6 +3,7 @@ export { createSupabaseClient } from './client'
 export type { Database, TypedSupabaseClient } from './client'
 
 export { AuthProvider, AuthContext } from './auth/AuthProvider'
+export { OnboardingProvider, OnboardingContext } from './auth/OnboardingProvider'
 export { useAuth } from './auth/useAuth'
 export {
   initSession,

@@ -35,6 +35,22 @@ jest.mock('@exposure-buddy/ui', () => {
 
 jest.mock('@exposure-buddy/core', () => ({
   resolveLowestPendingItem: jest.fn(() => null),
+  resolveHomeScreenState: jest.fn((data: unknown) => {
+    if (!data) return 'default'
+    const d = data as { completedAtMs: number; reflectionSubmitted: boolean }
+    const now = Date.now()
+    const expiry = d.completedAtMs + 6 * 60 * 60 * 1000
+    if (now < expiry) return 'post-exposure'
+    if (!d.reflectionSubmitted) return 'expired'
+    return 'default'
+  }),
+  formatTimeRemaining: jest.fn((completedAtMs: number) => {
+    const remaining = completedAtMs + 6 * 60 * 60 * 1000 - Date.now()
+    if (remaining <= 0) return ''
+    const hours = Math.floor(remaining / (60 * 60 * 1000))
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / 60000)
+    return `${hours}h ${minutes}m remaining`
+  }),
 }))
 
 import HomeScreen from './'

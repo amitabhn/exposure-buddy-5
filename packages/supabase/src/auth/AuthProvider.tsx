@@ -10,13 +10,11 @@ import {
   getHasAuthedBefore,
   setAuthState,
   signOut as sessionSignOut,
-  getOnboardingComplete,
-  setOnboardingComplete,
-  getOnboardingProgress,
-  setOnboardingProgress,
   type AuthState,
 } from './session'
 
+// Onboarding state (isOnboardingComplete, onboardingProgressStep, etc.) lives in
+// OnboardingProvider — a separate context nested inside AuthProvider. useAuth() merges both.
 interface AuthContextValue {
   authState: AuthState
   isLoading: boolean
@@ -27,24 +25,11 @@ interface AuthContextValue {
   // MMKV, survives sign-out, cleared on reinstall). The sign-in screen uses
   // this to pick between "Create account" and "Sign in" as the default tab.
   hasAuthedBefore: boolean
-  // Onboarding state — set from MMKV after auth is established (ARC-004).
-  isOnboardingComplete: boolean
-  markOnboardingComplete: () => void
-  onboardingProgressStep: number | null
-  setOnboardingProgressStep: (step: number) => void
-  // True when MMKV threw on reading onboarding progress (corrupt key).
-  // welcome.tsx uses this to show the resume-failed toast.
-  onboardingProgressReadFailed: boolean
   // True when MMKV initialisation failed (keystore unavailable). Auth state is
   // in-memory only; onboarding flags cannot be read or written. App routes
   // authenticated users directly to home in this state rather than onboarding.
   isStorageDegraded: boolean
-  setSudsCalibration: (value: number) => void
-  setCrisisFlaggedInOnboarding: () => void
-  crisisFlaggedInOnboarding: boolean
-  firstHomeVisitSeen: boolean
-  markFirstHomeVisitSeen: () => void
-  // Session MMKV helpers (Story 5.2+) — follow same pattern as setSudsCalibration
+  // Session MMKV helpers (Story 5.2+)
   sessionRecoveryData: SessionRecoveryData | null
   setSessionInProgress: (data: SessionRecoveryData) => void
   clearSessionInProgress: () => void
@@ -72,17 +57,7 @@ export const AuthContext = createContext<AuthContextValue>({
   requestAccountDeletion: async () => {},
   pendingDeletion: null,
   hasAuthedBefore: false,
-  isOnboardingComplete: false,
-  markOnboardingComplete: () => {},
-  onboardingProgressStep: null,
-  setOnboardingProgressStep: () => {},
-  onboardingProgressReadFailed: false,
   isStorageDegraded: false,
-  setSudsCalibration: () => {},
-  setCrisisFlaggedInOnboarding: () => {},
-  crisisFlaggedInOnboarding: false,
-  firstHomeVisitSeen: false,
-  markFirstHomeVisitSeen: () => {},
   sessionRecoveryData: null,
   setSessionInProgress: () => {},
   clearSessionInProgress: () => {},
@@ -126,18 +101,10 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
   const [isLoading, setIsLoading] = useState(true)
   const [pendingDeletion, setPendingDeletion] = useState<PendingDeletionRecord | null>(null)
   const [hasAuthedBefore, setHasAuthedBeforeLocal] = useState(false)
-  const [isOnboardingComplete, setIsOnboardingCompleteLocal] = useState(false)
-  const [onboardingProgressStep, setOnboardingProgressStepLocal] = useState<number | null>(null)
-  const [onboardingProgressReadFailed, setOnboardingProgressReadFailed] = useState(false)
   const [isStorageDegraded, setIsStorageDegraded] = useState(false)
-  const [crisisFlaggedInOnboarding, setCrisisFlaggedInOnboardingLocal] = useState(false)
-  const [firstHomeVisitSeen, setFirstHomeVisitSeenLocal] = useState(false)
   const [sessionRecoveryData, setSessionRecoveryDataLocal] = useState<SessionRecoveryData | null>(null)
   const [debriefPendingData, setDebriefPendingDataLocal] = useState<DebriefPendingData | null>(null)
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
-  // Tracks the userId for which onboarding state was last read from MMKV.
-  // Prevents redundant reads on token refreshes (which fire onAuthStateChange).
-  const lastOnboardingReadUserIdRef = useRef<string | null>(null)
   const dpoServiceRef = useRef<IDpoService>(
     dpoService ?? new UserErasureRequestService()
   )
@@ -215,24 +182,9 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         setHasAuthedBeforeLocal(true)
         // Read onboarding state from MMKV now that userId is known (ARC-004).
         // Guard by userId — token refreshes must not re-read and overwrite in-flight state.
-        if (store && session.user.id !== lastOnboardingReadUserIdRef.current) {
-          lastOnboardingReadUserIdRef.current = session.user.id
-          setIsOnboardingCompleteLocal(getOnboardingComplete(store, session.user.id))
-          try {
-            const progress = getOnboardingProgress(store, session.user.id)
-            setOnboardingProgressStepLocal(progress?.step ?? null)
-            setOnboardingProgressReadFailed(false)
-          } catch {
-            setOnboardingProgressStepLocal(null)
-            setOnboardingProgressReadFailed(true)
-          }
-          setCrisisFlaggedInOnboardingLocal(
-            store.getBoolean(KV_KEYS.CRISIS_FLAGGED_IN_ONBOARDING(session.user.id)) ?? false
-          )
-          setFirstHomeVisitSeenLocal(
-            store.getBoolean(KV_KEYS.FIRST_HOME_VISIT_SEEN(session.user.id)) ?? false
-          )
+        if (store) {
           // Read in-progress session recovery data (Story 5.2+). Gated on auth per ADR-004.
+          // Guard by userId change to avoid re-reading on token refreshes.
           try {
             const raw = store.getString(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
             setSessionRecoveryDataLocal(raw ? (JSON.parse(raw) as SessionRecoveryData) : null)
@@ -250,14 +202,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       } else {
         if (store) clearAuthState(store)
         setAuthStateLocal(DEFAULT_AUTH_STATE)
-        setIsOnboardingCompleteLocal(false)
-        setOnboardingProgressStepLocal(null)
-        setOnboardingProgressReadFailed(false)
-        setCrisisFlaggedInOnboardingLocal(false)
-        setFirstHomeVisitSeenLocal(false)
         setSessionRecoveryDataLocal(null)
         setDebriefPendingDataLocal(null)
-        lastOnboardingReadUserIdRef.current = null
       }
       setIsLoading(false)
     })
@@ -329,47 +275,6 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     } catch {
       // Best-effort — if MMKV is unavailable, nothing to clear
     }
-  }
-
-  function markOnboardingComplete(): void {
-    const store = mmkvRef.current
-    const userId = authState.userId
-    if (!store || !userId) {
-      console.error('[AuthProvider] markOnboardingComplete called in degraded mode — cannot persist to MMKV')
-      return
-    }
-    setOnboardingComplete(store, userId)
-    setIsOnboardingCompleteLocal(true)
-  }
-
-  function setOnboardingProgressStep(step: number): void {
-    const store = mmkvRef.current
-    const userId = authState.userId
-    if (!store || !userId) return
-    setOnboardingProgress(store, userId, { step })
-    setOnboardingProgressStepLocal(step)
-  }
-
-  function setSudsCalibration(value: number): void {
-    const store = mmkvRef.current
-    const userId = authState.userId
-    if (!store || !userId) {
-      console.error('[AuthProvider] setSudsCalibration called in degraded mode — cannot persist to MMKV')
-      return
-    }
-    store.set(KV_KEYS.SUDS_CALIBRATION(userId), value)
-    // value is stored as a number type. Downstream readers MUST use store.getNumber(key), not store.getString(key).
-  }
-
-  function setCrisisFlaggedInOnboarding(): void {
-    const store = mmkvRef.current
-    const userId = authState.userId
-    if (!store || !userId) {
-      console.error('[AuthProvider] setCrisisFlaggedInOnboarding called in degraded mode — cannot persist to MMKV')
-      return
-    }
-    store.set(KV_KEYS.CRISIS_FLAGGED_IN_ONBOARDING(userId), true)
-    setCrisisFlaggedInOnboardingLocal(true)
   }
 
   function setSessionInProgress(data: SessionRecoveryData): void {
@@ -444,24 +349,6 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     }
   }
 
-  function markFirstHomeVisitSeen(): void {
-    const store = mmkvRef.current
-    const userId = authState.userId
-    if (!userId) {
-      // Caller must guard on authState.userId before calling — this is a bug in the caller.
-      console.error('[AuthProvider] markFirstHomeVisitSeen called before userId is available')
-      return
-    }
-    if (!store) {
-      // MMKV unavailable (degraded mode) — update local state only so the greeting
-      // does not repeat within this session; flag cannot be persisted across sessions.
-      setFirstHomeVisitSeenLocal(true)
-      return
-    }
-    store.set(KV_KEYS.FIRST_HOME_VISIT_SEEN(userId), true)
-    setFirstHomeVisitSeenLocal(true)
-  }
-
   return (
     <AuthContext.Provider value={{
       authState,
@@ -470,17 +357,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       requestAccountDeletion,
       pendingDeletion,
       hasAuthedBefore,
-      isOnboardingComplete,
-      markOnboardingComplete,
-      onboardingProgressStep,
-      setOnboardingProgressStep,
-      onboardingProgressReadFailed,
       isStorageDegraded,
-      setSudsCalibration,
-      setCrisisFlaggedInOnboarding,
-      crisisFlaggedInOnboarding,
-      firstHomeVisitSeen,
-      markFirstHomeVisitSeen,
       sessionRecoveryData,
       setSessionInProgress,
       clearSessionInProgress,

@@ -20,7 +20,7 @@ import {
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useRef, useState } from 'react'
-import { AuthProvider, initSession, type MMKV } from '@exposure-buddy/supabase'
+import { AuthProvider, OnboardingProvider, initSession, type MMKV } from '@exposure-buddy/supabase'
 
 // MUST be called before any React rendering — registers Sentry and global error handler
 initErrorHandler()
@@ -73,6 +73,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider mmkv={mmkv}>
+        <OnboardingProvider mmkv={mmkv}>
         <SafeAreaProvider>
           <ReducedMotionProvider>
             <ThemeProvider value={DefaultTheme}>
@@ -88,6 +89,7 @@ export default function RootLayout() {
             </ThemeProvider>
           </ReducedMotionProvider>
         </SafeAreaProvider>
+        </OnboardingProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   )

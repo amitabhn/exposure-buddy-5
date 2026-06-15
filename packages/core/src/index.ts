@@ -21,3 +21,9 @@ export type { Result, AppError } from './types/result'
 export type { SessionState, SessionEvent } from './erp/session-state-machine'
 export { transition } from './erp/session-state-machine'
 export type { DebriefPendingData } from './types/debrief-pending-data'
+export {
+  resolveHomeScreenState,
+  formatTimeRemaining,
+  POST_EXPOSURE_WINDOW_MS,
+} from './erp/home-screen-state'
+export type { HomeDisplayState } from './erp/home-screen-state'

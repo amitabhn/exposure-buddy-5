@@ -143,6 +143,10 @@ export default function ActiveScreen() {
       // debrief.tsx reads SESSION_INTENTION(sessionId) from MMKV via getSessionIntention() on mount.
       // Epic 6: peakSuds currently computed from tracked maxSudsLogged; replace with PowerSync query
       // of all suds_readings for this sessionId.
+      // Reset before push: screen unmounts in production so the flag is invisible, but Fast Refresh
+      // preserves component state across edits — resetting here prevents the stuck grey button on
+      // the next dev-mode session start (VER-5-3-1).
+      setIsCompletingSession(false)
       router.push(
         // eslint-disable-next-line i18next/no-literal-string
         `/session/debrief?sessionId=${sessionId}&fearItemId=${fearItemId != null ? encodeURIComponent(fearItemId) : ''}&preSuds=${preSuds}&debriefSuds=${debriefSuds}&peakSuds=${peakSuds}&completedAtMs=${completedAtMs}`
