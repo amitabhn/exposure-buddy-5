@@ -16,7 +16,7 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
    Given the `exposure_sessions` table has no `technique` column
    When migration `0020_exposure_sessions_technique.sql` runs
-   Then `ALTER TABLE public.exposure_sessions ADD COLUMN technique text CHECK (technique IN ('somatic', 'breathing', 'cognitive'))` executes successfully; the column is nullable — existing rows keep `NULL` and no backfill is required; `supabase/sync-rules.yaml`'s `exposure_sessions` SELECT gains `technique` in the column list; `packages/sync/src/schema.ts` `exposure_sessions` Table definition gains `technique: column.text`; a session completed without a `technique` value (technique = NULL) is treated gracefully everywhere downstream — no crash, no null-guard omission in debrief branch logic (debrief.tsx is NOT touched in this story; the NULL tolerance is a forward-compatibility note)
+   Then `ALTER TABLE public.exposure_sessions ADD COLUMN technique text CHECK (technique IN ('somatic', 'breathing', 'cognitive'))` executes successfully; the column is nullable — existing rows keep `NULL` and no backfill is required; `supabase/sync-rules.yaml`'s `exposure_sessions` SELECT gains `technique` in the column list; `packages/sync/src/schema.ts` `exposure_sessions` Table definition gains `technique: column.text`; a session completed without a `technique` value (technique = NULL) is handled by the NULLABLE column constraint — this is a migration-level guarantee only; debrief.tsx null-safety is verified when debrief technique-branching is implemented (out of scope here, see Out of Scope item 6)
 
 2. **Core — `TechniqueType` and `SESSION_LAST_TECHNIQUE` MMKV key**
 
@@ -24,12 +24,13 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
    When `packages/core/src/types/technique.ts` is created
    Then it exports:
    ```typescript
-   // ARC-001: zero imports from react-native, expo-*, or @supabase/*
+   // ARC-011: zero imports from react-native, expo-*, or @supabase/*
    export type TechniqueType = 'somatic' | 'breathing' | 'cognitive'
    ```
    And `packages/core/src/index.ts` exports `TechniqueType`; `packages/core/src/constants/kvKeys.ts` gains:
    ```typescript
    // Last technique used per (userId, fearItemId); written on technique selection; read on mount to pre-select.
+   // Two-arg key: preference is per-user per-fear-item (not per-session), so sessionId would be wrong here.
    SESSION_LAST_TECHNIQUE: (userId: string, fearItemId: string) => `session:last_technique:${userId}:${fearItemId}`,
    ```
    And `packages/supabase/src/auth/AuthProvider.tsx` gains two new helpers (following the existing `setSessionIntention`/`getSessionIntention` guard pattern exactly):
@@ -41,7 +42,7 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
    Given a user navigates to `/session/technique` with params `fearItemId`, `sessionId`, `description`, `predictedSuds`
    When the screen mounts
-   Then three technique option cards render in order: Somatic → Breathing → Cognitive; each card shows `t('session.technique.<type>Label')` as the card title and `t('session.technique.<type>Description')` as a one-sentence sub-label; the section heading reads `t('session.technique.title')` (canonical: "Choose a technique") — **no SUDS-based nudge is displayed** (ADR-TECHNIQUE-SUDS-FALLBACK `insufficient-data` state: SUDS has not been collected yet at technique selection time); the last-used technique for this `fearItemId` (from `getLastUsedTechnique(fearItemId)`) is pre-selected on mount if non-null; if no last-used technique exists, no card is pre-selected; the "Continue" CTA is disabled until a technique is selected; header: `Stack.Screen` with `headerShown: true`, `headerTitle: t('session.technique.title')`, `headerLeft: () => <BackButton />`; selected card gets a visual highlight (teal border + light teal fill; suggested: `borderColor: '#0d9488'`, `backgroundColor: '#f0fdfa'`)
+   Then three technique option cards render in order: Somatic → Breathing → Cognitive; each card shows `t('session.technique.<type>Label')` as the card title and `t('session.technique.<type>Description')` as a one-sentence sub-label; the section heading reads `t('session.technique.title')` (canonical: "Choose a technique") — **no SUDS-based nudge is displayed** (ADR-TECHNIQUE-SUDS-FALLBACK `insufficient-data` state: SUDS has not been collected yet at technique selection time); the last-used technique for this `fearItemId` (from `getLastUsedTechnique(fearItemId)`) is pre-selected on mount if non-null; if no last-used technique exists, no card is pre-selected; the "Continue" CTA renders `t('session.technique.continue')` as its label and is disabled until a technique is selected; header: `Stack.Screen` with `headerShown: true`, `headerTitle: t('session.technique.title')`, `headerLeft: () => <BackButton />`; selected card gets a visual highlight (teal border + light teal fill; suggested: `borderColor: '#0d9488'`, `backgroundColor: '#f0fdfa'`)
 
    Given the user selects a technique and taps "Continue"
    When navigation executes
@@ -109,9 +110,9 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
    Given new and modified screens require test coverage
    When `pnpm turbo test` runs
    Then all suites are green and the following coverage exists:
-   - **`apps/mobile/app/session/technique.test.tsx`** (new — 6 cases): (a) renders 3 technique cards; (b) "Continue" button is disabled with no selection; (c) selecting a card enables "Continue"; (d) pre-selects the last-used technique when `getLastUsedTechnique` returns `'breathing'`; (e) tapping "Continue" calls `setLastUsedTechnique` with the selected value; (f) tapping "Continue" pushes a URL containing `/session/intent` with `technique=` param
+   - **`apps/mobile/app/session/technique.test.tsx`** (new — 7 cases): (a) renders 3 technique cards; (b) "Continue" button is disabled with no selection; (c) selecting a card enables "Continue"; (d) pre-selects the last-used technique when `getLastUsedTechnique` returns `'breathing'`; (e) tapping "Continue" calls `setLastUsedTechnique` with the selected value; (f) tapping "Continue" pushes a URL containing `/session/intent` with `technique=` param; (g) when `getLastUsedTechnique` returns `null`, no card renders with teal highlight and "Continue" remains disabled
    - **`apps/mobile/app/session/briefing.test.tsx`** (new — 4 cases): (a) renders session context copy; (b) renders intention letter block when `getSessionIntention` returns a non-empty string; (c) does NOT render letter block when `getSessionIntention` returns null; (d) tapping "I'm ready" calls `router.push` with a URL containing `/session/active`
-   - **`apps/mobile/app/session/intent.test.tsx`** (updated): add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; add assertion that `mockEnqueue` is called with `'exposure_sessions'`, `'INSERT'`, `expect.objectContaining({ technique: 'somatic' })`; update the navigate-to-pause test to assert `mockRouterPush` is called with a string containing `'/session/briefing'` (not `'/session/pause'`); all 9 existing tests remain green
+   - **`apps/mobile/app/session/intent.test.tsx`** (updated): add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; add assertion that `mockEnqueue` is called with `'exposure_sessions'`, `'INSERT'`, `expect.objectContaining({ technique: 'somatic' })`; update the navigate-to-pause test to assert `mockRouterPush` is called with a string containing `'/session/briefing'` (not `'/session/pause'`); add a case: when `technique` is absent from `useLocalSearchParams` (i.e., `undefined`), the enqueue payload contains `technique: null`; all 9 existing tests remain green
 
 ---
 
@@ -131,7 +132,7 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
 ### T2 — Core: TechniqueType + MMKV key + AuthProvider helpers (AC: 2)
 
-- [ ] T2.1: Create `packages/core/src/types/technique.ts` with `TechniqueType` union (ARC-001 comment at top)
+- [ ] T2.1: Create `packages/core/src/types/technique.ts` with `TechniqueType` union (ARC-011 comment at top)
 - [ ] T2.2: Export `TechniqueType` from `packages/core/src/index.ts` (add after `HomeDisplayState` export)
 - [ ] T2.3: Add `SESSION_LAST_TECHNIQUE` to `packages/core/src/constants/kvKeys.ts` (after `SESSION_DEBRIEF_PENDING`)
 - [ ] T2.4: Import `TechniqueType` from `@exposure-buddy/core` in `packages/supabase/src/auth/AuthProvider.tsx`; add `getLastUsedTechnique` and `setLastUsedTechnique` function definitions (after the existing `setSessionIntention`/`getSessionIntention` functions — follow their guard pattern exactly)
@@ -143,9 +144,9 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 - [ ] T3.1: Create `apps/mobile/app/session/technique.tsx`:
   - `useLocalSearchParams<{ fearItemId: string; sessionId: string; description: string; predictedSuds: string }>()`
   - `const { getLastUsedTechnique, setLastUsedTechnique } = useAuth()`
-  - Local state: `const [selected, setSelected] = useState<TechniqueType | null>(() => getLastUsedTechnique(fearItemId))`
+  - Local state: `const [selected, setSelected] = useState<TechniqueType | null>(() => fearItemId ? getLastUsedTechnique(fearItemId) : null)` (guard: Expo Router returns `undefined` for missing params despite the TypeScript `string` generic)
   - Three technique cards as `TouchableOpacity` with `accessibilityRole="radio"` and `accessibilityState={{ selected: selected === type }}`
-  - Continue `TouchableOpacity` with `disabled={selected === null}`; on press: `setLastUsedTechnique(fearItemId, selected)` then navigate
+  - Continue `TouchableOpacity` with label `t('session.technique.continue')`, `disabled={selected === null}`; on press: `setLastUsedTechnique(fearItemId, selected)` then navigate
   - Generate `sessionId` is NOT needed here — it arrives as a URL param from `ladder.tsx`
 - [ ] T3.2: Register in `session/_layout.tsx`: add `<Stack.Screen name="technique" options={{ headerShown: false, gestureEnabled: false }} />`
 
@@ -161,7 +162,7 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
 ### T5 — Update `intent.tsx`, `ladder.tsx`, and `pause.tsx` (AC: 4, 6)
 
-- [ ] T5.1: Edit `apps/mobile/app/session/intent.tsx`:
+- [ ] T5.1: Edit `apps/mobile/app/session/intent.tsx` — **implement T7.3(c) in the same commit** to keep CI green (changing the push destination immediately breaks the existing "navigates to /session/pause" test):
   - Line 45: add `technique` to `useLocalSearchParams` type: `technique?: string`
   - Line 91 (after `pre_session_intention` in INSERT payload): add `technique: technique ?? null`
   - Line 128: change `\`/session/pause?...\`` to `\`/session/briefing?...\`` (identical params: `sessionId`, `fearItemId`, `description`, `preSuds`)
@@ -178,9 +179,9 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
 ### T7 — Tests (AC: 8)
 
-- [ ] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (6 cases) — follow `intent.test.tsx` mock setup exactly: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/sync/adapter', ...)`; add `jest.mock('../../src/components/navigation/BackButton', () => ({ BackButton: () => null }))`; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
+- [ ] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (7 cases) — mock setup: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/components/navigation/BackButton', () => ({ BackButton: () => null }))`; do NOT mock `../../src/sync/adapter` — `technique.tsx` makes no enqueue calls; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
 - [ ] T7.2: Create `apps/mobile/app/session/briefing.test.tsx` (4 cases) — mock `getSessionIntention` to return `null` and a string; verify DmSerif block conditional render; verify navigation URL contains `/session/active`; `const BriefingScreen = require('./briefing').default`
-- [ ] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (3 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing` and update the `it(...)` description from "navigates to /session/pause on Continue" to "navigates to /session/briefing on Continue"; all 9 existing tests remain green
+- [ ] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (4 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing` and update the `it(...)` description from "navigates to /session/pause on Continue" to "navigates to /session/briefing on Continue"; (d) add a case: when `technique` is absent from `useLocalSearchParams` (`undefined`), the exposure_sessions enqueue payload contains `technique: null`; all 9 existing tests remain green
 
 ### T8 — CI verification (AC: all)
 
@@ -188,6 +189,30 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 - [ ] T8.2: `pnpm turbo lint` — zero errors; no `i18next/no-literal-string` violations in new files
 - [ ] T8.3: `pnpm turbo test` — all suites green; grep `apps/ packages/` for `/session/pause` — the only remaining non-comment references should be in `_layout.tsx` registration (the screen still exists) and `pause.tsx` itself; intent.test.tsx must have zero references to `/session/pause` in push assertions
 - [ ] T8.4: ARC-011 boundary check: `packages/core/src/types/technique.ts` has zero RN/Expo/Supabase imports
+
+### Review Findings
+
+**Patches:**
+- [x] [Review][Patch] P1: ARC-001 comment in AC 2 code snippet should reference ARC-011 (the actual boundary-rule ADR) — fix the inline comment to `// ARC-011: zero imports from react-native, expo-*, or @supabase/*`
+- [x] [Review][Patch] P2: AC 1 NULL-tolerance clause is unverifiable in this story — rephrase "no crash, no null-guard omission in debrief branch logic" to "NULL column value is a migration-level guarantee only; debrief.tsx null-safety is verified when debrief branching is implemented (out of scope here)"
+- [x] [Review][Patch] P3: `SESSION_LAST_TECHNIQUE` retention policy undocumented — add a Dev Notes comment that the key is intentionally retained across sign-out (parallels `SUDS_CALIBRATION` persistence policy; subject to DPDPA erasure path but not cleared on normal sign-out)
+- [x] [Review][Patch] P4: `fearItemId` null-guard missing in T3.1 — Expo Router returns `undefined` for missing params despite the TypeScript `string` generic; add note: guard with `if (!fearItemId) return null` before calling `getLastUsedTechnique(fearItemId)` in the lazy `useState` initialiser
+- [x] [Review][Patch] P5: Continue button label unspecified in AC 3 and T3.1 — add `label: t('session.technique.continue')` to the Continue `TouchableOpacity` description so the `"continue"` i18n key defined in AC 7 has an explicit usage site
+- [x] [Review][Patch] P6: Missing test case — "no card pre-selected when `getLastUsedTechnique` returns `null`" — add as case (g) in AC 8 `technique.test.tsx` list and T7.1: verify that when `getLastUsedTechnique` returns `null`, no card renders with the teal highlight and Continue is disabled
+- [x] [Review][Patch] P7: T7.1 sync adapter mock is incorrect — `technique.tsx` makes no enqueue calls; remove `jest.mock('../../src/sync/adapter', ...)` from the T7.1 mock list (consistent with the correct instruction already given for `briefing.test.tsx`)
+- [x] [Review][Patch] P8: `SESSION_LAST_TECHNIQUE` two-arg key needs a rationale comment — the key uses `(userId, fearItemId)` unlike all other session keys which use a single arg; add inline comment explaining: "Two-arg: preference is per-user per-fear-item (not per-session), so sessionId would be wrong here"
+- [x] [Review][Patch] P9: T5.1 / T7.3 sequencing risk — once `intent.tsx` is changed to push to `/session/briefing` (T5.1), the existing "navigates to /session/pause on Continue" test immediately fails; add note: "Implement T7.3(c) in the same commit as T5.1 to keep CI green"
+- [x] [Review][Patch] P10: No test for `technique = undefined` path in `intent.tsx` — add a T7.3 case: when `technique` is absent from `useLocalSearchParams`, the enqueue payload contains `technique: null`
+- [x] [Review][Patch] P11: `gestureEnabled: false` + `<BackButton />` combination lacks a rationale note — add one sentence in Dev Notes: "technique.tsx disables the swipe-back gesture (`gestureEnabled: false` in layout) while keeping the tappable `<BackButton />` — prevents accidental swipe abandonment while allowing intentional back navigation; `BackButton` calls `router.back()` as usual"
+
+**Deferred:**
+- [x] [Review][Defer] D1: `technique` param not forwarded from `intent.tsx` to `briefing.tsx` — deferred, by design; DB row already holds it; future story can thread it through URL params if `briefing.tsx` needs to display the selected technique
+- [x] [Review][Defer] D2: MMKV write (`setLastUsedTechnique`) occurs before session INSERT in `intent.tsx` — deferred, intentional; stale MMKV on abort is benign (pre-selects the same technique on retry); consistent with last-used preference patterns elsewhere
+- [x] [Review][Defer] D3: No back affordance from `briefing.tsx` — deferred, intentional UX design decision; session is already created; recovery modal handles killed-app re-entry
+- [x] [Review][Defer] D4: `pause.tsx` remains accessible via direct deep-link after deprecation — deferred, acknowledged; screen stays registered in `_layout.tsx` and the file is not deleted this story
+- [x] [Review][Defer] D5: `briefing.tsx` not protected against direct deep-link bypass (no auth guard, no session-existence check) — deferred, pre-existing pattern; no screen in the session flow validates session row existence before proceeding
+- [x] [Review][Defer] D6: `accessibilityRole="radio"` / `accessibilityState` on technique cards has no unit test coverage — deferred, E2E / accessibility audit concern; not covered by Jest-based unit tests in this codebase
+- [x] [Review][Defer] D7: `DmSerifSurface: 'pre-exposure-readback'` comment in `briefing.tsx` is advisory-only with no runtime or test enforcement — deferred, convention enforced at code review
 
 ---
 
@@ -246,6 +271,8 @@ ladder.tsx: "Start session"
 
 Match exactly the guard and store access pattern of `getSessionIntention` / `setSessionIntention` in `AuthProvider.tsx`. Key point: both helpers close over `authState.userId` — they are arrow-function closures inside the component body, same as all other MMKV helpers. They use the same `store` ref (the `mmkv` MMKV instance). Do not access MMKV directly from `technique.tsx`; always go through `useAuth()`.
 
+**`SESSION_LAST_TECHNIQUE` retention policy:** This key is intentionally retained across sign-out (same policy as `SUDS_CALIBRATION` — a user preference that should survive session boundaries). It is NOT cleared in the sign-out path. It is subject to DPDPA erasure: the account-deletion flow wipes the entire MMKV store for the user. Do not add a clear call in sign-out logic.
+
 ### ADR-TECHNIQUE-SUDS-FALLBACK — `insufficient-data` state
 
 The technique screen in Story 6.1 always shows equal-weight cards ("Choose a technique" heading, no nudge text) because SUDS is collected after technique selection (in `intent.tsx`). This is explicitly the `insufficient-data` state from the ADR. Do NOT implement the SUDS-based nudge (`recommended` card state) in this story — it is deferred and the ADR is still at Draft/proposed status.
@@ -291,6 +318,7 @@ Do NOT mock `../../src/sync/adapter` in `briefing.test.tsx` — `briefing.tsx` m
 - **Do not add `technique` to `KV_KEYS.SESSION_IN_PROGRESS`.** The blob shape (`sessionId`, `fearItemId`, `preSuds`, `description`) is not extended.
 - **Do not move `pause.tsx` to a deprecated directory.** Leave it in `apps/mobile/app/session/` with a comment.
 - **Do not add back-gesture to `briefing.tsx`.** The briefing screen is mandatory and non-skippable per the spec — no `gestureEnabled: true` override.
+- **`technique.tsx` — `gestureEnabled: false` + `<BackButton />` is intentional.** The layout registers `technique` with `gestureEnabled: false` (prevents accidental swipe-back abandonment of a started session) while the inline `Stack.Screen` in `technique.tsx` adds `headerShown: true` with a tappable `<BackButton />` (allows deliberate back navigation). `BackButton` calls `router.back()` as it does everywhere else. This is not a contradiction — swipe-back is disabled, tap-back is allowed.
 
 ### Git intelligence
 

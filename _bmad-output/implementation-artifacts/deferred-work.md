@@ -93,6 +93,22 @@
 
 - **5-2-W6: `fear_item_id ON DELETE SET NULL` silently orphans `peak_suds` update** — If a `fear_ladder_items` row is deleted (currently only possible via service-role), associated `exposure_sessions.fear_item_id` becomes NULL. Story 5.2+ logic that writes `peak_suds` back to the fear item on session completion will silently skip the update with no error signal. Epic 6 connector must guard against null `fearItemId` before writing `peak_suds`. [`supabase/migrations/0016_exposure_sessions.sql`]
 
+## Deferred from: code review of 6-1-technique-selection-and-pre-exposure-briefing (2026-06-15)
+
+- **6-1-D1: `technique` param not forwarded from `intent.tsx` to `briefing.tsx`** — By design: the DB row already holds the selected technique; `briefing.tsx` does not display nor pass it forward. If a future story needs `briefing.tsx` to show the selected technique (e.g., "You chose Somatic — here's what that means"), thread `technique` as a URL param from `intent.tsx` → `briefing.tsx` → (drop at active.tsx). No code change required now.
+
+- **6-1-D2: `setLastUsedTechnique` MMKV write precedes the `exposure_sessions` INSERT** — Technique is written to MMKV in `technique.tsx` before `intent.tsx` enqueues the session INSERT. If the user aborts at `intent.tsx`, the MMKV key holds the technique from a session that never completed; on re-entry to `technique.tsx`, the same technique is pre-selected. This is intentional last-used preference behaviour (consistent with other MMKV preference keys) and is benign — the user can change their selection. No change required.
+
+- **6-1-D3: No back affordance from `briefing.tsx`** — Intentional UX decision: `briefing.tsx` is forward-only (`gestureEnabled: false`, `headerShown: false`, no `BackButton`). Session row was already created in `intent.tsx`; the recovery modal in `(app)/_layout.tsx` handles killed-app re-entry directly to `active.tsx`. If a future story decides users should be able to abort from `briefing`, add a "Cancel session" affordance that calls `clearSessionInProgress` and pops to home.
+
+- **6-1-D4: `pause.tsx` remains accessible via direct deep-link after deprecation** — `pause.tsx` keeps its `_layout.tsx` registration and is not deleted in this story. A cached or bookmarked deep-link to `/session/pause?...` will still work and route to `active.tsx` as before. Fully intentional — cleanup deferred until all clients upgrade past the old flow. Delete `pause.tsx` and its `_layout.tsx` entry in a future housekeeping story.
+
+- **6-1-D5: `briefing.tsx` unprotected against direct deep-link bypass (no auth guard, no session-existence check)** — A direct deep-link to `/session/briefing?sessionId=X&...` bypasses `intent.tsx` entirely; the caller can reach `active.tsx` with a `sessionId` for which no `exposure_sessions` row exists. Pre-existing architectural pattern shared by all session flow screens — none validate session row existence before proceeding. Address in a global session-guard story (Epic 9 candidate).
+
+- **6-1-D6: `accessibilityRole="radio"` / `accessibilityState` on technique cards has no unit test coverage** — AC 3 requires proper ARIA radio semantics on each card; AC 8 specifies no test case verifying these attributes. Unit tests (Jest + RNTL) can assert on `accessibilityRole` but this codebase does not currently do so for any component. Defer to Story 9.3 accessibility audit.
+
+- **6-1-D7: `DmSerifSurface: 'pre-exposure-readback'` comment in `briefing.tsx` enforced by convention only** — The four permitted DM Serif Display Italic surfaces (UX-DR21) are advisory; there is no runtime type guard or lint rule preventing addition of the font to non-permitted surfaces. Convention is enforced at code review. A future story could add an ESLint no-restricted-syntax rule or a type-level `DmSerifSurface` literal union to make this machine-enforceable.
+
 - **5-2-W7: Trigger re-stamps `expires_at` if a completed session is reset and re-completed** — The guard `OLD.status IS DISTINCT FROM 'completed'` (once P4 is applied) prevents re-stamp on idempotent updates, but if a service-role operation resets `status` to `'started'` and then back to `'completed'`, the trigger fires again and overwrites `expires_at`. Application layer never performs this sequence; no action needed at the app level. [`supabase/migrations/0018_set_session_expires_at_trigger.sql`]
 
 ## Deferred from: spec review of 5-2-erp-session-start-and-suds-entry (2026-06-04)
