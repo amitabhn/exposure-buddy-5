@@ -33,8 +33,8 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
    SESSION_LAST_TECHNIQUE: (userId: string, fearItemId: string) => `session:last_technique:${userId}:${fearItemId}`,
    ```
    And `packages/supabase/src/auth/AuthProvider.tsx` gains two new helpers (following the existing `setSessionIntention`/`getSessionIntention` guard pattern exactly):
-   - `getLastUsedTechnique(fearItemId: string): TechniqueType | null` — reads `store?.getString(KV_KEYS.SESSION_LAST_TECHNIQUE(authState.userId, fearItemId))` and returns as `TechniqueType`; returns `null` if store is null, userId is null, or key is absent
-   - `setLastUsedTechnique(fearItemId: string, technique: TechniqueType): void` — guard: `if (!store || !authState.userId) return`; writes `store.set(KV_KEYS.SESSION_LAST_TECHNIQUE(authState.userId, fearItemId), technique)`
+   - `getLastUsedTechnique(fearItemId: string): TechniqueType | null` — `const store = mmkvRef.current; const userId = authState.userId; if (!store || !userId) return null; return (store.getString(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId)) ?? null) as TechniqueType | null` (unguarded cast is safe: only `setLastUsedTechnique` writes this key)
+   - `setLastUsedTechnique(fearItemId: string, technique: TechniqueType): void` — `const store = mmkvRef.current; const userId = authState.userId; if (!store || !userId) return; store.set(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId), technique)`
    Both are exposed via `useAuth()` (added to `AuthContextValue` interface, default context stubs, context provider value, `useAuth.ts` merged interface + passthrough)
 
 3. **Screen — Technique selection (`apps/mobile/app/session/technique.tsx`)**
@@ -126,7 +126,7 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
     ADD COLUMN technique text
     CHECK (technique IN ('somatic', 'breathing', 'cognitive'));
   ```
-- [ ] T1.2: Update `supabase/sync-rules.yaml` — add `technique` to the `exposure_sessions` SELECT column list (after `expires_at`, before the closing `FROM public.exposure_sessions`)
+- [ ] T1.2: Update `supabase/sync-rules.yaml` — append `technique` after `created_at` (the last column on line 18), giving: `started_at, ended_at, expires_at, created_at, technique`
 - [ ] T1.3: Update `packages/sync/src/schema.ts` — add `technique: column.text` to the `exposure_sessions` Table definition (after `expires_at: column.real`)
 
 ### T2 — Core: TechniqueType + MMKV key + AuthProvider helpers (AC: 2)
@@ -178,9 +178,9 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
 ### T7 — Tests (AC: 8)
 
-- [ ] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (6 cases) — follow `intent.test.tsx` mock setup exactly: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/sync/adapter', ...)`; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
+- [ ] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (6 cases) — follow `intent.test.tsx` mock setup exactly: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/sync/adapter', ...)`; add `jest.mock('../../src/components/navigation/BackButton', () => ({ BackButton: () => null }))`; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
 - [ ] T7.2: Create `apps/mobile/app/session/briefing.test.tsx` (4 cases) — mock `getSessionIntention` to return `null` and a string; verify DmSerif block conditional render; verify navigation URL contains `/session/active`; `const BriefingScreen = require('./briefing').default`
-- [ ] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (3 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing`
+- [ ] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (3 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing` and update the `it(...)` description from "navigates to /session/pause on Continue" to "navigates to /session/briefing on Continue"; all 9 existing tests remain green
 
 ### T8 — CI verification (AC: all)
 
@@ -220,13 +220,13 @@ ladder.tsx: "Start session"
 
 **`apps/mobile/app/session/intent.tsx:83-94`** — `exposure_sessions` INSERT payload currently has 7 fields. Add `technique: technique ?? null` after `pre_session_intention: trimmedIntention || null` (line 91). The `eslint-disable-next-line i18next/no-literal-string` comment pattern is NOT needed for `technique` because it is a variable reference, not a literal string.
 
-**`apps/mobile/app/session/intent.tsx:127-130`** — `router.push('/session/pause?sessionId=...')`. Change `pause` to `briefing`. Params `sessionId`, `fearItemId`, `description`, `preSuds` are identical — no param changes.
+**`apps/mobile/app/session/intent.tsx:127-129`** — `router.push('/session/pause?sessionId=...')` is at line 129. Change `pause` to `briefing`. Params `sessionId`, `fearItemId`, `description`, `preSuds` are identical — no param changes.
 
 **`apps/mobile/app/session/_layout.tsx:4-11`** — Currently registers `pause`, `active`, `grounding`. Add `technique` and `briefing` before `pause`. Both get `gestureEnabled: false`.
 
 **`apps/mobile/app/ladder.tsx:227-229`** — `router.push('/session/intent?fearItemId=...')`. Change `intent` to `technique`. All four URL params (`fearItemId`, `sessionId`, `description`, `predictedSuds`) are preserved unchanged.
 
-**`supabase/sync-rules.yaml:16-19`** — The `exposure_sessions` SELECT currently selects `id, user_id, fear_item_id, session_type, status, pre_session_intention, post_session_reflection, started_at, ended_at, expires_at, created_at`. Add `technique` after `expires_at`.
+**`supabase/sync-rules.yaml:16-19`** — The `exposure_sessions` SELECT currently selects `id, user_id, fear_item_id, session_type, status, pre_session_intention, post_session_reflection, started_at, ended_at, expires_at, created_at`. Append `technique` after `created_at` (end of the column list, line 18), giving: `started_at, ended_at, expires_at, created_at, technique`.
 
 **`packages/sync/src/schema.ts:27-38`** — `exposure_sessions` Table. After `expires_at: column.real`, add `technique: column.text`. (Note: `column.real` was chosen for `expires_at` to avoid 32-bit integer overflow on BigInt epoch-ms — `technique` is a plain text column, `column.text` is correct.)
 
