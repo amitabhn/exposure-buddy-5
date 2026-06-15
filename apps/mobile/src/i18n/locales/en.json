@@ -206,6 +206,22 @@
       "anchor6": "6 — Moderate",
       "anchor8": "8 — Severe",
       "anchor10": "10 — Worst imaginable"
+    },
+    "technique": {
+      "title": "Choose a technique",
+      "somaticLabel": "Somatic",
+      "somaticDescription": "Ground yourself in body sensations before you begin.",
+      "breathingLabel": "Breathing",
+      "breathingDescription": "Use a breathing pattern to steady your nervous system.",
+      "cognitiveLabel": "Cognitive",
+      "cognitiveDescription": "Use self-talk to prepare your mind for the challenge ahead.",
+      "continue": "Continue"
+    },
+    "briefing": {
+      "title": "You're almost ready",
+      "sessionContext": "You'll face your challenge, notice what comes up, and log how you feel. Take it one moment at a time.",
+      "letterIntro": "Before you begin, here's what you wrote to yourself:",
+      "readyButton": "I'm ready"
     }
   },
   "nav": {

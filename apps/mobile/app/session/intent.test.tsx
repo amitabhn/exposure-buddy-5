@@ -57,6 +57,7 @@ beforeEach(() => {
     sessionId: 'session-uuid-1',
     description: 'Test fear situation',
     predictedSuds: '5',
+    technique: 'somatic',
   })
 })
 
@@ -112,7 +113,7 @@ describe('IntentScreen', () => {
       expect(mockEnqueue).toHaveBeenCalledWith(
         'exposure_sessions',
         'INSERT',
-        expect.objectContaining({ status: 'started' })
+        expect.objectContaining({ status: 'started', technique: 'somatic' })
       )
     })
   })
@@ -146,13 +147,32 @@ describe('IntentScreen', () => {
     })
   })
 
-  it('navigates to /session/pause on Continue', async () => {
+  it('navigates to /session/briefing on Continue', async () => {
     const { getByLabelText, getByTestId } = render(<IntentScreen />)
     await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
     await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
     await waitFor(() => {
       expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining('/session/pause')
+        expect.stringContaining('/session/briefing')
+      )
+    })
+  })
+
+  it('enqueue payload contains technique: null when technique is absent from params', async () => {
+    useLocalSearchParams.mockReturnValue({
+      fearItemId: 'item-uuid-1',
+      sessionId: 'session-uuid-1',
+      description: 'Test fear situation',
+      predictedSuds: '5',
+    })
+    const { getByLabelText, getByTestId } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      expect(mockEnqueue).toHaveBeenCalledWith(
+        'exposure_sessions',
+        'INSERT',
+        expect.objectContaining({ technique: null })
       )
     })
   })

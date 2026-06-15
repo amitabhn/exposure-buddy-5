@@ -15,7 +15,7 @@ bucket_definitions:
 
       - SELECT id, user_id, fear_item_id, session_type, status,
                pre_session_intention, post_session_reflection,
-               started_at, ended_at, expires_at, created_at
+               started_at, ended_at, expires_at, created_at, technique
         FROM public.exposure_sessions
         WHERE user_id = bucket.user_id
 

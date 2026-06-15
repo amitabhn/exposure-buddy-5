@@ -2,7 +2,7 @@ import { useContext } from 'react'
 import { AuthContext } from './AuthProvider'
 import { OnboardingContext } from './OnboardingProvider'
 import type { AuthState } from './session'
-import type { PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
+import type { PendingDeletionRecord, SessionRecoveryData, TechniqueType } from '@exposure-buddy/core'
 
 // Merged view of AuthContext + OnboardingContext. All existing callers continue to work
 // without change — the split is an internal implementation detail.
@@ -35,6 +35,9 @@ interface UseAuthResult {
   clearSessionIntention: (sessionId: string) => void
   hasSessionIntention: (sessionId: string) => boolean
   getSessionIntention: (sessionId: string) => string | null
+  // Technique preference helpers (Story 6.1+)
+  getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
+  setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -69,5 +72,8 @@ export function useAuth(): UseAuthResult {
     clearSessionIntention: auth.clearSessionIntention,
     hasSessionIntention: auth.hasSessionIntention,
     getSessionIntention: auth.getSessionIntention,
+    // Technique preference (AuthContext)
+    getLastUsedTechnique: auth.getLastUsedTechnique,
+    setLastUsedTechnique: auth.setLastUsedTechnique,
   }
 }

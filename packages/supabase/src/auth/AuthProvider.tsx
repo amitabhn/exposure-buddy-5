@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
-import type { IDpoService, PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
+import type { IDpoService, PendingDeletionRecord, SessionRecoveryData, TechniqueType } from '@exposure-buddy/core'
 import { KV_KEYS } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
@@ -37,6 +37,9 @@ interface AuthContextValue {
   clearSessionIntention: (sessionId: string) => void
   hasSessionIntention: (sessionId: string) => boolean
   getSessionIntention: (sessionId: string) => string | null
+  // Technique preference helpers (Story 6.1+)
+  getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
+  setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -60,6 +63,8 @@ export const AuthContext = createContext<AuthContextValue>({
   clearSessionIntention: () => {},
   hasSessionIntention: () => false,
   getSessionIntention: () => null,
+  getLastUsedTechnique: () => null,
+  setLastUsedTechnique: () => {},
 })
 
 interface AuthProviderProps {
@@ -305,6 +310,23 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     return store.getString(KV_KEYS.SESSION_INTENTION(sessionId)) ?? null
   }
 
+  function getLastUsedTechnique(fearItemId: string): TechniqueType | null {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return null
+    const val = store.getString(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId))
+    const valid: string[] = ['somatic', 'breathing', 'cognitive']
+    if (!val || !valid.includes(val)) return null
+    return val as TechniqueType
+  }
+
+  function setLastUsedTechnique(fearItemId: string, technique: TechniqueType): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId), technique)
+  }
+
   return (
     <AuthContext.Provider value={{
       authState,
@@ -321,6 +343,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       clearSessionIntention,
       hasSessionIntention,
       getSessionIntention,
+      getLastUsedTechnique,
+      setLastUsedTechnique,
     }}>
       {children}
     </AuthContext.Provider>

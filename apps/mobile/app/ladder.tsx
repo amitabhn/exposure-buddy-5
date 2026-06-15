@@ -226,7 +226,7 @@ export default function LadderScreen() {
                       const sessionId = generateUUID()
                       router.push(
                         // eslint-disable-next-line i18next/no-literal-string
-                        `/session/intent?fearItemId=${item.id}&sessionId=${sessionId}&description=${encodeURIComponent(item.description)}&predictedSuds=${item.predictedSuds}`
+                        `/session/technique?fearItemId=${item.id}&sessionId=${sessionId}&description=${encodeURIComponent(item.description)}&predictedSuds=${item.predictedSuds}`
                       )
                     }}
                     accessibilityRole="button"
