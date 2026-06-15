@@ -73,11 +73,15 @@ describe('TechniqueScreen', () => {
     expect(continueBtn.props.accessibilityState?.disabled).toBe(false)
   })
 
-  it('tapping "Continue" calls setLastUsedTechnique with the selected value', () => {
+  it('tapping "Continue" calls setLastUsedTechnique before router.push', () => {
+    const callOrder: string[] = []
+    mockSetLastUsedTechnique.mockImplementation(() => { callOrder.push('set') })
+    mockRouterPush.mockImplementation(() => { callOrder.push('push') })
     const { getByLabelText } = render(<TechniqueScreen />)
     fireEvent.press(getByLabelText('session.technique.breathingLabel'))
     fireEvent.press(getByLabelText('session.technique.continue'))
     expect(mockSetLastUsedTechnique).toHaveBeenCalledWith('item-uuid-1', 'breathing')
+    expect(callOrder).toEqual(['set', 'push'])
   })
 
   it('tapping "Continue" pushes a URL containing /session/intent with technique= param', () => {

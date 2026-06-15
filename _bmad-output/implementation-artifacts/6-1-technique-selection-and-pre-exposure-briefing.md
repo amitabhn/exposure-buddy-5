@@ -1,6 +1,6 @@
 # Story 6.1: Technique Selection & Pre-Exposure Briefing
 
-Status: review
+Status: done
 
 ## Story
 
@@ -213,6 +213,22 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 - [x] [Review][Defer] D5: `briefing.tsx` not protected against direct deep-link bypass (no auth guard, no session-existence check) — deferred, pre-existing pattern; no screen in the session flow validates session row existence before proceeding
 - [x] [Review][Defer] D6: `accessibilityRole="radio"` / `accessibilityState` on technique cards has no unit test coverage — deferred, E2E / accessibility audit concern; not covered by Jest-based unit tests in this codebase
 - [x] [Review][Defer] D7: `DmSerifSurface: 'pre-exposure-readback'` comment in `briefing.tsx` is advisory-only with no runtime or test enforcement — deferred, convention enforced at code review
+
+### Code Review Findings
+
+**Patches:**
+- [x] [Review][Patch] CR-P1: `getLastUsedTechnique` MMKV cast lacks runtime membership check — stale or future-versioned value (e.g., `"mindfulness"`) passes the `as TechniqueType | null` cast; `selected` is non-null so Continue enables but no card renders as selected; `handleContinue` then pushes `technique=<invalid>` and the DB CHECK constraint rejects the INSERT [packages/supabase/src/auth/AuthProvider.tsx:317]
+- [x] [Review][Patch] CR-P2: `setLastUsedTechnique` write-path missing `fearItemId` undefined guard — `handleContinue` guards `!selected` but not `!fearItemId`; Expo Router can return undefined for missing params; calling `setLastUsedTechnique(undefined, selected)` writes phantom key `session:last_technique:<userId>:undefined` [apps/mobile/app/session/technique.tsx:29]
+- [x] [Review][Patch] CR-P3: `sessionId` undefined guard missing in `briefing.tsx` — `getSessionIntention(sessionId)` receives raw `sessionId` which can be undefined (Expo Router); `handleReady` constructs `/session/active?sessionId=undefined&...`; both need `sessionId ?? ''` or an early-return guard [apps/mobile/app/session/briefing.tsx:17,22]
+- [x] [Review][Patch] CR-P4: `fearItemId` not `encodeURIComponent`-wrapped in `technique.tsx` `handleContinue` URL — inconsistent with `intent.tsx` which encodes fearItemId; a crafted deep-link value like `abc&technique=cognitive` would inject extra URL params [apps/mobile/app/session/technique.tsx:32]
+- [x] [Review][Patch] CR-P5: `briefing.test.tsx` missing empty-string case for letter-block suppression — AC5 specifies "null/empty" but only `null` is tested; `""` is falsy and also suppresses the block but has no test coverage [apps/mobile/app/session/briefing.test.tsx]
+- [x] [Review][Patch] CR-P6: `briefing.test.tsx` missing `session.briefing.title` render assertion — title is rendered by the component but no test case asserts it [apps/mobile/app/session/briefing.test.tsx]
+- [x] [Review][Patch] CR-P7: `technique.test.tsx` case (e) missing ordering assertion — AC3 requires `setLastUsedTechnique` called before `router.push`; current test only asserts the call exists, not that it precedes `mockRouterPush` [apps/mobile/app/session/technique.test.tsx]
+
+**Deferred:**
+- [x] [Review][Defer] CR-D1: Android hardware back button not suppressed in `briefing.tsx` — `gestureEnabled: false` disables iOS swipe-back and Android edge-swipe but not the Android system back button; pressing it after `intent.tsx` has written the `exposure_sessions` INSERT returns the user to `intent.tsx`; re-submitting triggers a DB primary-key conflict on the same `sessionId` UUID; extends D3 (intentional forward-only design) — deferred, pre-existing architectural gap across all session screens [apps/mobile/app/session/briefing.tsx]
+- [x] [Review][Defer] CR-D2: `getLastUsedTechnique` returns null during auth-state loading race — `useState` initialiser runs once on mount; if `authState.userId` is still null (MMKV session bootstrap async), `getLastUsedTechnique` returns null and the pre-selection is permanently missed for that mount — deferred, pre-existing pattern shared with `getSessionIntention` and all MMKV helpers; no `useEffect` re-read is the established convention [packages/supabase/src/auth/AuthProvider.tsx:313]
+- [x] [Review][Defer] CR-D3: `preSuds` forwarded unguarded through `briefing.tsx` to `active.tsx` — if `briefing.tsx` is reached via deep-link without `preSuds`, `active.tsx` silently defaults to `0`; no fallback reads `SessionRecoveryData` — deferred, pre-existing pattern across all session-flow screens (none validate param presence) [apps/mobile/app/session/briefing.tsx:22]
 
 ---
 

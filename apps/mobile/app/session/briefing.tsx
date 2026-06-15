@@ -14,12 +14,12 @@ export default function BriefingScreen() {
   }>()
 
   const { getSessionIntention } = useAuth()
-  const intentionText = getSessionIntention(sessionId)
+  const intentionText = getSessionIntention(sessionId ?? '')
 
   function handleReady() {
     router.push(
       // eslint-disable-next-line i18next/no-literal-string
-      `/session/active?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId ?? '')}&description=${encodeURIComponent(description ?? '')}&preSuds=${preSuds}`
+      `/session/active?sessionId=${sessionId ?? ''}&fearItemId=${encodeURIComponent(fearItemId ?? '')}&description=${encodeURIComponent(description ?? '')}&preSuds=${preSuds ?? ''}`
     )
   }
 

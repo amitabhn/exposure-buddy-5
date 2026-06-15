@@ -314,7 +314,10 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     const store = mmkvRef.current
     const userId = authState.userId
     if (!store || !userId) return null
-    return (store.getString(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId)) ?? null) as TechniqueType | null
+    const val = store.getString(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId))
+    const valid: string[] = ['somatic', 'breathing', 'cognitive']
+    if (!val || !valid.includes(val)) return null
+    return val as TechniqueType
   }
 
   function setLastUsedTechnique(fearItemId: string, technique: TechniqueType): void {

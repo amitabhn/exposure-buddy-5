@@ -25,11 +25,11 @@ export default function TechniqueScreen() {
   )
 
   function handleContinue() {
-    if (!selected) return
+    if (!selected || !fearItemId) return
     setLastUsedTechnique(fearItemId, selected)
     router.push(
       // eslint-disable-next-line i18next/no-literal-string
-      `/session/intent?fearItemId=${fearItemId}&sessionId=${sessionId}&description=${encodeURIComponent(description ?? '')}&predictedSuds=${predictedSuds}&technique=${selected}`
+      `/session/intent?fearItemId=${encodeURIComponent(fearItemId)}&sessionId=${sessionId}&description=${encodeURIComponent(description ?? '')}&predictedSuds=${predictedSuds}&technique=${selected}`
     )
   }
 

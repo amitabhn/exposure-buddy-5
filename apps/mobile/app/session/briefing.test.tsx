@@ -39,8 +39,9 @@ beforeEach(() => {
 const BriefingScreen = require('./briefing').default
 
 describe('BriefingScreen', () => {
-  it('renders session context copy', () => {
+  it('renders title and session context copy', () => {
     const { getByText } = render(<BriefingScreen />)
+    expect(getByText('session.briefing.title')).toBeTruthy()
     expect(getByText('session.briefing.sessionContext')).toBeTruthy()
   })
 
@@ -53,6 +54,12 @@ describe('BriefingScreen', () => {
 
   it('does NOT render letter block when getSessionIntention returns null', () => {
     mockGetSessionIntention.mockReturnValue(null)
+    const { queryByText } = render(<BriefingScreen />)
+    expect(queryByText('session.briefing.letterIntro')).toBeNull()
+  })
+
+  it('does NOT render letter block when getSessionIntention returns an empty string', () => {
+    mockGetSessionIntention.mockReturnValue('')
     const { queryByText } = render(<BriefingScreen />)
     expect(queryByText('session.briefing.letterIntro')).toBeNull()
   })
