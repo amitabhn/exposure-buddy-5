@@ -107,7 +107,7 @@ export default function DebriefScreen() {
       // Only clear intention text in the submit path (not in readOnly mode)
       clearSessionIntention(sessionId)
 
-      router.replace('/(app)/index')
+      router.replace('/')
     } catch {
       dispatch({ type: 'SET_SUBMITTING', value: false })
     }

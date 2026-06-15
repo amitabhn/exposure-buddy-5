@@ -100,7 +100,7 @@ describe('CompleteScreen', () => {
     const { getByRole } = render(<CompleteScreen />)
     fireEvent.press(getByRole('button', { name: 'onboarding.complete.cta' }))
     expect(mockMarkOnboardingComplete).toHaveBeenCalledTimes(1)
-    expect(mockReplace).toHaveBeenCalledWith('/(app)/index')
+    expect(mockReplace).toHaveBeenCalledWith('/')
     // Verify call order: markOnboardingComplete before replace
     expect(mockMarkOnboardingComplete.mock.invocationCallOrder[0]!)
       .toBeLessThan(mockReplace.mock.invocationCallOrder[0]!)

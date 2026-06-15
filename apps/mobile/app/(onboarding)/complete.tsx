@@ -14,7 +14,7 @@ export default function CompleteScreen() {
   function handleStartJourney() {
     // MUST precede router.replace — flips isOnboardingComplete before (app) layout mounts
     markOnboardingComplete()
-    router.replace('/(app)/index')
+    router.replace('/')
   }
 
   const title = crisisFlaggedInOnboarding

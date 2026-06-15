@@ -220,7 +220,7 @@ export default function LadderScreen() {
                       // would orphan the in-progress fear_ladder_items row.
                       if (sessionRecoveryData) {
                         // eslint-disable-next-line i18next/no-literal-string
-                        router.replace('/(app)/index')
+                        router.replace('/')
                         return
                       }
                       const sessionId = generateUUID()

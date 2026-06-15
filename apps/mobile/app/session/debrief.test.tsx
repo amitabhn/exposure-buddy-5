@@ -159,7 +159,7 @@ describe('DebriefScreen — handleSubmitReflection', () => {
       )
     })
     expect(mockClearSessionIntention).toHaveBeenCalledWith('session-1')
-    expect(mockRouterReplace).toHaveBeenCalledWith('/(app)/index')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/')
   })
 })
 
