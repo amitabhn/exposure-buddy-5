@@ -1,6 +1,6 @@
 # Story 6.1: Technique Selection & Pre-Exposure Briefing
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -120,75 +120,75 @@ So that I enter the exposure feeling prepared and grounded (FR-SESSION-04, FR-SE
 
 ### T1 — DB migration and sync schema (AC: 1)
 
-- [ ] T1.1: Create `supabase/migrations/0020_exposure_sessions_technique.sql`:
+- [x] T1.1: Create `supabase/migrations/0020_exposure_sessions_technique.sql`:
   ```sql
   -- Technique selected before each ERP session (Story 6.1 — FR-SESSION-04)
   ALTER TABLE public.exposure_sessions
     ADD COLUMN technique text
     CHECK (technique IN ('somatic', 'breathing', 'cognitive'));
   ```
-- [ ] T1.2: Update `supabase/sync-rules.yaml` — append `technique` after `created_at` (the last column on line 18), giving: `started_at, ended_at, expires_at, created_at, technique`
-- [ ] T1.3: Update `packages/sync/src/schema.ts` — add `technique: column.text` to the `exposure_sessions` Table definition (after `expires_at: column.real`)
+- [x] T1.2: Update `supabase/sync-rules.yaml` — append `technique` after `created_at` (the last column on line 18), giving: `started_at, ended_at, expires_at, created_at, technique`
+- [x] T1.3: Update `packages/sync/src/schema.ts` — add `technique: column.text` to the `exposure_sessions` Table definition (after `expires_at: column.real`)
 
 ### T2 — Core: TechniqueType + MMKV key + AuthProvider helpers (AC: 2)
 
-- [ ] T2.1: Create `packages/core/src/types/technique.ts` with `TechniqueType` union (ARC-011 comment at top)
-- [ ] T2.2: Export `TechniqueType` from `packages/core/src/index.ts` (add after `HomeDisplayState` export)
-- [ ] T2.3: Add `SESSION_LAST_TECHNIQUE` to `packages/core/src/constants/kvKeys.ts` (after `SESSION_DEBRIEF_PENDING`)
-- [ ] T2.4: Import `TechniqueType` from `@exposure-buddy/core` in `packages/supabase/src/auth/AuthProvider.tsx`; add `getLastUsedTechnique` and `setLastUsedTechnique` function definitions (after the existing `setSessionIntention`/`getSessionIntention` functions — follow their guard pattern exactly)
-- [ ] T2.5: Add both helpers to `AuthContextValue` interface + default `AuthContext` stubs + Context Provider value object in `AuthProvider.tsx`
-- [ ] T2.6: Add both helpers to merged interface + passthroughs in `packages/supabase/src/auth/useAuth.ts`
+- [x] T2.1: Create `packages/core/src/types/technique.ts` with `TechniqueType` union (ARC-011 comment at top)
+- [x] T2.2: Export `TechniqueType` from `packages/core/src/index.ts` (add after `HomeDisplayState` export)
+- [x] T2.3: Add `SESSION_LAST_TECHNIQUE` to `packages/core/src/constants/kvKeys.ts` (after `SESSION_DEBRIEF_PENDING`)
+- [x] T2.4: Import `TechniqueType` from `@exposure-buddy/core` in `packages/supabase/src/auth/AuthProvider.tsx`; add `getLastUsedTechnique` and `setLastUsedTechnique` function definitions (after the existing `setSessionIntention`/`getSessionIntention` functions — follow their guard pattern exactly)
+- [x] T2.5: Add both helpers to `AuthContextValue` interface + default `AuthContext` stubs + Context Provider value object in `AuthProvider.tsx`
+- [x] T2.6: Add both helpers to merged interface + passthroughs in `packages/supabase/src/auth/useAuth.ts`
 
 ### T3 — `technique.tsx` screen (AC: 3, 6)
 
-- [ ] T3.1: Create `apps/mobile/app/session/technique.tsx`:
+- [x] T3.1: Create `apps/mobile/app/session/technique.tsx`:
   - `useLocalSearchParams<{ fearItemId: string; sessionId: string; description: string; predictedSuds: string }>()`
   - `const { getLastUsedTechnique, setLastUsedTechnique } = useAuth()`
   - Local state: `const [selected, setSelected] = useState<TechniqueType | null>(() => fearItemId ? getLastUsedTechnique(fearItemId) : null)` (guard: Expo Router returns `undefined` for missing params despite the TypeScript `string` generic)
   - Three technique cards as `TouchableOpacity` with `accessibilityRole="radio"` and `accessibilityState={{ selected: selected === type }}`
   - Continue `TouchableOpacity` with label `t('session.technique.continue')`, `disabled={selected === null}`; on press: `setLastUsedTechnique(fearItemId, selected)` then navigate
   - Generate `sessionId` is NOT needed here — it arrives as a URL param from `ladder.tsx`
-- [ ] T3.2: Register in `session/_layout.tsx`: add `<Stack.Screen name="technique" options={{ headerShown: false, gestureEnabled: false }} />`
+- [x] T3.2: Register in `session/_layout.tsx`: add `<Stack.Screen name="technique" options={{ headerShown: false, gestureEnabled: false }} />`
 
 ### T4 — `briefing.tsx` screen (AC: 5, 6)
 
-- [ ] T4.1: Create `apps/mobile/app/session/briefing.tsx`:
+- [x] T4.1: Create `apps/mobile/app/session/briefing.tsx`:
   - `useLocalSearchParams<{ sessionId: string; fearItemId: string; description: string; preSuds: string }>()`
   - `const { getSessionIntention } = useAuth()`
   - `const intentionText = getSessionIntention(sessionId)` (called once; no useEffect needed — value does not change while this screen is mounted)
   - DmSerif intention block: `fontFamily: 'DMSerifDisplay_400Regular_Italic'` with comment naming `'pre-exposure-readback'` surface (UX-DR21)
   - "I'm ready" navigates to `/session/active` with the same four params as the current `pause.tsx → active.tsx` call
-- [ ] T4.2: Register in `session/_layout.tsx`: add `<Stack.Screen name="briefing" options={{ headerShown: false, gestureEnabled: false }} />`
+- [x] T4.2: Register in `session/_layout.tsx`: add `<Stack.Screen name="briefing" options={{ headerShown: false, gestureEnabled: false }} />`
 
 ### T5 — Update `intent.tsx`, `ladder.tsx`, and `pause.tsx` (AC: 4, 6)
 
-- [ ] T5.1: Edit `apps/mobile/app/session/intent.tsx` — **implement T7.3(c) in the same commit** to keep CI green (changing the push destination immediately breaks the existing "navigates to /session/pause" test):
+- [x] T5.1: Edit `apps/mobile/app/session/intent.tsx` — **implement T7.3(c) in the same commit** to keep CI green (changing the push destination immediately breaks the existing "navigates to /session/pause" test):
   - Line 45: add `technique` to `useLocalSearchParams` type: `technique?: string`
   - Line 91 (after `pre_session_intention` in INSERT payload): add `technique: technique ?? null`
   - Line 128: change `\`/session/pause?...\`` to `\`/session/briefing?...\`` (identical params: `sessionId`, `fearItemId`, `description`, `preSuds`)
-- [ ] T5.2: Edit `apps/mobile/app/ladder.tsx` line 229: change `/session/intent?` to `/session/technique?` (all other params unchanged)
-- [ ] T5.3: Prepend deprecation comment to `apps/mobile/app/session/pause.tsx`:
+- [x] T5.2: Edit `apps/mobile/app/ladder.tsx` line 229: change `/session/intent?` to `/session/technique?` (all other params unchanged)
+- [x] T5.3: Prepend deprecation comment to `apps/mobile/app/session/pause.tsx`:
   ```typescript
   // SUPERSEDED — replaced by briefing.tsx in Story 6.1. No longer in the active session start flow.
   ```
 
 ### T6 — i18n keys (AC: 7)
 
-- [ ] T6.1: Add `"technique"` and `"briefing"` blocks to `apps/mobile/src/i18n/locales/en.json` under `"session"` (after the `"suds"` block)
-- [ ] T6.2: Add identical English-placeholder keys to `apps/mobile/src/i18n/locales/hi.json` (same pattern as existing hi.json `"session"` keys which are English placeholders)
+- [x] T6.1: Add `"technique"` and `"briefing"` blocks to `apps/mobile/src/i18n/locales/en.json` under `"session"` (after the `"suds"` block)
+- [x] T6.2: Add identical English-placeholder keys to `apps/mobile/src/i18n/locales/hi.json` (same pattern as existing hi.json `"session"` keys which are English placeholders)
 
 ### T7 — Tests (AC: 8)
 
-- [ ] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (7 cases) — mock setup: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/components/navigation/BackButton', () => ({ BackButton: () => null }))`; do NOT mock `../../src/sync/adapter` — `technique.tsx` makes no enqueue calls; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
-- [ ] T7.2: Create `apps/mobile/app/session/briefing.test.tsx` (4 cases) — mock `getSessionIntention` to return `null` and a string; verify DmSerif block conditional render; verify navigation URL contains `/session/active`; `const BriefingScreen = require('./briefing').default`
-- [ ] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (4 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing` and update the `it(...)` description from "navigates to /session/pause on Continue" to "navigates to /session/briefing on Continue"; (d) add a case: when `technique` is absent from `useLocalSearchParams` (`undefined`), the exposure_sessions enqueue payload contains `technique: null`; all 9 existing tests remain green
+- [x] T7.1: Create `apps/mobile/app/session/technique.test.tsx` (7 cases) — mock setup: `jest.mock('expo-router', ...)`, `jest.mock('react-i18next', ...)`, `jest.mock('@exposure-buddy/supabase', ...)`, `jest.mock('../../src/components/navigation/BackButton', () => ({ BackButton: () => null }))`; do NOT mock `../../src/sync/adapter` — `technique.tsx` makes no enqueue calls; for `getLastUsedTechnique` return `null` (default) or `'breathing'` (pre-selection case); `const TechniqueScreen = require('./technique').default`
+- [x] T7.2: Create `apps/mobile/app/session/briefing.test.tsx` (4 cases) — mock `getSessionIntention` to return `null` and a string; verify DmSerif block conditional render; verify navigation URL contains `/session/active`; `const BriefingScreen = require('./briefing').default`
+- [x] T7.3: Update `apps/mobile/app/session/intent.test.tsx` (4 targeted changes): (a) add `technique: 'somatic'` to `useLocalSearchParams.mockReturnValue` in `beforeEach`; (b) update the enqueue assertion to `expect.objectContaining({ technique: 'somatic' })`; (c) update the navigation assertion from `/session/pause` to `/session/briefing` and update the `it(...)` description from "navigates to /session/pause on Continue" to "navigates to /session/briefing on Continue"; (d) add a case: when `technique` is absent from `useLocalSearchParams` (`undefined`), the exposure_sessions enqueue payload contains `technique: null`; all 9 existing tests remain green
 
 ### T8 — CI verification (AC: all)
 
-- [ ] T8.1: `pnpm turbo typecheck` — zero errors
-- [ ] T8.2: `pnpm turbo lint` — zero errors; no `i18next/no-literal-string` violations in new files
-- [ ] T8.3: `pnpm turbo test` — all suites green; grep `apps/ packages/` for `/session/pause` — the only remaining non-comment references should be in `_layout.tsx` registration (the screen still exists) and `pause.tsx` itself; intent.test.tsx must have zero references to `/session/pause` in push assertions
-- [ ] T8.4: ARC-011 boundary check: `packages/core/src/types/technique.ts` has zero RN/Expo/Supabase imports
+- [x] T8.1: `pnpm turbo typecheck` — zero errors
+- [x] T8.2: `pnpm turbo lint` — zero errors; no `i18next/no-literal-string` violations in new files
+- [x] T8.3: `pnpm turbo test` — all suites green; grep `apps/ packages/` for `/session/pause` — the only remaining non-comment references should be in `_layout.tsx` registration (the screen still exists) and `pause.tsx` itself; intent.test.tsx must have zero references to `/session/pause` in push assertions
+- [x] T8.4: ARC-011 boundary check: `packages/core/src/types/technique.ts` has zero RN/Expo/Supabase imports
 
 ### Review Findings
 
@@ -349,15 +349,22 @@ Recent commits show the session flow patterns:
 
 ### Agent Model Used
 
-_to be filled by dev agent_
+Claude Sonnet 4.6 (claude-sonnet-4-6)
 
 ### Debug Log References
 
-_to be filled by dev agent_
+- `technique.test.tsx` initially used `getByLabelText` on technique cards, which required adding `accessibilityLabel` prop to each `TouchableOpacity` card in `technique.tsx` (cards had `accessibilityRole` and `accessibilityState` but were missing `accessibilityLabel`). Fixed by adding `accessibilityLabel={t(\`session.technique.${type}Label\`)}` to each card.
 
 ### Completion Notes List
 
-_to be filled by dev agent_
+- T1: DB migration `0020_exposure_sessions_technique.sql` created; `supabase/sync-rules.yaml` updated; `packages/sync/src/schema.ts` updated — all verified.
+- T2: `TechniqueType` union created in `packages/core/src/types/technique.ts` (ARC-011 compliant); exported from `packages/core/src/index.ts`; `SESSION_LAST_TECHNIQUE` two-arg key added to `kvKeys.ts` with retention policy comment; `getLastUsedTechnique` + `setLastUsedTechnique` added to `AuthProvider.tsx`, `AuthContextValue`, default stubs, provider value, and `useAuth.ts` interface + passthrough.
+- T3: `technique.tsx` screen created — three technique cards with `accessibilityRole="radio"`, `accessibilityLabel`, `accessibilityState`; last-used pre-selection via `getLastUsedTechnique` with `fearItemId` null-guard; Continue CTA navigates to `/session/intent` with `technique=` param; `technique` + `briefing` registered in `_layout.tsx`.
+- T4: `briefing.tsx` screen created — session context paragraph; conditional DmSerif intention readback (`'pre-exposure-readback'` surface, UX-DR21); "I'm ready" navigates to `/session/active`; registered in `_layout.tsx`.
+- T5: `intent.tsx` updated — `technique?: string` added to params, `technique: technique ?? null` in enqueue payload, navigation changed to `/session/briefing`; `ladder.tsx` updated — destination changed to `/session/technique`; `pause.tsx` — deprecation comment prepended.
+- T6: `technique` + `briefing` i18n keys added to `en.json` and `hi.json` (English placeholders for Hindi per established pattern).
+- T7: `technique.test.tsx` (7 cases), `briefing.test.tsx` (4 cases) created; `intent.test.tsx` updated (4 targeted changes). All 175 tests green, 23 suites.
+- T8: `pnpm turbo typecheck` — zero errors; `pnpm turbo lint` — zero errors; `pnpm turbo test` — 175/175 pass; ARC-011 boundary clean.
 
 ### File List
 
@@ -389,3 +396,4 @@ _to be filled by dev agent_
 | Date | Change | By |
 |------|--------|-----|
 | 2026-06-15 | Story drafted; status `ready-for-dev` | Claude Sonnet 4.6 (bmad-create-story) |
+| 2026-06-15 | Story implemented; status `review` — DB migration, TechniqueType + MMKV helpers, technique.tsx, briefing.tsx, intent.tsx + ladder.tsx wired, i18n, 11 new tests; 175/175 pass | Claude Sonnet 4.6 (bmad-dev-story) |

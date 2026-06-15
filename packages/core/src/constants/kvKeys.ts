@@ -16,6 +16,9 @@ export const KV_KEYS = {
   // key on every SIGNED_IN to clean up stale data from the State 7/8 era. Safe to
   // remove from KV_KEYS entirely after one release cycle.
   SESSION_DEBRIEF_PENDING:      (userId: string) => `session:debrief_pending:${userId}`,
+  // Two-arg key: preference is per-user per-fear-item (not per-session), so sessionId would be wrong here.
+  // Retained across sign-out (parallels SUDS_CALIBRATION policy); subject to DPDPA erasure on account deletion.
+  SESSION_LAST_TECHNIQUE:       (userId: string, fearItemId: string) => `session:last_technique:${userId}:${fearItemId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.

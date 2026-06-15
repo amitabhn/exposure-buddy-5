@@ -1,3 +1,4 @@
+// SUPERSEDED — replaced by briefing.tsx in Story 6.1. No longer in the active session start flow.
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'

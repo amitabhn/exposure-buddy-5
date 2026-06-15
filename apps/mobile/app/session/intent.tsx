@@ -42,11 +42,12 @@ function intentReducer(state: IntentState, action: IntentAction): IntentState {
 export default function IntentScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { fearItemId, sessionId, description, predictedSuds } = useLocalSearchParams<{
+  const { fearItemId, sessionId, description, predictedSuds, technique } = useLocalSearchParams<{
     fearItemId: string
     sessionId: string
     description: string
     predictedSuds: string
+    technique?: string
   }>()
 
   const { authState, isAuthenticated, setSessionInProgress, setSessionIntention } = useAuth()
@@ -89,6 +90,7 @@ export default function IntentScreen() {
         // eslint-disable-next-line i18next/no-literal-string
         status: 'started',
         pre_session_intention: trimmedIntention || null,
+        technique: technique ?? null,
         started_at: now,
         created_at: now,
       })
@@ -123,10 +125,10 @@ export default function IntentScreen() {
 
       // (f) session.started event: idle→pre_session (state machine is informational at screen level)
 
-      // (g) Navigate to pause screen
+      // (g) Navigate to briefing screen
       router.push(
         // eslint-disable-next-line i18next/no-literal-string
-        `/session/pause?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description ?? '')}&preSuds=${state.preSuds}`
+        `/session/briefing?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description ?? '')}&preSuds=${state.preSuds}`
       )
     } catch (err) {
       console.error('[IntentScreen] enqueue failed:', err)

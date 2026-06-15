@@ -35,6 +35,7 @@ const exposure_sessions = new Table({
   ended_at: column.text,
   expires_at: column.real,  // BIGINT epoch-ms; column.real (64-bit float) avoids 32-bit overflow
   created_at: column.text,
+  technique: column.text,
 })
 
 const suds_readings = new Table({
