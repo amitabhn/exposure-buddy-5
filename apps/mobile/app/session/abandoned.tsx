@@ -24,7 +24,7 @@ export default function AbandonedScreen() {
 
         <TouchableOpacity
           style={styles.returnButton}
-          onPress={() => router.replace('/(app)/index')}
+          onPress={() => router.replace('/')}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >

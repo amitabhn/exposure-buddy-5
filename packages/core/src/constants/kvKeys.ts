@@ -12,9 +12,9 @@ export const KV_KEYS = {
   SESSION_IN_PROGRESS:          (userId: string) => `session:in_progress:${userId}`,
   // Optional intention text written in intent.tsx; cleared on abandonment and completion.
   SESSION_INTENTION:            (sessionId: string) => `session:intention:${sessionId}`,
-  // JSON-serialised DebriefPendingData blob written on session completion.
-  // completedAtMs + 21600000 = local expiry proxy (Epic 6 replaces with server expires_at via PowerSync).
-  // Cleared on: reflection submitted + window resolved, OR late debrief submitted.
+  // DEPRECATED 2026-06-15 (Story 5.6) — no longer written. AuthProvider deletes this
+  // key on every SIGNED_IN to clean up stale data from the State 7/8 era. Safe to
+  // remove from KV_KEYS entirely after one release cycle.
   SESSION_DEBRIEF_PENDING:      (userId: string) => `session:debrief_pending:${userId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears

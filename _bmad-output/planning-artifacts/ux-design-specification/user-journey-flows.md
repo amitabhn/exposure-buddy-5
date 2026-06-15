@@ -121,7 +121,7 @@ flowchart TD
     Q -->|No| S
     R --> S[SUDS arc — habituation visible]
     S --> T[Ladder item advances automatically]
-    T --> U[Home — Post-exposure reflection state 7]
+    T --> U[Home — Morning state 3\nladder visible, Start CTA]
 ```
 
 **Decisions:**
@@ -157,7 +157,7 @@ flowchart TD
     L -->|No| K
     L -->|Yes — stays in app| M[Immediate modal: Debrief now?]
     M -->|Yes| N[Debrief screen]
-    M -->|Not now| O[Home — Post-exposure state 7\n6h expiry window starts]
+    M -->|Not now| O[Home — Morning state 3]
     N --> O
     L -->|Yes — app killed / backgrounded| P[Session state persisted server-side\nlocal as cache]
     P --> Q[Next app foreground\nReturns to exposure state\nCalm Me prompt overlaid]
@@ -197,13 +197,10 @@ flowchart TD
     K -->|Yes — thread open| N{Thread state}
     N -->|progressing\n< 3 opens without debrief| O[Home — Progressing state 4]
     N -->|avoidance pattern\nopen-count OR time-based OR user-declared| P[Home — Avoidance state 5]
-    N -->|WINDOW_EXPIRED\nno debrief| Q[Home — Expired state 8]
     O --> R[Primary CTA: Continue / Start debrief]
     P --> S[Soft CTA: Start debrief when ready]
-    Q --> T[CTA: Reflect now]
     R --> U[Core exposure loop — F3]
     S --> V[Debrief screen]
-    T --> V
     M --> U
 ```
 
@@ -220,46 +217,9 @@ flowchart TD
 
 ---
 
-## F6 — Post-Exposure Reflection & Expiry
+## F6 — DEFERRED
 
-Entry: debrief complete → state 7.
-
-```mermaid
-flowchart TD
-    A[Debrief complete] --> B[expires_at set at debrief completion\nUTC epoch ms — server-side only\nbigint in Supabase]
-    B --> C[Home — Post-exposure reflection state 7]
-    C --> D{Letter to self written?}
-    D -->|Yes| E[Primary CTA: See how it played out\nContext card teases prediction]
-    D -->|No| F[Acknowledgement card\nYou did something genuinely hard today.\nCopy tied to what actually happened\nnot just the fact of showing up]
-    E --> G[Prediction vs. reality reveal\nletter to self — read back]
-    F --> H{SUDS score improved?}
-    H -->|Yes| I[SUDS arc — habituation visible]
-    H -->|No improvement| J[Acknowledgement only\nno arc shown]
-    I --> K[Prompt: Add notes about today]
-    J --> K
-    G --> L[SUDS arc]
-    L --> K
-    K --> M{6h window still open?\nexpiry displayed in local timezone}
-    M -->|Yes — user completes notes| N[Thread resolved\nLadder item advances automatically\nunconditional on SUDS delta]
-    M -->|After 6h — first open past expiry| O[Home — Window expired state 8]
-    N --> P{Last ladder item?}
-    P -->|No| Q[Home — Morning state 3]
-    P -->|Yes| R[Home — Completed ladder state 10]
-    O --> S[Context card: You started something real.\nWant to take a few minutes to reflect on it now?\nNo expiry reference in copy.]
-    S --> T[Primary CTA: Reflect now]
-    T --> U[Late debrief screen]
-    U --> V[Same no-letter path:\nacknowledgement + arc if improved + notes]
-    V --> N
-```
-
-**Decisions:**
-- `expires_at`: set at debrief completion, UTC epoch ms, server-side only, bigint in Supabase; client uses `Date.now()` for comparison only
-- Expiry remaining time displayed in user's local timezone (`Intl.DateTimeFormat` with device locale); stored epoch remains authoritative for server-side computation and timezone-change resilience
-- Letter written → reveal is primary CTA
-- No letter → acknowledgement card ("You did something genuinely hard today") tied to what actually happened, not just attendance
-- No-letter path is first-class, not a fallback
-- Late debrief offered indefinitely; advance unconditional on debrief completion regardless of SUDS delta
-- SUDS arc and prediction reveal accessible post-thread from session history (single-session view at MVP); multi-session longitudinal view in Achievements tab is post-MVP (`LongitudinalSudsChart`)
+The 6-hour post-exposure reflection window and home states 7/8 were removed 2026-06-15 by Story 5.6 (Issue #36). Reflection capture happens entirely on the debrief screen (F3 node P). On debrief submit the user lands on home state 3 (ladder visible, Start CTA). See `_bmad-output/implementation-artifacts/5-6-remove-home-states-7-and-8.md` and `_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md` (Supersession block) for the full rationale.
 
 ---
 

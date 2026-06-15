@@ -75,7 +75,7 @@
     - [F3 — Core Exposure Loop](./user-journey-flows.md#f3-core-exposure-loop)
     - [F4 — Mid-Exposure Crisis (SOS / Calm Me)](./user-journey-flows.md#f4-mid-exposure-crisis-sos-calm-me)
     - [F5 — Return After Gap / Re-engagement](./user-journey-flows.md#f5-return-after-gap-re-engagement)
-    - [F6 — Post-Exposure Reflection & Expiry](./user-journey-flows.md#f6-post-exposure-reflection-expiry)
+    - [F6 — DEFERRED (removed 2026-06-15 by Story 5.6 / Issue #36)](./user-journey-flows.md#f6-deferred)
     - [Longitudinal SUDS View](./user-journey-flows.md#longitudinal-suds-view)
     - [Journey Patterns](./user-journey-flows.md#journey-patterns)
     - [Flow Optimization Principles](./user-journey-flows.md#flow-optimization-principles)

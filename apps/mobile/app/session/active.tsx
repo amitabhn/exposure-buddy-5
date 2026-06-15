@@ -25,7 +25,7 @@ export default function ActiveScreen() {
     preSuds: string
   }>()
 
-  const { authState, hasSessionIntention, setDebriefPending, clearSessionInProgress } = useAuth()
+  const { clearSessionInProgress } = useAuth()
 
   // Initialised to 1: the pre-session reading written in intent.tsx already counts.
   const [sudsReadingsCount, setSudsReadingsCount] = useState(1)
@@ -120,25 +120,10 @@ export default function ActiveScreen() {
         })
       }
 
-      // 5. Check if intention letter exists — via useAuth() helper (no direct MMKV access in screens)
-      const hasLetter = hasSessionIntention(sessionId)
-
-      // 6. Write SESSION_DEBRIEF_PENDING — used by home screen for states 7/8
-      setDebriefPending({
-        sessionId,
-        fearItemId: fearItemId ?? null,
-        completedAtMs,
-        preSuds: parseInt(preSuds ?? '0') || 0,
-        debriefSuds,
-        peakSuds,
-        hasLetter,
-        reflectionSubmitted: false,
-      })
-
-      // 7. Clear SESSION_IN_PROGRESS — session is no longer resumable
+      // 5. Clear SESSION_IN_PROGRESS — session is no longer resumable
       clearSessionInProgress()
 
-      // 8. Navigate to debrief with completion params
+      // 6. Navigate to debrief with completion params
       // NOTE: intentionText is NOT passed as URL param (too long, encoding issues).
       // debrief.tsx reads SESSION_INTENTION(sessionId) from MMKV via getSessionIntention() on mount.
       // Epic 6: peakSuds currently computed from tracked maxSudsLogged; replace with PowerSync query
