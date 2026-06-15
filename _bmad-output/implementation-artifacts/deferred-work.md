@@ -1,5 +1,11 @@
 # Deferred Work
 
+## 2026-06-15 — Stories 5.4 and 5.5 formally deferred post-Phase-1
+
+- **FR-LADDER-03 — Clinician read access deferred post-Phase-1.** Stories 5.4 (clinician access schema & RLS policies) and 5.5 (clinician access pgTAP coverage) are marked `deferred-post-mvp` in `sprint-status.yaml`; `epic-5` is now closed. Full decision record at `epics.md` FR Coverage Map (FR-LADDER-03) and `prd.md` ("Therapist portal → Phase 2"). The `therapist_patient_relationships` stub table (Story 4.3) and ARC-006/007 stub RLS policies remain in place; Phase 2 activates the real policies via migration with no schema rebuild.
+
+---
+
 ## 2026-06-15 — Story 5.6 / Issue #36 — Home states 7/8 removed
 
 - **FR-NOTIF-04 — Window-close push notification deferred post-MVP.** Rationale: Story 5.6 / Issue #36 removed the home screen post-exposure reflection window (State 7) and the late-debrief gate (State 8). The window-close notification semantically depends on a 6-hour reflection window that the UI no longer presents — the notification copy ("the window is still available") loses its referent. Reflection capture happens entirely on the debrief screen (FR-ERP-03) before the user reaches home. Original Story 8.3 in `epics.md` is marked DEFERRED. PRD `FR-NOTIF-04` line in `epics.md` line 66 is struck through with the deferral note; FR Coverage Map line 195 carries the full decision record.
