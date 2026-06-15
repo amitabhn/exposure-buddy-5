@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { SudsArcChart, typography } from '@exposure-buddy/ui'
 import type { DmSerifSurface } from '@exposure-buddy/ui'
-import { POST_EXPOSURE_WINDOW_MS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 
 // Compile-time guard — this screen is the prediction-reality-reveal DM Serif surface (UX-DR21)
@@ -44,8 +43,6 @@ export default function DebriefScreen() {
   const router = useRouter()
   const {
     clearSessionIntention,
-    updateDebriefReflectionSubmitted,
-    clearDebriefPending,
     getSessionIntention,
   } = useAuth()
 
@@ -55,7 +52,6 @@ export default function DebriefScreen() {
     preSuds,
     debriefSuds,
     peakSuds,
-    completedAtMs,
     readOnly,
   } = useLocalSearchParams<{
     sessionId: string
@@ -88,10 +84,6 @@ export default function DebriefScreen() {
   const branch: 'A' | 'B' | 'C' = hasLetter ? 'A'
     : debriefSudsInt < preSudsInt ? 'B' : 'C'
 
-  // NOTE: On state-8 late debrief path, SESSION_INTENTION is already cleared.
-  // Branch A cannot render even if debriefPendingData.hasLetter === true.
-  // This is an accepted MVP limitation — letter was available at state 7 (immediate debrief).
-
   // Build readings for SudsArcChart — MVP stub with just pre and exit
   // Epic 6: replace with full readings from PowerSync suds_readings query for this sessionId
   const readings: number[] = [preSudsInt, debriefSudsInt]
@@ -114,15 +106,6 @@ export default function DebriefScreen() {
 
       // Only clear intention text in the submit path (not in readOnly mode)
       clearSessionIntention(sessionId)
-
-      // State-8 late debrief (window expired): clear pending data entirely
-      // State-7 path (window open): mark reflection submitted, keep for home display
-      const isLateDebrief = parseInt(completedAtMs ?? '0') + POST_EXPOSURE_WINDOW_MS <= Date.now()
-      if (isLateDebrief) {
-        clearDebriefPending()
-      } else {
-        updateDebriefReflectionSubmitted()
-      }
 
       router.replace('/(app)/index')
     } catch {

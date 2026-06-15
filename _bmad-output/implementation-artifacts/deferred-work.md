@@ -1,5 +1,25 @@
 # Deferred Work
 
+## 2026-06-15 — Story 5.6 / Issue #36 — Home states 7/8 removed
+
+- **FR-NOTIF-04 — Window-close push notification deferred post-MVP.** Rationale: Story 5.6 / Issue #36 removed the home screen post-exposure reflection window (State 7) and the late-debrief gate (State 8). The window-close notification semantically depends on a 6-hour reflection window that the UI no longer presents — the notification copy ("the window is still available") loses its referent. Reflection capture happens entirely on the debrief screen (FR-ERP-03) before the user reaches home. Original Story 8.3 in `epics.md` is marked DEFERRED. PRD `FR-NOTIF-04` line in `epics.md` line 66 is struck through with the deferral note; FR Coverage Map line 195 carries the full decision record.
+
+- **State 8 (`expired`) orphaned and removed.** Rationale: State 8 was a soft gate that re-offered the debrief screen indefinitely after the 6-hour window expired. It collected zero new reflection input — it was a pure routing affordance. With State 7 removed, State 8 had no upstream trigger, and its existence depended on the same `expires_at` referent that no longer surfaces in the UI.
+
+- **`exposure_sessions.expires_at` server trigger kept inert.** Rationale: Migrations `0016_exposure_sessions.sql` (column), `0018_set_session_expires_at_trigger.sql` (AFTER UPDATE trigger setting `expires_at = now() + 6h` on `status = 'completed'`), and `0019_session_insert_guard.sql` (forces `expires_at := NULL` on INSERT) are not modified by this story. The trigger continues to run on session completion and the column continues to be populated — but no UI consumer reads it. Dropping the trigger/column is a follow-up migration not bundled here (broader blast radius, separate Story 9.x candidate).
+
+- **`window_notified_at` column never landed.** Story 8.3 (which would have added this column on `exposure_sessions`) is deferred — no migration is required for this story.
+
+### Backlog stubs filed 2026-06-15
+
+- **BACKLOG-EPIC6-D1: Soft recency acknowledgement on State 3.** Sally's design suggestion from the 2026-06-13 party-mode review: when a user lands on State 3 shortly after submitting a debrief, render a slim, dismissible recency note ("Earlier today — you faced <fearItem>. Nice work.") above the `CourageLadderEntryCard`. Passive, no CTA, no countdown. Requires: new copy keys (EN+HI), a short-lived `lastCompletedSessionAt` data source (MMKV or PowerSync `exposure_sessions.completed_at`), a justified recency threshold, and new tests. Out of scope of Story 5.6 — filed as Epic 6 candidate.
+
+- **BACKLOG-EPIC9-D1: Option B — auto-route to debrief on next launch when `SESSION_DEBRIEF_PENDING` is non-empty.** Crash-recovery affordance for users who completed the active phase but lost the debrief screen (force-quit, OS-kill — relevant on low-memory Android devices in the India launch market). On AuthProvider hydration with a non-empty `SESSION_DEBRIEF_PENDING(userId)` blob and `reflectionSubmitted: false`, navigate to `/session/debrief` once on launch. Whether the user submits or backs out, clear the key. Story 5.6 explicitly chose Option A (silent wipe — accept risk) over this option to keep scope tight.
+
+- **BACKLOG-CLINICIAN-D1: Explicit clinician acknowledgement of overriding the original 6-hour pacing rationale.** Story 5.6 proceeded without explicit clinician sign-off on removing the 6h post-exposure window. The original design had clinician input on the pacing rationale (containment / nervous-system regulation framing). Engineering/PM decided the rationale is intentionally set aside — the debrief screen now absorbs the entire reflection job — but no clinician has signed off in writing. Capture clinician disposition before any future feature reintroduces a pacing gate.
+
+---
+
 ## Deferred from: verification of 5-3-erp-session-completion-debrief-and-home-state (2026-06-08)
 
 - **VER-5-3-1: `isCompletingSession` survives Fast Refresh on the success path** — In `apps/mobile/app/session/active.tsx`, `handleCompleteSession` only resets `setIsCompletingSession(false)` in the `!result.ok` early-return and the `catch` block. On the success path the screen `router.push`es to debrief and the active screen unmounts in production, so the stuck flag is invisible. During dev, Fast Refresh preserves component state across edits — a subsequent fresh session lands on `active.tsx` with `isCompletingSession=true` from the previous attempt, and the "Finish session" button renders gray and ignores taps. Workaround: full reload (Cmd+R). Production behaviour is correct; consider adding a `useEffect` cleanup or resetting the flag immediately after the navigation `router.push` for dev ergonomics. [`apps/mobile/app/session/active.tsx:77-83, 153`]

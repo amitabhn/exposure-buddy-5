@@ -37,9 +37,9 @@
 
 **Anatomy:** Eyebrow + date → Greeting (DM Serif Display) → Illustration (register-matched SVG, `aria-hidden`) → Context card → Primary CTA → Secondary options row
 
-**States:** `first-use` · `empty-ladder` · `morning` · `progressing` · `avoidance` · `mid-exposure` · `post-exposure` · `expired` · `return-after-gap` · `completed`
+**States:** `first-use` · `empty-ladder` · `morning` · `progressing` · `avoidance` · `mid-exposure` · `return-after-gap` · `completed` *(8 states; `post-exposure`/`expired` removed 2026-06-15 by Story 5.6 — Issue #36)*
 
-**Mode register:** `grounding` for states 4/5/6 · `reflecting` for states 7/8 · `preparing` for states 3/9/10
+**Mode register:** `grounding` for states 4/5/6 · `preparing` for states 3/9/10
 
 **Behavioural contract:** State resolved by `resolveHomeScreenState(ctx: HomeScreenContext): HomeScreenState` — pure function, no side effects, lives in `packages/core` (not `packages/ui`). Component receives resolved state as prop; does not resolve internally.
 
@@ -123,7 +123,7 @@
 
 **Purpose:** Visualises the SUDS arc for a single exposure session. Renders an irregular time series with a guaranteed minimum of two data points (pre-exposure + debrief).
 
-**Usage:** F3 debrief, F6 state 7 and state 8 late debrief. Also accessible post-thread from session history.
+**Usage:** F3 debrief. Also accessible post-thread from session history. *(F6 state 7 / state 8 usage removed 2026-06-15 by Story 5.6 — Issue #36.)*
 
 **Anatomy:** Y-axis (0–10, subtext anchors) → X-axis (relative) → Data points → Connecting line → Annotations: "Before" (pre-exposure), "After" (debrief) → Area fill (conditional on improvement)
 
@@ -164,7 +164,7 @@
 
 **Purpose:** Displays the pre-exposure prediction letter alongside the post-exposure reality. Surfaces the prediction vs. reality comparison.
 
-**Usage:** F6 state 7 (letter-written path). Accessible from session history post-thread.
+**Usage:** F3 debrief (Branch A, letter-written path). Accessible from session history post-thread. *(F6 state 7 usage removed 2026-06-15 by Story 5.6 — Issue #36.)*
 
 **Anatomy:** "Before" card (user's prediction in their own words) → "After" card (SUDS outcome + debrief notes) → SUDS delta summary
 
@@ -182,7 +182,7 @@
 
 **Purpose:** Post-exposure acknowledgement for the no-letter path. Warm recognition tied to what actually happened. Conditionally includes `SudsArcChart` if SUDS improved.
 
-**Usage:** F6 state 7 (no-letter path), state 8 late debrief path. First-class experience, not a fallback.
+**Usage:** F3 debrief (Branch B / Branch C — no-letter paths). First-class experience, not a fallback. *(F6 state 7 / state 8 usage removed 2026-06-15 by Story 5.6 — Issue #36.)*
 
 **Anatomy:** Acknowledgement text (outcome-tied, not generic) → `SudsArcChart` (conditional: SUDS improved only) → Notes prompt (*"Add notes about today"*)
 

@@ -427,6 +427,8 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 - **FR-NOTIF-01:** After 2 consecutive days of inactivity, the system sends one re-engagement notification using warm, non-punitive language; if inactivity continues, a second notification is sent on Day 5; no further automated notifications are sent in that inactivity window
 - **FR-NOTIF-02:** Notification content contains no streak counters, missed-day counts, streak-reset warnings, or loss-framing constructs ("you're about to lose", "don't break your streak")
 - **FR-NOTIF-03:** Users control notification delivery timing and can opt out of individual notification types from app settings; opt-out is honoured immediately
+<!-- FR-NOTIF-04 (window-close push at 3h post-session) was previously listed here; deferred post-MVP 2026-06-15 alongside removal of home States 7 and 8 (Story 5.6 / Issue #36). See the FR Coverage Map entry for the full decision record. -->
+
 
 ### Crisis Detection and Safety
 

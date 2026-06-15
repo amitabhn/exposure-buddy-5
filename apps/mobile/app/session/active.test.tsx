@@ -35,8 +35,6 @@ jest.mock('../../src/components/session/SudsScale', () => ({
   },
 }))
 
-const mockHasSessionIntention = jest.fn().mockReturnValue(false)
-const mockSetDebriefPending = jest.fn()
 const mockClearSessionInProgress = jest.fn()
 const mockUseAuth = jest.fn()
 
@@ -54,9 +52,6 @@ const { transition } = require('@exposure-buddy/core')
 beforeEach(() => {
   jest.clearAllMocks()
   mockUseAuth.mockReturnValue({
-    authState: { userId: 'user-123' },
-    hasSessionIntention: mockHasSessionIntention,
-    setDebriefPending: mockSetDebriefPending,
     clearSessionInProgress: mockClearSessionInProgress,
   })
   useLocalSearchParams.mockReturnValue({
@@ -122,7 +117,7 @@ describe('ActiveScreen — existing tests', () => {
 })
 
 describe('ActiveScreen — maxSudsLogged initialisation', () => {
-  it('initialises maxSudsLogged from preSuds param', async () => {
+  it('initialises maxSudsLogged from preSuds param and propagates peakSuds=max(pre,debrief) to debrief URL', async () => {
     useLocalSearchParams.mockReturnValue({
       sessionId: 'session-uuid-1',
       fearItemId: 'item-uuid-1',
@@ -130,15 +125,15 @@ describe('ActiveScreen — maxSudsLogged initialisation', () => {
       preSuds: '7',
     })
     // Open completion modal, pick SUDS 5 (lower than preSuds=7)
-    // peakSuds should be max(7, 5) = 7
+    // peakSuds should be max(7, 5) = 7 — verified via the debrief URL param
     const { getByLabelText, getByTestId } = render(<ActiveScreen />)
     await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
     await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
     await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
     await waitFor(() => {
-      expect(mockSetDebriefPending).toHaveBeenCalledWith(
-        expect.objectContaining({ peakSuds: 7 })
-      )
+      const debriefCall = mockRouterPush.mock.calls.find((c: string[]) => c[0]?.includes('/session/debrief'))
+      expect(debriefCall).toBeDefined()
+      expect(debriefCall![0]).toContain('peakSuds=7')
     })
   })
 })
@@ -175,23 +170,6 @@ describe('ActiveScreen — handleCompleteSession happy path', () => {
       expect(mockEnqueue).toHaveBeenCalledWith('suds_readings', 'INSERT', expect.objectContaining({ suds_value: 4 }))
       expect(mockEnqueue).toHaveBeenCalledWith('exposure_sessions', 'UPDATE', expect.objectContaining({ status: 'completed' }))
       expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'UPDATE', expect.objectContaining({ status: 'completed' }))
-    })
-  })
-
-  it('calls setDebriefPending with correct payload', async () => {
-    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
-    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
-    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
-    await waitFor(() => {
-      expect(mockSetDebriefPending).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId: 'session-uuid-1',
-          debriefSuds: 4,
-          hasLetter: false,
-          reflectionSubmitted: false,
-        })
-      )
     })
   })
 
@@ -251,7 +229,6 @@ describe('ActiveScreen — handleCompleteSession happy path', () => {
     await act(async () => {})
     // One enqueue fired (suds_readings INSERT) then hangs — downstream steps not reached
     expect(mockEnqueue).toHaveBeenCalledTimes(1)
-    expect(mockSetDebriefPending).not.toHaveBeenCalled()
     expect(mockClearSessionInProgress).not.toHaveBeenCalled()
   })
 })

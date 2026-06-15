@@ -32,7 +32,8 @@ type HomeScreenContext = {
     openCount: number;          // app opens with thread open, no debrief
     openDurationHours: number;  // hours since thread opened without debrief
     userDeclaredIncomplete: boolean;
-    windowExpiredAt: number | null; // UTC epoch ms; null if no debrief yet
+    // windowExpiredAt removed 2026-06-15 by Story 5.6 / Issue #36
+    // (post-exposure / expired states removed — no consumer)
   } | null;
 
   // Timing
@@ -54,11 +55,11 @@ type HomeScreenState =
   | 'progressing'      // State 4
   | 'avoidance'        // State 5
   | 'mid-exposure'     // State 6 — reserved; resolved by in-the-moment screen, not home
-  | 'post-exposure'    // State 7
-  | 'expired'          // State 8
   | 'return-after-gap' // State 9
   | 'completed';       // State 10
 ```
+
+*Note: `'post-exposure'` (State 7) and `'expired'` (State 8) were removed 2026-06-15 by Story 5.6 / Issue #36 — see Supersession below.*
 
 ### Priority Ordering (highest priority first)
 
@@ -69,13 +70,13 @@ Resolution is first-match wins down this ordered list:
 | 1 | `first-use` | `!ctx.hasAccount` |
 | 2 | `completed` | `ctx.ladderComplete` |
 | 3 | `empty-ladder` | `ctx.hasAccount && !ctx.hasLadder` |
-| 4 | `post-exposure` | Active thread exists AND `windowExpiredAt` not null AND `nowMs < windowExpiredAt` |
-| 5 | `expired` | Active thread exists AND `windowExpiredAt` not null AND `nowMs >= windowExpiredAt` |
-| 6 | `return-after-gap` | `ctx.gapDays >= 10` (provisional threshold; post-MVP review) |
-| 7 | `avoidance` | Active thread AND (`openCount >= 3` OR `openDurationHours >= 6` OR `userDeclaredIncomplete`) |
-| 8 | `progressing` | Active thread AND `openCount < 3` AND `openDurationHours < 6` AND `!userDeclaredIncomplete` |
-| 9 | `morning` | `ctx.hasLadder && !ctx.activeThread` |
-| 10 | `empty-ladder` | Fallback — should not be reached if ladder check is correct at priority 3 |
+| 4 | `return-after-gap` | `ctx.gapDays >= 10` (provisional threshold; post-MVP review) |
+| 5 | `avoidance` | Active thread AND (`openCount >= 3` OR `openDurationHours >= 6` OR `userDeclaredIncomplete`) |
+| 6 | `progressing` | Active thread AND `openCount < 3` AND `openDurationHours < 6` AND `!userDeclaredIncomplete` |
+| 7 | `morning` | `ctx.hasLadder && !ctx.activeThread` |
+| 8 | `empty-ladder` | Fallback — should not be reached if ladder check is correct at priority 3 |
+
+*Note: Priorities 4 (`post-exposure`) and 5 (`expired`) were removed 2026-06-15 by Story 5.6 / Issue #36. Remaining priorities renumbered.*
 
 **Notes:**
 - `completed` outranks `return-after-gap` (state 10 outranks state 9 — per F5 decisions)
@@ -88,14 +89,14 @@ Before merge, the implementation must include tests covering:
 
 1. **Happy path — first-use:** No account → `first-use`
 2. **Happy path — morning:** Account, ladder, no active thread, gap < 10 days → `morning`
-3. **Happy path — post-exposure:** Active thread, 6h window open, 2h elapsed → `post-exposure`
-4. **Happy path — expired:** Active thread, 6h window, 7h elapsed → `expired`
-5. **Happy path — avoidance (open count):** Active thread, openCount = 3 → `avoidance`
-6. **Happy path — avoidance (duration):** Active thread, openDurationHours = 7 → `avoidance`
-7. **Happy path — completed outranks gap:** ladderComplete = true, gapDays = 15 → `completed`
-8. **Edge — gap threshold boundary:** gapDays = 9 → not `return-after-gap`; gapDays = 10 → `return-after-gap`
-9. **Edge — avoidance duration boundary:** openDurationHours = 5.9 → not `avoidance` (openCount = 0); openDurationHours = 6.0 → `avoidance`
-10. **Edge — no ladder:** Account, no ladder → `empty-ladder`
+3. **Happy path — avoidance (open count):** Active thread, openCount = 3 → `avoidance`
+4. **Happy path — avoidance (duration):** Active thread, openDurationHours = 7 → `avoidance`
+5. **Happy path — completed outranks gap:** ladderComplete = true, gapDays = 15 → `completed`
+6. **Edge — gap threshold boundary:** gapDays = 9 → not `return-after-gap`; gapDays = 10 → `return-after-gap`
+7. **Edge — avoidance duration boundary:** openDurationHours = 5.9 → not `avoidance` (openCount = 0); openDurationHours = 6.0 → `avoidance`
+8. **Edge — no ladder:** Account, no ladder → `empty-ladder`
+
+*Note: Original cases 3 (`post-exposure`) and 4 (`expired`) were removed 2026-06-15 by Story 5.6 / Issue #36. Remaining cases renumbered.*
 
 ---
 
@@ -111,4 +112,10 @@ Before merge, the implementation must include tests covering:
 ## Open Questions
 
 - Provisional gap threshold (10 days) and avoidance duration (6 hours) are both flagged for post-MVP clinical review — the function signature supports changing these without structural change
-- `return-after-gap` (priority 6) currently outranks `avoidance` (priority 7) — confirm this is clinically correct: a user returning after 10 days with an avoidance-pattern thread gets the re-engagement experience, not the avoidance experience
+- `return-after-gap` (priority 4) currently outranks `avoidance` (priority 5) — confirm this is clinically correct: a user returning after 10 days with an avoidance-pattern thread gets the re-engagement experience, not the avoidance experience
+
+---
+
+## Supersession
+
+**2026-06-15** — Story 5.6 (Issue #36) removed `'post-exposure'` and `'expired'` from this contract. State machine reduces to 8 active states (`first-use`, `empty-ladder`, `morning`, `progressing`, `avoidance`, `mid-exposure` reserved, `return-after-gap`, `completed`). Rationale: the 6-hour post-exposure reflection window provided no reflection input (debrief screen captures the reflection entirely before home is reached) and State 8 was a soft gate that re-offered the debrief indefinitely. See `_bmad-output/implementation-artifacts/5-6-remove-home-states-7-and-8.md` and `_bmad-output/implementation-artifacts/deferred-work.md` for the full rationale and the disposition of `FR-NOTIF-04` (deferred post-MVP).

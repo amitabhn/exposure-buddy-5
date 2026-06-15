@@ -63,7 +63,7 @@ FR-PROG-02: Users view a chronological exposure history log displaying each comp
 FR-NOTIF-01: After 2 consecutive days of inactivity, one re-engagement notification sent using warm non-punitive language; if inactivity continues, a second sent on Day 5; no further automated notifications in that inactivity window
 FR-NOTIF-02: Notification content contains no streak counters, missed-day counts, streak-reset warnings, or loss-framing constructs
 FR-NOTIF-03: Users control notification delivery timing and can opt out of individual notification types from app settings; opt-out honoured immediately
-FR-NOTIF-04: A push notification is sent 3 hours after an exposure session is completed if the user has not yet submitted their post-session reflection and the 6-hour reflection window is still open; notification copy is non-punitive and frames the window as still available; once dispatched, the session is marked notified (window_notified_at) and no further window-close notifications are sent for that session; users with no registered push token are skipped without error
+FR-NOTIF-04: ~~A push notification is sent 3 hours after an exposure session is completed if the user has not yet submitted their post-session reflection and the 6-hour reflection window is still open; notification copy is non-punitive and frames the window as still available; once dispatched, the session is marked notified (window_notified_at) and no further window-close notifications are sent for that session; users with no registered push token are skipped without error~~ — **DEFERRED post-MVP (2026-06-15)** by Story 5.6 / Issue #36 — see FR Coverage Map decision record
 FR-CRISIS-01: Hardcoded keyword pre-filter runs on user-entered text fields; detection triggers immediate in-app display of market-configured crisis resource contacts — contacts are hardcoded strings that display without a network call
 FR-CRISIS-02: Crisis keyword list covers English and Hindi; embedded in client binary; updated via app release only
 FR-CRISIS-03: SOS panic button rendered persistently on all screens during an active ERP session; activating it launches a breathing coach and 5-4-3-2-1 grounding sequence in an overlay without terminating or navigating away from the session
@@ -192,7 +192,7 @@ FR-PROG-02: Epic 8 — Chronological exposure history log
 FR-NOTIF-01: Epic 8 — Re-engagement notifications Day 2 + Day 5
 FR-NOTIF-02: Epic 8 — No punitive language or streak mechanics
 FR-NOTIF-03: Epic 8 — User notification controls and opt-out
-FR-NOTIF-04: Epic 8 — Window-close push notification at 3 hours post-session if reflection not yet submitted (Story 8.3)
+FR-NOTIF-04: POST-MVP — Window-close push notification at 3 hours post-session deferred; no MVP story. **Decision record (2026-06-15):** Story 5.6 / Issue #36 removed the home screen post-exposure reflection window (State 7) and the late-debrief gate (State 8). The window-close notification semantically depends on a 6-hour reflection window that the UI no longer presents — the notification copy ("the window is still available") loses its referent and the user-facing context the gate was meant to nudge no longer exists. Reflection is captured entirely on the debrief screen (FR-ERP-03) before the user reaches home. Confirmed in post-MVP backlog. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.3 marked DEFERRED.
 FR-CRISIS-01: Epic 3 — On-device crisis keyword detection (packages/core)
 FR-CRISIS-02: Epic 3 — English + Hindi keyword list, binary-embedded
 FR-CRISIS-03: Epic 7 — Persistent SOS/CalmMe overlay during active ERP session (initial grounding screen with affirmation + breathing prompt wired in Epic 5 Story 5.2; full technique picker with breathing coach, 5-4-3-2-1, and helplines added in Epic 7 Story 7.5)
@@ -338,7 +338,8 @@ Users access the persistent Calm Me SOS overlay with courage affirmation and tec
 
 Users view SUDS trend graphs (weekly and monthly), a chronological exposure history log with SUDS arcs and debrief outcomes, and receive warm re-engagement notifications (Day 2 and Day 5 inactivity only, no punitive language, no streak mechanics). User controls notification delivery timing and per-type opt-out. Day-1 analytics metrics are documented and the instrumentation schema is ready for Phase 2 activation.
 
-**FRs covered:** FR-PROG-01, FR-PROG-02, FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04, FR-ANALYTICS-01
+**FRs covered:** FR-PROG-01, FR-PROG-02, FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-ANALYTICS-01
+**Post-MVP:** FR-NOTIF-04 (window-close push notification) — deferred 2026-06-15 by Story 5.6 / Issue #36; see PRD FR Coverage Map decision record
 **UX-DR coverage:** UX-DR6 (SudsArcChart)
 **Architecture:** ARC-010 (ADR-NOTIFICATIONS resolved)
 
@@ -1094,7 +1095,7 @@ So that I feel motivated and know exactly what to do next (FR-ONBOARD-01).
 
 ## Epic 5: Courage Ladder
 
-Users view their full fear hierarchy, run ERP exposure sessions with pre/post intention tracking, and receive a therapist-informed debrief. Session data syncs offline-first. The 6-hour post-session reflection window and home screen states 7/8 are part of this epic. Clinician read access goes live. `actual_suds` is renamed to `peak_suds`.
+Users view their full fear hierarchy, run ERP exposure sessions with pre/post intention tracking, and receive a therapist-informed debrief. Session data syncs offline-first. On debrief submit the user is routed directly to the home screen default state (ladder visible, Start CTA). Clinician read access goes live. `actual_suds` is renamed to `peak_suds`. *(Story 5.6 — 2026-06-15 — removed the original 6-hour post-session reflection window and home screen states 7/8 per Issue #36.)*
 
 ### Story 5.1: Full Courage Ladder Screen
 
@@ -1208,15 +1209,7 @@ So that I feel recognised and know what to do in the next 6 hours (FR-ERP-03).
 
 **Given** the user submits `post_session_reflection`
 **When** submission executes
-**Then** `exposure_sessions.post_session_reflection` is enqueued; the user is routed to the home screen in post-exposure reflection state (state 7)
-
-**Given** the home screen renders in state 7 and `Date.now() < expires_at`
-**When** the window is still open
-**Then** the home screen primary CTA is `t('home.state7.ctaLetter')` if letter was written; or acknowledgement card `t('home.state7.acknowledgement')` if no letter; remaining time is displayed in user's local timezone via `Intl.DateTimeFormat` — display only; `expires_at` epoch is authoritative; `CalmMeButton` accessible
-
-**Given** the home screen renders and `Date.now() >= expires_at` with no notes submitted (state 8)
-**When** the window has expired
-**Then** context card `t('home.state8.contextCard')` is shown — no expiry reference in copy (UX spec decision); primary CTA `t('home.state8.cta')` ("Reflect now"); late debrief offered indefinitely; thread resolves and ladder advances on late debrief completion
+**Then** `exposure_sessions.post_session_reflection` is enqueued; the user is routed to the home screen default state (state 3 equivalent — ladder visible with Start CTA). *(Story 5.6 — 2026-06-15: original ACs 7 and 8 specifying State 7 and State 8 were removed per Issue #36.)*
 
 ---
 
@@ -1337,10 +1330,6 @@ So that I know exactly what to do next without hunting through the app (FR-HOME-
 **Given** concurrent writes from multiple devices can produce duplicate position integers on `fear_ladder_items` (4-3-D5)
 **When** the migration for this story runs
 **Then** `ALTER TABLE fear_ladder_items ADD CONSTRAINT uq_user_position UNIQUE (user_id, position) DEFERRABLE INITIALLY DEFERRED` executes successfully; the constraint is deferrable so bulk reorder swaps within a single transaction can temporarily violate uniqueness without a constraint error; the PowerSync upload handler wraps `reorder_positions` operations in a single deferred transaction
-
-**Given** the home screen countdown (states 7 and 8) is computed once at mount and never refreshes (5-3-W1)
-**When** the home screen is open and `debriefPendingData` is non-null
-**Then** `resolveHomeScreenState` is re-evaluated on a 60-second `setInterval` while the screen is focused (via `useFocusEffect`); the displayed countdown from `formatTimeRemaining` updates each tick; when the 6-hour window expires the display transitions from state 7 to state 8 without a full re-mount; the interval is cleared on blur and on unmount
 
 **Given** the user has real `fear_ladder_items` data and needs to correct or remove an entry
 **When** the user opens the edit form for a ladder item (5-1-D6)
@@ -1469,7 +1458,7 @@ The component renders `t(CALM_ME_AFFIRMATIONS[0])`; the array structure is in pl
 
 **Given** the user taps `t('calmMe.needToStop')` while `SessionStateMachine.state === 'active'`
 **When** the action is processed
-**Then** an immediate inline modal appears with `t('calmMe.debriefNow')` (canonical: "Debrief now?") and two options: Yes → navigates to the debrief screen (Story 5.3 handles session status transition and debrief logic); Not now → navigates to home screen post-exposure state 7 (6h window)
+**Then** an immediate inline modal appears with `t('calmMe.debriefNow')` (canonical: "Debrief now?") and two options: Yes → navigates to the debrief screen (Story 5.3 handles session status transition and debrief logic); Not now → navigates to home screen default state (ladder visible, Start CTA). *(Story 5.6 — 2026-06-15: original "post-exposure state 7 (6h window)" destination removed per Issue #36.)*
 
 **Given** `packages/core/src/config/helplines.ts` does not yet exist
 **When** this story is implemented
@@ -1751,7 +1740,9 @@ SESSION_REMINDER_NOTIFICATION_ID: (userId: string) => `notifications:reminder_id
 
 ---
 
-### Story 8.3: Window-Close Notification (Edge Function)
+### Story 8.3: Window-Close Notification (Edge Function) ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-06-15).** Story 5.6 / Issue #36 removed home screen States 7 and 8 (post-exposure reflection window + late-debrief gate). The window-close notification semantically depends on the 6-hour reflection window that the UI no longer presents — the notification copy loses its referent. See PRD FR Coverage Map decision record for `FR-NOTIF-04`. No MVP story.
 
 As a user who completed an exposure session but hasn't written their reflection yet,
 I want a notification 3 hours after completing my session reminding me the reflection window is still open,

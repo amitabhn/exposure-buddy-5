@@ -2,7 +2,7 @@ import { useContext } from 'react'
 import { AuthContext } from './AuthProvider'
 import { OnboardingContext } from './OnboardingProvider'
 import type { AuthState } from './session'
-import type { PendingDeletionRecord, SessionRecoveryData, DebriefPendingData } from '@exposure-buddy/core'
+import type { PendingDeletionRecord, SessionRecoveryData } from '@exposure-buddy/core'
 
 // Merged view of AuthContext + OnboardingContext. All existing callers continue to work
 // without change — the split is an internal implementation detail.
@@ -33,10 +33,6 @@ interface UseAuthResult {
   clearSessionInProgress: () => void
   setSessionIntention: (sessionId: string, text: string) => void
   clearSessionIntention: (sessionId: string) => void
-  debriefPendingData: DebriefPendingData | null
-  setDebriefPending: (data: DebriefPendingData) => void
-  clearDebriefPending: () => void
-  updateDebriefReflectionSubmitted: () => void
   hasSessionIntention: (sessionId: string) => boolean
   getSessionIntention: (sessionId: string) => string | null
 }
@@ -71,10 +67,6 @@ export function useAuth(): UseAuthResult {
     clearSessionInProgress: auth.clearSessionInProgress,
     setSessionIntention: auth.setSessionIntention,
     clearSessionIntention: auth.clearSessionIntention,
-    debriefPendingData: auth.debriefPendingData,
-    setDebriefPending: auth.setDebriefPending,
-    clearDebriefPending: auth.clearDebriefPending,
-    updateDebriefReflectionSubmitted: auth.updateDebriefReflectionSubmitted,
     hasSessionIntention: auth.hasSessionIntention,
     getSessionIntention: auth.getSessionIntention,
   }

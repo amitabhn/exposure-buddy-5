@@ -182,15 +182,6 @@
     "welcomeBack": "Welcome back. Keep going.",
     "calmMe": {
       "cta": "Feeling overwhelmed?"
-    },
-    "state7": {
-      "ctaLetter": "Read the note you wrote yourself",
-      "acknowledgement": "You completed an exposure. Take a moment to notice how you feel.",
-      "windowLabel": "Reflection window"
-    },
-    "state8": {
-      "contextCard": "You completed an exposure recently. When you're ready, take a moment to reflect.",
-      "cta": "Reflect now"
     }
   },
   "auth": {

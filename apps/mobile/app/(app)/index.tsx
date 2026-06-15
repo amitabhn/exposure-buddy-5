@@ -4,17 +4,12 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CourageLadderEntryCard } from '@exposure-buddy/ui'
-import {
-  resolveLowestPendingItem,
-  resolveHomeScreenState,
-  formatTimeRemaining,
-} from '@exposure-buddy/core'
-import type { HomeDisplayState } from '@exposure-buddy/core'
+import { resolveLowestPendingItem } from '@exposure-buddy/core'
 
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, debriefPendingData } = useAuth()
+  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
@@ -39,101 +34,31 @@ export default function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // PowerSync no-op stub — real items populate when Epic 6 wires the connector
+  // PowerSync no-op stub — real items populate when Epic 6 Story 6.2 wires the connector
+  // and replaces this stub with real resolveHomeScreenState() against the full 8-state machine.
   const lowestPendingItem = resolveLowestPendingItem([])
-
-  // Epic 6: replace completedAtMs+6h proxy with PowerSync expires_at; expand to full
-  // 10-state resolveHomeScreenState() including states 3 and 4.
-  const displayState: HomeDisplayState = resolveHomeScreenState(debriefPendingData)
-
-  function buildDebriefUrl(extraParams?: string): string {
-    if (!debriefPendingData) return ''
-    // eslint-disable-next-line i18next/no-literal-string
-    return `/session/debrief?sessionId=${debriefPendingData.sessionId}` +
-      `&fearItemId=${debriefPendingData.fearItemId != null ? encodeURIComponent(debriefPendingData.fearItemId) : ''}` +
-      `&preSuds=${debriefPendingData.preSuds}` +
-      `&debriefSuds=${debriefPendingData.debriefSuds}` +
-      `&peakSuds=${debriefPendingData.peakSuds}` +
-      `&completedAtMs=${debriefPendingData.completedAtMs}` +
-      (extraParams ?? '')
-  }
 
   return (
     <View style={styles.container}>
+      <Text style={styles.greeting}>
+        {seenOnMount.current ? t('home.welcomeBack') : t('home.readyToStart')}
+      </Text>
 
-      {/* State 7: post-exposure reflection window open */}
-      {displayState === 'post-exposure' && debriefPendingData && (
-        <View style={styles.postExposureCard}>
-          {debriefPendingData.hasLetter ? (
-            <TouchableOpacity
-              onPress={() => router.push(buildDebriefUrl('&readOnly=true') as never)}
-              accessibilityRole="button"
-              accessibilityLabel={t('home.state7.ctaLetter')}
-            >
-              <Text style={styles.ctaText}>{t('home.state7.ctaLetter')}</Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.acknowledgementText}>{t('home.state7.acknowledgement')}</Text>
-          )}
-          <Text style={styles.windowTimeText}>{formatTimeRemaining(debriefPendingData.completedAtMs)}</Text>
-          <TouchableOpacity
-            style={styles.calmMeButton}
-            onPress={() => router.push('/calm-me')}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.calmMe.cta')}
-          >
-            <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <CourageLadderEntryCard
+        ref={cardRef}
+        ladderItemCount={0}
+        lowestPendingItem={lowestPendingItem}
+        onPress={() => router.push('/ladder')}
+      />
 
-      {/* State 8: post-exposure window expired, late debrief */}
-      {displayState === 'expired' && debriefPendingData && (
-        <View style={styles.expiredCard}>
-          <Text style={styles.contextCardText}>{t('home.state8.contextCard')}</Text>
-          <TouchableOpacity
-            style={styles.reflectNowButton}
-            onPress={() => router.push(buildDebriefUrl() as never)}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.state8.cta')}
-          >
-            <Text style={styles.reflectNowText}>{t('home.state8.cta')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.calmMeButton}
-            onPress={() => router.push('/calm-me')}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.calmMe.cta')}
-          >
-            <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Default state: courage ladder entry */}
-      {displayState === 'default' && (
-        <>
-          <Text style={styles.greeting}>
-            {seenOnMount.current ? t('home.welcomeBack') : t('home.readyToStart')}
-          </Text>
-
-          <CourageLadderEntryCard
-            ref={cardRef}
-            ladderItemCount={0}
-            lowestPendingItem={lowestPendingItem}
-            onPress={() => router.push('/ladder')}
-          />
-
-          <TouchableOpacity
-            style={styles.calmMeButton}
-            onPress={() => router.push('/calm-me')}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.calmMe.cta')}
-          >
-            <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <TouchableOpacity
+        style={styles.calmMeButton}
+        onPress={() => router.push('/calm-me')}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.calmMe.cta')}
+      >
+        <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -143,14 +68,4 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8 },
   calmMeButton: { alignSelf: 'center', marginTop: 24 },
   calmMeText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
-  // State 7 styles
-  postExposureCard: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  ctaText: { fontSize: 18, color: '#0f766e', fontWeight: '600', fontFamily: 'Inter_600SemiBold', textDecorationLine: 'underline', textAlign: 'center' },
-  acknowledgementText: { fontSize: 20, color: '#111827', lineHeight: 30, textAlign: 'center', fontFamily: 'DMSerifDisplay_400Italic' },
-  windowTimeText: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
-  // State 8 styles
-  expiredCard: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  contextCardText: { fontSize: 16, color: '#374151', lineHeight: 24, textAlign: 'center' },
-  reflectNowButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, paddingHorizontal: 32 },
-  reflectNowText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

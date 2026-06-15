@@ -1,6 +1,6 @@
 # Story 5.6: Remove Home Screen States 7 (Post-Exposure) and 8 (Expired)
 
-Status: ready-for-dev
+Status: review
 
 <!--
   Origin: GitHub Issue #36 — Spec change: remove home screen State 7 (post-exposure)
@@ -109,21 +109,21 @@ So that I am acknowledged for what I just did without being held in a 6-hour cou
 
 ### T1 — Spec updates (AC: 1, 2, 3, 4, 5)
 
-- [ ] T1.1: Update `_bmad-output/planning-artifacts/prd.md` — FR Coverage Map line 195 rewrite, requirements line 66 addendum comment, Epic 8 introduction line 341 FR list edit (AC 1)
-- [ ] T1.2: Update `_bmad-output/planning-artifacts/epics.md`:
+- [x] T1.1: Update `_bmad-output/planning-artifacts/prd.md` — FR Coverage Map line 195 rewrite, requirements line 66 addendum comment, Epic 8 introduction line 341 FR list edit (AC 1)
+- [x] T1.2: Update `_bmad-output/planning-artifacts/epics.md`:
   - Mark Story 8.3 DEFERRED (AC 2)
   - Drop `FR-NOTIF-04` from Epic 8 introduction `**FRs covered:**`
   - Rewrite Epic 5 introduction line 1097 (drop State 7/8 sentence)
   - Remove Story 5.3 ACs 7 + 8 (lines 1213–1219), rewrite AC 6 home destination (line 1211)
   - Remove Story 6.2 countdown-interval AC (lines 1341–1343)
   - Rewrite Story 7.1 Calm Me "Not now" branch (line 1472) — route to home default state
-- [ ] T1.3: Update `_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md` — drop two states from union, drop two rows from priority table, drop two required test cases, add Supersession block (AC 3)
-- [ ] T1.4: Update `_bmad-output/planning-artifacts/ux-design-specification/user-journey-flows.md` — rewrite F3/F4/F5 mermaid nodes, replace F6 section with deferral notice; update `index.md` and `component-strategy.md` State 7/8 references (AC 4)
-- [ ] T1.5: Append dated section to `_bmad-output/implementation-artifacts/deferred-work.md` with the 4 sub-bullets + 3 backlog stubs (AC 5)
+- [x] T1.3: Update `_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md` — drop two states from union, drop two rows from priority table, drop two required test cases, add Supersession block (AC 3)
+- [x] T1.4: Update `_bmad-output/planning-artifacts/ux-design-specification/user-journey-flows.md` — rewrite F3/F4/F5 mermaid nodes, replace F6 section with deferral notice; update `index.md` and `component-strategy.md` State 7/8 references (AC 4)
+- [x] T1.5: Append dated section to `_bmad-output/implementation-artifacts/deferred-work.md` with the 4 sub-bullets + 3 backlog stubs (AC 5)
 
 ### T2 — `packages/core` simplification (AC: 6, 7)
 
-- [ ] T2.1: Rewrite `packages/core/src/erp/home-screen-state.ts`:
+- [x] T2.1: Rewrite `packages/core/src/erp/home-screen-state.ts`:
   ```typescript
   // ARC-001: zero imports from react-native, expo-*, or @supabase/*
   //
@@ -137,13 +137,13 @@ So that I am acknowledged for what I just did without being held in a 6-hour cou
     return 'default'
   }
   ```
-- [ ] T2.2: Delete `packages/core/src/types/debrief-pending-data.ts`
-- [ ] T2.3: Update `packages/core/src/index.ts` — drop `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining`, and `DebriefPendingData` exports; keep `resolveHomeScreenState` and `HomeDisplayState`
-- [ ] T2.4: Reduce `packages/core/src/erp/home-screen-state.test.ts` to one trivial Vitest case asserting `resolveHomeScreenState()` returns `'default'` (drop all imports/constants tied to the removed surface)
+- [x] T2.2: Delete `packages/core/src/types/debrief-pending-data.ts`
+- [x] T2.3: Update `packages/core/src/index.ts` — drop `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining`, and `DebriefPendingData` exports; keep `resolveHomeScreenState` and `HomeDisplayState`
+- [x] T2.4: Reduce `packages/core/src/erp/home-screen-state.test.ts` to one trivial Vitest case asserting `resolveHomeScreenState()` returns `'default'` (drop all imports/constants tied to the removed surface)
 
 ### T3 — Home screen reduction (AC: 8, 13)
 
-- [ ] T3.1: Edit `apps/mobile/app/(app)/index.tsx`:
+- [x] T3.1: Edit `apps/mobile/app/(app)/index.tsx`:
   - Drop `debriefPendingData` from `useAuth()` destructure (line 17)
   - Drop `HomeDisplayState`, `formatTimeRemaining`, and the `displayState` line entirely (line 47) — render default content unconditionally
   - Delete `buildDebriefUrl` helper (lines 49–59)
@@ -151,33 +151,33 @@ So that I am acknowledged for what I just did without being held in a 6-hour cou
   - Unwrap the `{displayState === 'default' && (...)}` conditional (lines 113–136) so the greeting + `CourageLadderEntryCard` + Calm Me render at top level
   - Remove unused styles (`postExposureCard`, `ctaText`, `acknowledgementText`, `windowTimeText`, `expiredCard`, `contextCardText`, `reflectNowButton`, `reflectNowText`)
   - Update the Epic 6 comment to point at Story 6.2
-- [ ] T3.2: Rewrite `apps/mobile/app/(app)/index.test.tsx`:
+- [x] T3.2: Rewrite `apps/mobile/app/(app)/index.test.tsx`:
   - Delete State 7 and State 8 describe blocks (lines 153–263)
   - Reduce default state describe (lines 265–289) to a single test asserting `CourageLadderEntryCard` renders
   - Delete `makeDebriefPending` helper (lines 59–71); drop `debriefPendingData: null` from `defaultAuthValue`
   - Simplify `@exposure-buddy/core` jest.mock to mock only `resolveLowestPendingItem` and `resolveHomeScreenState: () => 'default'`
-- [ ] T3.3: Remove `home.state7` and `home.state8` blocks from `apps/mobile/src/i18n/locales/en.json` (lines 131–139) and `hi.json` (lines 186–193) — confirm zero remaining consumers via repo grep
+- [x] T3.3: Remove `home.state7` and `home.state8` blocks from `apps/mobile/src/i18n/locales/en.json` (lines 131–139) and `hi.json` (lines 186–193) — confirm zero remaining consumers via repo grep
 
 ### T4 — Debrief screen + active screen cleanup (AC: 9, 10)
 
-- [ ] T4.1: Edit `apps/mobile/app/session/debrief.tsx`:
+- [x] T4.1: Edit `apps/mobile/app/session/debrief.tsx`:
   - Drop `POST_EXPOSURE_WINDOW_MS` import (line 16)
   - Drop `updateDebriefReflectionSubmitted` and `clearDebriefPending` from the `useAuth()` destructure (lines 47–48)
   - Remove `isLateDebrief` constant + `if/else` block (lines 118–125) — `handleSubmitReflection` becomes: enqueue UPDATE → `clearSessionIntention(sessionId)` → `router.replace('/(app)/index')`
   - Delete the orphaned "On state-8 late debrief path..." comment (lines 91–93)
-- [ ] T4.2: Edit `apps/mobile/app/session/active.tsx`:
+- [x] T4.2: Edit `apps/mobile/app/session/active.tsx`:
   - Drop `setDebriefPending` and `hasSessionIntention` from `useAuth()` destructure (line 28)
   - Delete `hasLetter` computation (lines 123–124) and `setDebriefPending(...)` call (lines 127–136) and their commentary
   - Keep all other completion-flow enqueues intact (`suds_readings`, `exposure_sessions`, `fear_ladder_items`)
-- [ ] T4.3: Update `apps/mobile/app/session/debrief.test.tsx`:
+- [x] T4.3: Update `apps/mobile/app/session/debrief.test.tsx`:
   - Rename / consolidate the `handleSubmitReflection (state-7 path)` describe to a single `handleSubmitReflection` describe
   - Delete the `clears debrief pending on state-8 late debrief` test (lines 175–187)
   - Drop `mockUpdateDebriefReflectionSubmitted` and `mockClearDebriefPending` from the mock setup (lines 28–29, 62–68) — the new test asserts `mockEnqueue` was called, `mockClearSessionIntention` was called, `mockRouterReplace` was called with `/(app)/index`
-- [ ] T4.4: If `apps/mobile/app/session/active.test.tsx` references `setDebriefPending` or `mockSetDebriefPending`, remove those mocks/assertions (verify via grep before editing)
+- [x] T4.4: If `apps/mobile/app/session/active.test.tsx` references `setDebriefPending` or `mockSetDebriefPending`, remove those mocks/assertions (verify via grep before editing)
 
 ### T5 — AuthProvider cleanup + Option A boot wipe (AC: 11, 12)
 
-- [ ] T5.1: Edit `packages/supabase/src/auth/AuthProvider.tsx`:
+- [x] T5.1: Edit `packages/supabase/src/auth/AuthProvider.tsx`:
   - Drop `DebriefPendingData` from the import on line 3
   - Drop `debriefPendingData`, `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted` from the `AuthContextValue` interface (lines 39–42) and from the default `AuthContext` (lines 66–69)
   - Delete the `debriefPendingData` `useState` (line 106)
@@ -190,21 +190,21 @@ So that I am acknowledged for what I just did without being held in a 6-hour cou
   - Drop the `setDebriefPendingDataLocal(null)` line from the SIGNED_OUT branch (line 206)
   - Delete the `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted` function definitions (lines 321–350)
   - Drop the four entries from the Context Provider value object (lines 366–369)
-- [ ] T5.2: Edit `packages/supabase/src/auth/useAuth.ts`:
+- [x] T5.2: Edit `packages/supabase/src/auth/useAuth.ts`:
   - Drop `DebriefPendingData` from the import (line 5)
   - Drop the four debrief-pending fields from the merged interface (lines 36–38)
   - Drop the four merge passthroughs (line 74)
-- [ ] T5.3: Edit `packages/core/src/constants/kvKeys.ts` — keep the `SESSION_DEBRIEF_PENDING` key but replace the existing comment with:
+- [x] T5.3: Edit `packages/core/src/constants/kvKeys.ts` — keep the `SESSION_DEBRIEF_PENDING` key but replace the existing comment with:
   ```typescript
   // DEPRECATED 2026-06-15 (Story 5.6) — no longer written. AuthProvider deletes this
   // key on every SIGNED_IN to clean up stale data from the State 7/8 era. Safe to
   // remove from KV_KEYS entirely after one release cycle.
   SESSION_DEBRIEF_PENDING:      (userId: string) => `session:debrief_pending:${userId}`,
   ```
-- [ ] T5.4: Rewrite `packages/supabase/__tests__/auth/authProvider.debrief.test.ts`:
+- [x] T5.4: Rewrite `packages/supabase/__tests__/auth/authProvider.debrief.test.ts`:
   - Delete the `setDebriefPending / clearDebriefPending` and `updateDebriefReflectionSubmitted` describes
   - If only the `hasSessionIntention` and `getSessionIntention` describes remain, **rename** the file to `authProvider.sessionIntention.test.ts` and drop the `DebriefPendingData` import + `SAMPLE_DEBRIEF` constant
-- [ ] T5.5: Add a new Vitest file at `packages/supabase/__tests__/auth/authProvider.optionAWipe.test.ts` covering:
+- [x] T5.5: Add a new Vitest file at `packages/supabase/__tests__/auth/authProvider.optionAWipe.test.ts` covering:
   - **GIVEN** an in-memory MMKV stand-in seeded with `SESSION_DEBRIEF_PENDING(userId)` = a JSON blob
   - **WHEN** the boot-wipe helper runs (inline replica of the SIGNED_IN block)
   - **THEN** the key is absent afterwards
@@ -212,10 +212,10 @@ So that I am acknowledged for what I just did without being held in a 6-hour cou
 
 ### T6 — CI verification (AC: 13)
 
-- [ ] T6.1: Run `pnpm turbo typecheck` — must pass with zero errors
-- [ ] T6.2: Run `pnpm turbo lint` — must pass with zero errors (no unused imports, no `react-i18next/no-literal-string` violations in edited files)
-- [ ] T6.3: Run `pnpm turbo test` — all Vitest and Jest suites green; verify no remaining references to `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining`, `DebriefPendingData`, `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted`, `debriefPendingData`, `home.state7`, `home.state8` across `apps/`, `packages/` (grep before pushing)
-- [ ] T6.4: Verify `packages/core` ARC-011 boundary gate is still green (the simplified `home-screen-state.ts` has zero RN/Expo/Supabase imports)
+- [x] T6.1: Run `pnpm turbo typecheck` — must pass with zero errors
+- [x] T6.2: Run `pnpm turbo lint` — must pass with zero errors (no unused imports, no `react-i18next/no-literal-string` violations in edited files)
+- [x] T6.3: Run `pnpm turbo test` — all Vitest and Jest suites green; verify no remaining references to `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining`, `DebriefPendingData`, `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted`, `debriefPendingData`, `home.state7`, `home.state8` across `apps/`, `packages/` (grep before pushing)
+- [x] T6.4: Verify `packages/core` ARC-011 boundary gate is still green (the simplified `home-screen-state.ts` has zero RN/Expo/Supabase imports)
 
 ## Dev Notes
 
@@ -345,16 +345,75 @@ f097f73 feat(erp): Story 5.3 — ERP Session Completion, Debrief & Home State (#
 
 ### Agent Model Used
 
-_to be filled by dev agent_
+Claude Opus 4.7 (`claude-opus-4-7`) via Claude Code, bmad-dev-story skill.
 
 ### Debug Log References
 
-_to be filled by dev agent_
+- `pnpm turbo typecheck` — 10/10 successful, 3.8s
+- `pnpm turbo lint` — 7/7 successful, 1.1s
+- `pnpm turbo test` — 9/9 successful, 4.0s
+  - `@exposure-buddy/core`: 5 test files, 34 tests passed (was 39 → −5 from removed home-screen-state + formatTimeRemaining cases; +0 net for the trivial replacement)
+  - `@exposure-buddy/supabase`: 5 passed + 8 skipped (RLS — environment-gated), 27 tests passed including new `authProvider.sessionIntention.test.ts` (6 tests, file renamed from `authProvider.debrief.test.ts`) and new `authProvider.optionAWipe.test.ts` (3 tests)
+  - `exposure-buddy-mobile`: 21 suites, 163 tests passed (was 175 → −12 from removed State 7/State 8 + state-8 late-debrief + setDebriefPending coverage; expected reduction per AC 12)
+- Repo-wide post-edit grep for `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining`, `DebriefPendingData`, `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted`, `debriefPendingData`, `home.state7`, `home.state8` — zero hits across `apps/` and `packages/`. Remaining `'expired'` occurrence is in `apps/mobile/app/(auth)/otp-verification.tsx` for OTP token expiry semantics (unrelated to home States 7/8).
+- ARC-011 boundary gate: `home-screen-state.ts` retains the `// ARC-001: zero imports from react-native, expo-*, or @supabase/*` comment and has no new imports — boundary preserved.
 
 ### Completion Notes List
 
-_to be filled by dev agent_
+- All 13 ACs satisfied; all 26 sub-tasks (T1.1–T6.4) marked complete.
+- **Scope-shape note (no AC change):** AC 1 referenced the "PRD requirements line 66" but `FR-NOTIF-04` is canonically defined in `epics.md` (line 66 / FR Coverage Map line 195), not `prd.md`. PRD only listed FR-NOTIF-01/02/03 in its Re-Engagement Notifications section. Implementation handled this by (a) updating both lines in `epics.md` per AC intent (strike-through on the FR list line + full Decision record on the FR Coverage Map line); and (b) appending a deferral-pointer HTML comment to `prd.md` after the FR-NOTIF-03 entry so a reader of the PRD finds the cross-reference. The deferral intent is captured exactly as specified — only the file location was corrected.
+- **Active.tsx — `authState` and `hasSessionIntention` deletions:** AC 10(b) called for dropping `setDebriefPending` and `hasSessionIntention` from the `useAuth()` destructure. After those two were removed, `authState` was also unreferenced inside `active.tsx`, so it was dropped from the destructure to avoid an unused-binding lint warning. No functional change. The fearItem-letter computation (`hasLetter`) that consumed `hasSessionIntention` was removed together with the `setDebriefPending` payload that consumed `hasLetter` — all in AC 10's scope.
+- **Debrief.tsx — `completedAtMs` URL param:** Per AC 10(e) the URL params from `active.tsx` remain unchanged (still send `completedAtMs`). Inside `debrief.tsx` the destructure no longer extracts it (no consumer post-isLateDebrief removal), and the inline type for `useLocalSearchParams` still declares the field to keep the URL contract typed end-to-end. Zero behavioural impact.
+- **`authProvider.debrief.test.ts` file rename → `authProvider.sessionIntention.test.ts`:** Per AC 12(c). Old file deleted, new file contains only `hasSessionIntention` (4 cases) and `getSessionIntention` (2 cases) describes. `DebriefPendingData` import and `SAMPLE_DEBRIEF` constant removed.
+- **New `authProvider.optionAWipe.test.ts`:** 3 cases — deletes a stale key on SIGNED_IN, no-op when key absent, user-scoped deletion. Inline replica of the boot-wipe line in `AuthProvider.tsx`; follows the same in-memory MMKV stand-in pattern as the existing helper-test file.
+- **`KV_KEYS.SESSION_DEBRIEF_PENDING` preserved with deprecation comment** per AC 11(j) — the boot wipe references it, so the key entry stays in `kvKeys.ts` with a "DEPRECATED 2026-06-15 — safe to remove after one release cycle" comment.
+- **`exposure_sessions.expires_at` trigger and column untouched** per the "no migration in this story" guardrail. Migrations 0016/0018/0019 still set `expires_at` on session completion; no client now reads it. Drop is filed for a follow-up Story 9.x candidate in `deferred-work.md`.
+- **AuthProvider API surface shrunk by 4 entries** (`debriefPendingData`, `setDebriefPending`, `clearDebriefPending`, `updateDebriefReflectionSubmitted`) — partial progress against Epic 5 retro action item B1 (AuthProvider context split), though full B1 is still outstanding (the provider retains 13+ concerns).
+- **i18n cleanup verified** — `home.state7.*` and `home.state8.*` removed from both `en.json` and `hi.json`. Repo-wide grep for `home.state` returns zero hits.
+- **No new dependencies, no new DB migrations, no `apps/web` changes, no `_layout.tsx` changes** — all per the boundary rules in Dev Notes.
 
 ### File List
 
-_to be filled by dev agent_
+**Modified — code (10 files):**
+- `packages/core/src/erp/home-screen-state.ts` — rewritten to trivial `() => 'default'`
+- `packages/core/src/erp/home-screen-state.test.ts` — reduced to one Vitest case
+- `packages/core/src/index.ts` — dropped `DebriefPendingData`, `POST_EXPOSURE_WINDOW_MS`, `formatTimeRemaining` exports
+- `packages/core/src/constants/kvKeys.ts` — deprecation comment on `SESSION_DEBRIEF_PENDING`
+- `packages/supabase/src/auth/AuthProvider.tsx` — context API −4, Option A boot wipe added
+- `packages/supabase/src/auth/useAuth.ts` — merged interface −4 fields, import cleanup
+- `apps/mobile/app/(app)/index.tsx` — State 7/8 JSX deleted, default unwrapped
+- `apps/mobile/app/(app)/index.test.tsx` — State 7/8/default-describe trimmed to single suite (10 tests)
+- `apps/mobile/app/session/debrief.tsx` — `isLateDebrief` branch removed, imports cleaned
+- `apps/mobile/app/session/debrief.test.tsx` — `state-7`/`state-8` paths consolidated to one submit test
+- `apps/mobile/app/session/active.tsx` — `setDebriefPending` / `hasLetter` / unused `authState` removed
+- `apps/mobile/app/session/active.test.tsx` — mocks for `setDebriefPending`/`hasSessionIntention` removed, peakSuds test rewritten to inspect URL
+- `apps/mobile/src/i18n/locales/en.json` — `home.state7` and `home.state8` blocks removed
+- `apps/mobile/src/i18n/locales/hi.json` — `home.state7` and `home.state8` blocks removed
+
+**Added (2 files):**
+- `packages/supabase/__tests__/auth/authProvider.sessionIntention.test.ts` — renamed and trimmed from old debrief test
+- `packages/supabase/__tests__/auth/authProvider.optionAWipe.test.ts` — new test for Option A boot wipe
+
+**Deleted (2 files):**
+- `packages/core/src/types/debrief-pending-data.ts`
+- `packages/supabase/__tests__/auth/authProvider.debrief.test.ts` (replaced by `authProvider.sessionIntention.test.ts` + `authProvider.optionAWipe.test.ts`)
+
+**Modified — spec docs (7 files):**
+- `_bmad-output/planning-artifacts/prd.md` — HTML comment after FR-NOTIF-03 pointing to FR Coverage Map decision record
+- `_bmad-output/planning-artifacts/epics.md` — FR-NOTIF-04 list entry struck through + Coverage Map decision record + Epic 5 intro + Story 5.3 ACs 7+8 removed + Story 6.2 countdown-interval AC removed + Story 7.1 Calm Me "Not now" destination + Epic 8 FRs covered + Story 8.3 DEFERRED header
+- `_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md` — 2 states dropped, priority table renumbered 1–8, `windowExpiredAt` field commented out, 2 required test cases removed, Supersession block appended
+- `_bmad-output/planning-artifacts/ux-design-specification/user-journey-flows.md` — F3 line 124 + F4 line 160 nodes rewritten, F5 WINDOW_EXPIRED branch removed, F6 section replaced with deferral notice
+- `_bmad-output/planning-artifacts/ux-design-specification/index.md` — F6 link annotated
+- `_bmad-output/planning-artifacts/ux-design-specification/component-strategy.md` — `HomeStateCard` states list reduced to 8 + 4 component usage notes scrubbed of State 7/8 refs
+- `_bmad-output/implementation-artifacts/deferred-work.md` — dated section + 3 backlog stubs prepended
+
+**Modified — sprint tracking (2 files):**
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `5-6` flipped to `review`
+- `_bmad-output/implementation-artifacts/5-6-remove-home-states-7-and-8.md` — this story file; Status `review`, all task boxes checked, Dev Agent Record filled, File List populated
+
+## Change Log
+
+| Date | Change | By |
+|------|--------|-----|
+| 2026-06-15 | Story drafted from Issue #36; status `ready-for-dev` | Claude (bmad-create-story) |
+| 2026-06-15 | Implementation complete — 26 sub-tasks, 16 files modified, 2 added, 2 deleted; all CI gates green (typecheck/lint/test); status flipped to `review` | Claude Opus 4.7 (bmad-dev-story) |

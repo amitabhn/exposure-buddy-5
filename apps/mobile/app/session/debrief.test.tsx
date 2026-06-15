@@ -25,8 +25,6 @@ jest.mock('../../src/sync/adapter', () => ({
 }))
 
 const mockClearSessionIntention = jest.fn()
-const mockUpdateDebriefReflectionSubmitted = jest.fn()
-const mockClearDebriefPending = jest.fn()
 const mockGetSessionIntention = jest.fn()
 const mockUseAuth = jest.fn()
 
@@ -61,10 +59,7 @@ beforeEach(() => {
   mockGetSessionIntention.mockReturnValue(null)
   mockUseAuth.mockReturnValue({
     clearSessionIntention: mockClearSessionIntention,
-    updateDebriefReflectionSubmitted: mockUpdateDebriefReflectionSubmitted,
-    clearDebriefPending: mockClearDebriefPending,
     getSessionIntention: mockGetSessionIntention,
-    debriefPendingData: null,
   })
   useLocalSearchParams.mockReturnValue(baseParams)
 })
@@ -151,13 +146,9 @@ describe('DebriefScreen — FR-ADVERSE-01 crisis contacts', () => {
   })
 })
 
-describe('DebriefScreen — handleSubmitReflection (state-7 path)', () => {
-  it('Done button enqueues update and navigates home (state-7 path)', async () => {
-    // completedAtMs in the future window — state 7
-    useLocalSearchParams.mockReturnValue({
-      ...baseParams,
-      completedAtMs: String(Date.now() - 1000),
-    })
+describe('DebriefScreen — handleSubmitReflection', () => {
+  it('Done button enqueues post_session_reflection UPDATE, clears intention, and routes home', async () => {
+    useLocalSearchParams.mockReturnValue(baseParams)
     const { getByLabelText } = render(<DebriefScreen />)
     await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
     await waitFor(() => {
@@ -168,22 +159,7 @@ describe('DebriefScreen — handleSubmitReflection (state-7 path)', () => {
       )
     })
     expect(mockClearSessionIntention).toHaveBeenCalledWith('session-1')
-    expect(mockUpdateDebriefReflectionSubmitted).toHaveBeenCalled()
     expect(mockRouterReplace).toHaveBeenCalledWith('/(app)/index')
-  })
-
-  it('clears debrief pending on state-8 late debrief (window expired)', async () => {
-    // completedAtMs 7 hours ago — state 8, window expired
-    useLocalSearchParams.mockReturnValue({
-      ...baseParams,
-      completedAtMs: String(Date.now() - 7 * 60 * 60 * 1000),
-    })
-    const { getByLabelText } = render(<DebriefScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
-    await waitFor(() => {
-      expect(mockClearDebriefPending).toHaveBeenCalled()
-    })
-    expect(mockUpdateDebriefReflectionSubmitted).not.toHaveBeenCalled()
   })
 })
 
