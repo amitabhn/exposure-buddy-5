@@ -32,8 +32,6 @@ type HomeScreenContext = {
     openCount: number;          // app opens with thread open, no debrief
     openDurationHours: number;  // hours since thread opened without debrief
     userDeclaredIncomplete: boolean;
-    // windowExpiredAt removed 2026-06-15 by Story 5.6 / Issue #36
-    // (post-exposure / expired states removed — no consumer)
   } | null;
 
   // Timing

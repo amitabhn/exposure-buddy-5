@@ -185,6 +185,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
           // Option A (Story 5.6 / Issue #36): defensively wipe any stale SESSION_DEBRIEF_PENDING
           // left over from the State 7/8 era. Safe no-op when the key is absent.
           store.delete(KV_KEYS.SESSION_DEBRIEF_PENDING(session.user.id))
+          console.log('[AuthProvider] Option A wipe: cleared stale SESSION_DEBRIEF_PENDING')
         }
       } else {
         if (store) clearAuthState(store)

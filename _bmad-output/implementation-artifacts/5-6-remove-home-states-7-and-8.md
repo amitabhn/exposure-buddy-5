@@ -1,6 +1,6 @@
 # Story 5.6: Remove Home Screen States 7 (Post-Exposure) and 8 (Expired)
 
-Status: review
+Status: done
 
 <!--
   Origin: GitHub Issue #36 — Spec change: remove home screen State 7 (post-exposure)
@@ -411,9 +411,20 @@ Claude Opus 4.7 (`claude-opus-4-7`) via Claude Code, bmad-dev-story skill.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — `5-6` flipped to `review`
 - `_bmad-output/implementation-artifacts/5-6-remove-home-states-7-and-8.md` — this story file; Status `review`, all task boxes checked, Dev Agent Record filled, File List populated
 
+### Review Findings
+
+- [x] [Review][Patch] Missing `console.log` in AuthProvider Option A boot wipe — AC11(e) requires `console.log('[AuthProvider] Option A wipe: cleared stale SESSION_DEBRIEF_PENDING')` after the `store.delete` call; only `store.delete` is present at line 187. [`packages/supabase/src/auth/AuthProvider.tsx:187`]
+- [x] [Review][Patch] Story 6.2 dev note naming Story 5.6 as source of State 7/8 removal is absent from `epics.md` — AC2 requires "a new line is added to Story 6.2 dev notes naming Story 5.6 as the source of the State 7/8 removal"; Story 6.2 section has no dev notes section and no Story 5.6 reference. [`_bmad-output/planning-artifacts/epics.md`]
+- [x] [Review][Patch] `windowExpiredAt` commented out rather than deleted in ADR — AC3 requires the field be "removed"; instead lines 35–36 in ADR-HOME-STATE-RESOLVE.md show `// windowExpiredAt removed 2026-06-15 ...` occupying the field's position in the TypeScript code block. [`_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md:35`]
+- [x] [Review][Defer] `authProvider.optionAWipe.test.ts` tests an inline replica, not the live `onAuthStateChange` path — pre-existing inline-MMKV-stand-in pattern, matches existing test approach per dev notes [`packages/supabase/__tests__/auth/authProvider.optionAWipe.test.ts`] — deferred, pre-existing
+- [x] [Review][Defer] Option A wipe fires on every `SIGNED_IN`/`TOKEN_REFRESHED` auth event with no userId-change guard — pre-existing `onAuthStateChange` architecture gap, not introduced by this story [`packages/supabase/src/auth/AuthProvider.tsx`] — deferred, pre-existing
+- [x] [Review][Defer] Combined `SESSION_IN_PROGRESS` + stale `SESSION_DEBRIEF_PENDING` boot state is untested — pre-existing test coverage gap, not in scope of Story 5.6 [`packages/supabase/__tests__/auth/`] — deferred, pre-existing
+- [x] [Review][Defer] `clearSessionIntention(sessionId)` has no guard against `undefined` sessionId — pre-existing from Story 5.3, not introduced by this story [`apps/mobile/app/session/debrief.tsx:108`] — deferred, pre-existing
+
 ## Change Log
 
 | Date | Change | By |
 |------|--------|-----|
 | 2026-06-15 | Story drafted from Issue #36; status `ready-for-dev` | Claude (bmad-create-story) |
 | 2026-06-15 | Implementation complete — 26 sub-tasks, 16 files modified, 2 added, 2 deleted; all CI gates green (typecheck/lint/test); status flipped to `review` | Claude Opus 4.7 (bmad-dev-story) |
+| 2026-06-15 | Code review complete — 3 patches, 4 deferred, 5 dismissed; status flipped to `in-progress` | Claude Sonnet 4.6 (bmad-code-review) |

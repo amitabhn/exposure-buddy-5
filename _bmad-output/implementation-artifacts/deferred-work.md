@@ -20,6 +20,18 @@
 
 ---
 
+## Deferred from: code review of 5-6-remove-home-states-7-and-8 (2026-06-15)
+
+- **`authProvider.optionAWipe.test.ts` tests an inline replica, not the real `onAuthStateChange` listener.** The test defines a local `optionAWipe` helper and calls it directly — it does not mount `AuthProvider`, fire a `SIGNED_IN` event, or exercise the surrounding `if (store)` / `mmkvReadyRef` guards. Follows the pre-existing inline-MMKV-stand-in pattern used by the prior `authProvider.debrief.test.ts`; a true integration test would require mounting the provider with a Supabase mock. Accepted for now. [`packages/supabase/__tests__/auth/authProvider.optionAWipe.test.ts`]
+
+- **Option A boot wipe fires on every `SIGNED_IN`/`TOKEN_REFRESHED` auth event with no userId-change guard.** `onAuthStateChange` in `AuthProvider.tsx` does not track the previous userId to skip token-refresh re-runs; both the `SESSION_IN_PROGRESS` read and the `SESSION_DEBRIEF_PENDING` delete fire on every session-present event. After the first run the wipe is a safe no-op (key absent). Pre-existing architecture gap — not introduced by Story 5.6. [`packages/supabase/src/auth/AuthProvider.tsx`]
+
+- **Combined `SESSION_IN_PROGRESS` + stale `SESSION_DEBRIEF_PENDING` boot state is not covered by any test.** When both MMKV keys are present on boot (force-quit mid-session on a pre-Story-5.6 build), the Option A wipe and the `SESSION_IN_PROGRESS` recovery run in sequence. No test seeds both keys and verifies both outcomes. Pre-existing gap — not in scope of Story 5.6. [`packages/supabase/__tests__/auth/`]
+
+- **`clearSessionIntention(sessionId)` has no guard against `undefined` sessionId.** Expo Router `useLocalSearchParams` returns `string | string[]`; the generic cast to `string` is a compile-time convenience, not a runtime guarantee. If `sessionId` is absent from the deep link, `clearSessionIntention(undefined)` silently targets the wrong MMKV key (`session:intention:undefined`) and leaves the real key stale. Pre-existing from Story 5.3. [`apps/mobile/app/session/debrief.tsx:108`]
+
+---
+
 ## Deferred from: verification of 5-3-erp-session-completion-debrief-and-home-state (2026-06-08)
 
 - **VER-5-3-1: `isCompletingSession` survives Fast Refresh on the success path** — In `apps/mobile/app/session/active.tsx`, `handleCompleteSession` only resets `setIsCompletingSession(false)` in the `!result.ok` early-return and the `catch` block. On the success path the screen `router.push`es to debrief and the active screen unmounts in production, so the stuck flag is invisible. During dev, Fast Refresh preserves component state across edits — a subsequent fresh session lands on `active.tsx` with `isCompletingSession=true` from the previous attempt, and the "Finish session" button renders gray and ignores taps. Workaround: full reload (Cmd+R). Production behaviour is correct; consider adding a `useEffect` cleanup or resetting the flag immediately after the navigation `router.push` for dev ergonomics. [`apps/mobile/app/session/active.tsx:77-83, 153`]

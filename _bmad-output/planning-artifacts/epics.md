@@ -1335,6 +1335,10 @@ So that I know exactly what to do next without hunting through the app (FR-HOME-
 **When** the user opens the edit form for a ladder item (5-1-D6)
 **Then** a "Remove item" destructive action is visible within the edit modal; tapping it shows a confirmation alert with `t('ladder.delete.confirm')` (canonical English: "Remove this item from your ladder?") and two options — "Remove" (destructive) and "Cancel"; on confirm the item is removed from local state optimistically and a `delete` operation is enqueued to the outbox; if the enqueue fails, local state is rolled back and an error message is shown; on next sync the row is hard-deleted from Supabase (RLS-gated to `user_id = auth.uid()`); swipe-to-delete is not required — the in-modal button is the sole delete affordance at this story
 
+**Dev Notes:**
+
+- **Story 5.6 (2026-06-15, Issue #36)** removed home screen States 7 (post-exposure reflection window) and 8 (expired gate). The countdown-interval AC that was previously in this story (refresh `resolveHomeScreenState` on a 60s timer) was deleted because there is no longer a countdown to refresh. This story's `resolveHomeScreenState` wiring should target the full 8-state machine defined in `ADR-HOME-STATE-RESOLVE.md` (not the trivial `() => 'default'` stub left by Story 5.6). See `_bmad-output/implementation-artifacts/5-6-remove-home-states-7-and-8.md` for full context.
+
 ---
 
 ### Story 6.3: Home Screen Progressing State (State 4)
