@@ -1,5 +1,28 @@
 # Deferred Work
 
+## Deferred from: code review of 6-2-a-powersync-foundation (2026-06-16)
+
+_Multi-layer spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — items below are real concerns not addressed by Story 6.2-A but classed as out-of-scope or system-wide rather than blockers for this story. Original findings live in the Review Findings section of `6-2-a-powersync-foundation.md`._
+
+- **Module-scope `getPowerSyncDatabase()` throw produces white-screen — no error boundary.** If native SQLite open fails (corrupt db, missing migration, unsupported device), the app crashes before any React render. App-lifecycle topic, not 6.2-A specific. [`apps/mobile/app/_layout.tsx`]
+- **AC 5 schema-bump local reset risk audit beyond `user_onboarding_metadata`.** The spec asserts this is the only at-risk table; no runtime check verifies `ps_crud` is empty for other tables at upgrade time. Add a one-shot pre-upgrade audit log in a follow-up. [`packages/sync/src/schema.ts`]
+- **AC 9 `CREATE UNIQUE INDEX uq_active_thread` not `CONCURRENTLY` — racing with concurrent INSERTs during deploy can fail.** Production-deployment concern; mitigation is `CREATE UNIQUE INDEX CONCURRENTLY` or an app-side write-lock at deploy time. [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+- **AC 7 `_userId` parameter is dead while local SQLite is multi-tenant on the same device.** Sync-rules-based isolation only works when connected; offline + user switch leaks. Decision-needed item in the spec proposes mitigations; this defer covers the residual "minor cases" if the team chooses the lightest option. [`apps/mobile/src/hooks/useFearLadderItems.ts`]
+- **AC 4 `OR IGNORE` for client-generated UUID PKs has negligible collision probability but no test of the duplicate-id path.** Add a property-based test in a future hardening pass. [`packages/sync/src/adapter.ts`]
+- **Fast Refresh re-running module scope in dev causes `initAdapter` double-init.** Make `initAdapter` idempotent (warn-and-replace or no-op) in a follow-up. Low impact: dev-only. [`packages/sync/src/adapter.ts`]
+- **Service-role test cleanup leakage on failed test runs.** When test process is killed mid-run, `exposure_sessions` rows attached to the test user leak. System-wide pattern (already present in `dpo_audit_log.test.ts`), not 6.2-A specific. [`packages/supabase/__tests__/rls/`]
+- **`predicted_suds` is nullable in PowerSync schema but `NOT NULL` in DB.** Verify at implementation time; add app-level validation if PowerSync ever produces a null row. [`packages/sync/src/schema.ts`]
+- **`createPowerSyncDatabase()` test escape hatch creates test/prod semantic divergence.** Whatever bug only manifests on the shared singleton (state leak, schema reset race) is invisible to the test suite. Consider replacing with explicit `__resetForTests__` on the singleton. [`packages/sync/src/client.ts`]
+- **Two-PATCH non-atomic reorder retry consistency.** Listed as Out-of-Scope item #8 in the spec — full atomic fix is the `swap_ladder_positions` Postgres RPC in Story 6.2-C. Until then, partial failure during reorder upload can leave server in inconsistent state until next reorder. [Story 6.2-C]
+- **AC 8 references `intent.tsx:107–115` and `ladder.tsx:149` by line number.** Coordinates drift the moment anyone edits these files. Use code-region quotes or function names in future stories.
+- **AC 1 "useQuery and usePowerSync work in all screens" is untestable as written.** No screen enumeration, no smoke list. Narrow to explicit screens in future ACs.
+- **AC 6 lint claim "zero ARC-005 violations" is narrow.** Verify `packages/sync/.eslintrc` (or root config matching `packages/sync/**`) does not forbid the new `@powersync/react-native` re-exports. The boundary owner package needs its own lint allowance.
+- **AC 3 PATCH retry has no idempotency key.** Last-write-wins is the system-wide pattern; documenting here so the next reviewer doesn't re-flag.
+- **`AbstractPowerSyncDatabase.writeTransaction` existence not asserted in spec.** Verify at impl against installed `@powersync/common@1.53.1` type declarations.
+- **Multi-instance connector recreation on user switch may leak prior `SupabaseClient` auth listeners and realtime channels.** AC 2 mandates a fresh `SupabasePowerSyncConnector(createSupabaseClient())` per `userId` change. Whether this leaks depends on whether `createSupabaseClient()` returns a fresh client or the module singleton. Verify at impl. [`apps/mobile/app/_layout.tsx`, `packages/supabase/src/client.ts`]
+
+---
+
 ## 2026-06-15 — Stories 5.4 and 5.5 formally deferred post-Phase-1
 
 - **FR-LADDER-03 — Clinician read access deferred post-Phase-1.** Stories 5.4 (clinician access schema & RLS policies) and 5.5 (clinician access pgTAP coverage) are marked `deferred-post-mvp` in `sprint-status.yaml`; `epic-5` is now closed. Full decision record at `epics.md` FR Coverage Map (FR-LADDER-03) and `prd.md` ("Therapist portal → Phase 2"). The `therapist_patient_relationships` stub table (Story 4.3) and ARC-006/007 stub RLS policies remain in place; Phase 2 activates the real policies via migration with no schema rebuild.

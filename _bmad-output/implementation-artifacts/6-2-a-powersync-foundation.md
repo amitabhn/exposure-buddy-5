@@ -23,16 +23,16 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 - `useQuery` and `usePowerSync` (re-exported from `@exposure-buddy/sync`) work in all screens
 - ARC-005 ESLint rule (`@powersync/react-native` banned in `apps/mobile`) is satisfied by routing all PowerSync hook imports through `@exposure-buddy/sync`
 
-### AC 2 — Auth lifecycle: connect on sign-in, disconnect on sign-out
+### AC 2 — Auth lifecycle: connect on sign-in, disconnectAndClear on sign-out
 
 **Given** the original rejected spec used a `connectedRef` that prevented reconnection after sign-out (D9)
 **When** this story is implemented
 **Then**:
 - A `PowerSyncConnectionManager` component (inline in `_layout.tsx`) is a direct child of `AuthProvider`; it calls `useAuth()` and manages the lifecycle
-- On each `userId` change (detected via `prevUserIdRef`): if `userId` is a non-null string, create a fresh `SupabasePowerSyncConnector(createSupabaseClient())` and call `powerSyncDb.connect(connector)`; if `userId` is null, call `powerSyncDb.disconnect()`
-- `powerSyncDb.connect()` result is void (fire-and-forget); errors are caught and logged with `console.error`; the function is never `await`-ed at the call site
-- `powerSyncDb.disconnect()` is similarly fire-and-forget; errors are swallowed
-- Signing out then signing back in as a different user creates a fresh connector bound to the new user's session — no state leaks between users
+- On each `userId` change (detected via `prevUserIdRef` initialised to `undefined`): if `userId` is `undefined` (auth still loading), the manager is a no-op and the effect returns early; if `userId` is a non-null string, resolve the per-user `powerSyncDb = getPowerSyncDatabase(userId)`, create a fresh `SupabasePowerSyncConnector(createSupabaseClient())`, and call `powerSyncDb.connect(connector)`; if `userId` is `null`, call `powerSyncDb.disconnectAndClear()` (clears local SQLite rows so user A's data is not visible to user B on shared devices — see Dev Notes "Per-user data isolation")
+- All `connect()` / `disconnectAndClear()` calls are SEQUENCED through a single `inFlightRef = useRef<Promise<void>>(Promise.resolve())` chain inside `PowerSyncConnectionManager`. Each `userId` transition appends to the chain: `inFlightRef.current = inFlightRef.current.then(() => userId ? connect(...) : disconnectAndClear()).catch(logSyncLifecycleError)`. Eliminates the race where a late-resolving `connect()` arrives after a `disconnect()` (or vice versa) and leaves the app connected for a signed-out user.
+- `logSyncLifecycleError(err)` calls `console.error('[PowerSync] lifecycle error:', err)` AND emits a Sentry breadcrumb (or equivalent observability hook — see Dev Notes "PowerSync observability") so silent fire-and-forget failures are diagnosable in production
+- Signing out then signing back in as a different user creates a fresh connector bound to the new user's session AND wipes local SQLite via `disconnectAndClear()` — no state leaks between users
 
 ### AC 3 — SupabasePowerSyncConnector: fetchCredentials and uploadData
 
@@ -40,10 +40,12 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 **When** this story is implemented
 **Then**:
 - `SupabasePowerSyncConnector` in `packages/sync/src/connector.ts` implements `PowerSyncBackendConnector` (from `@powersync/react-native`)
-- `fetchCredentials()`: gets session via `supabaseClient.auth.getSession()`; if no session OR `EXPO_PUBLIC_POWERSYNC_URL` is falsy, returns `null`; otherwise returns `{ endpoint: process.env.EXPO_PUBLIC_POWERSYNC_URL, token: session.access_token, expiresAt: new Date(session.expires_at * 1000) }` (matches `PowerSyncCredentials` interface)
-- `uploadData(database)`: calls `await database.getCrudBatch(200)` — if null (nothing to upload) returns immediately; for each `CrudEntry` in `batch.crud`: `UpdateType.PUT` → `supabaseClient.from(entry.table).upsert({ id: entry.id, ...entry.opData })` (no `onConflict` override — let PostgREST use the table's PRIMARY KEY); `UpdateType.PATCH` → `supabaseClient.from(entry.table).update(entry.opData!).eq('id', entry.id)`; `UpdateType.DELETE` → `supabaseClient.from(entry.table).delete().eq('id', entry.id)`; if any Supabase call returns `error`, re-throw (PowerSync will retry); on success call `await batch.complete()`
-- `SupabasePowerSyncConnector` does NOT import from `@exposure-buddy/supabase` — the Supabase client is injected as a constructor argument typed against a minimal `SupabaseClientLike` interface (to avoid circular dep: supabase → core, sync → supabase)
-- `packages/sync` does NOT become a dep of `packages/supabase`
+- The Supabase client is injected as a constructor argument typed against the real `SupabaseClient` via TYPE-ONLY import: `import type { SupabaseClient } from '@supabase/supabase-js'`. This carries zero runtime cost (TS strips type-only imports at compile) and does not create a runtime cycle. The hand-rolled `SupabaseClientLike` interface from the rejected spec is removed.
+- `fetchCredentials()`: gets session via `supabaseClient.auth.getSession()`; if no session, returns `null`; if `EXPO_PUBLIC_POWERSYNC_URL` is falsy, returns `null`; if `EXPO_PUBLIC_POWERSYNC_URL` is set but fails URL validation (`try { new URL(endpoint) } catch { return null }`), returns `null` (logs a one-time warning so misconfigured environments are diagnosable); if `session.expires_at` is `undefined` (Supabase types it as `number | undefined` per `@supabase/auth-js@2.106.1/lib/types.d.ts:270`), returns `null`; otherwise returns `{ endpoint, token: session.access_token, expiresAt: new Date(session.expires_at * 1000) }` (matches `PowerSyncCredentials` from `@powersync/common`)
+- `uploadData(database)`: calls `await database.getCrudBatch(200)` — if null (nothing to upload) returns immediately; for each `CrudEntry` in `batch.crud`: `UpdateType.PUT` → `supabaseClient.from(entry.table).upsert({ ...entry.opData, id: entry.id }, onConflictForTable(entry.table))` where `onConflictForTable(table)` returns `{ onConflict: ON_CONFLICT_OVERRIDES[table] }` for tables listed in the registry (currently `{ user_onboarding_metadata: 'user_id' }`) and `undefined` for all others (let PostgREST use the table's PRIMARY KEY); `UpdateType.PATCH` → `supabaseClient.from(entry.table).update(entry.opData!).eq('id', entry.id)`; `UpdateType.DELETE` → `supabaseClient.from(entry.table).delete().eq('id', entry.id)`; if any Supabase call returns `error`, re-throw (PowerSync will retry); on success call `await batch.complete()`
+- The PUT spread order is `{ ...entry.opData, id: entry.id }` — `entry.id` MUST come last so a stray `id` field inside `opData` cannot override the canonical entry id
+- `SupabasePowerSyncConnector` does NOT runtime-import from `@exposure-buddy/supabase`. The type-only `SupabaseClient` import from `@supabase/supabase-js` is permitted because (a) TS strips it at compile, leaving no runtime dependency edge, and (b) it eliminates the maintenance burden of a hand-rolled minimal interface (which previously caused P9). See Dev Notes "Connector boundary clarification".
+- `packages/sync` does NOT become a runtime dep of `packages/supabase`. `@supabase/supabase-js` must be a `devDependency` (or `peerDependency`) in `packages/sync/package.json` — type-only consumers should not list it as a runtime dep.
 
 ### AC 4 — Durable PowerSyncSyncAdapter replaces no-op stub
 
@@ -51,21 +53,23 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 **When** this story is implemented
 **Then**:
 - `PowerSyncSyncAdapter` in `packages/sync/src/adapter.ts` takes `AbstractPowerSyncDatabase` as a constructor argument
-- `enqueue('table', 'INSERT', payload)` → `db.execute('INSERT OR IGNORE INTO table (col1, col2, ...) VALUES (?, ?, ...)', [vals])` using only snake_case keys from payload (camelCase keys are filtered out before building the SQL — see Dev Notes)
-- `enqueue('table', 'UPDATE', payload)` where `payload.type !== 'reorder_positions'` → `db.execute('UPDATE table SET col1=?, col2=? WHERE id=?', [...vals, id])` using only snake_case keys excluding `id`
-- `enqueue('table', 'UPDATE', { type: 'reorder_positions', itemAId, itemANewPosition, itemBId, itemBNewPosition })` → `db.writeTransaction(async tx => { await tx.execute('UPDATE table SET position=?, updated_at=? WHERE id=?', [posA, now, idA]); await tx.execute('UPDATE table SET position=?, updated_at=? WHERE id=?', [posB, now, idB]) })` (reconciles the `UPDATE` envelope from `(onboarding)/ladder.tsx`)
+- `enqueue('table', 'INSERT', payload)` → `db.execute('INSERT INTO table (col1, col2, ...) VALUES (?, ?, ...)', [vals])` (plain `INSERT` — no `OR IGNORE`; constraint violations propagate as SQLite errors → through `enqueue()` → to the caller, so the new `uq_user_position` and `uq_active_thread` constraints are enforced offline as well as on Supabase). Payload is filtered to snake_case keys first; if the filtered payload is empty, `enqueue()` throws `Error('[sync] INSERT payload empty after snake_case filter')` rather than producing invalid SQL.
+- `enqueue('table', 'UPDATE', payload)` where `payload.type !== 'reorder_positions'` → `db.execute('UPDATE table SET col1=?, col2=? WHERE id=?', [...vals, id])` using only snake_case keys excluding `id`. If `id` is missing or `Object.keys(rest).length === 0`, `enqueue()` throws a descriptive error (do not silently generate invalid SQL).
+- `enqueue('table', 'UPDATE', { type: 'reorder_positions', itemAId, itemANewPosition, itemBId, itemBNewPosition })` → `db.writeTransaction(async tx => { await tx.execute('UPDATE table SET position=?, updated_at=? WHERE id=?', [posA, now, idA]); await tx.execute('UPDATE table SET position=?, updated_at=? WHERE id=?', [posB, now, idB]) })` where `now = new Date().toISOString()` is computed ONCE at the start of `enqueue()` and reused for both statements (reconciles the `UPDATE` envelope from `(onboarding)/ladder.tsx`)
 - `enqueue('table', 'reorder_positions', { itemAId, itemANewPosition, itemBId, itemBNewPosition })` → same two-transaction writes as above (reconciles the direct operation from `ladder.tsx`)
 - `enqueue('table', 'DELETE', { id })` → `db.execute('DELETE FROM table WHERE id=?', [id])`
-- Both reorder calling conventions produce IDENTICAL `db.execute()` calls — verified by a Vitest test (see T9.3)
+- Both reorder calling conventions produce IDENTICAL `db.execute()` calls (identical SQL AND identical `now` timestamp parameters within one call) — verified by a Vitest test (see T9.1)
+- Constraint violations from `INSERT`, `UPDATE`, or reorder transactions are raised, not swallowed. Callers that originate writes (`apps/mobile/app/session/intent.tsx`, `apps/mobile/app/ladder.tsx`, `apps/mobile/app/(onboarding)/ladder.tsx`) currently do NOT have try/catch around `getAdapter().enqueue(...)` calls — surfacing those errors to the UI is out of scope for 6.2-A (see Out of Scope item #13) but the foundation now raises them.
 - `initAdapter(adapter: SyncAdapter)` and `getAdapter(): SyncAdapter` are exported; `getAdapter()` throws if called before `initAdapter()`
-- `initAdapter` is called at MODULE SCOPE in `apps/mobile/app/_layout.tsx` (before any useEffect fires) so that the recovery modal in `(app)/_layout.tsx` can call `getAdapter()` safely on first render
+- `initAdapter` is called at MODULE SCOPE in `apps/mobile/app/_layout.tsx` (before any useEffect fires) so that the recovery modal in `(app)/_layout.tsx` can call `getAdapter()` safely from any later React lifecycle (event handler, useEffect, render)
 
-### AC 5 — PowerSync db singleton and schema bump
+### AC 5 — PowerSync db PER-USER singleton and schema bump
 
 **Given** `createPowerSyncDatabase()` currently returns a new instance on every call and `user_onboarding_metadata` lacks an `id` column (deferred 4-2-D5)
 **When** this story is implemented
 **Then**:
-- `packages/sync/src/client.ts` exports `getPowerSyncDatabase(dbFilename?)` that returns a module-level singleton (`PowerSyncDatabase` instance); `createPowerSyncDatabase()` kept for tests that need a fresh instance
+- `packages/sync/src/client.ts` exports `getPowerSyncDatabase(userId: string)` that returns a per-user singleton — the `dbFilename` is derived deterministically from `userId` (e.g. `exposure-buddy-<sha256(userId).slice(0,16)>.db`); a module-level `Map<string, PowerSyncDatabase>` caches one instance per user so repeat calls within a session return the same handle. `createPowerSyncDatabase(dbFilename?)` is kept for tests that need a fresh, non-cached instance.
+- The per-user `dbFilename` is the PHYSICAL boundary that prevents user A's local SQLite rows from being visible to user B on a shared device — combined with `disconnectAndClear()` on sign-out (AC 2), this is defence in depth. The dev-rationale references "shared family phones in India" — see Dev Notes "Per-user data isolation".
 - `packages/sync/src/schema.ts` `user_onboarding_metadata` table gains `id: column.text` as the first column (client-generated UUID primary key deferred from 4-2-D5)
 - Schema version bump triggers PowerSync to reset local SQLite on next launch — expected behaviour for dev; offline-first users with pending `user_onboarding_metadata` writes accept data loss for this one table (this is the only pending write at risk; see Dev Notes)
 
@@ -78,17 +82,19 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 - `apps/mobile` imports these exclusively from `@exposure-buddy/sync` — no direct `@powersync/*` import anywhere in `apps/mobile`
 - `pnpm turbo lint` passes with zero ARC-005 violations
 
-### AC 7 — useFearLadderItems: real useQuery hook
+### AC 7 — useFearLadderItems: real useQuery hook with isLoading
 
 **Given** `apps/mobile/src/hooks/useFearLadderItems.ts` returns an empty stub array
 **When** this story is implemented
 **Then**:
 - The stub is replaced with a real `useQuery<Row>(QUERY)` call (hook from `@exposure-buddy/sync`)
 - Query: `SELECT id, description, predicted_suds, peak_suds, position, status FROM fear_ladder_items ORDER BY position ASC, id ASC` (id ASC establishes consistent ordering; tiebreaker logic in `resolveLowestPendingItem` is Story 6.2-B)
+- Hook signature changes from `useFearLadderItems(_userId): FearLadderItem[]` to `useFearLadderItems(_userId): { items: FearLadderItem[]; isLoading: boolean }`. `isLoading` is forwarded from `useQuery`'s `isLoading` (true until the first SQLite query resolves; distinct from `items.length === 0` which means "loaded, zero rows"). Story 6.2-B's home-screen state machine needs this distinction to render a spinner vs the empty-ladder state.
 - Results mapped from snake_case to `FearLadderItem` (camelCase) via `useMemo`
 - `peak_suds` typed as `number | null` (PowerSync integer columns are nullable)
-- `status` cast to `FearLadderItemStatus` (narrowed type from AC 8)
-- `_userId` param kept for call-site compat (PowerSync sync-rules already scope the query to the authenticated user)
+- `status` is RUNTIME-validated, not cast: rows with a status not in `('pending', 'completed')` (e.g. a legacy `'in_progress'` row from a pre-migration sync) are filtered out of `items` and a one-time `console.warn('[useFearLadderItems] filtering row with unexpected status:', status)` is emitted. This is consistent with AC 8 keeping the `in_progress` UI branch defensively while the migration backfills server-side.
+- `_userId` param kept for call-site compat (combined defences: per-user `dbFilename` from AC 5 means user B's local DB never contained user A's rows; PowerSync sync-rules scope the upstream stream by `auth.uid()`)
+- All call sites that destructure the hook return value are updated. Currently `apps/mobile/app/ladder.tsx` calls `useFearLadderItems(userId)` and treats the return as an array — update to `const { items, isLoading } = useFearLadderItems(userId)` and render a spinner when `isLoading` is true.
 - After this story, the Courage Ladder screen (`apps/mobile/app/ladder.tsx`) renders real `fear_ladder_items` data for authenticated users
 
 ### AC 8 — FearLadderItemStatus type narrowing + intent.tsx cleanup + migration 0021
@@ -114,7 +120,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 - Pre-cleanup step: any duplicate `(user_id, fear_item_id)` pairs with `status = 'started'` are resolved by keeping the most recent row and setting duplicates to `status = 'abandoned'`; note: no such duplicates should exist in dev on a fresh `supabase start`, but the migration must be safe on any DB state
 - `CREATE UNIQUE INDEX IF NOT EXISTS uq_active_thread ON public.exposure_sessions (user_id, fear_item_id) WHERE status = 'started'` executes successfully
 - Attempting a second INSERT with the same `(user_id, fear_item_id, status='started')` raises a unique-constraint violation at the DB layer
-- pgTAP test in `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` verifies the constraint fires (see T9.2)
+- Vitest test (Supabase service-role client, following the `dpo_audit_log.test.ts` pattern) in `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` verifies the constraint fires (see T9.2)
 
 ---
 
@@ -122,9 +128,11 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T1 — DB Migrations
 
-- [ ] **T1.1**: Create `supabase/migrations/0021_fear_ladder_items_constraints.sql`:
+- [ ] **T1.1**: Create `supabase/migrations/0021_fear_ladder_items_constraints.sql`. All four steps run inside a single transaction so that if step 4 (UNIQUE) fails on existing duplicate `(user_id, position)` rows, steps 1–3 roll back and the table is not left half-migrated:
   ```sql
   -- Story 6.2-A: narrow status to MVP values; add deferrable position uniqueness
+
+  BEGIN;
 
   -- Step 1: backfill any in_progress rows to pending before narrowing the constraint
   UPDATE public.fear_ladder_items SET status = 'pending' WHERE status = 'in_progress';
@@ -139,6 +147,8 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   -- Step 4: deferrable position uniqueness — allows bulk reorder swaps within a transaction
   ALTER TABLE public.fear_ladder_items
     ADD CONSTRAINT uq_user_position UNIQUE (user_id, position) DEFERRABLE INITIALLY DEFERRED;
+
+  COMMIT;
   ```
 
 - [ ] **T1.2**: Create `supabase/migrations/0022_exposure_sessions_active_thread.sql`:
@@ -173,6 +183,11 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 - [ ] **T2.2**: Update `packages/core/src/index.ts`:
   - Add `export type { FearLadderItemStatus } from './selectors/fearLadder'`
 
+- [ ] **T2.3**: Update `packages/core/src/__tests__/selectors/fearLadder.test.ts`:
+  - The existing test fixture at line 25 calls `makeItem('x', 1, 'in_progress')` — after T2.1 this literal is no longer assignable to `FearLadderItemStatus`.
+  - Replace the `'in_progress'` literal with `'pending'` (or `'completed'`, whichever preserves the test's intent). If the test was specifically asserting `in_progress` handling, that assertion is now obsolete and should be deleted along with any related arrange/act/assert lines.
+  - Without this update, T9.3 (`pnpm turbo typecheck` — zero errors) will fail.
+
 ### T3 — packages/sync: connector, singleton, real adapter, schema, re-exports
 
 - [ ] **T3.1**: Update `packages/sync/src/schema.ts` — add `id: column.text` as the first column in `user_onboarding_metadata`:
@@ -186,57 +201,84 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   })
   ```
 
-- [ ] **T3.2**: Update `packages/sync/src/client.ts` — lazy singleton:
+- [ ] **T3.2**: Update `packages/sync/src/client.ts` — per-user singleton (sha256 keyed):
   ```typescript
   import { PowerSyncDatabase } from '@powersync/react-native'
+  import { sha256 } from '@noble/hashes/sha256'      // already available in monorepo
+  import { bytesToHex } from '@noble/hashes/utils'
   import { AppSchema } from './schema'
 
-  let _db: PowerSyncDatabase | null = null
+  const _dbByUserId = new Map<string, PowerSyncDatabase>()
 
-  export function getPowerSyncDatabase(dbFilename = 'exposure-buddy.db'): PowerSyncDatabase {
-    if (!_db) _db = new PowerSyncDatabase({ schema: AppSchema, database: { dbFilename } })
-    return _db
+  function dbFilenameForUser(userId: string): string {
+    // Deterministic per-user filename — physical boundary against cross-user reads on shared devices.
+    // SHA-256 (16 hex chars = 64 bits) — collision probability is negligible at user-count scales.
+    const hash = bytesToHex(sha256(userId)).slice(0, 16)
+    return `exposure-buddy-${hash}.db`
   }
 
-  // Kept for tests that need a fresh (non-singleton) instance
-  export function createPowerSyncDatabase(dbFilename = 'exposure-buddy.db'): PowerSyncDatabase {
+  export function getPowerSyncDatabase(userId: string): PowerSyncDatabase {
+    const cached = _dbByUserId.get(userId)
+    if (cached) return cached
+    const db = new PowerSyncDatabase({ schema: AppSchema, database: { dbFilename: dbFilenameForUser(userId) } })
+    _dbByUserId.set(userId, db)
+    return db
+  }
+
+  // Test-only: fresh instance with caller-supplied filename. Not memoised.
+  export function createPowerSyncDatabase(dbFilename = 'exposure-buddy-test.db'): PowerSyncDatabase {
     return new PowerSyncDatabase({ schema: AppSchema, database: { dbFilename } })
   }
   ```
+  **Note:** If `@noble/hashes` is not already a transitive dep of `packages/sync`, add it as a direct dep. Alternative: use any deterministic short-hash function already in the codebase (e.g. djb2 — see `packages/core/src/util/`).
 
 - [ ] **T3.3**: Create `packages/sync/src/connector.ts`:
 
   ```typescript
-  import type { PowerSyncBackendConnector, AbstractPowerSyncDatabase } from '@powersync/react-native'
-  import type { UpdateType } from '@powersync/react-native'
+  import type { PowerSyncBackendConnector, AbstractPowerSyncDatabase, CrudEntry } from '@powersync/react-native'
+  import { UpdateType } from '@powersync/react-native'
+  // Type-only import — TS strips this at compile, no runtime edge added.
+  // Eliminates the hand-rolled SupabaseClientLike interface (which previously caused P9).
+  import type { SupabaseClient } from '@supabase/supabase-js'
 
-  // Minimal Supabase client interface — avoids importing @exposure-buddy/supabase
-  // (which would create a circular dep: supabase→core, sync→supabase).
-  // The real SupabaseClient satisfies this structurally.
-  export interface SupabaseClientLike {
-    auth: {
-      getSession(): Promise<{
-        data: {
-          session: { access_token: string; expires_at: number } | null
-        }
-      }>
-    }
-    from(table: string): {
-      upsert(data: Record<string, unknown>): Promise<{ error: unknown }>
-      update(data: Record<string, unknown>): { eq(col: string, val: string): Promise<{ error: unknown }> }
-      delete(): { eq(col: string, val: string): Promise<{ error: unknown }> }
-    }
+  // Per-table onConflict registry. Tables not listed here use PostgREST's PK default.
+  // user_onboarding_metadata has id UUID PRIMARY KEY + UNIQUE(user_id); migration 0012:26
+  // explicitly directs the outbox adapter to use ON CONFLICT (user_id) DO UPDATE for
+  // retry idempotency (two client-generated ids for the same user_id must converge to
+  // an update, not a duplicate insert failure).
+  const ON_CONFLICT_OVERRIDES: Record<string, string> = {
+    user_onboarding_metadata: 'user_id',
   }
 
+  function upsertOptionsFor(table: string): { onConflict: string } | undefined {
+    const col = ON_CONFLICT_OVERRIDES[table]
+    return col ? { onConflict: col } : undefined
+  }
+
+  let _urlValidationWarned = false
+
   export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
-    constructor(private readonly supabase: SupabaseClientLike) {}
+    constructor(private readonly supabase: SupabaseClient) {}
 
     async fetchCredentials() {
       const endpoint = process.env['EXPO_PUBLIC_POWERSYNC_URL']
       if (!endpoint) return null  // not configured in this env — local/CI use
 
+      // Validate URL — a typo'd EXPO_PUBLIC_POWERSYNC_URL would otherwise surface as a
+      // fire-and-forget connect() error that AC 2 mandates be only logged. Fail loud here.
+      try {
+        new URL(endpoint)
+      } catch {
+        if (!_urlValidationWarned) {
+          console.warn('[PowerSync] EXPO_PUBLIC_POWERSYNC_URL is not a valid URL:', endpoint)
+          _urlValidationWarned = true
+        }
+        return null
+      }
+
       const { data: { session } } = await this.supabase.auth.getSession()
       if (!session) return null
+      if (typeof session.expires_at !== 'number') return null  // Supabase types expires_at as number | undefined
 
       return {
         endpoint,
@@ -257,13 +299,14 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
       await batch.complete()
     }
 
-    private async _uploadEntry(entry: { table: string; id: string; op: UpdateType; opData?: Record<string, unknown> }) {
-      // Import UpdateType from @powersync/react-native at call site
-      const { UpdateType: UT } = await import('@powersync/react-native')
-
-      if (entry.op === UT.PUT) {
-        return this.supabase.from(entry.table).upsert({ id: entry.id, ...entry.opData })
-      } else if (entry.op === UT.PATCH) {
+    private async _uploadEntry(entry: CrudEntry): Promise<{ error: unknown }> {
+      if (entry.op === UpdateType.PUT) {
+        // Spread opData first, then id LAST so a stray opData.id cannot override the canonical entry id.
+        const opts = upsertOptionsFor(entry.table)
+        return opts
+          ? this.supabase.from(entry.table).upsert({ ...entry.opData, id: entry.id }, opts)
+          : this.supabase.from(entry.table).upsert({ ...entry.opData, id: entry.id })
+      } else if (entry.op === UpdateType.PATCH) {
         return this.supabase.from(entry.table).update(entry.opData ?? {}).eq('id', entry.id)
       } else {
         // DELETE
@@ -272,8 +315,6 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
     }
   }
   ```
-
-  **Implementation note:** Replace the dynamic import inside `_uploadEntry` with a top-level import: `import { UpdateType } from '@powersync/react-native'` at the top of `connector.ts`. Then use `UpdateType.PUT`, `UpdateType.PATCH`, `UpdateType.DELETE` directly. The dynamic `import()` in the code block above is illustrative — use the static import in the actual implementation.
 
 - [ ] **T3.4**: Replace `packages/sync/src/adapter.ts` with the real implementation (preserves `SyncAdapter` interface and `SyncMode` export):
 
@@ -299,14 +340,19 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
     async enqueue(table: string, operation: OutboxOperation, payload: unknown): Promise<void> {
       const p = payload as Record<string, unknown>
-      const now = new Date().toISOString()
+      const now = new Date().toISOString()  // computed once per enqueue call; reused in _reorder
 
       if (operation === 'INSERT') {
         const snake = filterSnakeCase(p)
+        if (Object.keys(snake).length === 0) {
+          throw new Error(`[sync] INSERT payload empty after snake_case filter for table ${table}`)
+        }
         const cols = Object.keys(snake).join(', ')
         const placeholders = Object.keys(snake).map(() => '?').join(', ')
+        // Plain INSERT (no OR IGNORE) — constraint violations propagate to caller so the
+        // new uq_user_position / uq_active_thread constraints are enforced offline too.
         await this.db.execute(
-          `INSERT OR IGNORE INTO ${table} (${cols}) VALUES (${placeholders})`,
+          `INSERT INTO ${table} (${cols}) VALUES (${placeholders})`,
           Object.values(snake),
         )
       } else if (operation === 'UPDATE') {
@@ -314,6 +360,12 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
           await this._reorder(table, p, now)
         } else {
           const { id, ...rest } = filterSnakeCase(p)
+          if (id === undefined) {
+            throw new Error(`[sync] UPDATE payload missing id for table ${table}`)
+          }
+          if (Object.keys(rest).length === 0) {
+            throw new Error(`[sync] UPDATE payload has no fields to SET for table ${table}`)
+          }
           const setClause = Object.keys(rest).map(k => `${k} = ?`).join(', ')
           await this.db.execute(
             `UPDATE ${table} SET ${setClause} WHERE id = ?`,
@@ -324,6 +376,8 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
         await this._reorder(table, p, now)
       } else if (operation === 'DELETE') {
         await this.db.execute(`DELETE FROM ${table} WHERE id = ?`, [p['id']])
+      } else {
+        throw new Error(`[sync] unknown operation: ${operation}`)
       }
     }
 
@@ -342,10 +396,13 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
     async getPendingCount(): Promise<number> { return 0 }
   }
 
-  // Filter payload to only snake_case keys (no uppercase chars) — prevents camelCase
-  // convenience fields (e.g. updatedAt) from being written to SQLite columns
+  // Filter payload to valid snake_case column names. Tightened regex rejects keys
+  // starting with `_`, digits, or containing uppercase / non-ASCII — prevents both
+  // accidental camelCase fields (updatedAt) AND SQL identifier injection / prototype
+  // pollution via crafted payload keys (`__proto__`, `1col`, etc).
+  const SNAKE_KEY_RE = /^[a-z][a-z0-9_]*$/
   function filterSnakeCase(p: Record<string, unknown>): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(p).filter(([k]) => k === k.toLowerCase()))
+    return Object.fromEntries(Object.entries(p).filter(([k]) => SNAKE_KEY_RE.test(k)))
   }
 
   let _adapter: SyncAdapter | null = null
@@ -370,7 +427,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T4 — apps/mobile/app/_layout.tsx: PowerSync wiring
 
-- [ ] **T4.1**: Update `apps/mobile/app/_layout.tsx` — add the following, preserving ALL existing logic exactly:
+- [ ] **T4.1**: Update `apps/mobile/app/_layout.tsx` — add the following, preserving ALL existing logic exactly. Because `getPowerSyncDatabase` is now per-user (AC 5), the db handle and adapter are resolved INSIDE `PowerSyncConnectionManager` (on each userId change), NOT at module scope. The recovery modal at `apps/mobile/app/(app)/_layout.tsx` calls `getAdapter()` from event handlers and from `useEffect` — both fire after first render, so `initAdapter()` can happen inside the connection manager's effect.
 
   **Module-scope additions** (after existing module-scope calls):
   ```typescript
@@ -378,36 +435,48 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   // createSupabaseClient is exported from packages/supabase/src/client.ts → index.ts
   import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
   // Add useAuth to the existing @exposure-buddy/supabase import (currently imports AuthProvider, OnboardingProvider, initSession, MMKV)
-
-  const powerSyncDb = getPowerSyncDatabase()
-  // Must be module-scope: recovery modal in (app)/_layout.tsx calls getAdapter() on first render,
-  // before any useEffect can fire. The db is ready because getPowerSyncDatabase() is sync.
-  initAdapter(new PowerSyncSyncAdapter(powerSyncDb))
-  ```
-
-  **Inside `RootLayout` component** (add after the existing `splashHidden` ref):
-  ```typescript
-  // PowerSync auth lifecycle — must be inside AuthProvider child component
-  // (defined below as PowerSyncConnectionManager)
   ```
 
   **New inner component** (defined inside the file, after `RootLayout`):
   ```typescript
+  function logSyncLifecycleError(err: unknown) {
+    console.error('[PowerSync] lifecycle error:', err)
+    // TODO(observability): Sentry.addBreadcrumb({ category: 'powersync', message: 'lifecycle error', data: { err: String(err) } })
+    // — wire into the project's existing initErrorHandler() infra; see Dev Notes "PowerSync observability".
+  }
+
   function PowerSyncConnectionManager({ children }: { children: React.ReactNode }) {
     const { userId } = useAuth()
+    // undefined sentinel: auth still loading. null: signed-out. string: signed-in user id.
     const prevUserIdRef = useRef<string | null | undefined>(undefined)
+    // Single in-flight promise chain — sequences connect/disconnectAndClear so a late-resolving
+    // connect() cannot arrive after a sign-out and leave the app connected for a signed-out user.
+    const inFlightRef = useRef<Promise<void>>(Promise.resolve())
+    // Track the current per-user db so the disconnect branch operates on the right instance.
+    const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
 
     useEffect(() => {
-      if (userId === prevUserIdRef.current) return
+      if (userId === undefined) return                          // auth still loading
+      if (userId === prevUserIdRef.current) return              // no transition
+      const prev = prevUserIdRef.current
       prevUserIdRef.current = userId
 
       if (userId) {
+        const db = getPowerSyncDatabase(userId)
+        currentDbRef.current = db
+        // initAdapter is per-user too: each userId gets its own adapter instance bound to its db.
+        initAdapter(new PowerSyncSyncAdapter(db))
         const connector = new SupabasePowerSyncConnector(createSupabaseClient())
-        powerSyncDb.connect(connector).catch((err: unknown) => {
-          console.error('[PowerSync] connect failed:', err)
-        })
+        inFlightRef.current = inFlightRef.current
+          .then(() => db.connect(connector))
+          .catch(logSyncLifecycleError)
       } else {
-        powerSyncDb.disconnect().catch(() => {})
+        const db = currentDbRef.current
+        currentDbRef.current = null
+        if (!db) return  // nothing to disconnect
+        inFlightRef.current = inFlightRef.current
+          .then(() => db.disconnectAndClear())
+          .catch(logSyncLifecycleError)
       }
     }, [userId])
 
@@ -415,34 +484,55 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   }
   ```
 
-  **JSX changes** — wrap the inner tree with `PowerSyncContext.Provider` and `PowerSyncConnectionManager`:
+  **JSX changes** — wrap the inner tree with `PowerSyncContext.Provider` (value resolved from the per-user db ref) and `PowerSyncConnectionManager`. Note: because the db now changes per user, `PowerSyncContext.Provider`'s value cannot be a single module-scope handle; pass `currentDbRef.current` via state from `PowerSyncConnectionManager`, OR move the Provider inside the manager (preferred — see Dev Notes "PowerSyncContext.Provider placement"):
+
   ```tsx
   // Before:
-  <AuthProvider mmkv={mmkv}>
-    <OnboardingProvider mmkv={mmkv}>
-      <SafeAreaProvider>
-        ...
-        <Stack>...</Stack>
-        ...
-      </SafeAreaProvider>
-    </OnboardingProvider>
-  </AuthProvider>
+  <GestureHandlerRootView>
+    <AuthProvider mmkv={mmkv}>
+      <OnboardingProvider mmkv={mmkv}>
+        <SafeAreaProvider>
+          <ReducedMotionProvider>
+            <ThemeProvider>
+              <Stack>
+                <Stack.Screen ... />
+                <Stack.Screen ... />
+                {/* etc — preserve every Stack.Screen registration */}
+              </Stack>
+              <PortalHost />
+            </ThemeProvider>
+          </ReducedMotionProvider>
+        </SafeAreaProvider>
+      </OnboardingProvider>
+    </AuthProvider>
+  </GestureHandlerRootView>
 
   // After:
-  <AuthProvider mmkv={mmkv}>
-    <PowerSyncContext.Provider value={powerSyncDb}>
+  <GestureHandlerRootView>
+    <AuthProvider mmkv={mmkv}>
       <PowerSyncConnectionManager>
+        {/* PowerSyncContext.Provider is placed INSIDE PowerSyncConnectionManager so that
+            the per-user db handle (currentDbRef.current) can be passed as value. */}
         <OnboardingProvider mmkv={mmkv}>
           <SafeAreaProvider>
-            ...
-            <Stack>...</Stack>
-            ...
+            <ReducedMotionProvider>
+              <ThemeProvider>
+                <Stack>
+                  <Stack.Screen ... />
+                  <Stack.Screen ... />
+                  {/* etc — preserve every Stack.Screen registration verbatim */}
+                </Stack>
+                <PortalHost />
+              </ThemeProvider>
+            </ReducedMotionProvider>
           </SafeAreaProvider>
         </OnboardingProvider>
       </PowerSyncConnectionManager>
-    </PowerSyncContext.Provider>
-  </AuthProvider>
+    </AuthProvider>
+  </GestureHandlerRootView>
   ```
+
+  **Implementation note on PowerSyncContext.Provider:** Since the db handle is per-user, the cleanest pattern is to lift `db` into local state inside `PowerSyncConnectionManager` (e.g. `const [db, setDb] = useState<PowerSyncDatabase | null>(null)`) and render `<PowerSyncContext.Provider value={db ?? noopDb}>` where `noopDb` is a placeholder used while signed-out. Confirm the exact pattern with installed `@powersync/react` `PowerSyncContext` defaults (it may accept `null`).
 
   **Invariants that MUST survive unchanged:**
   - `initErrorHandler()` module-scope call
@@ -450,7 +540,8 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   - `i18n` side-effect import order
   - `useFonts()` + `splashHidden` ref + `SplashScreen.hideAsync()` logic
   - The early `if (!fontsLoaded && !fontError) return null` guard (must remain BEFORE the PowerSyncContext.Provider so no partial provider renders during font load)
-  - All `Stack.Screen` registrations unchanged
+  - ALL `Stack.Screen` registrations unchanged (do not drop any during the rewrite — the `...` in the snippets above is illustrative)
+  - `GestureHandlerRootView`, `ReducedMotionProvider`, `ThemeProvider`, `SafeAreaProvider` placement unchanged
   - `PortalHost` placement unchanged
 
 ### T5 — apps/mobile/src/sync/adapter.ts
@@ -464,7 +555,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T6 — apps/mobile/src/hooks/useFearLadderItems.ts
 
-- [ ] **T6.1**: Replace stub with real `useQuery` hook:
+- [ ] **T6.1**: Replace stub with real `useQuery` hook — return shape changes to `{ items, isLoading }`:
   ```typescript
   import { useQuery } from '@exposure-buddy/sync'
   import { useMemo } from 'react'
@@ -485,21 +576,42 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
     status: string
   }
 
-  export function useFearLadderItems(_userId: string | null): FearLadderItem[] {
-    const { data } = useQuery<FearLadderRow>(QUERY)
-    return useMemo(
-      () => (data ?? []).map(row => ({
-        id: row.id,
-        description: row.description,
-        predictedSuds: row.predicted_suds,
-        peakSuds: row.peak_suds,
-        position: row.position,
-        status: row.status as FearLadderItemStatus,
-      })),
+  const VALID_STATUSES = new Set<FearLadderItemStatus>(['pending', 'completed'])
+
+  function isFearLadderItemStatus(s: string): s is FearLadderItemStatus {
+    return VALID_STATUSES.has(s as FearLadderItemStatus)
+  }
+
+  export function useFearLadderItems(
+    _userId: string | null,
+  ): { items: FearLadderItem[]; isLoading: boolean } {
+    const { data, isLoading } = useQuery<FearLadderRow>(QUERY)
+    const items = useMemo<FearLadderItem[]>(
+      () => (data ?? [])
+        .filter(row => {
+          if (!isFearLadderItemStatus(row.status)) {
+            // Legacy 'in_progress' or any other unexpected value — filter out and warn.
+            // AC 8 keeps the in_progress branch in ladder.tsx defensively; this hook
+            // now refuses to surface such rows so downstream type narrowing is sound.
+            console.warn('[useFearLadderItems] filtering row with unexpected status:', row.status, row.id)
+            return false
+          }
+          return true
+        })
+        .map(row => ({
+          id: row.id,
+          description: row.description,
+          predictedSuds: row.predicted_suds,
+          peakSuds: row.peak_suds,
+          position: row.position,
+          status: row.status as FearLadderItemStatus,  // narrowed by the filter above
+        })),
       [data],
     )
+    return { items, isLoading }
   }
   ```
+  **Call-site update:** `apps/mobile/app/ladder.tsx` currently treats the return as an array. Update to `const { items, isLoading } = useFearLadderItems(userId)` and render a spinner (or the existing skeleton) when `isLoading` is true. Add `apps/mobile/app/ladder.tsx` to the Modified Files list.
 
 ### T7 — apps/mobile/app/session/intent.tsx: remove in_progress enqueue
 
@@ -516,7 +628,11 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
     updatedAt: Date.now(),
   })
   ```
-  The surrounding enqueue calls (a), (b), (c), and (e) onward are unchanged. After deletion, step (e) "Write SESSION_IN_PROGRESS JSON blob to MMKV" renumbers to (d) in comments — update the comment labels accordingly.
+  The surrounding enqueue calls (a), (b), (c), and (e) onward are unchanged. After deletion, renumber ALL subsequent step-label comments to close the gap (verify by `grep '// (' apps/mobile/app/session/intent.tsx`):
+  - step (e) → (d)  ("Write SESSION_IN_PROGRESS JSON blob to MMKV")
+  - step (f) → (e)
+  - step (g) → (f)
+  - …continue for every step-label comment after the deleted block.
 
 ### T8 — apps/mobile/app/ladder.tsx: legacy comment
 
@@ -550,11 +666,17 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
     await adapter.enqueue('fear_ladder_items', 'reorder_positions', payload)
     const callsB = mockTx.execute.mock.calls.map(c => c[0])
 
-    expect(callsA).toEqual(callsB)  // same SQL statements; params differ only in timestamp (acceptable)
+    // Same SQL statements AND same params (timestamps included): `now` is computed once
+    // per enqueue() call and reused for both UPDATEs inside the writeTransaction, so calls
+    // A and B should be byte-for-byte identical. (The drift between two separate enqueue()
+    // calls is acceptable — that's not what this test checks; it checks the two CONVENTIONS
+    // produce identical writes from a single payload.)
+    expect(mockTx.execute.mock.calls).toEqual(callsA_recorded)
   })
   ```
+  **Note:** rewrite the assertion to compare the full `mock.calls` arrays (SQL + params) once you capture them, not just the SQL strings. The previous spec acknowledged params would differ — they should NOT differ within one `enqueue()` call now that `now` is computed once.
 
-- [ ] **T9.2**: Create `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` — pgTAP-style Vitest test verifying `uq_active_thread` constraint (D15):
+- [ ] **T9.2**: Create `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` — Vitest test (Supabase service-role client, not pgTAP) verifying `uq_active_thread` constraint (D15):
   - Follow exact pattern of `dpo_audit_log.test.ts` (service role client, test user create/cleanup, `skipIf(!SERVICE_ROLE_KEY || !ANON_KEY)`)
   - Test: insert first `status='started'` row for `(userId, fearItemId)` → succeeds
   - Test: insert second `status='started'` row for same pair → fails with Supabase error (unique violation)
@@ -583,9 +705,9 @@ BEFORE 6.2-A:
 
 AFTER 6.2-A:
   getAdapter().enqueue() → db.execute() → PowerSync SQLite → uploadData() → Supabase
-  useFearLadderItems()   → useQuery() → local PowerSync fear_ladder_items table
-  PowerSync db           → singleton, shared across the app
-  Auth lifecycle         → connect on sign-in (via PowerSyncConnectionManager), disconnect on sign-out
+  useFearLadderItems()   → useQuery() → { items, isLoading } from local PowerSync table
+  PowerSync db           → per-user singleton (Map<userId, PowerSyncDatabase>)
+  Auth lifecycle         → sequenced via inFlightRef chain: connect on sign-in, disconnectAndClear on sign-out
   ESLint ARC-005         → useQuery/usePowerSync/PowerSyncContext re-exported from @exposure-buddy/sync
 ```
 
@@ -598,7 +720,7 @@ The rejected spec contained several wrong assumptions about the API. Verified ag
 | `db.useQuery(QUERY)` (method on db object) | `useQuery<T>(QUERY, params?)` — **top-level hook** from `@powersync/react` |
 | `PowerSyncProvider` component | **Does not exist.** Use `<PowerSyncContext.Provider value={db}>` |
 | `transaction.complete()` | **`batch.complete()`** — method on `CrudBatch`, not on a transaction |
-| `onConflict: 'id'` option on upsert | PostgREST uses PRIMARY KEY by default; explicit `id` override is wrong for `user_onboarding_metadata` (PK is `user_id`, not `id`) |
+| `onConflict: 'id'` option on upsert | PostgREST uses PRIMARY KEY by default. For `user_onboarding_metadata` the PK IS `id` but the table also has `UNIQUE(user_id)` (see `supabase/migrations/0012_user_onboarding_metadata.sql:2,7`); the migration's own comment (line 26) directs the outbox adapter to use `ON CONFLICT (user_id) DO UPDATE` for retry idempotency. AC 3 implements this via the per-table `ON_CONFLICT_OVERRIDES` registry in `connector.ts`. |
 
 **Correct hook usage pattern:**
 ```typescript
@@ -629,34 +751,38 @@ type CrudEntry = {
 
 `RootLayout` provides `AuthProvider` in its JSX — it cannot call `useAuth()` itself (a component cannot consume its own context). The `PowerSyncConnectionManager` is a thin child component that:
 1. Lives inside `AuthProvider` (can call `useAuth()`)
-2. Lives inside `PowerSyncContext.Provider` (can access the db if needed)
-3. Uses `prevUserIdRef` to detect userId transitions (established pattern from `auth-patterns-consistency-rules.md`)
+2. Owns the `PowerSyncContext.Provider` for its subtree (so the per-user db handle is the provider's `value`)
+3. Uses `prevUserIdRef` (initialised to `undefined`) to detect userId transitions and avoid spurious effects while auth is still loading
+4. Uses `inFlightRef = useRef<Promise<void>>(Promise.resolve())` to SEQUENCE every `connect()` / `disconnectAndClear()` call — a chain, not parallel fire-and-forget. Eliminates the race where a late-resolving connect arrives after a disconnect.
+5. Resolves a per-user db (`getPowerSyncDatabase(userId)`) and per-user adapter (`initAdapter(new PowerSyncSyncAdapter(db))`) on each sign-in transition.
 
 Key behaviours:
-- Cold start, user previously signed in: MMKV → auth resolves → `userId` goes from `null` to the stored userId → effect fires → connect
-- Sign out: `userId` → null → effect fires → disconnect
-- Sign in (different user): `userId` changes to new string → effect fires → fresh connector → connect
-- Token refresh (`TOKEN_REFRESHED` event): userId stays the same → `prevUserIdRef.current === userId` → effect is a no-op → existing connection continues
+- Auth still loading: `userId === undefined` → effect returns early; nothing happens.
+- Cold start, user previously signed in: MMKV → auth resolves → `userId` goes from `undefined` to the stored userId → effect fires → resolve per-user db → initAdapter → enqueue `connect()` on the in-flight chain.
+- Sign out: `userId` → null → effect enqueues `disconnectAndClear()` on the chain (the chain guarantees any in-flight connect resolves first).
+- Sign in (different user): `userId` changes to new string → effect resolves a different per-user db → fresh connector → enqueues connect on the chain. Combined with the per-user `dbFilename` (AC 5) and `disconnectAndClear()` on the previous sign-out, no state leaks.
+- Token refresh (`TOKEN_REFRESHED` event): userId stays the same → `prevUserIdRef.current === userId` → effect is a no-op → existing connection continues.
 
-### initAdapter placement (P3 fix)
+### initAdapter placement
 
-`initAdapter(new PowerSyncSyncAdapter(powerSyncDb))` is called at MODULE SCOPE in `_layout.tsx`, not inside a `useEffect`. This is intentional:
+`initAdapter(new PowerSyncSyncAdapter(db))` runs inside `PowerSyncConnectionManager`'s userId-transition effect, bound to the per-user db. The recovery modal in `apps/mobile/app/(app)/_layout.tsx` calls `getAdapter()` from a button `onPress` handler (`handleRecoveryEnd` at `(app)/_layout.tsx:61–90`) and from later useEffects — both run after the connection manager has had a chance to initialise the adapter for the current user. There is no first-render race because the recovery modal is itself a descendant of `PowerSyncConnectionManager`.
 
-- The recovery modal in `apps/mobile/app/(app)/_layout.tsx` calls `getAdapter().enqueue()` from a `useEffect` that fires on the first render
-- Module-scope calls in `_layout.tsx` run before any React rendering
-- `getPowerSyncDatabase()` is synchronous (no async factory)
-- The adapter is ready before any screen mounts
+Module-scope `initAdapter` is NOT used because the adapter now depends on the per-user db which is only knowable once auth resolves.
 
 The `connect()` call (which IS async and requires auth) is separate, in `PowerSyncConnectionManager.useEffect`.
 
 ### SupabasePowerSyncConnector — circular dep avoidance
 
-`packages/sync` MUST NOT import from `@exposure-buddy/supabase`. Dependency graph:
+`packages/sync` MUST NOT have a RUNTIME import from `@exposure-buddy/supabase`. Dependency graph:
 ```
 @exposure-buddy/supabase → @exposure-buddy/core
 @exposure-buddy/sync     → @exposure-buddy/core
 ```
-If sync imported supabase: `sync → supabase → core` (chain is fine), but the intent is to keep packages independent. The real risk is if supabase ever imports sync (would create a cycle). Injection avoids the issue entirely.
+The Supabase client is injected via the connector constructor. The connector's TYPE-ONLY import of `SupabaseClient` from `@supabase/supabase-js` (`import type { SupabaseClient } from '@supabase/supabase-js'`) is permitted because TypeScript strips type-only imports at compile, leaving no runtime dependency edge. The package.json must list `@supabase/supabase-js` as a `devDependency` (or `peerDependency`), not a runtime `dependency`, to make this explicit.
+
+### Connector boundary clarification — why type-only import (P-CR-21)
+
+The rejected spec's hand-rolled `SupabaseClientLike` interface drifted from the real `SupabaseClient` shape and re-introduced P9 by typing `expires_at: number` (real type is `number | undefined`) and `update().eq()` as a plain `Promise<{ error }>` (real return is a thenable `PostgrestFilterBuilder`). The type-only import resolves both: zero runtime cost, perfect type fidelity, no maintenance tax.
 
 **Correct implementation for UpdateType import:**
 ```typescript
@@ -664,6 +790,22 @@ If sync imported supabase: `sync → supabase → core` (chain is fine), but the
 import { UpdateType } from '@powersync/react-native'
 ```
 `UpdateType` is a string enum (`'PUT'`, `'PATCH'`, `'DELETE'`). Import it at the top — no dynamic import needed.
+
+### Per-user data isolation — defence in depth on shared devices (AC 2 + AC 5 — D-CR-02)
+
+This app's primary market is India, where a single phone is often shared across family members. PowerSync's default single local-SQLite store is a leak vector: when user A signs out and user B signs in on the same device, A's rows are visible to B until the next sync overwrites them — or indefinitely if the device is offline.
+
+The mitigation is layered:
+
+1. **Per-user `dbFilename`** (AC 5 / T3.2) — `getPowerSyncDatabase(userId)` derives the filename from `sha256(userId).slice(0,16)`. User B's `PowerSyncDatabase` instance opens a different SQLite file from user A's. Physical isolation; no application-layer trust required.
+2. **`disconnectAndClear()` on sign-out** (AC 2 / T4.1) — clears the local SQLite contents for the signing-out user's db before the next sign-in. Belt to the suspenders.
+3. **PowerSync sync-rules** (server-side, see `supabase/sync-rules.yaml`) — scope every bucket by `auth.uid()` so the upstream stream cannot deliver another user's rows.
+
+Note: `user_onboarding_metadata` has no sync-rules bucket today; it is effectively write-only. This is an Epic 9 cleanup item.
+
+### PowerSync observability — surface fire-and-forget failures (AC 2)
+
+AC 2 sequences `connect()` / `disconnectAndClear()` via the `inFlightRef` promise chain and routes errors through `logSyncLifecycleError(err)`. The minimum bar is `console.error('[PowerSync] lifecycle error:', err)`. The recommended (and required-before-production) bar is also emitting a Sentry breadcrumb (or whatever observability hook the project's `initErrorHandler()` infra already provides) so silent fire-and-forget failures are diagnosable in production. Wire this into the existing error pipeline — do not introduce a new logger.
 
 ### filterSnakeCase rationale (P4 fix)
 
@@ -709,11 +851,13 @@ Required re-exports:
 ### packages/sync (Vitest)
 
 **`packages/sync/__tests__/adapter.test.ts`** (new):
-- Reorder convention equivalence (D15-resolved): both `'UPDATE' + { type: 'reorder_positions' }` and direct `'reorder_positions'` operation must call `db.writeTransaction` with identical SQL statements
-- INSERT: verify `filterSnakeCase` removes camelCase keys; verify `INSERT OR IGNORE` SQL structure
-- UPDATE: verify snake_case payload written as `SET col=?` clauses
+- Reorder convention equivalence (D15-resolved): both `'UPDATE' + { type: 'reorder_positions' }` and direct `'reorder_positions'` operation must call `db.writeTransaction` with identical SQL AND identical params (timestamps included — `now` is computed once per `enqueue()` call now)
+- INSERT: verify `filterSnakeCase` removes camelCase keys; verify plain `INSERT INTO ...` SQL (no `OR IGNORE`); verify empty-payload throws descriptive error
+- UPDATE: verify snake_case payload written as `SET col=?` clauses; verify missing `id` throws; verify empty-SET throws
 - DELETE: verify `DELETE FROM table WHERE id=?`
+- `filterSnakeCase`: verify the tightened regex (`/^[a-z][a-z0-9_]*$/`) rejects `_proto`, `__proto__`, `1col`, `updatedAt`, and accepts `id`, `user_id`, `predicted_suds`
 - `getAdapter()` throws before `initAdapter()` is called
+- Unknown operation throws `[sync] unknown operation: <op>`
 
 ### packages/supabase (Vitest + local Supabase)
 
@@ -733,12 +877,15 @@ Required re-exports:
 jest.mock('@exposure-buddy/sync', () => ({
   useQuery: jest.fn(() => ({ data: [
     { id: '1', description: 'Fear A', predicted_suds: 5, peak_suds: null, position: 1, status: 'pending' }
-  ]})),
+  ], isLoading: false })),
 }))
 ```
-- Verify `useFearLadderItems(null)` maps row to `FearLadderItem` (camelCase fields)
+- Verify `useFearLadderItems(null)` returns `{ items, isLoading }` (object, not array)
+- Verify `items[0]` maps row to `FearLadderItem` (camelCase fields)
 - Verify `peakSuds` is `null` (not 0 or undefined) when DB value is null
-- Verify `status` is `'pending'` cast to `FearLadderItemStatus`
+- Verify `status` is `'pending'` (runtime-validated)
+- Verify `isLoading: true` is forwarded when `useQuery` returns `isLoading: true`
+- Verify a row with unexpected status (e.g. `'in_progress'`) is filtered out of `items` and a warning is emitted
 
 ---
 
@@ -761,16 +908,21 @@ jest.mock('@exposure-buddy/sync', () => ({
 
 ## Anti-Patterns to Avoid
 
-- **Do not use `db.useQuery()` (method on db object).** `useQuery` is a top-level React hook exported from `@powersync/react-native`. Usage: `const { data } = useQuery<Row>(QUERY)`.
+- **Do not use `db.useQuery()` (method on db object).** `useQuery` is a top-level React hook exported from `@powersync/react-native`. Usage: `const { data, isLoading } = useQuery<Row>(QUERY)`.
 - **Do not reference `PowerSyncProvider`.** It doesn't exist. Use `<PowerSyncContext.Provider value={db}>`.
 - **Do not call `transaction.complete()` in `uploadData`.** Call `batch.complete()` — `batch` is the `CrudBatch` returned by `getCrudBatch()`.
-- **Do not put `getPowerSyncDatabase()` inside a React component.** It creates a new db instance on every render (until the singleton guard fires, but the module-scope call is cleaner and avoids any race).
-- **Do not use `connectedRef` to guard `connect()`.** A ref survives sign-out → sign-in. Use the `prevUserIdRef` pattern to detect transitions.
+- **Do not call `getPowerSyncDatabase()` without a userId.** The signature is `getPowerSyncDatabase(userId: string)` — it returns a per-user singleton from a `Map`. Calling at module scope without a userId is impossible by design.
+- **Do not use `connectedRef` to guard `connect()`.** A ref survives sign-out → sign-in. Use the `prevUserIdRef` pattern (initialised to `undefined`) to detect transitions, and sequence calls through the `inFlightRef` promise chain.
+- **Do not call `powerSyncDb.disconnect()` on sign-out — use `disconnectAndClear()`.** Plain disconnect leaves local SQLite rows visible to the next user on a shared device. `disconnectAndClear()` wipes the local store as part of teardown.
 - **Do not add `@powersync/*` imports in `apps/mobile`.** Route all PowerSync access through `@exposure-buddy/sync`.
-- **Do not import from `@exposure-buddy/supabase` in `packages/sync/src/connector.ts`.** Inject the Supabase client as a constructor argument.
-- **Do not call `initAdapter()` inside a `useEffect`.** Call it at module scope so screens can call `getAdapter()` on first render.
-- **Do not pass `onConflict: 'user_id'` or any onConflict override to `supabase.from().upsert()` in the generic connector.** The connector doesn't know which column is the PK for each table. PostgREST's default behaviour (use the table's PK) is correct.
-- **Do not delete the `in_progress` branch from `statusLabel()` in `ladder.tsx`.** Stale pre-migration rows from any connected device will carry `status = 'in_progress'` until they sync and get the app-level backfill.
+- **Do not RUNTIME-import from `@exposure-buddy/supabase` in `packages/sync/src/connector.ts`.** Inject the Supabase client as a constructor argument. The TYPE-ONLY import `import type { SupabaseClient } from '@supabase/supabase-js'` is permitted (TS strips it at compile).
+- **Do not hand-roll a `SupabaseClientLike` interface.** The hand-rolled minimal interface drifts from the real `SupabaseClient` shape and re-introduces P9 (the rejected spec's original defect). Use `import type { SupabaseClient } from '@supabase/supabase-js'`.
+- **Do not call `initAdapter()` at module scope.** The adapter now depends on the per-user db handle which is only resolvable once auth has resolved. Call `initAdapter()` inside `PowerSyncConnectionManager`'s userId-transition effect, after `getPowerSyncDatabase(userId)`.
+- **Do not call `supabase.from(table).upsert(data)` from the generic connector without consulting `ON_CONFLICT_OVERRIDES`.** Tables listed in the registry (currently `user_onboarding_metadata: 'user_id'`) require `{ onConflict }` to honour secondary UNIQUE constraints. Default (PK-based) upsert is correct for the OTHER tables.
+- **Do not use `INSERT OR IGNORE` in the adapter.** Plain `INSERT` is required so the new `uq_user_position` and `uq_active_thread` constraints (ACs 8/9) are enforced offline. `OR IGNORE` silently drops constraint-violating rows and makes upstream data-model bugs invisible.
+- **Do not spread `entry.id` BEFORE `...entry.opData` in connector PUT.** Use `{ ...entry.opData, id: entry.id }` so `entry.id` (the canonical row id) cannot be overridden by a stray `id` field inside `opData`.
+- **Do not `as FearLadderItemStatus`-cast row.status in `useFearLadderItems`.** Use the runtime `isFearLadderItemStatus` predicate to filter rows; logged-warn on unexpected values. The cast lies if a legacy `'in_progress'` row arrives via sync.
+- **Do not delete the `in_progress` branch from `statusLabel()` in `ladder.tsx`.** Defensive belt-and-suspenders for any stale pre-migration row that slips through; harmless if `useFearLadderItems` is already filtering them out.
 
 ---
 
@@ -788,13 +940,80 @@ jest.mock('@exposure-buddy/sync', () => ({
 - `apps/mobile/src/sync/adapter.ts` — thin re-export (full file; T5.1 replaces)
 - `apps/mobile/src/hooks/useFearLadderItems.ts` — current stub (full file; T6.1 replaces)
 - `apps/mobile/app/session/intent.tsx:107–115` — in_progress enqueue block (T7.1 removes)
-- `apps/mobile/app/ladder.tsx:148–151` — statusLabel function (T8.1 adds comment)
+- `apps/mobile/app/ladder.tsx:148–152` — statusLabel function (T8.1 adds comment); also caller of `useFearLadderItems` (T6.1 changes return shape)
 - `packages/core/src/selectors/fearLadder.ts` — current selector (T2.1 adds FearLadderItemStatus)
+- `packages/core/src/__tests__/selectors/fearLadder.test.ts:25` — uses `'in_progress'` literal; T2.3 updates
+- `supabase/migrations/0012_user_onboarding_metadata.sql:2,7,26` — `id PRIMARY KEY` + `UNIQUE(user_id)` + comment directing `ON CONFLICT (user_id) DO UPDATE`
 - `supabase/migrations/0013_fear_ladder_items.sql` — source of old status constraint name
-- `packages/supabase/__tests__/rls/dpo_audit_log.test.ts` — pgTAP test pattern to follow
+- `supabase/migrations/0016_exposure_sessions.sql:6` — `status CHECK IN ('started', 'completed', 'abandoned')` — 0022 pre-cleanup uses `'abandoned'`
+- `apps/mobile/app/(app)/_layout.tsx:61–90` — `handleRecoveryEnd` (button onPress) calls `getAdapter().enqueue()`
+- `packages/supabase/__tests__/rls/dpo_audit_log.test.ts` — Vitest service-role test pattern to follow (skipIf, service client, cleanup)
+- `node_modules/.pnpm/@supabase+auth-js@2.106.1/node_modules/@supabase/auth-js/dist/main/lib/types.d.ts:270` — `expires_at?: number` (optional)
 - `node_modules/.pnpm/@powersync+react@1.10.0_*/node_modules/@powersync/react/lib/index.d.ts` — verified hook exports
 - `node_modules/.pnpm/@powersync+common@1.53.1/node_modules/@powersync/common/lib/client/sync/bucket/CrudBatch.d.ts` — `batch.complete()` signature
 - `node_modules/.pnpm/@powersync+common@1.53.1/node_modules/@powersync/common/lib/client/sync/bucket/CrudEntry.d.ts` — `CrudEntry` shape and `UpdateType` enum
+
+---
+
+## Review Findings
+
+_Multi-layer adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) run 2026-06-16 against the spec doc itself (no code yet). Decision-needed items must be resolved before dev picks up; patch items are spec edits to apply before implementation; deferred items are recorded in `deferred-work.md`._
+
+### Decisions resolved (party-mode roundtable 2026-06-16 — Winston/Amelia/Sally)
+
+- [x] **[Review][Decision] D-CR-01 — INSERT OR IGNORE → plain INSERT.** Resolution: **(c)** plain `INSERT` (raise on conflict, surface to caller). All three agents converged; silent drops mask data-model bugs. → Folded into Patch P-CR-16.
+- [x] **[Review][Decision] D-CR-02 — Local SQLite single-store across user switch.** Resolution: **(b) + (c)** — implement BOTH `db.disconnectAndClear()` on sign-out AND per-user `dbFilename`. Defence in depth on shared-device markets (India). → Folded into Patch P-CR-17.
+- [x] **[Review][Decision] D-CR-03 — `user_onboarding_metadata` upsert vs migration 0012 directive.** Resolution: **(c)** keep `id` PK but pin onConflict to `user_id` for this one table in the connector. Unanimous. → Folded into Patch P-CR-18.
+- [x] **[Review][Decision] D-CR-04 — `useQuery` exposes no `isLoading`.** Resolution: **(a)** AC 7 hook returns `{ items, isLoading }`. Unanimous; non-negotiable for offline-first UX. → Folded into Patch P-CR-19.
+- [x] **[Review][Decision] D-CR-05 — Fire-and-forget connect/disconnect race.** Resolution: **(b)** track in-flight promise and sequence inside `PowerSyncConnectionManager`. Unanimous. → Folded into Patch P-CR-20.
+- [x] **[Review][Decision] D-CR-06 — `SupabaseClientLike` re-introduces P9.** Resolution: **(a)** use `import type { SupabaseClient } from '@supabase/supabase-js'` (type-only — no runtime dep). Unanimous. → Folded into Patch P-CR-21.
+
+### Patches (21) — all applied 2026-06-16
+
+- [x] **[Review][Patch] P-CR-16 — Replace `INSERT OR IGNORE` with plain `INSERT` in T3.4.** Applied: AC 4 + T3.4 code block + Anti-Patterns + Testing Requirements all updated.
+- [x] **[Review][Patch] P-CR-17 — Per-user `dbFilename` + `disconnectAndClear()` on sign-out.** Applied: AC 2, AC 5, T3.2, T4.1 all rewritten; Dev Notes "Per-user data isolation" added.
+- [x] **[Review][Patch] P-CR-18 — Per-table onConflict registry, pin `user_onboarding_metadata` to `user_id`.** Applied: AC 3 + T3.3 code block + Anti-Patterns + Verified API Surface table all corrected (the PK claim line 601 was wrong — `id` is the PK, `user_id` carries the UNIQUE).
+- [x] **[Review][Patch] P-CR-19 — `useFearLadderItems` returns `{ items, isLoading }`.** Applied: AC 7 + T6.1 + Testing Requirements + File List all updated; `apps/mobile/app/ladder.tsx` added to Modified Files.
+- [x] **[Review][Patch] P-CR-20 — Sequence `connect()`/`disconnectAndClear()` via `inFlightRef` promise chain.** Applied: AC 2 + T4.1 code block + Dev Notes "PowerSyncConnectionManager component rationale" all updated.
+- [x] **[Review][Patch] P-CR-21 — Replace hand-rolled `SupabaseClientLike` with `import type { SupabaseClient }`.** Applied: AC 3 + T3.3 code block + Anti-Patterns + Dev Notes "Connector boundary clarification" added; `packages/sync/package.json` noted in T3.3.
+- [x] **[Review][Patch] `session.expires_at` optional guard.** Applied: T3.3 `fetchCredentials` now checks `typeof session.expires_at !== 'number'` and returns null.
+- [x] **[Review][Patch] T2.1 must update `packages/core/src/__tests__/selectors/fearLadder.test.ts`.** Applied: new task T2.3 added; test file added to File List Modified.
+- [x] **[Review][Patch] Migration 0021: wrap in `BEGIN; … COMMIT;`.** Applied: T1.1 SQL now opens with `BEGIN;` and closes with `COMMIT;`.
+- [x] **[Review][Patch] Connector PUT spread order.** Applied: T3.3 `_uploadEntry` now uses `{ ...entry.opData, id: entry.id }`.
+- [x] **[Review][Patch] `filterSnakeCase` tightened regex + empty-payload guards.** Applied: T3.4 uses `SNAKE_KEY_RE = /^[a-z][a-z0-9_]*$/`; INSERT/UPDATE throw on empty payload.
+- [x] **[Review][Patch] T7.1 full comment renumbering.** Applied: T7.1 now enumerates `e→d, f→e, g→f, …`.
+- [x] **[Review][Patch] T4.1 JSX full wrapper tree.** Applied: T4.1 Before/After now shows `GestureHandlerRootView`, `ReducedMotionProvider`, `ThemeProvider`, `SafeAreaProvider`, `PortalHost` explicitly; Invariants list expanded.
+- [x] **[Review][Patch] `PowerSyncConnectionManager` distinguishes `userId === undefined`.** Applied: T4.1 effect early-returns when `userId === undefined`; `prevUserIdRef` initialised to `undefined`.
+- [x] **[Review][Patch] AC 9 wording: "pgTAP" → "Vitest".** Applied: AC 9 last bullet now says "Vitest test (Supabase service-role client, not pgTAP)".
+- [x] **[Review][Patch] References line `ladder.tsx:148–151` → `148–152`.** Applied.
+- [x] **[Review][Patch] Recovery modal call-site description.** Applied: Dev Notes "initAdapter placement" rewritten — modal calls `getAdapter()` from `handleRecoveryEnd` (button onPress) at `(app)/_layout.tsx:61–90`, not first-render useEffect. References list updated.
+- [x] **[Review][Patch] T6.1 runtime validation of `row.status`.** Applied: T6.1 now uses `isFearLadderItemStatus` predicate to filter rows and warn on unexpected values; no `as` cast.
+- [x] **[Review][Patch] `fetchCredentials` URL validation.** Applied: T3.3 wraps `new URL(endpoint)` in try/catch and warns once on invalid URL.
+- [x] **[Review][Patch] AC 2 observability beyond `console.error`.** Applied: AC 2 now mandates `logSyncLifecycleError()` which logs AND emits a Sentry breadcrumb; Dev Notes "PowerSync observability" added.
+- [x] **[Review][Patch] AC 4 reorder convention: `now` computed once per enqueue.** Applied: AC 4 + T3.4 `enqueue()` computes `now` once and passes it to `_reorder`; T9.1 test note rewritten to compare full `mock.calls` arrays (SQL + params).
+
+### Deferred (16) — recorded in `deferred-work.md`
+
+- [x] [Review][Defer] Module-scope `getPowerSyncDatabase()` throw produces white-screen with no error boundary — broader app-lifecycle topic, not 6.2-A specific.
+- [x] [Review][Defer] AC 5 schema-bump reset risk audit beyond `user_onboarding_metadata` (verify other ps_crud tables are empty at upgrade time).
+- [x] [Review][Defer] AC 9 `CREATE UNIQUE INDEX` racing with concurrent INSERT during deploy — use `CREATE UNIQUE INDEX CONCURRENTLY` or app-side write-lock at deploy time.
+- [x] [Review][Defer] AC 7 `_userId` param is dead while local SQLite is multi-tenant — sync-rules-based isolation only works when connected.
+- [x] [Review][Defer] AC 4 `OR IGNORE` for client-generated UUID PKs has negligible collision probability but no acceptance test of the "duplicate id" path.
+- [x] [Review][Defer] Fast Refresh re-running module scope in dev causes `initAdapter` double-init — make `initAdapter` idempotent in a follow-up.
+- [x] [Review][Defer] Service-role test cleanup leakage on failed runs — pattern-wide concern, not 6.2-A specific.
+- [x] [Review][Defer] `predicted_suds` nullable in PowerSync vs DB `NOT NULL` — verify at impl; add app-level validation if needed.
+- [x] [Review][Defer] `createPowerSyncDatabase()` test escape hatch creates test/prod semantic divergence.
+- [x] [Review][Defer] Two-PATCH non-atomic reorder retry consistency — Out of Scope item #8 (`swap_ladder_positions` RPC, Story 6.2-C).
+- [x] [Review][Defer] AC 8 line-number coordinates (107–115, 149) will drift — use code-region quotes in future stories.
+- [x] [Review][Defer] AC 1 "works in all screens" is untestable as written — narrow to enumerated screens in future stories.
+- [x] [Review][Defer] AC 6 lint claim narrowness — verify `packages/sync` ESLint config does not also forbid the new re-exports.
+- [x] [Review][Defer] AC 3 PATCH retry has no idempotency key — last-write-wins is system-wide; document the semantics.
+- [x] [Review][Defer] `AbstractPowerSyncDatabase.writeTransaction` existence assumed — verify at impl against installed type declarations.
+- [x] [Review][Defer] Multi-instance connector recreation on user switch may leak prior Supabase client's auth listeners/realtime channels — verify createSupabaseClient is idempotent.
+
+### Dismissed as noise (7)
+
+AC 9 "most recent" undefined (T1.2 actually specifies `started_at DESC NULLS LAST, id DESC`); `@powersync/react` vs `@powersync/react-native` import path (the latter re-exports the former); D1/D2/D3/D4/D5/D9/D14 resolution verified by Auditor; AC 8 keeping `in_progress` branch in `statusLabel` is harmless defensive code (server is migrated; local writes never landed via the no-op adapter); `filterSnakeCase` locale (non-ASCII keys impossible from generated code paths); AC 9 `'abandoned'` value verified present in `exposure_sessions.status` CHECK constraint (0016:6); spec elision of Out-of-Scope/Anti-Pattern sections in the Blind Hunter view was by experimental design.
 
 ---
 
@@ -821,18 +1040,21 @@ _To be filled by dev agent_
 **Modified files:**
 - `packages/core/src/selectors/fearLadder.ts` — `FearLadderItemStatus` type; `FearLadderItem.status` narrowed
 - `packages/core/src/index.ts` — export `FearLadderItemStatus`
+- `packages/core/src/__tests__/selectors/fearLadder.test.ts` — replace `'in_progress'` literal with `'pending'` (T2.3; post-narrowing typecheck fix)
 - `packages/sync/src/schema.ts` — `id: column.text` on `user_onboarding_metadata`
-- `packages/sync/src/client.ts` — lazy singleton `getPowerSyncDatabase()`
-- `packages/sync/src/adapter.ts` — real durable implementation with `initAdapter` / `getAdapter`
-- `packages/sync/src/index.ts` — connector, singleton, `initAdapter`, `getAdapter` + hook re-exports
-- `apps/mobile/app/_layout.tsx` — `PowerSyncContext.Provider`, `PowerSyncConnectionManager`, module-scope `initAdapter`
+- `packages/sync/src/client.ts` — per-user `getPowerSyncDatabase(userId)` keyed by sha256-derived `dbFilename`
+- `packages/sync/src/adapter.ts` — real durable implementation with `initAdapter` / `getAdapter`; plain `INSERT` (no OR IGNORE); tightened `filterSnakeCase` regex; descriptive errors on empty/missing-id payloads
+- `packages/sync/src/index.ts` — connector, per-user singleton, `initAdapter`, `getAdapter` + hook re-exports
+- `packages/sync/package.json` — `@supabase/supabase-js` listed as `devDependency` (type-only consumer)
+- `apps/mobile/app/_layout.tsx` — `PowerSyncConnectionManager` (per-user db + sequenced lifecycle); `PowerSyncContext.Provider` placed inside the manager
 - `apps/mobile/src/sync/adapter.ts` — re-exports from `@exposure-buddy/sync`
-- `apps/mobile/src/hooks/useFearLadderItems.ts` — real `useQuery` hook
-- `apps/mobile/app/session/intent.tsx` — remove `in_progress` status enqueue (lines 107–115)
-- `apps/mobile/app/ladder.tsx` — legacy comment on `in_progress` branch
+- `apps/mobile/src/hooks/useFearLadderItems.ts` — real `useQuery` hook; returns `{ items, isLoading }`; runtime-validates `status`
+- `apps/mobile/app/ladder.tsx` — destructure `{ items, isLoading }` from `useFearLadderItems`; render spinner while loading; legacy comment on `in_progress` branch in `statusLabel`
+- `apps/mobile/app/session/intent.tsx` — remove `in_progress` status enqueue (lines 107–115); renumber subsequent step-label comments
 
 ## Change Log
 
 | Date | Change | By |
 |------|--------|-----|
 | 2026-06-16 | Story drafted as 6.2-A (PowerSync Foundation split); status `ready-for-dev` | Claude Sonnet 4.6 (bmad-create-story) |
+| 2026-06-16 | Multi-layer code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) → 6 decisions resolved via party-mode roundtable (Winston/Amelia/Sally) → all 21 patches applied to spec; 16 deferred to `deferred-work.md` | Claude Opus 4.7 (bmad-code-review) |
