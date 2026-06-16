@@ -1,5 +1,7 @@
 -- Story 6.2-A: enforce one active thread per user per fear item (FR-HOME-03)
 
+BEGIN;
+
 -- Pre-cleanup: resolve any existing duplicates (keep most recent, abandon others)
 WITH ranked AS (
   SELECT id,
@@ -15,3 +17,5 @@ WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_active_thread
   ON public.exposure_sessions (user_id, fear_item_id)
   WHERE status = 'started';
+
+COMMIT;

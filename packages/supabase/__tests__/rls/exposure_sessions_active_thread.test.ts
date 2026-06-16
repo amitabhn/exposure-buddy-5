@@ -69,8 +69,8 @@ describe.skipIf(skipIfNoSupabase)('uq_active_thread partial unique index', () =>
         await serviceClient.from('fear_ladder_items').delete().eq('id', fearItemId)
       }
       if (testUserId) await serviceClient.auth.admin.deleteUser(testUserId)
-    } catch {
-      // Non-fatal: test DB is local-only
+    } catch (err) {
+      console.error('[test cleanup] exposure_sessions_active_thread afterAll failed:', err)
     }
   })
 

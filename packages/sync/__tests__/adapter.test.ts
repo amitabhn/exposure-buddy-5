@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { PowerSyncSyncAdapter, initAdapter, getAdapter } from '../src/adapter'
+import type { SyncAdapter } from '../src/adapter'
 import type { AbstractPowerSyncDatabase } from '@powersync/react-native'
 
 function makeMockDb() {
@@ -12,6 +13,11 @@ function makeMockDb() {
 }
 
 describe('PowerSyncSyncAdapter', () => {
+  afterEach(() => {
+    // Reset module-level _adapter singleton to prevent state leaking between test suites
+    initAdapter(null as unknown as SyncAdapter)
+  })
+
   describe('INSERT', () => {
     it('executes plain INSERT with snake_case fields only', async () => {
       const { mockDb } = makeMockDb()

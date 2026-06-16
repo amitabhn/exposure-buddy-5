@@ -1,5 +1,16 @@
 # Deferred Work
 
+## Deferred from: code review of 6-2-a-powersync-foundation implementation (2026-06-16)
+
+_Post-implementation review (Blind Hunter + Acceptance Auditor). Original findings: `6-2-a-powersync-foundation.md` → "Code Review — Post-Implementation (2026-06-16)"._
+
+- **`_dbByUserId` Map never evicts entries — open `PowerSyncDatabase` handles accumulate on shared devices.** On a device signed into N distinct accounts over its lifetime, N open PowerSyncDatabase instances remain in memory. Relevant for shared-phone India use case. Epic 9 cleanup; evaluate close+evict on `disconnectAndClear`. [`packages/sync/src/client.ts`]
+- **`PowerSyncConnectionManager` useEffect has no cleanup return — DB connection not closed if root layout unmounts.** Hot reload and error-boundary resets trigger unmount. Low-risk in prod but can cause orphaned connections in dev. [`apps/mobile/app/_layout.tsx`]
+- **No test coverage for `SupabasePowerSyncConnector`.** `fetchCredentials`, `uploadData`, and `_uploadEntry` (PUT/PATCH/DELETE branches, ON_CONFLICT_OVERRIDES) are entirely untested. Not required by Story 6.2-A T9; add in a future hardening pass. [`packages/sync/src/connector.ts`]
+- **Migration 0022 pre-cleanup UPDATE is not atomic with CREATE UNIQUE INDEX.** A concurrent INSERT arriving between the two statements can cause the index to fail to create on a live DB. Mitigation: `CREATE UNIQUE INDEX CONCURRENTLY` or app-side write-lock. Already in deferred-work from spec review (AC 9 item); re-confirmed by implementation review. [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+
+---
+
 ## Deferred from: code review of 6-2-a-powersync-foundation (2026-06-16)
 
 _Multi-layer spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — items below are real concerns not addressed by Story 6.2-A but classed as out-of-scope or system-wide rather than blockers for this story. Original findings live in the Review Findings section of `6-2-a-powersync-foundation.md`._
@@ -12,6 +23,11 @@ _Multi-layer spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) 
 - **Fast Refresh re-running module scope in dev causes `initAdapter` double-init.** Make `initAdapter` idempotent (warn-and-replace or no-op) in a follow-up. Low impact: dev-only. [`packages/sync/src/adapter.ts`]
 - **Service-role test cleanup leakage on failed test runs.** When test process is killed mid-run, `exposure_sessions` rows attached to the test user leak. System-wide pattern (already present in `dpo_audit_log.test.ts`), not 6.2-A specific. [`packages/supabase/__tests__/rls/`]
 - **`predicted_suds` is nullable in PowerSync schema but `NOT NULL` in DB.** Verify at implementation time; add app-level validation if PowerSync ever produces a null row. [`packages/sync/src/schema.ts`]
+- **Optimistic INSERT in `ladder.tsx` not rolled back on `enqueue` throw.** `setItems` fires before `getAdapter().enqueue()` resolves. If enqueue throws (e.g. DB not yet init, constraint violation), the item stays in local UI state as a phantom until the next PowerSync sync overwrites. Surfacing errors to UI is Out-of-Scope #13; fix in a future UX hardening pass. [`apps/mobile/app/ladder.tsx`]
+- **`handleDragEnd` only enqueues two positions; intermediate items' positions lost on multi-item drag.** `DraggableFlatList` reassigns all N positions on drag; only the dragged item and the item at the drop target are written via `_reorder`. Items shifted in between keep their old Supabase positions until the next full ladder reload from sync. Pre-existing design (spec models 2-item swap); Story 6.2-C `swap_ladder_positions` RPC addresses atomicity. [`apps/mobile/app/ladder.tsx`]
+- **`uq_active_thread` partial index has NULL gap for `fear_item_id IS NULL`.** When a ladder item is deleted (`ON DELETE SET NULL` from migration 0016), multiple `status='started'` sessions with `fear_item_id IS NULL` can coexist — `NULL != NULL` in SQL bypasses the uniqueness guarantee. FR-HOME-03 is unenforceable for orphaned sessions. Only activates once ladder-item deletion is implemented (Story 6.2-C). [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+- **`_urlValidationWarned` module-level flag suppresses repeated invalid-URL warnings after first log.** On shared devices, if User A's connector fires the warning, User B's new connector instance inherits the silenced flag. P2 observability gap only; `return null` still fires correctly. [`packages/sync/src/connector.ts`]
+
 - **`createPowerSyncDatabase()` test escape hatch creates test/prod semantic divergence.** Whatever bug only manifests on the shared singleton (state leak, schema reset race) is invisible to the test suite. Consider replacing with explicit `__resetForTests__` on the singleton. [`packages/sync/src/client.ts`]
 - **Two-PATCH non-atomic reorder retry consistency.** Listed as Out-of-Scope item #8 in the spec — full atomic fix is the `swap_ladder_positions` Postgres RPC in Story 6.2-C. Until then, partial failure during reorder upload can leave server in inconsistent state until next reorder. [Story 6.2-C]
 - **AC 8 references `intent.tsx:107–115` and `ladder.tsx:149` by line number.** Coordinates drift the moment anyone edits these files. Use code-region quotes or function names in future stories.

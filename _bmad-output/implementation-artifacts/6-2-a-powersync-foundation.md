@@ -1,6 +1,6 @@
 # Story 6.2-A: PowerSync Foundation
 
-**Status:** review
+**Status:** done
 
 ## Story
 
@@ -1015,6 +1015,27 @@ _Multi-layer adversarial code review (Blind Hunter + Edge Case Hunter + Acceptan
 
 AC 9 "most recent" undefined (T1.2 actually specifies `started_at DESC NULLS LAST, id DESC`); `@powersync/react` vs `@powersync/react-native` import path (the latter re-exports the former); D1/D2/D3/D4/D5/D9/D14 resolution verified by Auditor; AC 8 keeping `in_progress` branch in `statusLabel` is harmless defensive code (server is migrated; local writes never landed via the no-op adapter); `filterSnakeCase` locale (non-ASCII keys impossible from generated code paths); AC 9 `'abandoned'` value verified present in `exposure_sessions.status` CHECK constraint (0016:6); spec elision of Out-of-Scope/Anti-Pattern sections in the Blind Hunter view was by experimental design.
 
+### Code Review — Post-Implementation (2026-06-16)
+
+_Multi-layer adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor; ECH first attempt failed — server error, rerun successful) run against the actual implementation diff. 7 patches · 8 deferred · 19 dismissed. All patches applied 2026-06-16._
+
+- [x] [Review][Patch] P-CI-01 — `_adapter` module-level singleton not reset between Vitest test suites → test contamination. **Applied:** `afterEach` reset via `initAdapter(null)` added to top-level describe; `afterEach` import added [packages/sync/__tests__/adapter.test.ts]
+- [x] [Review][Patch] P-CI-02 — AC 2: `logSyncLifecycleError` Sentry breadcrumb is a TODO comment only; not wired into `initErrorHandler()` infra. **Applied:** `import * as Sentry from '@sentry/react-native'` added; `Sentry.addBreadcrumb(...)` call added [apps/mobile/app/_layout.tsx]
+- [x] [Review][Patch] P-CI-03 — AC 6: `UpdateType` re-exported as `export type { UpdateType }` — enum is a runtime value, erased at compile. **Applied:** moved to value export `export { ..., UpdateType }` from `@powersync/react-native` [packages/sync/src/index.ts]
+- [x] [Review][Patch] P-CI-04 — `_reorder` casts params without null-checks; missing keys produce `undefined` SQL params. **Applied:** validation guard throws descriptive error if any of the four required fields is missing or wrong type [packages/sync/src/adapter.ts]
+- [x] [Review][Patch] P-CI-05 — Migration 0022 not wrapped in `BEGIN/COMMIT`; partial failure risk. **Applied:** wrapped entire migration in `BEGIN`/`COMMIT` [supabase/migrations/0022_exposure_sessions_active_thread.sql]
+- [x] [Review][Patch] P-CI-06 — `afterAll` bare `catch {}` swallows cleanup errors. **Applied:** `catch (err) { console.error(...) }` [packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts]
+- [x] [Review][Patch] P-CI-07 — P0: PowerSync `useQuery` conditionally calls inner hooks after early-return on null context (confirmed in useQuery.js:8–14); null→non-null transition crashes with Rules-of-Hooks violation. **Applied:** module-scope `_placeholderDb = createPowerSyncDatabase(...)` replaces `null` as Provider value; `useState` initialised with placeholder; sign-out reverts to placeholder instead of `null`; `as AbstractPowerSyncDatabase` cast removed [apps/mobile/app/_layout.tsx]
+
+- [x] [Review][Defer] `_dbByUserId` Map never evicts entries — open `PowerSyncDatabase` handles accumulate on shared devices with many users [packages/sync/src/client.ts] — deferred, Epic 9 cleanup
+- [x] [Review][Defer] `PowerSyncConnectionManager` useEffect has no cleanup/return — if root layout unmounts (error boundary, hot reload), existing DB connection is not cleanly closed [apps/mobile/app/_layout.tsx]
+- [x] [Review][Defer] No test coverage for `SupabasePowerSyncConnector` (`fetchCredentials`, `uploadData`, `_uploadEntry`) — not required by T9 in this story [packages/sync/src/connector.ts]
+- [x] [Review][Defer] Migration 0022 pre-cleanup `UPDATE` is not atomic with `CREATE UNIQUE INDEX` — concurrent writes during deploy can cause index creation to fail on live DB [supabase/migrations/0022_exposure_sessions_active_thread.sql] — deferred, known deployment concern
+- [x] [Review][Defer] Optimistic INSERT in `ladder.tsx` not rolled back when `enqueue` throws — phantom item persists in local state until next sync — out of scope per AC 4 final note and Out-of-Scope #13 [apps/mobile/app/ladder.tsx]
+- [x] [Review][Defer] `handleDragEnd` only enqueues positions for dragged + swapped items; all intermediate items' new positions lost until next full sync — pre-existing design gap (spec models only 2-item swap); Story 6.2-C RPC addresses atomically [apps/mobile/app/ladder.tsx]
+- [x] [Review][Defer] `uq_active_thread` partial index NULL gap — `fear_item_id IS NULL` rows (via ON DELETE SET NULL from migration 0016) bypass uniqueness; multiple orphaned `started` sessions per user allowed — only triggers on ladder-item deletion; Story 6.2-C [supabase/migrations/0022_exposure_sessions_active_thread.sql]
+- [x] [Review][Defer] `_urlValidationWarned` module-level singleton — second user on shared device never sees the invalid-URL warning even if URL is still invalid [packages/sync/src/connector.ts] — P2 observability only
+
 ---
 
 ## Dev Agent Record
@@ -1070,3 +1091,4 @@ Claude Sonnet 4.6 (bmad-dev-story)
 | 2026-06-16 | Story drafted as 6.2-A (PowerSync Foundation split); status `ready-for-dev` | Claude Sonnet 4.6 (bmad-create-story) |
 | 2026-06-16 | Multi-layer code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) → 6 decisions resolved via party-mode roundtable (Winston/Amelia/Sally) → all 21 patches applied to spec; 16 deferred to `deferred-work.md` | Claude Opus 4.7 (bmad-code-review) |
 | 2026-06-16 | Story implemented — all tasks T1–T9 complete; status → review | Claude Sonnet 4.6 (bmad-dev-story) |
+| 2026-06-16 | Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — 7 patches applied, 8 deferred, 19 dismissed; status → done | Claude Sonnet 4.6 (bmad-code-review) |

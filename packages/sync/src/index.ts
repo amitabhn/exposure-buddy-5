@@ -16,5 +16,5 @@ export { resolveConflict } from './utils/conflict'
 
 // ARC-005 re-exports: apps/mobile accesses all PowerSync APIs through @exposure-buddy/sync
 // so the @powersync/* import ban in apps/mobile/.eslintrc.js is satisfied.
-export { useQuery, usePowerSync, PowerSyncContext } from '@powersync/react-native'
-export type { PowerSyncBackendConnector, AbstractPowerSyncDatabase, UpdateType } from '@powersync/react-native'
+export { useQuery, usePowerSync, PowerSyncContext, UpdateType } from '@powersync/react-native'
+export type { PowerSyncBackendConnector, AbstractPowerSyncDatabase } from '@powersync/react-native'

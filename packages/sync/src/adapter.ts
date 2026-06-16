@@ -61,10 +61,13 @@ export class PowerSyncSyncAdapter implements SyncAdapter {
   }
 
   private async _reorder(table: string, p: Record<string, unknown>, now: string) {
-    const idA = p['itemAId'] as string
-    const posA = p['itemANewPosition'] as number
-    const idB = p['itemBId'] as string
-    const posB = p['itemBNewPosition'] as number
+    const idA = p['itemAId']
+    const posA = p['itemANewPosition']
+    const idB = p['itemBId']
+    const posB = p['itemBNewPosition']
+    if (typeof idA !== 'string' || typeof posA !== 'number' || typeof idB !== 'string' || typeof posB !== 'number') {
+      throw new Error(`[sync] reorder_positions payload missing required fields for table ${table}: itemAId, itemANewPosition, itemBId, itemBNewPosition`)
+    }
     await this.db.writeTransaction(async tx => {
       await tx.execute(`UPDATE ${table} SET position = ?, updated_at = ? WHERE id = ?`, [posA, now, idA])
       await tx.execute(`UPDATE ${table} SET position = ?, updated_at = ? WHERE id = ?`, [posB, now, idB])

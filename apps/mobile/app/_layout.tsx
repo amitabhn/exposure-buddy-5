@@ -21,14 +21,21 @@ import {
 import * as SplashScreen from 'expo-splash-screen'
 import React, { useEffect, useRef, useState } from 'react'
 import { AuthProvider, OnboardingProvider, initSession, useAuth, createSupabaseClient, type MMKV } from '@exposure-buddy/supabase'
+import * as Sentry from '@sentry/react-native'
 import {
   PowerSyncContext,
   getPowerSyncDatabase,
+  createPowerSyncDatabase,
   PowerSyncSyncAdapter,
   SupabasePowerSyncConnector,
   initAdapter,
 } from '@exposure-buddy/sync'
-import type { AbstractPowerSyncDatabase } from '@exposure-buddy/sync'
+
+// Placeholder DB used when no user is signed in — never connected to Supabase.
+// Keeps PowerSyncContext.Provider value non-null so useQuery's conditional hook
+// calls don't violate Rules of Hooks on the null→db transition at sign-in.
+// eslint-disable-next-line i18next/no-literal-string
+const _placeholderDb = createPowerSyncDatabase('exposure-buddy-placeholder.db')
 
 // MUST be called before any React rendering — registers Sentry and global error handler
 initErrorHandler()
@@ -107,8 +114,8 @@ export default function RootLayout() {
 
 function logSyncLifecycleError(err: unknown) {
   console.error('[PowerSync] lifecycle error:', err)
-  // TODO(observability): wire into initErrorHandler() Sentry infra:
-  // Sentry.addBreadcrumb({ category: 'powersync', message: 'lifecycle error', data: { err: String(err) } })
+  // eslint-disable-next-line i18next/no-literal-string
+  Sentry.addBreadcrumb({ category: 'powersync', message: 'lifecycle error', data: { err: String(err) } })
 }
 
 function PowerSyncConnectionManager({ children }: { children: React.ReactNode }) {
@@ -123,8 +130,11 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
   const inFlightRef = useRef<Promise<void>>(Promise.resolve())
   // Track the current per-user db so the disconnect branch operates on the right instance.
   const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
-  // Lift db into state so PowerSyncContext.Provider rerenders with the new handle on user switch.
-  const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase> | null>(null)
+  // Never null: start with placeholder so useQuery's conditional hook calls never see a
+  // falsy context value (Rules of Hooks — useQuery.js:8 returns early before 3 inner hooks).
+  const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase>>(
+    _placeholderDb,
+  )
 
   useEffect(() => {
     if (userId === undefined) return                          // auth still loading
@@ -144,7 +154,7 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
     } else {
       const powerSyncDb = currentDbRef.current
       currentDbRef.current = null
-      setDb(null)
+      setDb(_placeholderDb)  // revert to placeholder — never null (see useState init above)
       if (!powerSyncDb) return  // nothing to disconnect
       inFlightRef.current = inFlightRef.current
         .then(() => powerSyncDb.disconnectAndClear())
@@ -152,10 +162,8 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
     }
   }, [userId])
 
-  // Cast is safe: PowerSync-aware screens (ladder, session) are guarded behind auth.
-  // When signed out, db is null and the context returns null — not accessed by any rendered screen.
   return (
-    <PowerSyncContext.Provider value={db as AbstractPowerSyncDatabase}>
+    <PowerSyncContext.Provider value={db}>
       {children}
     </PowerSyncContext.Provider>
   )
