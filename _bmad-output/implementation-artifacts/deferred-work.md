@@ -411,3 +411,11 @@
 - **D-3.3-3: `CREATE TRIGGER` in migration 0008 not idempotent** — `supabase/migrations/0008_dpo_audit_log_truncate_guard.sql` uses `CREATE TRIGGER` without `IF NOT EXISTS` or `OR REPLACE`. Would fail if replayed manually (Supabase CLI tracks state so normal operation is unaffected). Add `DROP TRIGGER IF EXISTS` guard if idempotent replay is ever needed. [`supabase/migrations/0008_dpo_audit_log_truncate_guard.sql`]
 
 - **D-3.3-4: RLS test `beforeAll` uses fixed email — fails on second run without `supabase db reset`** — `dpo-audit-rls-test-a@example.com` is hardcoded; a second run without `supabase db reset` would conflict. Follows existing `profiles.test.ts` pattern; acceptable for local-only test DB. Add idempotent user-upsert logic if test infra is hardened. [`packages/supabase/__tests__/rls/dpo_audit_log.test.ts`]
+
+---
+
+## Architectural decision — no BEFORE DELETE trigger on `fear_ladder_items` (2026-06-16)
+
+_Settled in party-mode roundtable (Sally, Winston, Amelia, John) resolving the rejected Story 6.2 spec. Applies to Story 6.2-C and any future story that adds a server-side delete guard on this table._
+
+- **UI-only delete-during-active-session guard; no DB backstop** — The "Remove item" delete UX (Story 6.2-C) is gated at the UI layer only (`Remove` button disabled when the current user has an `exposure_sessions` row with `status='started'`). A `BEFORE DELETE` trigger on `fear_ladder_items` was explicitly rejected: trigger rejection causes PowerSync's `ps_crud` to retry the upload forever, and the next pull re-materializes the "deleted" row to the user's screen with no error explanation — strictly worse than the bypass it would prevent. If a future REST API layer, admin tooling, or direct Supabase client path is introduced that bypasses the UI guard, prefer an RLS policy or application-layer validator (synchronous error surfaces to the upload pipeline) over a BEFORE DELETE trigger. [`apps/mobile/app/ladder.tsx`, `supabase/migrations/`]
