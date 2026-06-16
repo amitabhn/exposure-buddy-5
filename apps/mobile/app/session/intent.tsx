@@ -104,17 +104,7 @@ export default function IntentScreen() {
         recorded_at: now,
       })
 
-      // (d) Enqueue fear_ladder_items UPDATE status → in_progress (last_write_wins guard)
-      // eslint-disable-next-line i18next/no-literal-string
-      await getAdapter().enqueue('fear_ladder_items', 'UPDATE', {
-        id: fearItemId,
-        // eslint-disable-next-line i18next/no-literal-string
-        status: 'in_progress',
-        updated_at: now,
-        updatedAt: Date.now(),
-      })
-
-      // (e) Write SESSION_IN_PROGRESS JSON blob to MMKV
+      // (d) Write SESSION_IN_PROGRESS JSON blob to MMKV
       const recoveryData: SessionRecoveryData = {
         sessionId,
         fearItemId,
@@ -123,9 +113,9 @@ export default function IntentScreen() {
       }
       setSessionInProgress(recoveryData)
 
-      // (f) session.started event: idle→pre_session (state machine is informational at screen level)
+      // (e) session.started event: idle→pre_session (state machine is informational at screen level)
 
-      // (g) Navigate to briefing screen
+      // (f) Navigate to briefing screen
       router.push(
         // eslint-disable-next-line i18next/no-literal-string
         `/session/briefing?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description ?? '')}&preSuds=${state.preSuds}`

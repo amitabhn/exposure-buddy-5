@@ -1,6 +1,6 @@
 # Story 6.2-A: PowerSync Foundation
 
-**Status:** ready-for-dev
+**Status:** review
 
 ## Story
 
@@ -128,7 +128,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T1 — DB Migrations
 
-- [ ] **T1.1**: Create `supabase/migrations/0021_fear_ladder_items_constraints.sql`. All four steps run inside a single transaction so that if step 4 (UNIQUE) fails on existing duplicate `(user_id, position)` rows, steps 1–3 roll back and the table is not left half-migrated:
+- [x] **T1.1**: Create `supabase/migrations/0021_fear_ladder_items_constraints.sql`. All four steps run inside a single transaction so that if step 4 (UNIQUE) fails on existing duplicate `(user_id, position)` rows, steps 1–3 roll back and the table is not left half-migrated:
   ```sql
   -- Story 6.2-A: narrow status to MVP values; add deferrable position uniqueness
 
@@ -151,7 +151,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   COMMIT;
   ```
 
-- [ ] **T1.2**: Create `supabase/migrations/0022_exposure_sessions_active_thread.sql`:
+- [x] **T1.2**: Create `supabase/migrations/0022_exposure_sessions_active_thread.sql`:
   ```sql
   -- Story 6.2-A: enforce one active thread per user per fear item (FR-HOME-03)
 
@@ -174,23 +174,23 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T2 — packages/core: FearLadderItemStatus type narrowing
 
-- [ ] **T2.1**: Update `packages/core/src/selectors/fearLadder.ts`:
+- [x] **T2.1**: Update `packages/core/src/selectors/fearLadder.ts`:
   - Add `export type FearLadderItemStatus = 'pending' | 'completed'`
   - Change `FearLadderItem.status` from `string` to `FearLadderItemStatus`
   - No other changes (tiebreaker sort belongs to Story 6.2-B which owns `resolveLowestPendingItem`)
   - **ARC-001**: zero new RN/Expo/Supabase imports
 
-- [ ] **T2.2**: Update `packages/core/src/index.ts`:
+- [x] **T2.2**: Update `packages/core/src/index.ts`:
   - Add `export type { FearLadderItemStatus } from './selectors/fearLadder'`
 
-- [ ] **T2.3**: Update `packages/core/src/__tests__/selectors/fearLadder.test.ts`:
+- [x] **T2.3**: Update `packages/core/src/__tests__/selectors/fearLadder.test.ts`:
   - The existing test fixture at line 25 calls `makeItem('x', 1, 'in_progress')` — after T2.1 this literal is no longer assignable to `FearLadderItemStatus`.
   - Replace the `'in_progress'` literal with `'pending'` (or `'completed'`, whichever preserves the test's intent). If the test was specifically asserting `in_progress` handling, that assertion is now obsolete and should be deleted along with any related arrange/act/assert lines.
   - Without this update, T9.3 (`pnpm turbo typecheck` — zero errors) will fail.
 
 ### T3 — packages/sync: connector, singleton, real adapter, schema, re-exports
 
-- [ ] **T3.1**: Update `packages/sync/src/schema.ts` — add `id: column.text` as the first column in `user_onboarding_metadata`:
+- [x] **T3.1**: Update `packages/sync/src/schema.ts` — add `id: column.text` as the first column in `user_onboarding_metadata`:
   ```typescript
   const user_onboarding_metadata = new Table({
     id: column.text,            // client-generated UUID PK (deferred from 4-2-D5)
@@ -201,7 +201,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   })
   ```
 
-- [ ] **T3.2**: Update `packages/sync/src/client.ts` — per-user singleton (sha256 keyed):
+- [x] **T3.2**: Update `packages/sync/src/client.ts` — per-user singleton (sha256 keyed):
   ```typescript
   import { PowerSyncDatabase } from '@powersync/react-native'
   import { sha256 } from '@noble/hashes/sha256'      // already available in monorepo
@@ -232,7 +232,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   ```
   **Note:** If `@noble/hashes` is not already a transitive dep of `packages/sync`, add it as a direct dep. Alternative: use any deterministic short-hash function already in the codebase (e.g. djb2 — see `packages/core/src/util/`).
 
-- [ ] **T3.3**: Create `packages/sync/src/connector.ts`:
+- [x] **T3.3**: Create `packages/sync/src/connector.ts`:
 
   ```typescript
   import type { PowerSyncBackendConnector, AbstractPowerSyncDatabase, CrudEntry } from '@powersync/react-native'
@@ -316,7 +316,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   }
   ```
 
-- [ ] **T3.4**: Replace `packages/sync/src/adapter.ts` with the real implementation (preserves `SyncAdapter` interface and `SyncMode` export):
+- [x] **T3.4**: Replace `packages/sync/src/adapter.ts` with the real implementation (preserves `SyncAdapter` interface and `SyncMode` export):
 
   ```typescript
   import type { AbstractPowerSyncDatabase } from '@powersync/react-native'
@@ -417,7 +417,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   }
   ```
 
-- [ ] **T3.5**: Update `packages/sync/src/index.ts`:
+- [x] **T3.5**: Update `packages/sync/src/index.ts`:
   - Add exports: `SupabasePowerSyncConnector` from `./connector`; `getPowerSyncDatabase` from `./client`; `initAdapter`, `getAdapter` from `./adapter`
   - Add re-exports for `apps/mobile` consumption (ARC-005 resolution):
     ```typescript
@@ -427,7 +427,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T4 — apps/mobile/app/_layout.tsx: PowerSync wiring
 
-- [ ] **T4.1**: Update `apps/mobile/app/_layout.tsx` — add the following, preserving ALL existing logic exactly. Because `getPowerSyncDatabase` is now per-user (AC 5), the db handle and adapter are resolved INSIDE `PowerSyncConnectionManager` (on each userId change), NOT at module scope. The recovery modal at `apps/mobile/app/(app)/_layout.tsx` calls `getAdapter()` from event handlers and from `useEffect` — both fire after first render, so `initAdapter()` can happen inside the connection manager's effect.
+- [x] **T4.1**: Update `apps/mobile/app/_layout.tsx` — add the following, preserving ALL existing logic exactly. Because `getPowerSyncDatabase` is now per-user (AC 5), the db handle and adapter are resolved INSIDE `PowerSyncConnectionManager` (on each userId change), NOT at module scope. The recovery modal at `apps/mobile/app/(app)/_layout.tsx` calls `getAdapter()` from event handlers and from `useEffect` — both fire after first render, so `initAdapter()` can happen inside the connection manager's effect.
 
   **Module-scope additions** (after existing module-scope calls):
   ```typescript
@@ -546,7 +546,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T5 — apps/mobile/src/sync/adapter.ts
 
-- [ ] **T5.1**: Replace the module with thin re-exports from `@exposure-buddy/sync`:
+- [x] **T5.1**: Replace the module with thin re-exports from `@exposure-buddy/sync`:
   ```typescript
   export { getAdapter, initAdapter, SyncMode } from '@exposure-buddy/sync'
   export type { SyncAdapter } from '@exposure-buddy/sync'
@@ -555,7 +555,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T6 — apps/mobile/src/hooks/useFearLadderItems.ts
 
-- [ ] **T6.1**: Replace stub with real `useQuery` hook — return shape changes to `{ items, isLoading }`:
+- [x] **T6.1**: Replace stub with real `useQuery` hook — return shape changes to `{ items, isLoading }`:
   ```typescript
   import { useQuery } from '@exposure-buddy/sync'
   import { useMemo } from 'react'
@@ -615,7 +615,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T7 — apps/mobile/app/session/intent.tsx: remove in_progress enqueue
 
-- [ ] **T7.1**: Delete the entire block labelled "(d) Enqueue fear_ladder_items UPDATE status → in_progress" (current lines 107–115):
+- [x] **T7.1**: Delete the entire block labelled "(d) Enqueue fear_ladder_items UPDATE status → in_progress" (current lines 107–115):
   ```typescript
   // DELETE these lines:
   // (d) Enqueue fear_ladder_items UPDATE status → in_progress (last_write_wins guard)
@@ -636,7 +636,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T8 — apps/mobile/app/ladder.tsx: legacy comment
 
-- [ ] **T8.1**: Add a comment above the `in_progress` branch in `statusLabel()` (line 149):
+- [x] **T8.1**: Add a comment above the `in_progress` branch in `statusLabel()` (line 149):
   ```typescript
   const statusLabel = (status: string) => {
     // Legacy: 'in_progress' was removed from the DB CHECK constraint in migration 0021
@@ -649,7 +649,7 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
 
 ### T9 — Tests and CI verification
 
-- [ ] **T9.1**: Create `packages/sync/__tests__/adapter.test.ts` — Vitest test for reorder convention equivalence (D15):
+- [x] **T9.1**: Create `packages/sync/__tests__/adapter.test.ts` — Vitest test for reorder convention equivalence (D15):
   ```typescript
   // Both enqueue calling conventions must produce IDENTICAL db.execute() calls (D15-resolved)
   it('UPDATE reorder_positions envelope and direct reorder_positions operation produce identical writes', async () => {
@@ -676,18 +676,18 @@ As the platform, I want PowerSync wired end-to-end — real singleton db, live S
   ```
   **Note:** rewrite the assertion to compare the full `mock.calls` arrays (SQL + params) once you capture them, not just the SQL strings. The previous spec acknowledged params would differ — they should NOT differ within one `enqueue()` call now that `now` is computed once.
 
-- [ ] **T9.2**: Create `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` — Vitest test (Supabase service-role client, not pgTAP) verifying `uq_active_thread` constraint (D15):
+- [x] **T9.2**: Create `packages/supabase/__tests__/rls/exposure_sessions_active_thread.test.ts` — Vitest test (Supabase service-role client, not pgTAP) verifying `uq_active_thread` constraint (D15):
   - Follow exact pattern of `dpo_audit_log.test.ts` (service role client, test user create/cleanup, `skipIf(!SERVICE_ROLE_KEY || !ANON_KEY)`)
   - Test: insert first `status='started'` row for `(userId, fearItemId)` → succeeds
   - Test: insert second `status='started'` row for same pair → fails with Supabase error (unique violation)
   - Test: insert second row for DIFFERENT `fearItemId` → succeeds (constraint is per fear item)
   - Test: insert second row for same `fearItemId` but `status='abandoned'` → succeeds (partial index only covers 'started')
 
-- [ ] **T9.3**: `pnpm turbo typecheck` — zero errors across all packages
-- [ ] **T9.4**: `pnpm turbo lint` — zero errors; no ARC-005 violations in `apps/mobile` (no direct `@powersync/*` imports)
-- [ ] **T9.5**: `pnpm turbo test` — all suites green
-- [ ] **T9.6**: ARC-001 boundary check: `packages/core/src/selectors/fearLadder.ts` has zero RN/Expo/Supabase imports
-- [ ] **T9.7**: ARC-005 boundary check: `packages/sync/src/connector.ts` does NOT import from `@exposure-buddy/supabase`
+- [x] **T9.3**: `pnpm turbo typecheck` — zero errors across all packages
+- [x] **T9.4**: `pnpm turbo lint` — zero errors; no ARC-005 violations in `apps/mobile` (no direct `@powersync/*` imports)
+- [x] **T9.5**: `pnpm turbo test` — all suites green
+- [x] **T9.6**: ARC-001 boundary check: `packages/core/src/selectors/fearLadder.ts` has zero RN/Expo/Supabase imports
+- [x] **T9.7**: ARC-005 boundary check: `packages/sync/src/connector.ts` does NOT import from `@exposure-buddy/supabase`
 
 ---
 
@@ -1021,11 +1021,19 @@ AC 9 "most recent" undefined (T1.2 actually specifies `started_at DESC NULLS LAS
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+Claude Sonnet 4.6 (bmad-dev-story)
 
 ### Completion Notes List
 
-_To be filled by dev agent_
+- **T1**: Migrations 0021 and 0022 created and applied cleanly via `supabase db reset`. 0021 wraps all 4 steps in a `BEGIN/COMMIT` transaction. 0022 has pre-cleanup CTE for duplicate started sessions before creating the partial unique index.
+- **T2**: `FearLadderItemStatus` union type added. Test fixture updated with `FearLadderItemStatus` type annotation on `makeItem`; `'in_progress'` replaced with `'completed'` to preserve test intent.
+- **T3**: Real `PowerSyncSyncAdapter`, `SupabasePowerSyncConnector` (type-only SupabaseClient import), per-user singleton via double-pass djb2 hash (64-bit, `@noble/hashes` not in monorepo), schema bumped, ARC-005 re-exports. Added `@types/node` and `@supabase/supabase-js` devDependencies.
+- **T4**: `PowerSyncConnectionManager` in `_layout.tsx` — tri-state userId from `useAuth().isLoading`, sequenced lifecycle via `inFlightRef`, per-user db lifted into state for `PowerSyncContext.Provider`. `AbstractPowerSyncDatabase` cast used for null case (TS declaration non-nullable). `EXPO_PUBLIC_POWERSYNC_URL` added to `global.d.ts`.
+- **T5**: `apps/mobile/src/sync/adapter.ts` replaced with thin re-exports.
+- **T6**: `useFearLadderItems` returns `{ items, isLoading }` with runtime `isFearLadderItemStatus` validation. `ladder.tsx` updated to destructure and show `ActivityIndicator` while loading. `ladder.test.tsx` updated to use factory mock (avoids ESM chain through PowerSync) and new return shape.
+- **T7**: `in_progress` enqueue block removed from `intent.tsx`; step labels renumbered.
+- **T8**: Legacy comment added to `statusLabel()` in `ladder.tsx`.
+- **T9**: All gates pass — `pnpm turbo typecheck` (zero errors), `pnpm turbo lint` (zero errors, zero ARC-005 violations), `pnpm turbo test` (182 mobile + 34 core + 11 sync tests all green). Supabase integration tests skip correctly without `SUPABASE_SERVICE_ROLE_KEY`. Pre-existing local service_role privilege issue affects all RLS integration tests (including pre-existing `dpo_audit_log`); not caused by this story.
 
 ### File List
 
@@ -1051,6 +1059,9 @@ _To be filled by dev agent_
 - `apps/mobile/src/hooks/useFearLadderItems.ts` — real `useQuery` hook; returns `{ items, isLoading }`; runtime-validates `status`
 - `apps/mobile/app/ladder.tsx` — destructure `{ items, isLoading }` from `useFearLadderItems`; render spinner while loading; legacy comment on `in_progress` branch in `statusLabel`
 - `apps/mobile/app/session/intent.tsx` — remove `in_progress` status enqueue (lines 107–115); renumber subsequent step-label comments
+- `apps/mobile/app/ladder.test.tsx` — updated mock to factory form (avoids ESM chain); updated mock return values to `{ items, isLoading }` shape
+- `apps/mobile/src/types/global.d.ts` — added `EXPO_PUBLIC_POWERSYNC_URL?: string` to ProcessEnv
+- `packages/sync/package.json` — added `@supabase/supabase-js` and `@types/node` as devDependencies
 
 ## Change Log
 
@@ -1058,3 +1069,4 @@ _To be filled by dev agent_
 |------|--------|-----|
 | 2026-06-16 | Story drafted as 6.2-A (PowerSync Foundation split); status `ready-for-dev` | Claude Sonnet 4.6 (bmad-create-story) |
 | 2026-06-16 | Multi-layer code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) → 6 decisions resolved via party-mode roundtable (Winston/Amelia/Sally) → all 21 patches applied to spec; 16 deferred to `deferred-work.md` | Claude Opus 4.7 (bmad-code-review) |
+| 2026-06-16 | Story implemented — all tasks T1–T9 complete; status → review | Claude Sonnet 4.6 (bmad-dev-story) |

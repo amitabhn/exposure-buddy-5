@@ -19,8 +19,16 @@ import {
   DMSerifDisplay_400Regular_Italic,
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useRef, useState } from 'react'
-import { AuthProvider, OnboardingProvider, initSession, type MMKV } from '@exposure-buddy/supabase'
+import React, { useEffect, useRef, useState } from 'react'
+import { AuthProvider, OnboardingProvider, initSession, useAuth, createSupabaseClient, type MMKV } from '@exposure-buddy/supabase'
+import {
+  PowerSyncContext,
+  getPowerSyncDatabase,
+  PowerSyncSyncAdapter,
+  SupabasePowerSyncConnector,
+  initAdapter,
+} from '@exposure-buddy/sync'
+import type { AbstractPowerSyncDatabase } from '@exposure-buddy/sync'
 
 // MUST be called before any React rendering — registers Sentry and global error handler
 initErrorHandler()
@@ -73,24 +81,82 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider mmkv={mmkv}>
-        <OnboardingProvider mmkv={mmkv}>
-        <SafeAreaProvider>
-          <ReducedMotionProvider>
-            <ThemeProvider value={DefaultTheme}>
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* eslint-disable-next-line i18next/no-literal-string */}
-                <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-                <Stack.Screen name="calm-me" options={{ headerShown: false }} />
-                {/* eslint-disable-next-line i18next/no-literal-string */}
-                <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-                <Stack.Screen name="session" options={{ headerShown: false }} />
-              </Stack>
-              <PortalHost />
-            </ThemeProvider>
-          </ReducedMotionProvider>
-        </SafeAreaProvider>
-        </OnboardingProvider>
+        <PowerSyncConnectionManager>
+          <OnboardingProvider mmkv={mmkv}>
+          <SafeAreaProvider>
+            <ReducedMotionProvider>
+              <ThemeProvider value={DefaultTheme}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+                  <Stack.Screen name="calm-me" options={{ headerShown: false }} />
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+                  <Stack.Screen name="session" options={{ headerShown: false }} />
+                </Stack>
+                <PortalHost />
+              </ThemeProvider>
+            </ReducedMotionProvider>
+          </SafeAreaProvider>
+          </OnboardingProvider>
+        </PowerSyncConnectionManager>
       </AuthProvider>
     </GestureHandlerRootView>
+  )
+}
+
+function logSyncLifecycleError(err: unknown) {
+  console.error('[PowerSync] lifecycle error:', err)
+  // TODO(observability): wire into initErrorHandler() Sentry infra:
+  // Sentry.addBreadcrumb({ category: 'powersync', message: 'lifecycle error', data: { err: String(err) } })
+}
+
+function PowerSyncConnectionManager({ children }: { children: React.ReactNode }) {
+  const { userId: rawUserId, isLoading } = useAuth()
+  // Tri-state: undefined = auth still loading, null = signed-out, string = signed-in user id.
+  // useAuth().userId is string|null; isLoading collapses the two null states into a distinct sentinel.
+  const userId = isLoading ? undefined : rawUserId
+
+  const prevUserIdRef = useRef<string | null | undefined>(undefined)
+  // Single in-flight promise chain — sequences connect/disconnectAndClear so a late-resolving
+  // connect() cannot arrive after a sign-out and leave the app connected for a signed-out user.
+  const inFlightRef = useRef<Promise<void>>(Promise.resolve())
+  // Track the current per-user db so the disconnect branch operates on the right instance.
+  const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
+  // Lift db into state so PowerSyncContext.Provider rerenders with the new handle on user switch.
+  const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase> | null>(null)
+
+  useEffect(() => {
+    if (userId === undefined) return                          // auth still loading
+    if (userId === prevUserIdRef.current) return              // no transition
+    prevUserIdRef.current = userId
+
+    if (userId) {
+      const powerSyncDb = getPowerSyncDatabase(userId)
+      currentDbRef.current = powerSyncDb
+      setDb(powerSyncDb)
+      // initAdapter is per-user: each userId gets its own adapter instance bound to its db.
+      initAdapter(new PowerSyncSyncAdapter(powerSyncDb))
+      const connector = new SupabasePowerSyncConnector(createSupabaseClient())
+      inFlightRef.current = inFlightRef.current
+        .then(() => powerSyncDb.connect(connector))
+        .catch(logSyncLifecycleError)
+    } else {
+      const powerSyncDb = currentDbRef.current
+      currentDbRef.current = null
+      setDb(null)
+      if (!powerSyncDb) return  // nothing to disconnect
+      inFlightRef.current = inFlightRef.current
+        .then(() => powerSyncDb.disconnectAndClear())
+        .catch(logSyncLifecycleError)
+    }
+  }, [userId])
+
+  // Cast is safe: PowerSync-aware screens (ladder, session) are guarded behind auth.
+  // When signed out, db is null and the context returns null — not accessed by any rendered screen.
+  return (
+    <PowerSyncContext.Provider value={db as AbstractPowerSyncDatabase}>
+      {children}
+    </PowerSyncContext.Provider>
   )
 }

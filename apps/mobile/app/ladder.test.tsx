@@ -41,7 +41,9 @@ jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
-jest.mock('../src/hooks/useFearLadderItems')
+jest.mock('../src/hooks/useFearLadderItems', () => ({
+  useFearLadderItems: jest.fn(),
+}))
 
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
 
@@ -79,7 +81,7 @@ describe('LadderScreen', () => {
     jest.spyOn(AccessibilityInfo, 'setAccessibilityFocus').mockImplementation(() => {})
     jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(42)
     mockUseAuth.mockReturnValue({ userId: 'user-123' })
-    mockUseFearLadderItems.mockReturnValue([])
+    mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
     mockDetectCrisisKeywords.mockReturnValue(false)
     mockEnqueue.mockResolvedValue(undefined)
   })
@@ -97,7 +99,7 @@ describe('LadderScreen', () => {
   it('renders items sorted by position', () => {
     const itemB = { id: 'b', description: 'Item B', predictedSuds: 7, position: 2, status: 'pending' }
     const itemA = { id: 'a', description: 'Item A', predictedSuds: 3, position: 1, status: 'pending' }
-    mockUseFearLadderItems.mockReturnValue([itemB, itemA])
+    mockUseFearLadderItems.mockReturnValue({ items: [itemB, itemA], isLoading: false })
     const { getAllByRole } = render(<LadderScreen />)
     const buttons = getAllByRole('button')
     const firstItemButton = buttons.find(b => b.props.accessibilityLabel?.includes('Item A'))
@@ -107,7 +109,7 @@ describe('LadderScreen', () => {
   })
 
   it('renders status labels for each item', () => {
-    mockUseFearLadderItems.mockReturnValue([baseItem])
+    mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     const { getByText } = render(<LadderScreen />)
     expect(getByText('ladder.statusPending', { exact: false })).toBeTruthy()
   })
@@ -200,7 +202,7 @@ describe('LadderScreen', () => {
   })
 
   it('getAdapter().enqueue called with UPDATE on edit submit', async () => {
-    mockUseFearLadderItems.mockReturnValue([baseItem])
+    mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     const { getAllByRole, getByLabelText } = render(<LadderScreen />)
     const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
     fireEvent.press(itemButton!)
@@ -217,7 +219,7 @@ describe('LadderScreen', () => {
   })
 
   it('edit form shows existing description and suds', () => {
-    mockUseFearLadderItems.mockReturnValue([baseItem])
+    mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     const { getAllByRole, getByLabelText } = render(<LadderScreen />)
     const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
     fireEvent.press(itemButton!)
@@ -226,7 +228,7 @@ describe('LadderScreen', () => {
   })
 
   it('accessibility focus set on first item after 100ms', () => {
-    mockUseFearLadderItems.mockReturnValue([baseItem])
+    mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     render(<LadderScreen />)
     act(() => {
       jest.advanceTimersByTime(100)
@@ -235,7 +237,7 @@ describe('LadderScreen', () => {
   })
 
   it('accessibility focus set on Add button when empty', () => {
-    mockUseFearLadderItems.mockReturnValue([])
+    mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
     render(<LadderScreen />)
     act(() => {
       jest.advanceTimersByTime(100)

@@ -11,7 +11,7 @@ export type { IDpoService, PendingDeletionRecord } from './services/IDpoService'
 export { DpoServiceStub } from './stubs/DpoServiceStub'
 export { detectCrisisKeywords } from './crisis/keywordDetector'
 export { CRISIS_KEYWORDS } from './crisis/keywords'
-export type { FearLadderItemSummary, FearLadderItem } from './selectors/fearLadder'
+export type { FearLadderItemSummary, FearLadderItem, FearLadderItemStatus } from './selectors/fearLadder'
 export { resolveLowestPendingItem } from './selectors/fearLadder'
 // ERP session types and state machine (Story 5.2+)
 export type { ExposureSession } from './types/exposure-session'

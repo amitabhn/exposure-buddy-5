@@ -1,5 +1,7 @@
 // ARC-001: zero imports from react-native, expo-*, or @supabase/*
 
+export type FearLadderItemStatus = 'pending' | 'completed'
+
 export interface FearLadderItemSummary {
   id: string
   description: string
@@ -9,7 +11,7 @@ export interface FearLadderItemSummary {
 
 // Full item type includes status for filtering; summary omits it for the card prop
 export interface FearLadderItem extends FearLadderItemSummary {
-  status: string
+  status: FearLadderItemStatus
   peakSuds: number | null
 }
 
