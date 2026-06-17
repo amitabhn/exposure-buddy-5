@@ -33,8 +33,21 @@ jest.mock('@exposure-buddy/ui', () => {
   }
 })
 
+const mockResolveHomeScreenState = jest.fn()
+
 jest.mock('@exposure-buddy/core', () => ({
   resolveLowestPendingItem: jest.fn(() => null),
+  resolveHomeScreenState: (...args: unknown[]) => mockResolveHomeScreenState(...args),
+}))
+
+const mockUseFearLadderItems = jest.fn()
+jest.mock('../../src/hooks/useFearLadderItems', () => ({
+  useFearLadderItems: (...args: unknown[]) => mockUseFearLadderItems(...args),
+}))
+
+const mockUseActiveExposureSession = jest.fn()
+jest.mock('../../src/hooks/useActiveExposureSession', () => ({
+  useActiveExposureSession: (...args: unknown[]) => mockUseActiveExposureSession(...args),
 }))
 
 import HomeScreen from './'
@@ -52,6 +65,9 @@ describe('HomeScreen', () => {
     jest.spyOn(AccessibilityInfo, 'setAccessibilityFocus').mockImplementation(() => {})
     jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(42)
     mockUseAuth.mockReturnValue(defaultAuthValue)
+    mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
+    mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
+    mockResolveHomeScreenState.mockReturnValue('morning')
   })
 
   afterEach(() => {
@@ -115,5 +131,113 @@ describe('HomeScreen', () => {
     const { getByTestId } = render(<HomeScreen />)
     fireEvent.press(getByTestId('courage-card'))
     expect(mockPush).toHaveBeenCalledWith('/ladder')
+  })
+
+  describe('loading state', () => {
+    it('renders a loading indicator and no state card while either hook is loading', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: true })
+      const { getByLabelText, queryByTestId } = render(<HomeScreen />)
+      expect(getByLabelText('common.loading')).toBeTruthy()
+      expect(queryByTestId('courage-card')).toBeNull()
+    })
+
+    it('renders a loading indicator while the active-session query is loading', () => {
+      mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: true })
+      const { getByLabelText } = render(<HomeScreen />)
+      expect(getByLabelText('common.loading')).toBeTruthy()
+    })
+  })
+
+  describe("'completed' state", () => {
+    beforeEach(() => {
+      mockResolveHomeScreenState.mockReturnValue('completed')
+    })
+
+    it('renders the state10 message with no CTA card', () => {
+      const { getByText, queryByTestId } = render(<HomeScreen />)
+      expect(getByText('home.state10.message')).toBeTruthy()
+      expect(queryByTestId('courage-card')).toBeNull()
+    })
+  })
+
+  describe("'empty-ladder' state", () => {
+    beforeEach(() => {
+      mockResolveHomeScreenState.mockReturnValue('empty-ladder')
+    })
+
+    it('renders the empty-ladder message and add-item CTA', () => {
+      const { getByText, getByRole } = render(<HomeScreen />)
+      expect(getByText('ladder.emptyState')).toBeTruthy()
+      expect(getByRole('button', { name: 'ladder.addItem' })).toBeTruthy()
+    })
+
+    it('add-item CTA navigates to /ladder', () => {
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      expect(mockPush).toHaveBeenCalledWith('/ladder')
+    })
+  })
+
+  describe("'progressing' state", () => {
+    beforeEach(() => {
+      mockResolveHomeScreenState.mockReturnValue('progressing')
+    })
+
+    it('renders the state4 placeholder', () => {
+      const { getByText } = render(<HomeScreen />)
+      expect(getByText('home.state4.placeholder')).toBeTruthy()
+    })
+
+    it('placeholder CTA navigates to /ladder', () => {
+      const { getByText } = render(<HomeScreen />)
+      fireEvent.press(getByText('home.state4.placeholder'))
+      expect(mockPush).toHaveBeenCalledWith('/ladder')
+    })
+  })
+
+  describe('HomeScreenContext construction (real resolveHomeScreenState)', () => {
+    beforeEach(() => {
+      const { resolveHomeScreenState } = jest.requireActual('@exposure-buddy/core')
+      mockResolveHomeScreenState.mockImplementation(resolveHomeScreenState)
+    })
+
+    it('items.every() on a non-empty, all-completed ladder resolves ladderComplete -> completed state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'completed', peakSuds: null }],
+        isLoading: false,
+      })
+      const { getByText, queryByTestId } = render(<HomeScreen />)
+      expect(getByText('home.state10.message')).toBeTruthy()
+      expect(queryByTestId('courage-card')).toBeNull()
+    })
+
+    it('an empty ladder does NOT vacuously resolve ladderComplete -> empty-ladder state, not completed', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
+      const { getByText, queryByText } = render(<HomeScreen />)
+      expect(getByText('ladder.emptyState')).toBeTruthy()
+      expect(queryByText('home.state10.message')).toBeNull()
+    })
+
+    it('a pending (non-complete) ladder with no active session -> morning state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'pending', peakSuds: null }],
+        isLoading: false,
+      })
+      const { getByTestId } = render(<HomeScreen />)
+      expect(getByTestId('courage-card')).toBeTruthy()
+    })
+
+    it('an active session maps to activeThread.exists -> progressing state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'pending', peakSuds: null }],
+        isLoading: false,
+      })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's1', fearItemId: 'a', startedAt: '2026-06-17T08:00:00.000Z' },
+        isLoading: false,
+      })
+      const { getByText } = render(<HomeScreen />)
+      expect(getByText('home.state4.placeholder')).toBeTruthy()
+    })
   })
 })

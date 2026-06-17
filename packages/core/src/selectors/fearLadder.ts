@@ -18,7 +18,7 @@ export interface FearLadderItem extends FearLadderItemSummary {
 export function resolveLowestPendingItem(items: FearLadderItem[]): FearLadderItemSummary | null {
   const pending = items
     .filter(item => item.status === 'pending')
-    .sort((a, b) => a.position - b.position)
+    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
   const first = pending[0]
   if (!first) return null
   const { id, description, predictedSuds, position } = first

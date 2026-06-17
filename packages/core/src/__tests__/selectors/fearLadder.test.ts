@@ -43,4 +43,9 @@ describe('resolveLowestPendingItem', () => {
     expect(result).toEqual({ id: 'a', description: 'Situation a', predictedSuds: 5, position: 1 })
     expect('status' in (result ?? {})).toBe(false)
   })
+
+  it('breaks ties on identical position by ascending id', () => {
+    const result = resolveLowestPendingItem([makeItem('b', 1), makeItem('a', 1)])
+    expect(result?.id).toBe('a')
+  })
 })

@@ -127,6 +127,12 @@
     "welcomeBack": "Welcome back. Keep going.",
     "calmMe": {
       "cta": "Feeling overwhelmed?"
+    },
+    "state4": {
+      "placeholder": "You have an exposure in progress. Tap to view your ladder."
+    },
+    "state10": {
+      "message": "You've completed every situation on your Courage Ladder. Well done."
     }
   },
   "ladder": {
