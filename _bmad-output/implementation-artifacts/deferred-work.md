@@ -465,3 +465,21 @@ _Settled in party-mode roundtable (Sally, Winston, Amelia, John) resolving the r
 - **`HomeScreenContext.activeThread`'s avoidance-detection fields are permanent placeholders.** `openCount`, `openDurationHours`, and `userDeclaredIncomplete` are always zeroed/false in Story 6.2-B's context-building code, present only to satisfy `ADR-HOME-STATE-RESOLVE.md`'s type contract since `avoidance` (state 5) isn't implemented. The ADR's type design forces non-optional fields with no real data source at MVP — consider making them optional in the ADR when `avoidance` is eventually built, rather than perpetuating fake zeros. [`_bmad-output/planning-artifacts/adrs/ADR-HOME-STATE-RESOLVE.md`, Story 6.2-B]
 - **`resolveLowestPendingItem`'s `id` tiebreaker uses `localeCompare`, which is locale-sensitive.** Sort order for the tiebreaker could in theory vary across device locale settings; current test coverage only uses literal `'a'`/`'b'` ids, not real UUID-shaped ids. Low real-world risk (UUIDs are unaccented lowercase hex with no case ambiguity), but worth reconsidering if `AC 3`/the underlying ADR is ever revisited — pre-existing, spec-mandated choice, not a defect introduced by Story 6.2-B's implementation. [`packages/core/src/selectors/fearLadder.ts:21`, Story 6.2-B]
 - **`common.loading` i18n key referenced but never defined.** The new loading-indicator `accessibilityLabel={t('common.loading')}` in `index.tsx` references a key absent from both `en.json` and `hi.json` — inherited verbatim from the pre-existing `apps/mobile/app/ladder.tsx:182` usage, now duplicated rather than introduced by Story 6.2-B. [`apps/mobile/app/(app)/index.tsx`, `apps/mobile/app/ladder.tsx`, `apps/mobile/src/i18n/locales/en.json`]
+
+## Deferred from: code review of 6-2-c-ladder-item-delete (2026-06-17)
+
+_Spec review (no-spec mode) of the Story 6.2-C document itself, before implementation. All items below are real but not actionable yet — re-check during/after T-implementation._
+
+- **Cross-user DELETE silently affects 0 rows with no client-side detection of the resulting local/server divergence** (AC 1). Pre-existing RLS pattern used elsewhere in the project, not unique to this story.
+- **`useActiveExposureSession(userId)`'s `userId` source isn't stated explicitly in AC 6 text** (only implied via "same call signature as index.tsx"). Inferable from the referenced file; minor clarity gap only.
+- **AC7's "exception-free by construction" claim only holds until a future schema change** (e.g. a new NOT NULL column on `dpo_audit_log`). Speculative future risk, not actionable now.
+- **`acting_operator_id = OLD.user_id` conflates actor and subject for self-service deletes** (AC 7); no operator/bulk-delete path exists yet that would need disambiguation.
+- **If the UI guard (AC 6) is ever bypassed, an orphaned `exposure_sessions` row can permanently block all future deletes** via the global active-session check, with no recovery path described. Already tracked as a known residual risk above (party-mode roundtable entry, 2026-06-16) and in this same heading.
+- **Hindi locale duplicates English copy for a high-stakes, irreversible-action confirmation** (AC 8). Matches existing project-wide `hi.json` convention, not a deviation introduced by this story.
+- **`handleConfirmDelete` closes the modal unconditionally even if `enqueue` throws** (catch only logs) (T5). Matches the existing edit/add error-handling convention in the same file.
+- **Stale `activeSession === null` if a session starts on another device between modal-open and tap** (AC 6). Inherent multi-device sync-latency race, not unique to this guard.
+- **0-row DELETE from an already-deleted item or racing devices isn't explicitly addressed** (AC 1, AC 7). Standard Postgres/RLS semantics already handle this correctly (no trigger fire, no error); just unstated in the spec.
+- **i18n lint key-parity behavior for the reused `ladder.cancel` key under `ladder.delete.*` is unverified** (AC 8). Needs a quick check against the actual lint implementation during dev.
+- **Idempotency of a retried `swap_ladder_positions` call (PowerSync batch retry) is correct by construction** (positions are set to absolute values) but never explicitly stated (AC 2, AC 3). Documentation-only gap.
+
+[`_bmad-output/implementation-artifacts/6-2-c-ladder-item-delete.md`]
