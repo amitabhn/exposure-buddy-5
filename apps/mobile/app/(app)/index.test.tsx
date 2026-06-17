@@ -194,4 +194,50 @@ describe('HomeScreen', () => {
       expect(mockPush).toHaveBeenCalledWith('/ladder')
     })
   })
+
+  describe('HomeScreenContext construction (real resolveHomeScreenState)', () => {
+    beforeEach(() => {
+      const { resolveHomeScreenState } = jest.requireActual('@exposure-buddy/core')
+      mockResolveHomeScreenState.mockImplementation(resolveHomeScreenState)
+    })
+
+    it('items.every() on a non-empty, all-completed ladder resolves ladderComplete -> completed state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'completed', peakSuds: null }],
+        isLoading: false,
+      })
+      const { getByText, queryByTestId } = render(<HomeScreen />)
+      expect(getByText('home.state10.message')).toBeTruthy()
+      expect(queryByTestId('courage-card')).toBeNull()
+    })
+
+    it('an empty ladder does NOT vacuously resolve ladderComplete -> empty-ladder state, not completed', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
+      const { getByText, queryByText } = render(<HomeScreen />)
+      expect(getByText('ladder.emptyState')).toBeTruthy()
+      expect(queryByText('home.state10.message')).toBeNull()
+    })
+
+    it('a pending (non-complete) ladder with no active session -> morning state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'pending', peakSuds: null }],
+        isLoading: false,
+      })
+      const { getByTestId } = render(<HomeScreen />)
+      expect(getByTestId('courage-card')).toBeTruthy()
+    })
+
+    it('an active session maps to activeThread.exists -> progressing state', () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'pending', peakSuds: null }],
+        isLoading: false,
+      })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's1', fearItemId: 'a', startedAt: '2026-06-17T08:00:00.000Z' },
+        isLoading: false,
+      })
+      const { getByText } = render(<HomeScreen />)
+      expect(getByText('home.state4.placeholder')).toBeTruthy()
+    })
+  })
 })

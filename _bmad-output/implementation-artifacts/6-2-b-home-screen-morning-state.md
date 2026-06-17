@@ -1,6 +1,6 @@
 # Story 6.2-B: Home Screen Morning State (State 3)
 
-**Status:** review
+**Status:** done
 
 ## Story
 
@@ -261,3 +261,14 @@ None — no blocking issues encountered. `pnpm turbo typecheck`, `pnpm turbo lin
 ### Change Log
 
 - 2026-06-17 — Implemented Story 6.2-B: full `resolveHomeScreenState` MVP state machine, `resolveLowestPendingItem` tiebreaker, `useActiveExposureSession` hook, `index.tsx` wired to real PowerSync data with per-state rendering, `CourageLadderEntryCard` SUDS clamp, new i18n keys. Status moved to "review".
+
+---
+
+### Review Findings — Code Review (2026-06-17)
+
+*Post-implementation review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — diff: `story/6-2-b-home-screen-morning-state` vs `main`. Acceptance Auditor found zero AC violations — implementation matches spec exactly on all 6 ACs.*
+
+- [x] [Review][Patch] AC 5's SUDS clamp (`CourageLadderEntryCard.tsx`) has zero test coverage anywhere in the codebase — `index.test.tsx` fully mocks `@exposure-buddy/ui`'s `CourageLadderEntryCard` to a stub, so the real clamp logic never executes in any test. T5's completion note claiming the clamp "is exercised indirectly via the apps/mobile Jest tests in T6" is inaccurate (T6 is the i18n-keys task, unrelated). **Fixed:** added `apps/mobile/src/components/CourageLadderEntryCard.test.tsx` (4 tests, rendering the real component — the only package with RN-renderable test infra) [AC 5, `packages/ui/src/components/CourageLadderEntryCard.tsx`, `apps/mobile/app/(app)/index.test.tsx`]
+- [x] [Review][Patch] `index.tsx`'s `HomeScreenContext` construction (the `hasLadder`/`ladderComplete`/`activeThread` mapping from `items`/`activeSession`) is untested against the real `resolveHomeScreenState` — every test in `index.test.tsx` mocks `resolveHomeScreenState` itself, so a bug in the ctx-building logic (wrong field, inverted boolean, bad mapping) would pass all current tests undetected. **Fixed:** added a `HomeScreenContext construction (real resolveHomeScreenState)` describe block in `index.test.tsx` (4 tests) that unmocks `resolveHomeScreenState` via `jest.requireActual` and exercises the real ctx-building logic for completed/empty/pending/active-session inputs [AC 4, `apps/mobile/app/(app)/index.tsx:448-457`, `apps/mobile/app/(app)/index.test.tsx`]
+- [x] [Review][Defer] `resolveLowestPendingItem`'s `id` tiebreaker uses `localeCompare`, which is locale-sensitive and could in theory sort differently across device locale settings; the new test only covers literal `'a'`/`'b'` ids, not real UUID-shaped ids. Low real-world risk (UUIDs are unaccented lowercase hex with no case ambiguity) but worth reconsidering if the ADR/AC 3 spec is ever revisited — deferred, pre-existing spec-mandated choice, not a code defect introduced by this story [AC 3, `packages/core/src/selectors/fearLadder.ts:21`]
+- [x] [Review][Defer] The new loading indicator's `accessibilityLabel={t('common.loading')}` references a `common.loading` i18n key that does not exist in `en.json` or `hi.json` — pre-existing gap inherited verbatim from `apps/mobile/app/ladder.tsx:182`, now duplicated by this story rather than introduced by it — deferred, pre-existing [AC 6, `apps/mobile/app/(app)/index.tsx:65`, `apps/mobile/src/i18n/locales/en.json`]
