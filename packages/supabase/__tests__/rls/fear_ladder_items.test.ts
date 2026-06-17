@@ -136,4 +136,51 @@ describe.skipIf(skipIfNoSupabase)('fear_ladder_items table RLS', () => {
     expect(error).toBeNull()
     expect(data).toHaveLength(0)
   })
+
+  it('[+] authenticated user can delete their own row', async () => {
+    if (!userAId) throw new Error('Test setup failed: userAId undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    const { data: item, error: insertError } = await clientA
+      .from('fear_ladder_items')
+      .insert({ user_id: userAId, description: 'To be deleted', predicted_suds: 4, position: 99, status: 'pending' })
+      .select('id')
+      .single()
+    if (insertError || !item) throw new Error(`Failed to seed row for delete test: ${insertError?.message ?? 'null item'}`)
+
+    const { error: deleteError, count } = await clientA
+      .from('fear_ladder_items')
+      .delete({ count: 'exact' })
+      .eq('id', item.id)
+    expect(deleteError).toBeNull()
+    expect(count).toBe(1)
+
+    const { data: afterDelete } = await serviceClient.from('fear_ladder_items').select('id').eq('id', item.id)
+    expect(afterDelete).toHaveLength(0)
+  })
+
+  it('[-] cross-user DELETE is blocked (affects 0 rows)', async () => {
+    if (!userAId || !userBId) throw new Error('Test setup failed: user IDs undefined')
+    const { data: item, error: insertError } = await serviceClient
+      .from('fear_ladder_items')
+      .insert({ ...SEED_PAYLOAD, user_id: userBId, description: 'User B row' })
+      .select('id')
+      .single()
+    if (insertError || !item) throw new Error(`Failed to seed user B row: ${insertError?.message ?? 'null item'}`)
+
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    // RLS filters the DELETE silently — Postgres does not error on a DELETE that matches 0 rows
+    const { error: deleteError, count } = await clientA
+      .from('fear_ladder_items')
+      .delete({ count: 'exact' })
+      .eq('id', item.id)
+    expect(deleteError).toBeNull()
+    expect(count).toBe(0)
+
+    const { data: stillThere } = await serviceClient.from('fear_ladder_items').select('id').eq('id', item.id)
+    expect(stillThere).toHaveLength(1)
+  })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ElementRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator, Alert } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'
@@ -8,6 +8,7 @@ import { detectCrisisKeywords } from '@exposure-buddy/core'
 import type { FearLadderItem } from '@exposure-buddy/core'
 import { getAdapter } from '../src/sync/adapter'
 import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
+import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
 import { BackButton } from '../src/components/navigation/BackButton'
 
 // Pure-JS UUID v4 — same pattern as onboarding ladder.tsx
@@ -23,6 +24,7 @@ export default function LadderScreen() {
   const router = useRouter()
   const { userId, sessionRecoveryData } = useAuth()
   const { items: remoteItems, isLoading: ladderLoading } = useFearLadderItems(userId)
+  const { activeSession, isLoading: sessionLoading } = useActiveExposureSession(userId)
   const [items, setItems] = useState<FearLadderItem[]>([...remoteItems].sort((a, b) => a.position - b.position))
   const [crisisDetected, setCrisisDetected] = useState(false)
 
@@ -128,6 +130,29 @@ export default function LadderScreen() {
     closeForm()
   }
 
+  async function handleConfirmDelete(item: FearLadderItem) {
+    try {
+      // eslint-disable-next-line i18next/no-literal-string
+      await getAdapter().enqueue('fear_ladder_items', 'DELETE', { id: item.id })
+    } catch (err) {
+      console.error('[LadderScreen] delete enqueue failed:', err)
+    }
+    closeForm()
+  }
+
+  function handleRemoveItem(item: FearLadderItem) {
+    Alert.alert(
+      t('ladder.delete.confirmTitle'),
+      t('ladder.delete.confirmMessage'),
+      [
+        // eslint-disable-next-line i18next/no-literal-string
+        { text: t('ladder.cancel'), style: 'cancel' },
+        // eslint-disable-next-line i18next/no-literal-string
+        { text: t('ladder.delete.confirmButton'), style: 'destructive', onPress: () => handleConfirmDelete(item) },
+      ]
+    )
+  }
+
   function handleDragEnd({ data: reorderedData, from, to }: { data: FearLadderItem[]; from: number; to: number }) {
     if (from === to) return
     const updatedItems = reorderedData.map((item, index) => ({ ...item, position: index + 1 }))
@@ -144,6 +169,11 @@ export default function LadderScreen() {
       updatedAt: Date.now(),
     }).catch(err => console.error('[LadderScreen] reorder enqueue failed:', err))
   }
+
+  // D8b: fail closed while the active-session query is still resolving, not just once
+  // it returns a non-null session — a tap during the loading window would otherwise
+  // slip past the guard entirely.
+  const removeDisabled = activeSession !== null || sessionLoading
 
   const statusLabel = (status: string) => {
     // Legacy: 'in_progress' was removed from the DB CHECK constraint in migration 0021
@@ -301,6 +331,23 @@ export default function LadderScreen() {
                 <Text style={styles.saveText}>{t('ladder.saveItem')}</Text>
               </TouchableOpacity>
             </View>
+            {editingItem !== null && (
+              <View style={styles.removeSection}>
+                <TouchableOpacity
+                  style={[styles.removeButton, removeDisabled && styles.removeButtonDisabled]}
+                  onPress={() => handleRemoveItem(editingItem)}
+                  disabled={removeDisabled}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('ladder.removeItem')}
+                  accessibilityState={{ disabled: removeDisabled }}
+                >
+                  <Text style={[styles.removeText, removeDisabled && styles.removeTextDisabled]}>{t('ladder.removeItem')}</Text>
+                </TouchableOpacity>
+                {removeDisabled && (
+                  <Text style={styles.removeGuardText}>{t('ladder.delete.guardMessage')}</Text>
+                )}
+              </View>
+            )}
           </View>
         </Modal>
       </View>
@@ -336,4 +383,10 @@ const styles = StyleSheet.create({
   saveButton: { flex: 1, backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   saveButtonDisabled: { backgroundColor: '#d1d5db' },
   saveText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  removeSection: { marginTop: 24, alignItems: 'center' },
+  removeButton: { paddingVertical: 12, paddingHorizontal: 16 },
+  removeButtonDisabled: { opacity: 0.5 },
+  removeText: { color: '#dc2626', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  removeTextDisabled: { color: '#9ca3af' },
+  removeGuardText: { fontSize: 13, color: '#6b7280', marginTop: 4, textAlign: 'center' },
 })

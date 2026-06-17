@@ -1,6 +1,6 @@
 # Story 6.2-C: Ladder Item Delete
 
-**Status:** ready-for-dev
+**Status:** done
 
 ## Story
 
@@ -157,52 +157,52 @@ The `metadata` JSONB contains only `item_id` — never `description` (the fear t
 
 ### T1 — DELETE RLS policy migration (AC: 1)
 
-- [ ] Create `supabase/migrations/0025_fear_ladder_items_delete_policy.sql` with the idempotent `DROP POLICY IF EXISTS` + `CREATE POLICY "fear_ladder_items_delete_own"` from AC 1
-- [ ] `supabase db reset` locally and confirm the policy exists (`docker exec supabase_db_exposure-buddy psql -U postgres -d postgres -c "SELECT polname FROM pg_policy WHERE polrelid = 'public.fear_ladder_items'::regclass;"` should list 4 policies, including the new DELETE one)
+- [x] Create `supabase/migrations/0025_fear_ladder_items_delete_policy.sql` with the idempotent `DROP POLICY IF EXISTS` + `CREATE POLICY "fear_ladder_items_delete_own"` from AC 1
+- [x] `supabase db reset` locally and confirm the policy exists (`docker exec supabase_db_exposure-buddy psql -U postgres -d postgres -c "SELECT polname FROM pg_policy WHERE polrelid = 'public.fear_ladder_items'::regclass;"` should list 4 policies, including the new DELETE one)
 
 ### T2 — `swap_ladder_positions` RPC migration (AC: 2)
 
-- [ ] Create `supabase/migrations/0026_swap_ladder_positions_rpc.sql` with the function + `GRANT EXECUTE` from AC 2, including the `p_item_a_id = p_item_b_id` guard
-- [ ] `supabase db reset` and manually verify via `service_role` client: function exists, raises on identical item ids, raises on non-owned item, swaps atomically on success
+- [x] Create `supabase/migrations/0026_swap_ladder_positions_rpc.sql` with the function + `GRANT EXECUTE` from AC 2, including the `p_item_a_id = p_item_b_id` guard
+- [x] `supabase db reset` and manually verify via `service_role` client: function exists, raises on identical item ids, raises on non-owned item, swaps atomically on success
 
 ### T3 — `dpo_audit_log` delete-audit migration (AC: 7)
 
-- [ ] Create `supabase/migrations/0027_fear_ladder_items_delete_audit.sql` with the CHECK-constraint widen + `SECURITY DEFINER` trigger function + trigger from AC 7
-- [ ] `supabase db reset` and manually verify: deleting a `fear_ladder_items` row as the owning authenticated user produces exactly one new `dpo_audit_log` row with `action_type = 'ladder_item_delete'`, `metadata = {"item_id": "<deleted-id>"}` (no `description` field anywhere in the row)
+- [x] Create `supabase/migrations/0027_fear_ladder_items_delete_audit.sql` with the CHECK-constraint widen + `SECURITY DEFINER` trigger function + trigger from AC 7
+- [x] `supabase db reset` and manually verify: deleting a `fear_ladder_items` row as the owning authenticated user produces exactly one new `dpo_audit_log` row with `action_type = 'ladder_item_delete'`, `metadata = {"item_id": "<deleted-id>"}` (no `description` field anywhere in the row)
 
 ### T4 — `connector.ts`: reorder-pair detection and RPC call (AC: 3)
 
-- [ ] In `packages/sync/src/connector.ts`, add a grouping step at the start of `uploadData` (after `getCrudBatch`, before the existing `for` loop): partition `batch.crud` by `transactionId`, find groups of exactly 2 entries matching the reorder-pair shape from AC 3 (both PATCH, both on `fear_ladder_items`, both `opData.position` a finite number) — any group of a different size or shape (3+ entries, or mixed op-types) falls through entirely to the per-entry loop
-- [ ] For each detected pair, call `this.supabase.rpc('swap_ladder_positions', {...})`; on a retryable network failure, throw (preserve existing retry-on-throw contract); on a non-retryable application error from the RPC (`'one or both items not found'` or `'auth.uid() does not own both items'`), do not throw a batch-wide retry — surface/log the failure without retrying that pair indefinitely
-- [ ] Route all remaining (non-paired) entries through the existing `_uploadEntry` per-entry loop, unchanged
-- [ ] Do not change `adapter.ts` — `_reorder`'s local SQLite writes already produce the correctly-grouped `transactionId` via `writeTransaction`; this story only changes server-side upload behavior
+- [x] In `packages/sync/src/connector.ts`, add a grouping step at the start of `uploadData` (after `getCrudBatch`, before the existing `for` loop): partition `batch.crud` by `transactionId`, find groups of exactly 2 entries matching the reorder-pair shape from AC 3 (both PATCH, both on `fear_ladder_items`, both `opData.position` a finite number) — any group of a different size or shape (3+ entries, or mixed op-types) falls through entirely to the per-entry loop
+- [x] For each detected pair, call `this.supabase.rpc('swap_ladder_positions', {...})`; on a retryable network failure, throw (preserve existing retry-on-throw contract); on a non-retryable application error from the RPC (`'one or both items not found'` or `'auth.uid() does not own both items'`), do not throw a batch-wide retry — surface/log the failure without retrying that pair indefinitely
+- [x] Route all remaining (non-paired) entries through the existing `_uploadEntry` per-entry loop, unchanged
+- [x] Do not change `adapter.ts` — `_reorder`'s local SQLite writes already produce the correctly-grouped `transactionId` via `writeTransaction`; this story only changes server-side upload behavior
 
 ### T5 — `ladder.tsx`: Remove item UI (AC: 4, 5, 6)
 
-- [ ] Import `useActiveExposureSession` (from `../src/hooks/useActiveExposureSession`, same relative-import pattern as `useFearLadderItems`) and call it unconditionally alongside the existing `useFearLadderItems` call
-- [ ] Add a "Remove item" `TouchableOpacity` inside the edit-modal form (`formVisible && editingItem !== null` — never shown on the Add path), styled as destructive (visually distinct from Save/Cancel, e.g. red text), disabled when `activeSession !== null || isLoading`
-- [ ] When disabled (for either reason), render `t('ladder.delete.guardMessage')` as small text beneath the button
-- [ ] `handleRemoveItem()`: shows the `Alert.alert` confirmation from AC 5 (import `Alert` from `react-native` — already imported in `welcome.tsx` elsewhere in this app for the single-button pattern; this is the first two-button destructive usage)
-- [ ] `handleConfirmDelete(item)`: `await getAdapter().enqueue('fear_ladder_items', 'DELETE', { id: item.id })` inside a try/catch that logs on error (mirror `handleSubmit`'s existing catch-and-continue pattern, lines 93-95) then calls `closeForm()` unconditionally afterward, same as the existing edit/add paths
+- [x] Import `useActiveExposureSession` (from `../src/hooks/useActiveExposureSession`, same relative-import pattern as `useFearLadderItems`) and call it unconditionally alongside the existing `useFearLadderItems` call
+- [x] Add a "Remove item" `TouchableOpacity` inside the edit-modal form (`formVisible && editingItem !== null` — never shown on the Add path), styled as destructive (visually distinct from Save/Cancel, e.g. red text), disabled when `activeSession !== null || isLoading`
+- [x] When disabled (for either reason), render `t('ladder.delete.guardMessage')` as small text beneath the button
+- [x] `handleRemoveItem()`: shows the `Alert.alert` confirmation from AC 5 (import `Alert` from `react-native` — already imported in `welcome.tsx` elsewhere in this app for the single-button pattern; this is the first two-button destructive usage)
+- [x] `handleConfirmDelete(item)`: `await getAdapter().enqueue('fear_ladder_items', 'DELETE', { id: item.id })` inside a try/catch that logs on error (mirror `handleSubmit`'s existing catch-and-continue pattern, lines 93-95) then calls `closeForm()` unconditionally afterward, same as the existing edit/add paths
 
 ### T6 — i18n keys (AC: 8)
 
-- [ ] Add to `apps/mobile/src/i18n/locales/en.json` under `ladder`: `removeItem`, and a nested `delete: { confirmTitle, confirmMessage, confirmButton, guardMessage }` with the canonical English copy from AC 5/6
-- [ ] Duplicate the same English copy into `apps/mobile/src/i18n/locales/hi.json` under the matching `ladder` keys
+- [x] Add to `apps/mobile/src/i18n/locales/en.json` under `ladder`: `removeItem`, and a nested `delete: { confirmTitle, confirmMessage, confirmButton, guardMessage }` with the canonical English copy from AC 5/6
+- [x] Duplicate the same English copy into `apps/mobile/src/i18n/locales/hi.json` under the matching `ladder` keys
 
 ### T7 — Tests (AC: all)
 
-- [ ] **`packages/sync/__tests__/connector.test.ts` (NEW — closes the pre-existing gap noted in `deferred-work.md` line 9: "No test coverage for `SupabasePowerSyncConnector`")**: mock `database.getCrudBatch` to return a `CrudBatch`-shaped object with two PATCH entries on `fear_ladder_items` sharing a `transactionId` and both having `opData.position` → assert `supabase.rpc('swap_ladder_positions', {...})` called exactly once with the correct 4 args, and `supabase.from(...).update(...)` NOT called for either entry. Add a negative case: two PATCH entries with *different* `transactionId`s → both go through the normal per-entry `.update()` path, RPC not called. Add a DELETE-entry case: a `UpdateType.DELETE` entry → `supabase.from('fear_ladder_items').delete().eq('id', ...)` called (existing behavior, now covered). Add a 3-entries-sharing-`transactionId` case and a mixed-DELETE+PATCH-sharing-`transactionId` case → neither calls the RPC, both fall through to `_uploadEntry`. Add a malformed-`opData.position` case (e.g. `position: 'two'` or `null`) → RPC not called, falls through to `_uploadEntry`. Add a non-retryable RPC-error case (mock `rpc` rejecting with `'one or both items not found'`) → assert `uploadData` does not throw a batch-wide retry for that pair
-- [ ] **`packages/supabase/__tests__/rls/fear_ladder_items.test.ts` (extend)**: add `[+] authenticated user can delete their own row` and `[-] cross-user DELETE is blocked (affects 0 rows)`, following the file's existing `describe.skipIf(skipIfNoSupabase)` pattern
-- [ ] **`packages/supabase/__tests__/rls/swap_ladder_positions.test.ts` (NEW)**: `[+] owner can swap two of their own items' positions atomically`, `[-] rejects when auth.uid() does not own item A`, `[-] rejects when auth.uid() does not own item B`, `[-] rejects with non-existent item id`, `[-] rejects when item_a_id equals item_b_id`. Model `beforeAll`/`afterAll` user+item setup on `fear_ladder_items.test.ts`'s pattern
-- [ ] **`packages/supabase/__tests__/rls/fear_ladder_items_delete_audit.test.ts` (NEW)**: `[+] deleting own fear_ladder_items row inserts exactly one dpo_audit_log row with action_type='ladder_item_delete', metadata.item_id matching, no description field anywhere in metadata`. Use `serviceClient` to read back `dpo_audit_log` after an authenticated-client delete (regular users have no SELECT policy on that table, per migration 0006 — only `service_role` can verify the row exists)
-- [ ] **`apps/mobile/app/ladder.test.tsx` (extend)**: mock `useActiveExposureSession` (new `jest.mock('../src/hooks/useActiveExposureSession')`, mirroring how `useFearLadderItems` is already mocked in this file) and `Alert.alert` (`jest.spyOn(Alert, 'alert')` or module mock). Add tests: Remove button visible only when editing an existing item (not on Add); tapping Remove opens the confirm alert with the gravity copy; confirming calls `mockEnqueue` with `('fear_ladder_items', 'DELETE', { id: ... })`; canceling does not call enqueue; Remove button `accessibilityState.disabled === true` and guard text visible when `useActiveExposureSession` mock returns a non-null `activeSession`; same disabled+guard-text assertion when the mock instead returns `{ activeSession: null, isLoading: true }`
+- [x] **`packages/sync/__tests__/connector.test.ts` (NEW — closes the pre-existing gap noted in `deferred-work.md` line 9: "No test coverage for `SupabasePowerSyncConnector`")**: mock `database.getCrudBatch` to return a `CrudBatch`-shaped object with two PATCH entries on `fear_ladder_items` sharing a `transactionId` and both having `opData.position` → assert `supabase.rpc('swap_ladder_positions', {...})` called exactly once with the correct 4 args, and `supabase.from(...).update(...)` NOT called for either entry. Add a negative case: two PATCH entries with *different* `transactionId`s → both go through the normal per-entry `.update()` path, RPC not called. Add a DELETE-entry case: a `UpdateType.DELETE` entry → `supabase.from('fear_ladder_items').delete().eq('id', ...)` called (existing behavior, now covered). Add a 3-entries-sharing-`transactionId` case and a mixed-DELETE+PATCH-sharing-`transactionId` case → neither calls the RPC, both fall through to `_uploadEntry`. Add a malformed-`opData.position` case (e.g. `position: 'two'` or `null`) → RPC not called, falls through to `_uploadEntry`. Add a non-retryable RPC-error case (mock `rpc` rejecting with `'one or both items not found'`) → assert `uploadData` does not throw a batch-wide retry for that pair
+- [x] **`packages/supabase/__tests__/rls/fear_ladder_items.test.ts` (extend)**: add `[+] authenticated user can delete their own row` and `[-] cross-user DELETE is blocked (affects 0 rows)`, following the file's existing `describe.skipIf(skipIfNoSupabase)` pattern
+- [x] **`packages/supabase/__tests__/rls/swap_ladder_positions.test.ts` (NEW)**: `[+] owner can swap two of their own items' positions atomically`, `[-] rejects when auth.uid() does not own item A`, `[-] rejects when auth.uid() does not own item B`, `[-] rejects with non-existent item id`, `[-] rejects when item_a_id equals item_b_id`. Model `beforeAll`/`afterAll` user+item setup on `fear_ladder_items.test.ts`'s pattern
+- [x] **`packages/supabase/__tests__/rls/fear_ladder_items_delete_audit.test.ts` (NEW)**: `[+] deleting own fear_ladder_items row inserts exactly one dpo_audit_log row with action_type='ladder_item_delete', metadata.item_id matching, no description field anywhere in metadata`. Use `serviceClient` to read back `dpo_audit_log` after an authenticated-client delete (regular users have no SELECT policy on that table, per migration 0006 — only `service_role` can verify the row exists)
+- [x] **`apps/mobile/app/ladder.test.tsx` (extend)**: mock `useActiveExposureSession` (new `jest.mock('../src/hooks/useActiveExposureSession')`, mirroring how `useFearLadderItems` is already mocked in this file) and `Alert.alert` (`jest.spyOn(Alert, 'alert')` or module mock). Add tests: Remove button visible only when editing an existing item (not on Add); tapping Remove opens the confirm alert with the gravity copy; confirming calls `mockEnqueue` with `('fear_ladder_items', 'DELETE', { id: ... })`; canceling does not call enqueue; Remove button `accessibilityState.disabled === true` and guard text visible when `useActiveExposureSession` mock returns a non-null `activeSession`; same disabled+guard-text assertion when the mock instead returns `{ activeSession: null, isLoading: true }`
 
 ### T8 — CI verification (AC: all)
 
-- [ ] `pnpm turbo typecheck` — all packages + apps, zero errors
-- [ ] `pnpm turbo lint` — zero errors, confirm no ARC-005 violation flagged for `ladder.tsx` (it must not gain any `@powersync/*` import)
-- [ ] `pnpm turbo test` — all Vitest + Jest suites green; confirm the 4 new pgTAP-style RLS/integration test files actually ran (not silently skipped) if `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` are set locally; `supabase start` must be running for these to execute non-trivially
+- [x] `pnpm turbo typecheck` — all packages + apps, zero errors
+- [x] `pnpm turbo lint` — zero errors, confirm no ARC-005 violation flagged for `ladder.tsx` (it must not gain any `@powersync/*` import)
+- [x] `pnpm turbo test` — all Vitest + Jest suites green; confirm the 4 new pgTAP-style RLS/integration test files actually ran (not silently skipped) if `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` are set locally; `supabase start` must be running for these to execute non-trivially
 
 ---
 
@@ -226,6 +226,22 @@ The `metadata` JSONB contains only `item_id` — never `description` (the fear t
 - [x] [Review][Defer] 0-row DELETE from an already-deleted item or racing devices isn't explicitly addressed [6-2-c-ladder-item-delete.md AC 1, AC 7] — deferred, standard Postgres/RLS semantics already handle this correctly (no trigger fire, no error), just unstated
 - [x] [Review][Defer] i18n lint key-parity behavior for the reused `ladder.cancel` key under `ladder.delete.*` is unverified [6-2-c-ladder-item-delete.md AC 8] — deferred, needs a quick check against the actual lint implementation during dev, not a spec defect
 - [x] [Review][Defer] Idempotency of a retried `swap_ladder_positions` call (PowerSync batch retry) is correct by construction (positions are set to absolute values) but never explicitly stated [6-2-c-ladder-item-delete.md AC 2, AC 3] — deferred, already correct behavior, documentation-only gap
+
+### Code Review Findings (implementation, 2026-06-17)
+
+- [x] [Review][Defer] `swap_ladder_positions` has no rowcount/existence check after its two `UPDATE` statements — if either paired item is deleted by a concurrent transaction between the ownership `SELECT`s and the final `UPDATE`s, the `UPDATE` silently matches 0 rows (no error), and the function reports success despite a partial/no-op swap [`supabase/migrations/0026_swap_ladder_positions_rpc.sql:45-46`] — deferred, narrow race window (concurrent delete must land in the sub-millisecond window between the ownership SELECT and the UPDATE within one transaction); the existing ownership/not-found check already catches the far more common case of an item deleted before the batch starts
+- [x] [Review][Patch] `NON_RETRYABLE_RPC_ERRORS` (`packages/sync/src/connector.ts:23`) doesn't include `swap_ladder_positions`'s third application error, `'item_a and item_b must differ'` (raised when `isReorderPair` admits a pair with `entryA.id === entryB.id`) — `isRetryableError` would treat it as retryable, so a malformed same-id pair would `throw` and PowerSync would retry the identical always-failing call forever, blocking all future sync uploads [`packages/sync/src/connector.ts:23-31`] — applied
+- [x] [Review][Defer] The two `UPDATE`s inside `swap_ladder_positions` are asserted (by code comment) to commit atomically with `uq_user_position`'s deferred constraint check, but no test exercises a constraint-violation scenario to prove it [`supabase/migrations/0026_swap_ladder_positions_rpc.sql`] — deferred, additional test-coverage hardening beyond AC 2's literal scope, not a known defect
+- [x] [Review][Defer] `fear_ladder_items_delete_audit`'s "must never fail" design only holds until a future schema change on `dpo_audit_log` (e.g. a new `NOT NULL` column) [`supabase/migrations/0027_fear_ladder_items_delete_audit.sql`] — deferred, duplicate of an already-deferred spec-review finding (AC 7), speculative future risk
+- [x] [Review][Defer] `acting_operator_id = OLD.user_id` conflates actor and subject for self-service deletes, muddying the column's normal "DPO operator" semantics for any future audit-log reader [`supabase/migrations/0027_fear_ladder_items_delete_audit.sql`] — deferred, duplicate of an already-deferred spec-review finding (AC 7)
+- [x] [Review][Defer] `dpo_audit_log_action_type_check`'s `DROP CONSTRAINT` + re-`ADD CONSTRAINT` takes a brief exclusive-ish lock while validating existing rows, a risk on a high-traffic audit-log table [`supabase/migrations/0027_fear_ladder_items_delete_audit.sql`] — deferred, matches the project's established migration 0021 precedent for the same DROP+ADD CHECK pattern, not unique to this story
+- [x] [Review][Defer] `isReorderPair`/`groupReorderPairs` don't validate that `entry.id` is a well-formed UUID before it reaches `p_item_a_id`/`p_item_b_id` — a corrupted local `ps_crud` row would surface as an opaque Postgres cast error rather than a clear client-side failure [`packages/sync/src/connector.ts:39-50`] — deferred, requires local SQLite corruption to trigger, low likelihood, defense-in-depth only
+- [x] [Review][Defer] `isRetryableError`'s substring match against `error.message` assumes Supabase/PostgREST never wraps or truncates the raw Postgres exception text [`packages/sync/src/connector.ts:28-31`] — deferred, contradicted by the passing `swap_ladder_positions.test.ts` integration tests against the real local Supabase/PostgREST stack, which confirm the message passes through unwrapped
+- [x] [Review][Defer] Non-retryable RPC errors are only `console.error`'d with no telemetry/crash-reporting hook, so a production failure of this kind is invisible to operators [`packages/sync/src/connector.ts:69`] — deferred, AC 2/AC 3 only require "surface/log the failure"; telemetry infrastructure doesn't exist elsewhere in this codebase and is out of scope for this story
+- [x] [Review][Defer] No test combines an actual `DELETE` `CrudEntry` and a reorder-pair referencing the same item id within one batch — only the resulting RPC error is tested in isolation [`packages/sync/__tests__/connector.test.ts`] — deferred, the spec-anticipated behavior (AC 3's in-flight-pair note) is already implemented and tested in equivalent simplified form; this is a test-refinement suggestion, not a behavior gap
+- [x] [Review][Defer] `uploadData` throws on the first retryable error encountered (in either the pairs loop or the remaining-entries loop), aborting the rest of the batch including unrelated valid pairs/entries [`packages/sync/src/connector.ts:51-78`] — deferred, pre-existing PowerSync connector behavior (the original per-entry loop already aborted the whole batch on any single throw), not introduced or worsened by this story
+- [x] [Review][Defer] `groupReorderPairs` buckets by `transactionId` using `== null`, which would not treat a hypothetical `transactionId === 0` as "no transaction" [`packages/sync/src/connector.ts:52-67`] — deferred, speculative; PowerSync's `transactionId` is an auto-incrementing id (observed to start above 0), and the story's own Dev Notes already accept this as a future-PowerSync-internals coupling risk
+- [x] [Review][Defer] `swap_ladder_positions` accepts arbitrary integer positions, including negative or zero, with no range validation [`supabase/migrations/0026_swap_ladder_positions_rpc.sql`] — deferred, AC 2's literal spec SQL; impact is self-scoped to the calling user's own data ordering (RLS-protected, no cross-user effect), not a correctness or security issue
 
 ---
 
@@ -336,22 +352,42 @@ Extend `apps/mobile/app/ladder.test.tsx` per T7. Use `act(async () => ...)` arou
 
 ### Agent Model Used
 
-_To be filled by dev agent._
+claude-sonnet-4-6
 
 ### Debug Log References
 
-_To be filled by dev agent._
+- `supabase db reset` applied migrations 0025-0027 cleanly on first attempt (idempotent NOTICE-level skips for the DROP POLICY/DROP TRIGGER IF EXISTS guards, as expected on a fresh DB)
+- `packages/supabase` RLS/RPC test run initially failed 2 of 5 `swap_ladder_positions.test.ts` assertions: cross-user calls raised `'one or both items not found'` instead of the assumed `'auth.uid() does not own both items'`. Root cause: the function's ownership-check SELECTs run under `SECURITY INVOKER`, so they are themselves subject to the table's SELECT RLS policy — a cross-user item is invisible to that SELECT and surfaces as not-found before the explicit ownership-mismatch branch can ever be reached. The migration matches AC 2's SQL verbatim; fixed the test assertions to match real (and correct) behavior rather than changing the migration.
+- `packages/sync/__tests__/connector.test.ts` initially failed with `SyntaxError: Unexpected token 'typeof'` for every test in the file (and even a minimal one-import smoke test). Root cause: `connector.ts`'s pre-existing `import { UpdateType } from '@powersync/react-native'` is a runtime value import; under Vitest's Node/esbuild environment (no Metro/Babel RN transform), resolving that import executes `@powersync/react-native`'s real `dist/index.js`, which does `require('react-native')` and hits Flow-typed source esbuild cannot parse. Fixed by adding `vi.mock('@powersync/react-native', () => ({ UpdateType: { PUT: 'PUT', PATCH: 'PATCH', DELETE: 'DELETE' } }))` in the test file (Vitest hoists `vi.mock` above all imports, so the real module is never evaluated) — no production code changes needed for this fix.
 
 ### Completion Notes List
 
-_To be filled by dev agent._
+- AC 1-3, 7: three new migrations (0025-0027) applied and verified via `supabase db reset` + direct schema inspection (policy list, function `prosecdef`/grants, constraint definition, trigger existence) — all matched spec exactly.
+- AC 2/AC 3 error-type discrimination implemented in `connector.ts` via a small `NON_RETRYABLE_RPC_ERRORS` string-match list; only the two named application errors from `swap_ladder_positions` are treated as non-retryable (logged, not thrown), everything else still throws to preserve PowerSync's batch-retry contract.
+- AC 3's reorder-pair grouping (`groupReorderPairs`/`isReorderPair` in `connector.ts`) implements the exact fallback rule from the spec: any `transactionId` group not matching "exactly 2 entries, both PATCH, both on `fear_ladder_items`, both with a finite numeric `opData.position`" falls through entirely to the existing per-entry `_uploadEntry` path.
+- AC 4-6: `ladder.tsx` adds the Remove item button (destructive style, edit-modal only), the D13 gravity-copy confirmation `Alert.alert`, and the D8b active-session guard (`activeSession !== null || isLoading`, failing closed during the loading window). No manual optimistic state added for delete — confirmed the existing `remoteItems` → `items` sync `useEffect` (unchanged) already reflects the deletion reactively.
+- AC 8: all 5 new i18n keys (`ladder.removeItem`, `ladder.delete.{confirmTitle,confirmMessage,confirmButton,guardMessage}`) added to both `en.json` and `hi.json` (Hindi duplicates English per existing file convention); `ladder.cancel` reused, not duplicated.
+- All 8 tasks (T1-T8) completed; full monorepo `pnpm turbo typecheck` / `pnpm turbo lint` / `pnpm turbo test` all green. The 4 pgTAP-style RLS/RPC integration test files were run directly with `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` set against local Supabase (not silently skipped) — all 77 `packages/supabase` tests passed, including the 13 new/extended RLS/RPC tests for this story.
+- No deviations from the story's literal AC SQL/code blocks. The two debug-log findings above were test-side fixes (assertion correction, and an RN-module mock for testability), not spec or production-behavior changes.
 
 ### File List
 
-_To be filled by dev agent._
+- `supabase/migrations/0025_fear_ladder_items_delete_policy.sql` (new)
+- `supabase/migrations/0026_swap_ladder_positions_rpc.sql` (new)
+- `supabase/migrations/0027_fear_ladder_items_delete_audit.sql` (new)
+- `packages/sync/src/connector.ts` (modified — reorder-pair detection + RPC call + retryable/non-retryable error discrimination)
+- `packages/sync/__tests__/connector.test.ts` (new)
+- `apps/mobile/app/ladder.tsx` (modified — Remove item UI, confirmation alert, active-session guard)
+- `apps/mobile/app/ladder.test.tsx` (modified — Remove item test coverage)
+- `apps/mobile/src/i18n/locales/en.json` (modified — 5 new `ladder.*` keys)
+- `apps/mobile/src/i18n/locales/hi.json` (modified — same 5 keys, English copy duplicated)
+- `packages/supabase/__tests__/rls/fear_ladder_items.test.ts` (modified — 2 new DELETE RLS tests)
+- `packages/supabase/__tests__/rls/swap_ladder_positions.test.ts` (new)
+- `packages/supabase/__tests__/rls/fear_ladder_items_delete_audit.test.ts` (new)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — status tracking)
 
 ### Change Log
 
-_To be filled by dev agent._
+- 2026-06-17: Story 6.2-C implemented end-to-end — DELETE RLS policy, atomic `swap_ladder_positions` RPC, DPDPA audit trigger, connector.ts reorder-pair detection with retryable/non-retryable error discrimination, ladder.tsx Remove item UI with D13 confirmation copy and D8b active-session guard, i18n keys, and full test coverage (connector unit tests, 3 RLS/RPC integration test files, ladder.tsx UI tests). All 8 tasks complete; status → review.
 
 ---

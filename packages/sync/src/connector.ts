@@ -16,6 +16,71 @@ function upsertOptionsFor(table: string): { onConflict: string } | undefined {
   return col ? { onConflict: col } : undefined
 }
 
+// AC 2's swap_ladder_positions RPC raises exactly these three application-level errors;
+// all are terminal/non-retryable. Anything else (network timeout, connection drop,
+// unexpected Postgres error) is treated as retryable, preserving today's throw-to-retry
+// contract. 'must differ' is included even though isReorderPair's current callers can't
+// produce a same-id pair today — if one ever reached the RPC uncaught, the omission
+// would retry the same always-failing call forever and block all future sync uploads.
+const NON_RETRYABLE_RPC_ERRORS = [
+  'one or both items not found',
+  'auth.uid() does not own both items',
+  'item_a and item_b must differ',
+]
+
+function isRetryableError(error: unknown): boolean {
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return !NON_RETRYABLE_RPC_ERRORS.some(known => message.includes(known))
+}
+
+// AC 3: `_reorder` (adapter.ts) writes both position UPDATEs in one SQLite
+// writeTransaction, giving both ps_crud rows the same transactionId. A "reorder pair"
+// is exactly two entries sharing a transactionId, both PATCH, both on
+// fear_ladder_items, both with a finite numeric opData.position. Any other shape
+// sharing a transactionId (3+ entries, mixed op-types, non-numeric position) falls
+// through entirely to the per-entry upload path.
+function isReorderPair(group: CrudEntry[]): group is [CrudEntry, CrudEntry] {
+  if (group.length !== 2) return false
+  return group.every(entry => {
+    const position = entry.opData?.['position']
+    return (
+      entry.op === UpdateType.PATCH &&
+      entry.table === 'fear_ladder_items' &&
+      typeof position === 'number' &&
+      Number.isFinite(position)
+    )
+  })
+}
+
+function groupReorderPairs(crud: CrudEntry[]): { pairs: [CrudEntry, CrudEntry][]; remaining: CrudEntry[] } {
+  const byTransaction = new Map<number, CrudEntry[]>()
+  const remaining: CrudEntry[] = []
+
+  for (const entry of crud) {
+    if (entry.transactionId == null) {
+      remaining.push(entry)
+      continue
+    }
+    const group = byTransaction.get(entry.transactionId)
+    if (group) {
+      group.push(entry)
+    } else {
+      byTransaction.set(entry.transactionId, [entry])
+    }
+  }
+
+  const pairs: [CrudEntry, CrudEntry][] = []
+  for (const group of byTransaction.values()) {
+    if (isReorderPair(group)) {
+      pairs.push(group)
+    } else {
+      remaining.push(...group)
+    }
+  }
+
+  return { pairs, remaining }
+}
+
 let _urlValidationWarned = false
 
 export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
@@ -52,7 +117,24 @@ export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
     const batch = await database.getCrudBatch(200)
     if (!batch) return  // nothing to upload
 
-    for (const entry of batch.crud) {
+    const { pairs, remaining } = groupReorderPairs(batch.crud)
+
+    for (const [entryA, entryB] of pairs) {
+      const { error } = await this.supabase.rpc('swap_ladder_positions', {
+        p_item_a_id: entryA.id,
+        p_item_a_new_position: entryA.opData!['position'] as number,
+        p_item_b_id: entryB.id,
+        p_item_b_new_position: entryB.opData!['position'] as number,
+      })
+      // Non-retryable application errors (e.g. one of the paired items was deleted
+      // before this batch uploaded — see AC 2/AC 3's error-type discrimination note)
+      // must not propagate as a bare throw, or PowerSync retries the whole batch
+      // forever. Only retryable network-level failures should throw.
+      if (error && isRetryableError(error)) throw error
+      if (error) console.error('[PowerSync] swap_ladder_positions non-retryable error:', error)
+    }
+
+    for (const entry of remaining) {
       const { error } = await this._uploadEntry(entry)
       if (error) throw error  // PowerSync will retry after configured wait (default 5s)
     }
