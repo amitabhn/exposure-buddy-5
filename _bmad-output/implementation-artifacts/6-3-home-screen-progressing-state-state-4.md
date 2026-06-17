@@ -1,6 +1,6 @@
 # Story 6.3: Home Screen Progressing State (State 4)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,28 +22,28 @@ so that I can re-enter the session without confusion (FR-HOME-02, UX-DR-14).
 
 ## Tasks / Subtasks
 
-- [ ] **T1 — Replace the `'progressing'` placeholder branch in `index.tsx`** (AC: 1, 2, 3, 5)
-  - [ ] Destructure `sessionRecoveryData` from `useAuth()` (already imported in `index.tsx`) — this is the canonical, already-proven data source for "resume an in-progress session," identical to the pattern in `(app)/_layout.tsx`'s `handleRecoveryResume` (see Dev Notes — Data source decision).
-  - [ ] Render a context card (reuse the existing `placeholderCard`/`placeholder` `StyleSheet` entries — do not create a new shared UI component for this) showing two pieces of text: the supporting copy `t('home.state4.context')` and the fear item description (`sessionRecoveryData.description` when truthy — treat an empty string `''` the same as `null`/missing, i.e. render supporting-copy-only, identical to the cross-device fallback rendering). Add an `accessibilityLabel={t('home.state4.cta')}` on the card's `TouchableOpacity`, matching the existing pattern already used by the sibling `'empty-ladder'` branch in this file (`accessibilityLabel={t('ladder.addItem')}`).
-  - [ ] Render the CTA text using `t('home.state4.cta')` (canonical English: "Continue") — this label was previously unspecified; it is required by AC 1/AC 2 and AC 5's i18n gate.
-  - [ ] On press, navigate with `router.push` to `/session/active?sessionId=...&fearItemId=...&description=...&preSuds=...`, building the URL with the exact same null-safety pattern as `(app)/_layout.tsx:handleRecoveryResume` (`fearItemId != null ? encodeURIComponent(fearItemId) : ''`). Add `// eslint-disable-line i18next/no-literal-string` on the template-literal line (existing convention for route strings throughout `apps/mobile/app/session/*.tsx`).
-  - [ ] Handle the cross-device fallback (AC 2): if `sessionRecoveryData` is `null` but `activeSession` (from `useActiveExposureSession`, already wired) is non-null — this happens when a session was started on a different device, so this device's MMKV never received the recovery blob — render the context card using only the supporting copy (no description text) and navigate using `activeSession.id` / `activeSession.fearItemId` with `description=''` and `preSuds=0`. `activeSession.fearItemId` can itself be `null` (ladder item deleted post-session-start via Story 6.2-C's `ON DELETE SET NULL` on `exposure_sessions.fear_item_id`) — apply the same null-safety pattern used for the primary path (`fearItemId != null ? encodeURIComponent(fearItemId) : ''`) so this never crashes or stringifies to `'undefined'`. Do not crash or render nothing in this case; `'progressing'` state must always be actionable.
-  - [ ] Confirm no code path renders `expires_at` (it is not even fetched by `useActiveExposureSession` or `sessionRecoveryData` today — keep it that way; do not add an expiry fetch as part of this story).
-- [ ] **T2 — i18n keys** (AC: 1, 2, 5)
-  - [ ] Add `home.state4.context` = "You have an exposure in progress" to `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated in `hi.json`, matching the existing convention noted in Story 6.2-B's Dev Agent Record — Hindi not yet localized for this file).
-  - [ ] Add `home.state4.cta` = "Continue" to both locale files (same English-duplicated-in-`hi.json` convention) — the CTA button copy, required by AC 1/AC 2, previously unspecified.
-  - [ ] Remove the now-unused `home.state4.placeholder` key from both locale files — it was a Story 6.2-B stub key ("You have an exposure in progress. Tap to view your ladder.") and has no remaining usages once T1 lands. Grep both locale files' usages before deleting to confirm.
-- [ ] **T3 — Tests** (AC: all)
-  - [ ] Update `apps/mobile/app/(app)/index.test.tsx`'s `describe("'progressing' state")` block (currently lines 181–196): replace the two existing tests (`renders the state4 placeholder`, `placeholder CTA navigates to /ladder`) — they assert the old stub behavior and will fail once T1 lands.
-  - [ ] New test: context card renders `t('home.state4.context')` and the fear item description when `sessionRecoveryData` is populated.
-  - [ ] New test: tapping the card calls `mockPush` with a `/session/active?...` URL containing `sessionId`, `fearItemId`, `description`, `preSuds` from `sessionRecoveryData`.
-  - [ ] New test: cross-device fallback — `sessionRecoveryData: null`, `activeSession` populated — card still renders and CTA still navigates to `/session/active` (using `activeSession`'s fields).
-  - [ ] New test (AC 1/AC 2): when `sessionRecoveryData.description === ''` (populated session, empty description), the card renders supporting-copy-only — same assertion as the cross-device fallback test, different input source.
-  - [ ] New test (AC 3): `expires_at` is never queried or rendered anywhere in the `'progressing'` state — assert no element/text derived from an `expires_at` value appears, covering both the primary and cross-device fallback paths.
-  - [ ] Update the existing `HomeScreenContext construction (real resolveHomeScreenState)` test at line 230 (`'an active session maps to activeThread.exists -> progressing state'`) — it currently asserts `getByText('home.state4.placeholder')`; this assertion must change to the new copy key.
-  - [ ] Add `sessionRecoveryData: null` to `defaultAuthValue` in the test file's `beforeEach` (it is not currently part of the mocked `useAuth()` shape) so existing non-progressing tests are unaffected, and override per-test in the new progressing tests.
-- [ ] **T4 — CI verification** (AC: all)
-  - [ ] `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` all green.
+- [x] **T1 — Replace the `'progressing'` placeholder branch in `index.tsx`** (AC: 1, 2, 3, 5)
+  - [x] Destructure `sessionRecoveryData` from `useAuth()` (already imported in `index.tsx`) — this is the canonical, already-proven data source for "resume an in-progress session," identical to the pattern in `(app)/_layout.tsx`'s `handleRecoveryResume` (see Dev Notes — Data source decision).
+  - [x] Render a context card (reuse the existing `placeholderCard`/`placeholder` `StyleSheet` entries — do not create a new shared UI component for this) showing two pieces of text: the supporting copy `t('home.state4.context')` and the fear item description (`sessionRecoveryData.description` when truthy — treat an empty string `''` the same as `null`/missing, i.e. render supporting-copy-only, identical to the cross-device fallback rendering). Add an `accessibilityLabel={t('home.state4.cta')}` on the card's `TouchableOpacity`, matching the existing pattern already used by the sibling `'empty-ladder'` branch in this file (`accessibilityLabel={t('ladder.addItem')}`).
+  - [x] Render the CTA text using `t('home.state4.cta')` (canonical English: "Continue") — this label was previously unspecified; it is required by AC 1/AC 2 and AC 5's i18n gate.
+  - [x] On press, navigate with `router.push` to `/session/active?sessionId=...&fearItemId=...&description=...&preSuds=...`, building the URL with the exact same null-safety pattern as `(app)/_layout.tsx:handleRecoveryResume` (`fearItemId != null ? encodeURIComponent(fearItemId) : ''`). Add `// eslint-disable-line i18next/no-literal-string` on the template-literal line (existing convention for route strings throughout `apps/mobile/app/session/*.tsx`).
+  - [x] Handle the cross-device fallback (AC 2): if `sessionRecoveryData` is `null` but `activeSession` (from `useActiveExposureSession`, already wired) is non-null — this happens when a session was started on a different device, so this device's MMKV never received the recovery blob — render the context card using only the supporting copy (no description text) and navigate using `activeSession.id` / `activeSession.fearItemId` with `description=''` and `preSuds=0`. `activeSession.fearItemId` can itself be `null` (ladder item deleted post-session-start via Story 6.2-C's `ON DELETE SET NULL` on `exposure_sessions.fear_item_id`) — apply the same null-safety pattern used for the primary path (`fearItemId != null ? encodeURIComponent(fearItemId) : ''`) so this never crashes or stringifies to `'undefined'`. Do not crash or render nothing in this case; `'progressing'` state must always be actionable.
+  - [x] Confirm no code path renders `expires_at` (it is not even fetched by `useActiveExposureSession` or `sessionRecoveryData` today — keep it that way; do not add an expiry fetch as part of this story).
+- [x] **T2 — i18n keys** (AC: 1, 2, 5)
+  - [x] Add `home.state4.context` = "You have an exposure in progress" to `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated in `hi.json`, matching the existing convention noted in Story 6.2-B's Dev Agent Record — Hindi not yet localized for this file).
+  - [x] Add `home.state4.cta` = "Continue" to both locale files (same English-duplicated-in-`hi.json` convention) — the CTA button copy, required by AC 1/AC 2, previously unspecified.
+  - [x] Remove the now-unused `home.state4.placeholder` key from both locale files — it was a Story 6.2-B stub key ("You have an exposure in progress. Tap to view your ladder.") and has no remaining usages once T1 lands. Grep both locale files' usages before deleting to confirm.
+- [x] **T3 — Tests** (AC: all)
+  - [x] Update `apps/mobile/app/(app)/index.test.tsx`'s `describe("'progressing' state")` block (currently lines 181–196): replace the two existing tests (`renders the state4 placeholder`, `placeholder CTA navigates to /ladder`) — they assert the old stub behavior and will fail once T1 lands.
+  - [x] New test: context card renders `t('home.state4.context')` and the fear item description when `sessionRecoveryData` is populated.
+  - [x] New test: tapping the card calls `mockPush` with a `/session/active?...` URL containing `sessionId`, `fearItemId`, `description`, `preSuds` from `sessionRecoveryData`.
+  - [x] New test: cross-device fallback — `sessionRecoveryData: null`, `activeSession` populated — card still renders and CTA still navigates to `/session/active` (using `activeSession`'s fields).
+  - [x] New test (AC 1/AC 2): when `sessionRecoveryData.description === ''` (populated session, empty description), the card renders supporting-copy-only — same assertion as the cross-device fallback test, different input source.
+  - [x] New test (AC 3): `expires_at` is never queried or rendered anywhere in the `'progressing'` state — assert no element/text derived from an `expires_at` value appears, covering both the primary and cross-device fallback paths.
+  - [x] Update the existing `HomeScreenContext construction (real resolveHomeScreenState)` test at line 230 (`'an active session maps to activeThread.exists -> progressing state'`) — it currently asserts `getByText('home.state4.placeholder')`; this assertion must change to the new copy key.
+  - [x] Add `sessionRecoveryData: null` to `defaultAuthValue` in the test file's `beforeEach` (it is not currently part of the mocked `useAuth()` shape) so existing non-progressing tests are unaffected, and override per-test in the new progressing tests.
+- [x] **T4 — CI verification** (AC: all)
+  - [x] `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` all green.
 
 ---
 
@@ -189,8 +189,29 @@ No new files. No new packages touched. No migration. Fully contained within `app
 
 ### Agent Model Used
 
+claude-sonnet-4-6 (Claude Code)
+
 ### Debug Log References
+
+None — implementation proceeded without needing a debug log; `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` all passed green on first full run after T1–T3.
 
 ### Completion Notes List
 
+- Replaced the `'progressing'` placeholder branch in `apps/mobile/app/(app)/index.tsx` with a real context card. Navigation params are derived once near the top of the component (`progressingSessionId`/`progressingFearItemId`/`progressingDescription`/`progressingPreSuds`), preferring `sessionRecoveryData` (MMKV, device-local) and falling back to `activeSession` (PowerSync, cross-device) when `sessionRecoveryData` is `null` — per the Dev Notes "Data source decision."
+- `fearItemId` null-safety (`!= null ? encodeURIComponent(...) : ''`) is applied uniformly regardless of which source (`sessionRecoveryData` or `activeSession`) supplied it, covering the Story 6.2-C `ON DELETE SET NULL` case from both paths even though `ActiveExposureSession.fearItemId`'s TS type is non-nullable — the hook itself was not modified, per "Files this story touches."
+- The CTA visually reuses the existing `addItemText` style (already used by the sibling `'empty-ladder'` CTA) rather than `placeholder`, for visual parity as a tappable action; the supporting copy and description reuse `placeholder`. No new StyleSheet entries or shared UI components were added.
+- `home-screen-state.ts` and `useActiveExposureSession.ts` were not touched, confirming the Dev Notes scope boundary.
+- T3 added one test beyond the spec's explicit list: cross-device fallback with `activeSession.fearItemId: null`, directly verifying the null-safety pattern doesn't crash or stringify to `'undefined'` (Review Finding #2's concern).
+- Full monorepo `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` all green: mobile 213/213 tests (26/26 in `index.test.tsx`), core 41/41, supabase 27/27 (+50 skipped RLS), sync 23/23.
+
 ### File List
+
+- `apps/mobile/app/(app)/index.tsx` — modified (T1)
+- `apps/mobile/app/(app)/index.test.tsx` — modified (T3)
+- `apps/mobile/src/i18n/locales/en.json` — modified (T2)
+- `apps/mobile/src/i18n/locales/hi.json` — modified (T2)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — modified (status tracking)
+
+### Change Log
+
+- 2026-06-17: Story 6.3 implemented end-to-end — replaced the `'progressing'` state placeholder in `index.tsx` with a real context card (supporting copy + fear item description, `home.state4.cta` CTA, `/session/active` navigation), covering both the primary `sessionRecoveryData` path and the cross-device `activeSession` fallback (including a `null` `fearItemId` sub-case). Added/replaced i18n keys `home.state4.context` and `home.state4.cta`, removed the unused `home.state4.placeholder` stub key. Rewrote the `'progressing'` test block (7 tests) and updated one pre-existing test asserting the old stub copy. All 4 tasks complete; status → review.

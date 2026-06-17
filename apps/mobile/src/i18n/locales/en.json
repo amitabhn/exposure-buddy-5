@@ -129,7 +129,8 @@
       "cta": "Feeling overwhelmed?"
     },
     "state4": {
-      "placeholder": "You have an exposure in progress. Tap to view your ladder."
+      "context": "You have an exposure in progress",
+      "cta": "Continue"
     },
     "state10": {
       "message": "You've completed every situation on your Courage Ladder. Well done."
