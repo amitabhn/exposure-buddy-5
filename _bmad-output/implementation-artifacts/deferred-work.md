@@ -502,3 +502,13 @@ _Adversarial review of the actual implementation diff (migrations, connector.ts,
 - **`swap_ladder_positions` accepts arbitrary integer positions, including negative or zero, with no range validation.** AC 2's literal spec SQL; impact is self-scoped to the calling user's own data ordering (RLS-protected, no cross-user effect), not a correctness or security issue. [`supabase/migrations/0026_swap_ladder_positions_rpc.sql`]
 
 [`_bmad-output/implementation-artifacts/6-2-c-ladder-item-delete.md`]
+
+## Deferred from: code review of 6-3-home-screen-progressing-state-state-4 (2026-06-17)
+
+_Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run before implementation began — no diff existed yet, the spec is the artifact reviewed._
+
+- **`preSuds` has no 0–10 range validation anywhere in the session flow** (`intent.tsx` → URL → `active.tsx`'s `parseInt`). Pre-existing gap not introduced by this story, already tracked as 6-1-CR-D3 above. [`_bmad-output/implementation-artifacts/6-3-home-screen-progressing-state-state-4.md` Dev Notes — Data source decision]
+- **No validation that `sessionId` exists in `exposure_sessions` before `active.tsx` enqueues writes against it** (orphaned/corrupted session ID). Pre-existing pattern across the entire session flow, not introduced or worsened by this story. [`apps/mobile/app/session/active.tsx`]
+- **The cross-device fallback's `preSuds=0` default builds directly on top of the already-tracked 6-1-CR-D3 gap** (unguarded `preSuds` forwarding) rather than mitigating it. Epic 9 candidate per 6-1-CR-D3 above; no new fix required within this story's scope. [`_bmad-output/implementation-artifacts/6-3-home-screen-progressing-state-state-4.md` Dev Notes — "Why the cross-device fallback still matters"]
+
+[`_bmad-output/implementation-artifacts/6-3-home-screen-progressing-state-state-4.md`]
