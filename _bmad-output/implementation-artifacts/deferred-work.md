@@ -1,9 +1,5 @@
 # Deferred Work
 
-## Must-fix before MVP
-
-- **9 RLS integration tests fail after `supabase db reset --local`.** All custom tables created via migrations are missing explicit `GRANT SELECT, INSERT, UPDATE, DELETE TO anon, authenticated, service_role` statements. After a DB reset, Supabase's default grants are not re-applied for these tables, causing `42501: permission denied` on every RLS test. Discovered during 6.2-A smoke testing. Fix: add a grant migration (or amend each table migration) to explicitly grant the required privileges. Affected files: all `supabase/migrations/000{1..8}_*.sql` table-creation migrations; visible in `packages/supabase/__tests__/rls/*.test.ts`.
-
 ## Deferred from: code review of 6-2-a-powersync-foundation implementation (2026-06-16)
 
 _Post-implementation review (Blind Hunter + Acceptance Auditor). Original findings: `6-2-a-powersync-foundation.md` → "Code Review — Post-Implementation (2026-06-16)"._
