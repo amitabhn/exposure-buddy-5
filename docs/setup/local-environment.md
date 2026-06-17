@@ -101,6 +101,25 @@ Story 2.4 introduced a duplicate `nav` key by accident — the second definition
 
 `turbo.json` includes `.env*` in cache inputs. If you change a `.env.local` value, run `turbo build --force` to bypass the stale cache.
 
+### `pod install` fails with `Cannot find module 'react-native-worklets/package.json'`
+
+pnpm's strict isolation means `react-native-worklets` (a peer dep of `react-native-reanimated`) is not hoisted to where CocoaPods' node resolution can find it. The fix is already applied — `react-native-worklets` is declared as a direct dependency in `apps/mobile/package.json`. If you see this error after a `pnpm install` that removes it, re-add it:
+
+```bash
+pnpm --filter exposure-buddy-mobile add react-native-worklets@~0.8.3
+cd apps/mobile/ios && pod install
+```
+
+### App crashes on launch: `Could not resolve @journeyapps/react-native-quick-sqlite`
+
+`@powersync/react-native` requires `@journeyapps/react-native-quick-sqlite` as a peer dependency for its SQLite backend. The fix is already applied — it is declared as a direct dependency in `apps/mobile/package.json`. If you see this error, reinstall and rebuild:
+
+```bash
+pnpm --filter exposure-buddy-mobile add "@journeyapps/react-native-quick-sqlite@^2.5.1"
+cd apps/mobile/ios && pod install
+pnpm exec expo run:ios
+```
+
 ---
 
 ## Epic 3+ — Edge Functions (Deno)
