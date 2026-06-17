@@ -1,6 +1,6 @@
 # Story 6.3: Home Screen Progressing State (State 4)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -59,6 +59,14 @@ so that I can re-enter the session without confusion (FR-HOME-02, UX-DR-14).
 - [x] [Review][Defer] `preSuds` has no 0–10 range validation anywhere in the session flow (`intent.tsx` → URL → `active.tsx`'s `parseInt`) [6-3 Dev Notes — Data source decision] — deferred, pre-existing gap not introduced by this story, already tracked as 6-1-CR-D3 in `deferred-work.md`
 - [x] [Review][Defer] No validation that `sessionId` exists in `exposure_sessions` before `active.tsx` enqueues writes against it (orphaned/corrupted session ID) [6-3 T1; `apps/mobile/app/session/active.tsx`] — deferred, pre-existing pattern across the entire session flow, not introduced or worsened by this story
 - [x] [Review][Defer] The cross-device fallback's `preSuds=0` default builds directly on top of the already-tracked 6-1-CR-D3 gap (unguarded `preSuds` forwarding) rather than mitigating it [6-3 Dev Notes — "Why the cross-device fallback still matters"] — deferred, Epic 9 candidate per `deferred-work.md`, no new fix required within this story's scope
+
+**Code Review — Post-Implementation (2026-06-17)**
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against the merged code diff (`index.tsx`, `index.test.tsx`, `en.json`, `hi.json`). Acceptance Auditor found zero AC violations — all 5 ACs verified satisfied directly against the implementation. 15 unique findings after dedup; 12 dismissed as noise/false-positives/already-spec-mandated, 1 patch, 2 deferred._
+
+- [x] [Review][Patch] No test covers `sessionRecoveryData` populated with `fearItemId: null` — only the `activeSession.fearItemId: null` cross-device case is tested; the primary-path equivalent of the documented null-safety case is untested [`apps/mobile/app/(app)/index.test.tsx`; `apps/mobile/app/(app)/index.tsx:62-67`] — applied (new test `'handles a null sessionRecoveryData.fearItemId without crashing (primary path)'`)
+- [x] [Review][Defer] Navigation params `sessionId` and `preSuds` are interpolated into the `/session/active` URL without `encodeURIComponent` (only `fearItemId`/`description` are encoded) [`apps/mobile/app/(app)/index.tsx:89-92`] — deferred, pre-existing pattern inherited verbatim from `(app)/_layout.tsx`'s `handleRecoveryResume` (mandated by this story's Dev Notes to mirror exactly); low risk since `sessionId` is a UUID and `preSuds` is a `number`
+- [x] [Review][Defer] `accessibilityLabel={t('home.state4.cta')}` on the card's `TouchableOpacity` overrides the accessible name, so screen readers announce only "Continue" instead of the context copy + description that was previously implicit via child text nodes [`apps/mobile/app/(app)/index.tsx:86-101`] — deferred, pre-existing pattern mirrored from the sibling `'empty-ladder'` branch in the same file (explicitly mandated by this story's spec to match it); app-wide accessibility concern broader than this story's scope, candidate for a dedicated accessibility pass
 
 ---
 

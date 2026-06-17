@@ -230,6 +230,18 @@ describe('HomeScreen', () => {
       expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s3&fearItemId=&description=&preSuds=0')
     })
 
+    it('handles a null sessionRecoveryData.fearItemId without crashing (primary path)', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: null, description: 'Public speaking', preSuds: 4 },
+      })
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      expect(mockPush).toHaveBeenCalledWith(
+        '/session/active?sessionId=s1&fearItemId=&description=Public%20speaking&preSuds=4'
+      )
+    })
+
     it('renders supporting-copy-only when sessionRecoveryData.description is an empty string', () => {
       mockUseAuth.mockReturnValue({
         ...defaultAuthValue,

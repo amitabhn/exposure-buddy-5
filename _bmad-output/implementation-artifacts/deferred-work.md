@@ -1,5 +1,14 @@
 # Deferred Work
 
+## Deferred from: code review of 6-3-home-screen-progressing-state-state-4 (2026-06-17)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Acceptance Auditor found zero AC violations. Original findings: `6-3-home-screen-progressing-state-state-4.md` → "Code Review — Post-Implementation (2026-06-17)"._
+
+- **Navigation params `sessionId`/`preSuds` not URL-encoded in `router.push`.** Only `fearItemId`/`description` go through `encodeURIComponent`. Pre-existing pattern inherited verbatim from `(app)/_layout.tsx`'s `handleRecoveryResume`, which this story's Dev Notes explicitly mandated mirroring. Low risk: `sessionId` is a UUID, `preSuds` is a `number`. [`apps/mobile/app/(app)/index.tsx:89-92`]
+- **`accessibilityLabel` on the state-4 card overrides the accessible name, dropping context/description from what screen readers announce.** Mirrors the existing sibling `'empty-ladder'` branch pattern (explicitly required by spec). App-wide accessibility concern, broader than this story; candidate for a dedicated accessibility pass (Story 9.3 territory, alongside 5-2-W16 and 6-1-D6).
+
+---
+
 ## Deferred from: code review of 6-2-a-powersync-foundation implementation (2026-06-16)
 
 _Post-implementation review (Blind Hunter + Acceptance Auditor). Original findings: `6-2-a-powersync-foundation.md` → "Code Review — Post-Implementation (2026-06-16)"._
