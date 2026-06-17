@@ -22,7 +22,9 @@ export const CourageLadderEntryCard = React.forwardRef<
       {lowestPendingItem ? (
         <View>
           <Text style={styles.description}>{lowestPendingItem.description}</Text>
-          <Text style={styles.suds}>Anxiety: {lowestPendingItem.predictedSuds}/10</Text>
+          <Text style={styles.suds}>
+            Anxiety: {Math.min(10, Math.max(0, Math.round(lowestPendingItem.predictedSuds)))}/10
+          </Text>
         </View>
       ) : (
         <Text style={styles.placeholder}>

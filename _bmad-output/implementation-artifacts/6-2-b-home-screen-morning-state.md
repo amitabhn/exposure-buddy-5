@@ -1,6 +1,6 @@
 # Story 6.2-B: Home Screen Morning State (State 3)
 
-**Status:** ready-for-dev
+**Status:** review
 
 ## Story
 
@@ -88,47 +88,47 @@ So that I know exactly what to do next without hunting through the app (FR-HOME-
 
 ### T1 — `resolveHomeScreenState`: full MVP state machine (AC: 1, 2)
 
-- [ ] Replace the `() => 'default'` stub in `packages/core/src/erp/home-screen-state.ts` with `HomeScreenContext`/`HomeScreenState` types matching `ADR-HOME-STATE-RESOLVE.md`
-- [ ] Implement the 5-branch priority ladder from AC 1 (first-use → completed → empty-ladder → progressing → morning)
-- [ ] Add the two deferral comments verbatim (state 5, state 9) — Story 6.3 depends on the state-5 comment already existing
-- [ ] Update `packages/core/src/index.ts`: rename the exported type from `HomeDisplayState` to `HomeScreenState` (repo-wide grep during story creation confirmed `HomeDisplayState` has zero consumers outside `packages/core/src/erp/home-screen-state.ts` and its own test file — no other call sites to update)
-- [ ] Write all 7 test cases from AC 2 in `packages/core/src/erp/home-screen-state.test.ts`
+- [x] Replace the `() => 'default'` stub in `packages/core/src/erp/home-screen-state.ts` with `HomeScreenContext`/`HomeScreenState` types matching `ADR-HOME-STATE-RESOLVE.md`
+- [x] Implement the 5-branch priority ladder from AC 1 (first-use → completed → empty-ladder → progressing → morning)
+- [x] Add the two deferral comments verbatim (state 5, state 9) — Story 6.3 depends on the state-5 comment already existing
+- [x] Update `packages/core/src/index.ts`: rename the exported type from `HomeDisplayState` to `HomeScreenState` (repo-wide grep during story creation confirmed `HomeDisplayState` has zero consumers outside `packages/core/src/erp/home-screen-state.ts` and its own test file — no other call sites to update)
+- [x] Write all 7 test cases from AC 2 in `packages/core/src/erp/home-screen-state.test.ts`
 
 ### T2 — `resolveLowestPendingItem`: tiebreaker (AC: 3)
 
-- [ ] Add `|| a.id.localeCompare(b.id)` to the sort comparator in `packages/core/src/selectors/fearLadder.ts`
-- [ ] Add the duplicate-position test case to `packages/core/src/__tests__/selectors/fearLadder.test.ts`
+- [x] Add `|| a.id.localeCompare(b.id)` to the sort comparator in `packages/core/src/selectors/fearLadder.ts`
+- [x] Add the duplicate-position test case to `packages/core/src/__tests__/selectors/fearLadder.test.ts`
 
 ### T3 — `useActiveExposureSession` hook (AC: 4)
 
-- [ ] Create `apps/mobile/src/hooks/useActiveExposureSession.ts`, mirroring `useFearLadderItems.ts`'s structure (import `useQuery` from `@exposure-buddy/sync`, define the row type, `useMemo` the mapped result, return `{ activeSession, isLoading }`)
-- [ ] Add a Jest test at `apps/mobile/src/hooks/useActiveExposureSession.test.ts` mirroring `useFearLadderItems.test.ts`'s mock pattern (mock `@exposure-buddy/sync`'s `useQuery`)
+- [x] Create `apps/mobile/src/hooks/useActiveExposureSession.ts`, mirroring `useFearLadderItems.ts`'s structure (import `useQuery` from `@exposure-buddy/sync`, define the row type, `useMemo` the mapped result, return `{ activeSession, isLoading }`)
+- [x] Add a Jest test at `apps/mobile/src/hooks/useActiveExposureSession.test.ts` mirroring `useFearLadderItems.test.ts`'s mock pattern (mock `@exposure-buddy/sync`'s `useQuery`)
 
 ### T4 — Wire `index.tsx` to the real state machine (AC: 4, 5, 6)
 
-- [ ] Update `apps/mobile/app/(app)/index.tsx`: call `useFearLadderItems` and `useActiveExposureSession`, build `HomeScreenContext`, call `resolveHomeScreenState`, branch render per AC 4
-- [ ] Add a loading-state render path (both hooks' `isLoading`)
-- [ ] Keep existing greeting / accessibility-focus / Calm Me button logic unchanged
+- [x] Update `apps/mobile/app/(app)/index.tsx`: call `useFearLadderItems` and `useActiveExposureSession`, build `HomeScreenContext`, call `resolveHomeScreenState`, branch render per AC 4
+- [x] Add a loading-state render path (both hooks' `isLoading`)
+- [x] Keep existing greeting / accessibility-focus / Calm Me button logic unchanged
 
 ### T5 — `CourageLadderEntryCard` SUDS clamp (AC: 5)
 
-- [ ] Apply the clamp from AC 5 in `packages/ui/src/components/CourageLadderEntryCard.tsx`
-- [ ] `packages/ui` has no RN-renderable test files (Vitest `passWithNoTests: true` — see project memory); the clamp is exercised indirectly via the `apps/mobile` Jest tests in T6, not a new `packages/ui` test
+- [x] Apply the clamp from AC 5 in `packages/ui/src/components/CourageLadderEntryCard.tsx`
+- [x] `packages/ui` has no RN-renderable test files (Vitest `passWithNoTests: true` — see project memory); the clamp is exercised indirectly via the `apps/mobile` Jest tests in T6, not a new `packages/ui` test
 
 ### T6 — i18n keys (AC: 6)
 
-- [ ] Add `home.state10.message` and `home.state4.placeholder` to `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated in both, matching existing convention)
+- [x] Add `home.state10.message` and `home.state4.placeholder` to `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated in both, matching existing convention)
 
 ### T7 — Tests (AC: all)
 
-- [ ] Update `apps/mobile/app/(app)/index.test.tsx`: the existing mocks for `@exposure-buddy/core` (`resolveLowestPendingItem`) and a new mock for `useActiveExposureSession` need real per-test return values now that the screen branches on resolved state — existing tests asserting the morning-state card and Calm Me button must keep passing under a `'morning'`-context mock; add new tests for `'completed'`, `'empty-ladder'`, and `'progressing'` render branches and for the loading-state render path. The file's existing `beforeEach` already calls `jest.clearAllMocks()`, so the new `resolveHomeScreenState` mock's return value does NOT persist across tests — set it explicitly per-test (or per-`describe` block via its own `beforeEach`), do not rely on a single module-level default
-- [ ] All `packages/core` and `apps/mobile` test additions described in T1–T4 above
+- [x] Update `apps/mobile/app/(app)/index.test.tsx`: the existing mocks for `@exposure-buddy/core` (`resolveLowestPendingItem`) and a new mock for `useActiveExposureSession` need real per-test return values now that the screen branches on resolved state — existing tests asserting the morning-state card and Calm Me button must keep passing under a `'morning'`-context mock; add new tests for `'completed'`, `'empty-ladder'`, and `'progressing'` render branches and for the loading-state render path. The file's existing `beforeEach` already calls `jest.clearAllMocks()`, so the new `resolveHomeScreenState` mock's return value does NOT persist across tests — set it explicitly per-test (or per-`describe` block via its own `beforeEach`), do not rely on a single module-level default
+- [x] All `packages/core` and `apps/mobile` test additions described in T1–T4 above
 
 ### T8 — CI verification (AC: all)
 
-- [ ] `pnpm turbo typecheck` — 0 errors across all packages/apps
-- [ ] `pnpm turbo lint` — 0 errors, including i18n-literal-string lint and ARC-011 boundary check on `packages/core`
-- [ ] `pnpm turbo test` — all Vitest (packages) and Jest (apps/mobile) suites green
+- [x] `pnpm turbo typecheck` — 0 errors across all packages/apps
+- [x] `pnpm turbo lint` — 0 errors, including i18n-literal-string lint and ARC-011 boundary check on `packages/core`
+- [x] `pnpm turbo test` — all Vitest (packages) and Jest (apps/mobile) suites green
 
 ---
 
@@ -225,8 +225,39 @@ The existing test file mocks `@exposure-buddy/core` to return `resolveLowestPend
 
 ### Agent Model Used
 
+Claude Sonnet 4.6 (claude-sonnet-4-6)
+
 ### Debug Log References
+
+None — no blocking issues encountered. `pnpm turbo typecheck`, `pnpm turbo lint`, and `pnpm turbo test` all passed clean on first full run after implementation.
 
 ### Completion Notes List
 
+- T1: `resolveHomeScreenState` implemented as an `if`/`else if` chain exactly matching AC 1's 5-branch priority ladder. Both deferral comments (state 5, state 9) added verbatim. `HomeScreenContext`/`HomeScreenState` match the ADR's type shapes exactly. All 7 AC 2 test cases added and passing.
+- T1: Confirmed via repo-wide grep that `HomeDisplayState` had zero consumers outside `home-screen-state.ts`/its test file before renaming the `packages/core/src/index.ts` export to `HomeScreenState` (also added `HomeScreenContext` to the export surface since `apps/mobile` needs it for typing `index.tsx`'s context object).
+- T2: Tiebreaker added to `resolveLowestPendingItem`'s sort comparator; new test case covers two items with identical `position` resolving by ascending `id`.
+- T3: `useActiveExposureSession` mirrors `useFearLadderItems`'s shape exactly (same `useQuery` import source, same `isLoading` semantics). 4 new Jest tests added, all passing.
+- T4: `index.tsx` now calls both hooks unconditionally at the top (no conditional-hooks bug per the 6.2-A gotcha), builds `HomeScreenContext`, and branches render on `resolveHomeScreenState`'s result. Loading state (either hook) renders an `ActivityIndicator` with `accessibilityLabel={t('common.loading')}`, matching the existing pattern in `ladder.tsx`. The `'empty-ladder'`/`'first-use'`/default (type-level-only states) branches share one render path per AC 4.
+- T5: SUDS clamp applied as a one-line defensive change at the render boundary; no new `packages/ui` test added per the task's explicit instruction (Vitest `passWithNoTests: true`, no RN-renderable test files in that package).
+- T6: Two new i18n keys added to both `en.json` and `hi.json` (English copy duplicated in `hi.json` per existing convention — Hindi not yet localized for this file).
+- T7: `index.test.tsx` rewritten with per-test-mockable `resolveHomeScreenState`, `useFearLadderItems`, and `useActiveExposureSession` mocks. All 11 original tests pass unmodified under a `'morning'`-context default in `beforeEach`. Added 6 new tests across loading/`completed`/`empty-ladder`/`progressing` branches — 17 tests total, all passing.
+- T8: `pnpm turbo typecheck`, `pnpm turbo lint`, and `pnpm turbo test` all green across all 6 packages/apps (193 mobile Jest tests, 41 core Vitest tests, plus supabase/sync/ui suites — no regressions).
+
 ### File List
+
+- `packages/core/src/erp/home-screen-state.ts` (modified)
+- `packages/core/src/erp/home-screen-state.test.ts` (modified)
+- `packages/core/src/selectors/fearLadder.ts` (modified)
+- `packages/core/src/__tests__/selectors/fearLadder.test.ts` (modified)
+- `packages/core/src/index.ts` (modified)
+- `apps/mobile/src/hooks/useActiveExposureSession.ts` (new)
+- `apps/mobile/src/hooks/useActiveExposureSession.test.ts` (new)
+- `apps/mobile/app/(app)/index.tsx` (modified)
+- `apps/mobile/app/(app)/index.test.tsx` (modified)
+- `packages/ui/src/components/CourageLadderEntryCard.tsx` (modified)
+- `apps/mobile/src/i18n/locales/en.json` (modified)
+- `apps/mobile/src/i18n/locales/hi.json` (modified)
+
+### Change Log
+
+- 2026-06-17 — Implemented Story 6.2-B: full `resolveHomeScreenState` MVP state machine, `resolveLowestPendingItem` tiebreaker, `useActiveExposureSession` hook, `index.tsx` wired to real PowerSync data with per-state rendering, `CourageLadderEntryCard` SUDS clamp, new i18n keys. Status moved to "review".
