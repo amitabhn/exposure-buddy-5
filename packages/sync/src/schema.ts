@@ -6,6 +6,7 @@ const users = new Table({
 })
 
 const user_onboarding_metadata = new Table({
+  id: column.text,            // client-generated UUID PK (deferred from 4-2-D5)
   user_id: column.text,
   suds_calibration_value: column.integer,
   completed_at: column.text,

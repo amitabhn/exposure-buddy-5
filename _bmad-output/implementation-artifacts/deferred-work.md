@@ -1,5 +1,48 @@
 # Deferred Work
 
+## Must-fix before MVP
+
+- **9 RLS integration tests fail after `supabase db reset --local`.** All custom tables created via migrations are missing explicit `GRANT SELECT, INSERT, UPDATE, DELETE TO anon, authenticated, service_role` statements. After a DB reset, Supabase's default grants are not re-applied for these tables, causing `42501: permission denied` on every RLS test. Discovered during 6.2-A smoke testing. Fix: add a grant migration (or amend each table migration) to explicitly grant the required privileges. Affected files: all `supabase/migrations/000{1..8}_*.sql` table-creation migrations; visible in `packages/supabase/__tests__/rls/*.test.ts`.
+
+## Deferred from: code review of 6-2-a-powersync-foundation implementation (2026-06-16)
+
+_Post-implementation review (Blind Hunter + Acceptance Auditor). Original findings: `6-2-a-powersync-foundation.md` → "Code Review — Post-Implementation (2026-06-16)"._
+
+- **`_dbByUserId` Map never evicts entries — open `PowerSyncDatabase` handles accumulate on shared devices.** On a device signed into N distinct accounts over its lifetime, N open PowerSyncDatabase instances remain in memory. Relevant for shared-phone India use case. Epic 9 cleanup; evaluate close+evict on `disconnectAndClear`. [`packages/sync/src/client.ts`]
+- **`PowerSyncConnectionManager` useEffect has no cleanup return — DB connection not closed if root layout unmounts.** Hot reload and error-boundary resets trigger unmount. Low-risk in prod but can cause orphaned connections in dev. [`apps/mobile/app/_layout.tsx`]
+- **No test coverage for `SupabasePowerSyncConnector`.** `fetchCredentials`, `uploadData`, and `_uploadEntry` (PUT/PATCH/DELETE branches, ON_CONFLICT_OVERRIDES) are entirely untested. Not required by Story 6.2-A T9; add in a future hardening pass. [`packages/sync/src/connector.ts`]
+- **Migration 0022 pre-cleanup UPDATE is not atomic with CREATE UNIQUE INDEX.** A concurrent INSERT arriving between the two statements can cause the index to fail to create on a live DB. Mitigation: `CREATE UNIQUE INDEX CONCURRENTLY` or app-side write-lock. Already in deferred-work from spec review (AC 9 item); re-confirmed by implementation review. [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+
+---
+
+## Deferred from: code review of 6-2-a-powersync-foundation (2026-06-16)
+
+_Multi-layer spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — items below are real concerns not addressed by Story 6.2-A but classed as out-of-scope or system-wide rather than blockers for this story. Original findings live in the Review Findings section of `6-2-a-powersync-foundation.md`._
+
+- **Module-scope `getPowerSyncDatabase()` throw produces white-screen — no error boundary.** If native SQLite open fails (corrupt db, missing migration, unsupported device), the app crashes before any React render. App-lifecycle topic, not 6.2-A specific. [`apps/mobile/app/_layout.tsx`]
+- **AC 5 schema-bump local reset risk audit beyond `user_onboarding_metadata`.** The spec asserts this is the only at-risk table; no runtime check verifies `ps_crud` is empty for other tables at upgrade time. Add a one-shot pre-upgrade audit log in a follow-up. [`packages/sync/src/schema.ts`]
+- **AC 9 `CREATE UNIQUE INDEX uq_active_thread` not `CONCURRENTLY` — racing with concurrent INSERTs during deploy can fail.** Production-deployment concern; mitigation is `CREATE UNIQUE INDEX CONCURRENTLY` or an app-side write-lock at deploy time. [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+- **AC 7 `_userId` parameter is dead while local SQLite is multi-tenant on the same device.** Sync-rules-based isolation only works when connected; offline + user switch leaks. Decision-needed item in the spec proposes mitigations; this defer covers the residual "minor cases" if the team chooses the lightest option. [`apps/mobile/src/hooks/useFearLadderItems.ts`]
+- **AC 4 `OR IGNORE` for client-generated UUID PKs has negligible collision probability but no test of the duplicate-id path.** Add a property-based test in a future hardening pass. [`packages/sync/src/adapter.ts`]
+- **Fast Refresh re-running module scope in dev causes `initAdapter` double-init.** Make `initAdapter` idempotent (warn-and-replace or no-op) in a follow-up. Low impact: dev-only. [`packages/sync/src/adapter.ts`]
+- **Service-role test cleanup leakage on failed test runs.** When test process is killed mid-run, `exposure_sessions` rows attached to the test user leak. System-wide pattern (already present in `dpo_audit_log.test.ts`), not 6.2-A specific. [`packages/supabase/__tests__/rls/`]
+- **`predicted_suds` is nullable in PowerSync schema but `NOT NULL` in DB.** Verify at implementation time; add app-level validation if PowerSync ever produces a null row. [`packages/sync/src/schema.ts`]
+- **Optimistic INSERT in `ladder.tsx` not rolled back on `enqueue` throw.** `setItems` fires before `getAdapter().enqueue()` resolves. If enqueue throws (e.g. DB not yet init, constraint violation), the item stays in local UI state as a phantom until the next PowerSync sync overwrites. Surfacing errors to UI is Out-of-Scope #13; fix in a future UX hardening pass. [`apps/mobile/app/ladder.tsx`]
+- **`handleDragEnd` only enqueues two positions; intermediate items' positions lost on multi-item drag.** `DraggableFlatList` reassigns all N positions on drag; only the dragged item and the item at the drop target are written via `_reorder`. Items shifted in between keep their old Supabase positions until the next full ladder reload from sync. Pre-existing design (spec models 2-item swap); Story 6.2-C `swap_ladder_positions` RPC addresses atomicity. [`apps/mobile/app/ladder.tsx`]
+- **`uq_active_thread` partial index has NULL gap for `fear_item_id IS NULL`.** When a ladder item is deleted (`ON DELETE SET NULL` from migration 0016), multiple `status='started'` sessions with `fear_item_id IS NULL` can coexist — `NULL != NULL` in SQL bypasses the uniqueness guarantee. FR-HOME-03 is unenforceable for orphaned sessions. Only activates once ladder-item deletion is implemented (Story 6.2-C). [`supabase/migrations/0022_exposure_sessions_active_thread.sql`]
+- **`_urlValidationWarned` module-level flag suppresses repeated invalid-URL warnings after first log.** On shared devices, if User A's connector fires the warning, User B's new connector instance inherits the silenced flag. P2 observability gap only; `return null` still fires correctly. [`packages/sync/src/connector.ts`]
+
+- **`createPowerSyncDatabase()` test escape hatch creates test/prod semantic divergence.** Whatever bug only manifests on the shared singleton (state leak, schema reset race) is invisible to the test suite. Consider replacing with explicit `__resetForTests__` on the singleton. [`packages/sync/src/client.ts`]
+- **Two-PATCH non-atomic reorder retry consistency.** Listed as Out-of-Scope item #8 in the spec — full atomic fix is the `swap_ladder_positions` Postgres RPC in Story 6.2-C. Until then, partial failure during reorder upload can leave server in inconsistent state until next reorder. [Story 6.2-C]
+- **AC 8 references `intent.tsx:107–115` and `ladder.tsx:149` by line number.** Coordinates drift the moment anyone edits these files. Use code-region quotes or function names in future stories.
+- **AC 1 "useQuery and usePowerSync work in all screens" is untestable as written.** No screen enumeration, no smoke list. Narrow to explicit screens in future ACs.
+- **AC 6 lint claim "zero ARC-005 violations" is narrow.** Verify `packages/sync/.eslintrc` (or root config matching `packages/sync/**`) does not forbid the new `@powersync/react-native` re-exports. The boundary owner package needs its own lint allowance.
+- **AC 3 PATCH retry has no idempotency key.** Last-write-wins is the system-wide pattern; documenting here so the next reviewer doesn't re-flag.
+- **`AbstractPowerSyncDatabase.writeTransaction` existence not asserted in spec.** Verify at impl against installed `@powersync/common@1.53.1` type declarations.
+- **Multi-instance connector recreation on user switch may leak prior `SupabaseClient` auth listeners and realtime channels.** AC 2 mandates a fresh `SupabasePowerSyncConnector(createSupabaseClient())` per `userId` change. Whether this leaks depends on whether `createSupabaseClient()` returns a fresh client or the module singleton. Verify at impl. [`apps/mobile/app/_layout.tsx`, `packages/supabase/src/client.ts`]
+
+---
+
 ## 2026-06-15 — Stories 5.4 and 5.5 formally deferred post-Phase-1
 
 - **FR-LADDER-03 — Clinician read access deferred post-Phase-1.** Stories 5.4 (clinician access schema & RLS policies) and 5.5 (clinician access pgTAP coverage) are marked `deferred-post-mvp` in `sprint-status.yaml`; `epic-5` is now closed. Full decision record at `epics.md` FR Coverage Map (FR-LADDER-03) and `prd.md` ("Therapist portal → Phase 2"). The `therapist_patient_relationships` stub table (Story 4.3) and ARC-006/007 stub RLS policies remain in place; Phase 2 activates the real policies via migration with no schema rebuild.
@@ -411,3 +454,11 @@
 - **D-3.3-3: `CREATE TRIGGER` in migration 0008 not idempotent** — `supabase/migrations/0008_dpo_audit_log_truncate_guard.sql` uses `CREATE TRIGGER` without `IF NOT EXISTS` or `OR REPLACE`. Would fail if replayed manually (Supabase CLI tracks state so normal operation is unaffected). Add `DROP TRIGGER IF EXISTS` guard if idempotent replay is ever needed. [`supabase/migrations/0008_dpo_audit_log_truncate_guard.sql`]
 
 - **D-3.3-4: RLS test `beforeAll` uses fixed email — fails on second run without `supabase db reset`** — `dpo-audit-rls-test-a@example.com` is hardcoded; a second run without `supabase db reset` would conflict. Follows existing `profiles.test.ts` pattern; acceptable for local-only test DB. Add idempotent user-upsert logic if test infra is hardened. [`packages/supabase/__tests__/rls/dpo_audit_log.test.ts`]
+
+---
+
+## Architectural decision — no BEFORE DELETE trigger on `fear_ladder_items` (2026-06-16)
+
+_Settled in party-mode roundtable (Sally, Winston, Amelia, John) resolving the rejected Story 6.2 spec. Applies to Story 6.2-C and any future story that adds a server-side delete guard on this table._
+
+- **UI-only delete-during-active-session guard; no DB backstop** — The "Remove item" delete UX (Story 6.2-C) is gated at the UI layer only (`Remove` button disabled when the current user has an `exposure_sessions` row with `status='started'`). A `BEFORE DELETE` trigger on `fear_ladder_items` was explicitly rejected: trigger rejection causes PowerSync's `ps_crud` to retry the upload forever, and the next pull re-materializes the "deleted" row to the user's screen with no error explanation — strictly worse than the bypass it would prevent. If a future REST API layer, admin tooling, or direct Supabase client path is introduced that bypasses the UI guard, prefer an RLS policy or application-layer validator (synchronous error surfaces to the upload pipeline) over a BEFORE DELETE trigger. [`apps/mobile/app/ladder.tsx`, `supabase/migrations/`]

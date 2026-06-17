@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { resolveLowestPendingItem } from '../../selectors/fearLadder'
+import type { FearLadderItemStatus } from '../../selectors/fearLadder'
 
-const makeItem = (id: string, position: number, status = 'pending') => ({
+const makeItem = (id: string, position: number, status: FearLadderItemStatus = 'pending') => ({
   id, description: `Situation ${id}`, predictedSuds: 5, position, status, peakSuds: null,
 })
 
@@ -22,7 +23,7 @@ describe('resolveLowestPendingItem', () => {
 
   it('ignores non-pending items', () => {
     const result = resolveLowestPendingItem([
-      makeItem('x', 1, 'in_progress'),
+      makeItem('x', 1, 'completed'),
       makeItem('y', 2, 'completed'),
     ])
     expect(result).toBeNull()

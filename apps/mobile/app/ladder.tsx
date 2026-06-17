@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ElementRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'
@@ -22,7 +22,7 @@ export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const { userId, sessionRecoveryData } = useAuth()
-  const remoteItems = useFearLadderItems(userId)
+  const { items: remoteItems, isLoading: ladderLoading } = useFearLadderItems(userId)
   const [items, setItems] = useState<FearLadderItem[]>([...remoteItems].sort((a, b) => a.position - b.position))
   const [crisisDetected, setCrisisDetected] = useState(false)
 
@@ -146,6 +146,8 @@ export default function LadderScreen() {
   }
 
   const statusLabel = (status: string) => {
+    // Legacy: 'in_progress' was removed from the DB CHECK constraint in migration 0021
+    // (Story 6.2-A). Stale rows from pre-migration syncs may still carry this value.
     if (status === 'in_progress') return t('ladder.statusInProgress')
     if (status === 'completed') return t('ladder.statusCompleted')
     return t('ladder.statusPending')
@@ -175,8 +177,13 @@ export default function LadderScreen() {
           </View>
         )}
 
-        {/* Empty state */}
-        {items.length === 0 && (
+        {/* Loading state — show spinner while PowerSync hydrates local SQLite */}
+        {ladderLoading && (
+          <ActivityIndicator style={styles.loadingIndicator} accessibilityLabel={t('common.loading')} />
+        )}
+
+        {/* Empty state — only shown once loaded and zero items */}
+        {!ladderLoading && items.length === 0 && (
           <Text style={styles.emptyState}>{t('ladder.emptyState')}</Text>
         )}
 
@@ -310,6 +317,7 @@ const styles = StyleSheet.create({
   itemDescription: { fontSize: 15, color: '#111827', lineHeight: 22 },
   itemMeta: { fontSize: 12, color: '#6b7280', marginTop: 4 },
   dragHandle: { fontSize: 20, color: '#9ca3af', marginLeft: 8 },
+  loadingIndicator: { marginTop: 48 },
   emptyState: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginHorizontal: 24, marginTop: 48, lineHeight: 22 },
   addButton: { position: 'absolute', bottom: 32, left: 24, right: 24, backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   addButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

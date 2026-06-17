@@ -19,8 +19,23 @@ import {
   DMSerifDisplay_400Regular_Italic,
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useRef, useState } from 'react'
-import { AuthProvider, OnboardingProvider, initSession, type MMKV } from '@exposure-buddy/supabase'
+import React, { useEffect, useRef, useState } from 'react'
+import { AuthProvider, OnboardingProvider, initSession, useAuth, createSupabaseClient, type MMKV } from '@exposure-buddy/supabase'
+import * as Sentry from '@sentry/react-native'
+import {
+  PowerSyncContext,
+  getPowerSyncDatabase,
+  createPowerSyncDatabase,
+  PowerSyncSyncAdapter,
+  SupabasePowerSyncConnector,
+  initAdapter,
+} from '@exposure-buddy/sync'
+
+// Placeholder DB used when no user is signed in — never connected to Supabase.
+// Keeps PowerSyncContext.Provider value non-null so useQuery's conditional hook
+// calls don't violate Rules of Hooks on the null→db transition at sign-in.
+// eslint-disable-next-line i18next/no-literal-string
+const _placeholderDb = createPowerSyncDatabase('exposure-buddy-placeholder.db')
 
 // MUST be called before any React rendering — registers Sentry and global error handler
 initErrorHandler()
@@ -73,24 +88,83 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider mmkv={mmkv}>
-        <OnboardingProvider mmkv={mmkv}>
-        <SafeAreaProvider>
-          <ReducedMotionProvider>
-            <ThemeProvider value={DefaultTheme}>
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* eslint-disable-next-line i18next/no-literal-string */}
-                <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-                <Stack.Screen name="calm-me" options={{ headerShown: false }} />
-                {/* eslint-disable-next-line i18next/no-literal-string */}
-                <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-                <Stack.Screen name="session" options={{ headerShown: false }} />
-              </Stack>
-              <PortalHost />
-            </ThemeProvider>
-          </ReducedMotionProvider>
-        </SafeAreaProvider>
-        </OnboardingProvider>
+        <PowerSyncConnectionManager>
+          <OnboardingProvider mmkv={mmkv}>
+          <SafeAreaProvider>
+            <ReducedMotionProvider>
+              <ThemeProvider value={DefaultTheme}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+                  <Stack.Screen name="calm-me" options={{ headerShown: false }} />
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
+                  <Stack.Screen name="session" options={{ headerShown: false }} />
+                </Stack>
+                <PortalHost />
+              </ThemeProvider>
+            </ReducedMotionProvider>
+          </SafeAreaProvider>
+          </OnboardingProvider>
+        </PowerSyncConnectionManager>
       </AuthProvider>
     </GestureHandlerRootView>
+  )
+}
+
+function logSyncLifecycleError(err: unknown) {
+  console.error('[PowerSync] lifecycle error:', err)
+  // eslint-disable-next-line i18next/no-literal-string
+  Sentry.addBreadcrumb({ category: 'powersync', message: 'lifecycle error', data: { err: String(err) } })
+}
+
+function PowerSyncConnectionManager({ children }: { children: React.ReactNode }) {
+  const { userId: rawUserId, isLoading } = useAuth()
+  // Tri-state: undefined = auth still loading, null = signed-out, string = signed-in user id.
+  // useAuth().userId is string|null; isLoading collapses the two null states into a distinct sentinel.
+  const userId = isLoading ? undefined : rawUserId
+
+  const prevUserIdRef = useRef<string | null | undefined>(undefined)
+  // Single in-flight promise chain — sequences connect/disconnectAndClear so a late-resolving
+  // connect() cannot arrive after a sign-out and leave the app connected for a signed-out user.
+  const inFlightRef = useRef<Promise<void>>(Promise.resolve())
+  // Track the current per-user db so the disconnect branch operates on the right instance.
+  const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
+  // Never null: start with placeholder so useQuery's conditional hook calls never see a
+  // falsy context value (Rules of Hooks — useQuery.js:8 returns early before 3 inner hooks).
+  const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase>>(
+    _placeholderDb,
+  )
+
+  useEffect(() => {
+    if (userId === undefined) return                          // auth still loading
+    if (userId === prevUserIdRef.current) return              // no transition
+    prevUserIdRef.current = userId
+
+    if (userId) {
+      const powerSyncDb = getPowerSyncDatabase(userId)
+      currentDbRef.current = powerSyncDb
+      setDb(powerSyncDb)
+      // initAdapter is per-user: each userId gets its own adapter instance bound to its db.
+      initAdapter(new PowerSyncSyncAdapter(powerSyncDb))
+      const connector = new SupabasePowerSyncConnector(createSupabaseClient())
+      inFlightRef.current = inFlightRef.current
+        .then(() => powerSyncDb.connect(connector))
+        .catch(logSyncLifecycleError)
+    } else {
+      const powerSyncDb = currentDbRef.current
+      currentDbRef.current = null
+      setDb(_placeholderDb)  // revert to placeholder — never null (see useState init above)
+      if (!powerSyncDb) return  // nothing to disconnect
+      inFlightRef.current = inFlightRef.current
+        .then(() => powerSyncDb.disconnectAndClear())
+        .catch(logSyncLifecycleError)
+    }
+  }, [userId])
+
+  return (
+    <PowerSyncContext.Provider value={db}>
+      {children}
+    </PowerSyncContext.Provider>
   )
 }

@@ -23,6 +23,7 @@
     "@exposure-buddy/supabase": "workspace:*",
     "@exposure-buddy/sync": "workspace:*",
     "@exposure-buddy/ui": "workspace:*",
+    "@journeyapps/react-native-quick-sqlite": "^2.5.2",
     "@react-navigation/native": "^7.0.0",
     "@rn-primitives/portal": "1.4.0",
     "@sentry/react-native": "~7.2.0",
@@ -44,6 +45,7 @@
     "react-native-reanimated": "~4.1.7",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.16.0",
+    "react-native-worklets": "~0.8.3",
     "tslib": "^2.6.0"
   },
   "devDependencies": {
