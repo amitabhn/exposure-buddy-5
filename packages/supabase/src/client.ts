@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
-export type { Database }
+export type { Database, SupabaseClient }
 export type TypedSupabaseClient = SupabaseClient<Database>
 
 let _client: TypedSupabaseClient | null = null

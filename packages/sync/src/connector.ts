@@ -1,8 +1,6 @@
 import type { PowerSyncBackendConnector, AbstractPowerSyncDatabase, CrudEntry } from '@powersync/react-native'
 import { UpdateType } from '@powersync/react-native'
-// Type-only import — TS strips this at compile, no runtime edge added.
-// Eliminates the hand-rolled SupabaseClientLike interface (which previously caused P9).
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@exposure-buddy/supabase'
 
 // Per-table onConflict registry. Tables not listed here use PostgREST's PK default.
 // user_onboarding_metadata has id UUID PRIMARY KEY + UNIQUE(user_id); migration 0012:26

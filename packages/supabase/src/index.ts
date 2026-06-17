@@ -1,6 +1,6 @@
 // @exposure-buddy/supabase — Supabase client, auth, session, RLS
 export { createSupabaseClient } from './client'
-export type { Database, TypedSupabaseClient } from './client'
+export type { Database, TypedSupabaseClient, SupabaseClient } from './client'
 
 export { AuthProvider, AuthContext } from './auth/AuthProvider'
 export { OnboardingProvider, OnboardingContext } from './auth/OnboardingProvider'
