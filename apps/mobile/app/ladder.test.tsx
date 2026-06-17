@@ -1,5 +1,5 @@
 import React from 'react'
-import { AccessibilityInfo } from 'react-native'
+import { AccessibilityInfo, Alert } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
 jest.mock('react-native-draggable-flatlist', () => {
@@ -45,6 +45,10 @@ jest.mock('../src/hooks/useFearLadderItems', () => ({
   useFearLadderItems: jest.fn(),
 }))
 
+jest.mock('../src/hooks/useActiveExposureSession', () => ({
+  useActiveExposureSession: jest.fn(),
+}))
+
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('../src/sync/adapter', () => ({
@@ -62,9 +66,11 @@ jest.mock('@exposure-buddy/core', () => ({
 }))
 
 import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
+import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
 import LadderScreen from './ladder'
 
 const mockUseFearLadderItems = useFearLadderItems as jest.Mock
+const mockUseActiveExposureSession = useActiveExposureSession as jest.Mock
 
 const baseItem = {
   id: 'item-1',
@@ -82,8 +88,10 @@ describe('LadderScreen', () => {
     jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(42)
     mockUseAuth.mockReturnValue({ userId: 'user-123' })
     mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
+    mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
     mockDetectCrisisKeywords.mockReturnValue(false)
     mockEnqueue.mockResolvedValue(undefined)
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -243,5 +251,96 @@ describe('LadderScreen', () => {
       jest.advanceTimersByTime(100)
     })
     expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+  })
+
+  describe('Remove item (Story 6.2-C)', () => {
+    it('Remove button is not shown on the Add path', () => {
+      const { queryByRole } = render(<LadderScreen />)
+      fireEvent.press(queryByRole('button', { name: 'ladder.addItem' })!)
+      expect(queryByRole('button', { name: 'ladder.removeItem' })).toBeNull()
+    })
+
+    it('Remove button is visible when editing an existing item', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      expect(getByRole('button', { name: 'ladder.removeItem' })).toBeTruthy()
+    })
+
+    it('tapping Remove opens the confirm alert with the gravity copy', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      fireEvent.press(getByRole('button', { name: 'ladder.removeItem' }))
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'ladder.delete.confirmTitle',
+        'ladder.delete.confirmMessage',
+        expect.arrayContaining([
+          expect.objectContaining({ text: 'ladder.cancel', style: 'cancel' }),
+          expect.objectContaining({ text: 'ladder.delete.confirmButton', style: 'destructive' }),
+        ])
+      )
+    })
+
+    it('confirming the alert calls enqueue with DELETE', async () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      fireEvent.press(getByRole('button', { name: 'ladder.removeItem' }))
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0]
+      const buttons = alertCall[2] as { text: string; onPress?: () => void }[]
+      const removeButton = buttons.find(b => b.text === 'ladder.delete.confirmButton')
+      await act(async () => {
+        removeButton!.onPress!()
+      })
+
+      expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'DELETE', { id: 'item-1' })
+    })
+
+    it('canceling the alert does not call enqueue', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      fireEvent.press(getByRole('button', { name: 'ladder.removeItem' }))
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0]
+      const buttons = alertCall[2] as { text: string; onPress?: () => void }[]
+      const cancelButton = buttons.find(b => b.text === 'ladder.cancel')
+      expect(cancelButton!.onPress).toBeUndefined()
+      expect(mockEnqueue).not.toHaveBeenCalled()
+    })
+
+    it('Remove button is disabled and guard text shown when an active session exists', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's1', fearItemId: 'item-1', startedAt: '2026-01-01T00:00:00Z' },
+        isLoading: false,
+      })
+      const { getAllByRole, getByRole, getByText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+
+      const removeButton = getByRole('button', { name: 'ladder.removeItem' })
+      expect(removeButton.props.accessibilityState.disabled).toBe(true)
+      expect(getByText('ladder.delete.guardMessage')).toBeTruthy()
+    })
+
+    it('Remove button is disabled and guard text shown while the active-session query is still loading (D8b)', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: true })
+      const { getAllByRole, getByRole, getByText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+
+      const removeButton = getByRole('button', { name: 'ladder.removeItem' })
+      expect(removeButton.props.accessibilityState.disabled).toBe(true)
+      expect(getByText('ladder.delete.guardMessage')).toBeTruthy()
+    })
   })
 })

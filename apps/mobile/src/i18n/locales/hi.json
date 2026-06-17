@@ -113,6 +113,13 @@
     "statusInProgress": "In progress",
     "statusCompleted": "Completed",
     "reorderHint": "Long-press to reorder",
+    "removeItem": "Remove item",
+    "delete": {
+      "confirmTitle": "Remove item?",
+      "confirmMessage": "This fear and all your progress on it will be permanently removed.",
+      "confirmButton": "Remove",
+      "guardMessage": "Finish your current session first."
+    },
     "crisis": {
       "banner": "This situation might feel very distressing. Remember, you can take it slow.",
       "cta": "I need support"
