@@ -56,6 +56,7 @@ const defaultAuthValue = {
   firstHomeVisitSeen: false,
   markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
   authState: { userId: 'user-123' },
+  sessionRecoveryData: null,
 }
 
 describe('HomeScreen', () => {
@@ -183,15 +184,92 @@ describe('HomeScreen', () => {
       mockResolveHomeScreenState.mockReturnValue('progressing')
     })
 
-    it('renders the state4 placeholder', () => {
+    it('renders the supporting copy and fear item description when sessionRecoveryData is populated', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
+      })
       const { getByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.placeholder')).toBeTruthy()
+      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(getByText('Public speaking')).toBeTruthy()
     })
 
-    it('placeholder CTA navigates to /ladder', () => {
-      const { getByText } = render(<HomeScreen />)
-      fireEvent.press(getByText('home.state4.placeholder'))
-      expect(mockPush).toHaveBeenCalledWith('/ladder')
+    it('tapping the card navigates to /session/active with sessionRecoveryData fields', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
+      })
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      expect(mockPush).toHaveBeenCalledWith(
+        '/session/active?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
+      )
+    })
+
+    it('cross-device fallback: sessionRecoveryData null, activeSession populated — renders supporting-copy-only and navigates using activeSession fields', () => {
+      mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's2', fearItemId: 'b', startedAt: '2026-06-17T08:00:00.000Z' },
+        isLoading: false,
+      })
+      const { getByText, getByRole, queryByText } = render(<HomeScreen />)
+      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(queryByText('Public speaking')).toBeNull()
+      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s2&fearItemId=b&description=&preSuds=0')
+    })
+
+    it('cross-device fallback handles a null activeSession.fearItemId without crashing', () => {
+      mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's3', fearItemId: null, startedAt: '2026-06-17T08:00:00.000Z' },
+        isLoading: false,
+      })
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s3&fearItemId=&description=&preSuds=0')
+    })
+
+    it('handles a null sessionRecoveryData.fearItemId without crashing (primary path)', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: null, description: 'Public speaking', preSuds: 4 },
+      })
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      expect(mockPush).toHaveBeenCalledWith(
+        '/session/active?sessionId=s1&fearItemId=&description=Public%20speaking&preSuds=4'
+      )
+    })
+
+    it('renders supporting-copy-only when sessionRecoveryData.description is an empty string', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: '', preSuds: 4 },
+      })
+      const { getByText, queryByText } = render(<HomeScreen />)
+      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(getByText('home.state4.cta')).toBeTruthy()
+      expect(queryByText('Public speaking')).toBeNull()
+    })
+
+    it('AC 3: never renders expires_at in any form (primary path)', () => {
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthValue,
+        sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
+      })
+      const { queryByText } = render(<HomeScreen />)
+      expect(queryByText(/expires/i)).toBeNull()
+    })
+
+    it('AC 3: never renders expires_at in any form (cross-device fallback path)', () => {
+      mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's2', fearItemId: 'b', startedAt: '2026-06-17T08:00:00.000Z' },
+        isLoading: false,
+      })
+      const { queryByText } = render(<HomeScreen />)
+      expect(queryByText(/expires/i)).toBeNull()
     })
   })
 
@@ -237,7 +315,7 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       const { getByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.placeholder')).toBeTruthy()
+      expect(getByText('home.state4.context')).toBeTruthy()
     })
   })
 })

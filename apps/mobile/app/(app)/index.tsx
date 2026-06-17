@@ -11,7 +11,7 @@ import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSessi
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState } = useAuth()
+  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, sessionRecoveryData } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
@@ -55,6 +55,17 @@ export default function HomeScreen() {
   }
   const homeState = resolveHomeScreenState(ctx)
 
+  // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,
+  // already has description/preSuds), fall back to activeSession (PowerSync, cross-device) when
+  // the recovery blob never reached this device. fearItemId can be null in either source (ladder
+  // item deleted post-session-start, Story 6.2-C's ON DELETE SET NULL) — never crash on it.
+  const progressingSessionId = sessionRecoveryData ? sessionRecoveryData.sessionId : activeSession?.id ?? ''
+  const progressingFearItemId = sessionRecoveryData
+    ? sessionRecoveryData.fearItemId
+    : activeSession?.fearItemId ?? null
+  const progressingDescription = sessionRecoveryData ? sessionRecoveryData.description : ''
+  const progressingPreSuds = sessionRecoveryData ? sessionRecoveryData.preSuds : 0
+
   return (
     <View style={styles.container}>
       <Text style={styles.greeting}>
@@ -75,10 +86,18 @@ export default function HomeScreen() {
       ) : homeState === 'progressing' ? (
         <TouchableOpacity
           style={styles.placeholderCard}
-          onPress={() => router.push('/ladder')}
+          onPress={() =>
+            router.push(
+              // eslint-disable-next-line i18next/no-literal-string
+              `/session/active?sessionId=${progressingSessionId}&fearItemId=${progressingFearItemId != null ? encodeURIComponent(progressingFearItemId) : ''}&description=${encodeURIComponent(progressingDescription)}&preSuds=${progressingPreSuds}`
+            )
+          }
           accessibilityRole="button"
+          accessibilityLabel={t('home.state4.cta')}
         >
-          <Text style={styles.placeholder}>{t('home.state4.placeholder')}</Text>
+          <Text style={styles.placeholder}>{t('home.state4.context')}</Text>
+          {progressingDescription ? <Text style={styles.placeholder}>{progressingDescription}</Text> : null}
+          <Text style={styles.addItemText}>{t('home.state4.cta')}</Text>
         </TouchableOpacity>
       ) : (
         // 'empty-ladder', 'first-use' (unreachable — hasAccount is always true here), and the

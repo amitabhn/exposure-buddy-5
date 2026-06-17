@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-17 # 6-2-c-ladder-item-delete code review complete (1 patch applied, 1 decision deferred); status → done
+last_updated: 2026-06-17 # 6-3-home-screen-progressing-state-state-4 CR complete, 1 patch applied, status → done
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -95,7 +95,7 @@ development_status:
   6-2-a-powersync-foundation: done                  # split from original 6-2 per party-mode roundtable 2026-06-16; CR 2026-06-16
   6-2-b-home-screen-morning-state: done              # depends on 6-2-a; CR 2026-06-17, 2 patches
   6-2-c-ladder-item-delete: done                     # depends on 6-2-a; can parallel 6-2-b; resolves D6/D7/D8b/D13
-  6-3-home-screen-progressing-state-state-4: backlog
+  6-3-home-screen-progressing-state-state-4: done           # CR 2026-06-17, 1 patch
   6-4-re-engagement-after-gap-state-9: backlog
   epic-6-retrospective: optional
 
