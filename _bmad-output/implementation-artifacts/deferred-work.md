@@ -1,5 +1,14 @@
 # Deferred Work
 
+## Deferred from: post-implementation code review of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the implementation diff (`main...HEAD`). Acceptance Auditor found zero AC violations. Original findings: `7-1-calm-me-shell-courage-affirmation-and-action-decision-routing.md` → "Code Review — Post-Implementation (2026-06-18)"._
+
+- **Sequential `enqueue()` calls in `handleFreshSudsSelected` aren't atomic; failures are only `console.error`'d, no user feedback.** If the first `enqueue` (`exposure_sessions`) succeeds but the second (`fear_ladder_items`) throws, the session is marked abandoned while the fear ladder item is left stuck out of `pending` status, with no retry or user-visible error. Same gap and pattern already logged below for `grounding.tsx`'s `handleConfirmStop`, which this code mirrors exactly — not introduced by this story. [`apps/mobile/app/calm-me.tsx:54-66`]
+- **`hi.json` only translates 3 of the 11 new `calmMe.*` keys** (`needToStop`, `yes`, `notNow`) — already documented in the story's own Completion Notes as a translator task; i18next `fallbackLng: 'en'` covers the rest for now. [`apps/mobile/src/i18n/locales/hi.json`]
+
+---
+
 ## Deferred from: code review of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
 
 _Spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the story document itself, since no implementation code exists yet (status: ready-for-dev). Original findings in the Review Findings section of `7-1-calm-me-shell-courage-affirmation-and-action-decision-routing.md`._

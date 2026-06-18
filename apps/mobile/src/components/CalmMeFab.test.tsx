@@ -1,6 +1,10 @@
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react-native'
 
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}))
+
 const mockRouterPush = jest.fn()
 const mockUsePathname = jest.fn()
 

@@ -19,6 +19,7 @@ export default function CalmMeScreen() {
 
   const [showDebriefConfirm, setShowDebriefConfirm] = useState(false)
   const [showFreshSudsPrompt, setShowFreshSudsPrompt] = useState(false)
+  const [submittingSuds, setSubmittingSuds] = useState(false)
 
   function handleExit() {
     // Exit always wins over an open confirm/prompt — dismisses everything, no state change.
@@ -45,7 +46,8 @@ export default function CalmMeScreen() {
   }
 
   async function handleFreshSudsSelected(freshSuds: number) {
-    if (!sessionRecoveryData) return
+    if (!sessionRecoveryData || submittingSuds) return
+    setSubmittingSuds(true)
     const { sessionId, fearItemId, preSuds } = sessionRecoveryData
     const endedAt = new Date().toISOString()
 
@@ -80,7 +82,7 @@ export default function CalmMeScreen() {
     const completedAtMs = Date.now()
     router.push(
       // eslint-disable-next-line i18next/no-literal-string
-      `/session/debrief?sessionId=${sessionId}&fearItemId=${fearItemId != null ? encodeURIComponent(fearItemId) : ''}&preSuds=${preSuds}&debriefSuds=${freshSuds}&peakSuds=${freshSuds}&completedAtMs=${completedAtMs}`
+      `/session/debrief?sessionId=${encodeURIComponent(sessionId)}&fearItemId=${fearItemId != null ? encodeURIComponent(fearItemId) : ''}&preSuds=${encodeURIComponent(String(preSuds))}&debriefSuds=${encodeURIComponent(String(freshSuds))}&peakSuds=${encodeURIComponent(String(freshSuds))}&completedAtMs=${encodeURIComponent(String(completedAtMs))}`
     )
   }
 

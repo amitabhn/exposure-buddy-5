@@ -4,18 +4,20 @@ import { color } from '../tokens/theme'
 
 export interface CalmMeButtonProps {
   onPress: () => void
+  accessibilityLabel: string
 }
 
 export const CalmMeButton = React.forwardRef<
   React.ElementRef<typeof TouchableOpacity>,
   CalmMeButtonProps
->(function CalmMeButton({ onPress }, ref) {
+>(function CalmMeButton({ onPress, accessibilityLabel }, ref) {
   return (
     <TouchableOpacity
       ref={ref}
       style={styles.button}
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
       <Text style={styles.icon}>♡</Text>
     </TouchableOpacity>

@@ -235,6 +235,7 @@
     }
   },
   "calmMe": {
+    "fab": "Calm Me",
     "exit": "Close",
     "affirmation": {
       "1": "Your nervous system is doing exactly what it's supposed to do"

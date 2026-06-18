@@ -1,6 +1,6 @@
 # Story 7.1: Calm Me Shell, Courage Affirmation & Action Decision Routing
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -74,6 +74,19 @@ so that I can access grounding tools without navigating away or losing my sessio
 - [x] [Review][Defer] No error-handling spec for `getAdapter().enqueue()` failures in the "Need to Stop" flow [Dev Notes: "Need to Stop routing — exact contract"] — deferred, pre-existing: the same gap already exists in `grounding.tsx`'s `handleConfirmStop`, the pattern being mirrored here.
 - [x] [Review][Defer] FAB interaction with the non-dismissable recovery modal in `(app)/_layout.tsx` undocumented [`apps/mobile/app/(app)/_layout.tsx:95,127`] — deferred, likely a non-issue: RN's `<Modal>` renders in a separate native layer above all sibling content regardless of mount order, so the FAB shouldn't be reachable through it — but the interaction is never mentioned in the story.
 
+### Code Review — Post-Implementation (2026-06-18)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the implementation diff (`main...HEAD`, 26 files). Acceptance Auditor found zero AC violations — all 11 ACs verified against the implementation, plus tests/typecheck re-run independently. 24 raw findings → 5 patch, 1 decision-needed, 2 defer, 16 dismissed as noise/intentional/already-covered._
+
+- [x] [Review][Decision] "Not now" leaves the exposure session dangling — `handleNotNow` [`apps/mobile/app/calm-me.tsx:36`] only does `setShowDebriefConfirm(false)` + `router.replace('/')`, with no enqueue/clear calls. **Resolved (2026-06-18): intentional soft-cancel** — the session stays active/resumable via the existing recovery modal; no code change needed. Documented explicitly in Dev Notes ("Need to Stop routing — exact contract") so it isn't mistaken for a bug in future reviews.
+- [x] [Review][Patch] `CalmMeButton` has no `accessibilityLabel` [`packages/ui/src/components/CalmMeButton.tsx`] — only an unlabeled "♡" glyph; screen readers announce nothing meaningful. Applied: added a required `accessibilityLabel` prop to `CalmMeButtonProps`, passed from `CalmMeFab.tsx` via a new `calmMe.fab` i18n key (`en.json`/`hi.json`).
+- [x] [Review][Patch] Debrief URL params not encoded [`apps/mobile/app/calm-me.tsx:83`] — `sessionId`, `preSuds`, `freshSuds` (as `debriefSuds`/`peakSuds`), and `completedAtMs` were interpolated raw while only `fearItemId` was wrapped in `encodeURIComponent`. Applied: all interpolated values now wrapped in `encodeURIComponent`.
+- [x] [Review][Patch] No guard against rapid double-tap on the fresh-SUDS prompt [`apps/mobile/app/calm-me.tsx:47-84`, `:182`] — `SudsScale`'s `onChange` called the async `handleFreshSudsSelected` with no in-flight guard. Applied: added a `submittingSuds` state flag that short-circuits re-entry.
+- [x] [Review][Patch] `CalmMeFab` has no double-tap guard [`apps/mobile/src/components/CalmMeFab.tsx`] — rapid taps before navigation completes could call `router.push` twice. Applied: added a `navigatingRef` guard, reset via a `useEffect` keyed on `pathname` once the user leaves `/calm-me`.
+- [x] [Review][Patch] Missing test: Exit while the fresh-SUDS prompt (not just the debrief confirm) is open [`apps/mobile/app/calm-me.test.tsx`] — AC #4 and `handleExit`'s comment claim Exit "dismisses everything," but only the debrief-confirm-open case was tested. Applied: added `'Exit while the fresh-SUDS prompt is open dismisses it and the screen, with no enqueue/state change'` test case.
+- [x] [Review][Defer] Sequential `enqueue()` calls in `handleFreshSudsSelected` aren't atomic and failures are only `console.error`'d, no user feedback [`apps/mobile/app/calm-me.tsx:54-66`] — deferred, pre-existing: same gap and pattern already logged above for `grounding.tsx`'s `handleConfirmStop`, which this code mirrors exactly; not introduced by this story.
+- [x] [Review][Defer] `hi.json` only translates 3 of the 11 new `calmMe.*` keys (`needToStop`, `yes`, `notNow`) [`apps/mobile/src/i18n/locales/hi.json`] — deferred, already documented in this story's own Completion Notes as a translator task; i18next `fallbackLng: 'en'` covers the rest.
+
 ## Dev Notes
 
 ### Determining in-session context — there is no `SessionStateMachine` singleton
@@ -88,7 +101,7 @@ AC #2 (FAB hides on `/calm-me`) and AC #11 (remove the four pre-existing local C
 
 ### Need to Stop routing — exact contract
 
-Tapping "Not now" → `router.replace('/')` (matches the pattern in `session/abandoned.tsx` and `session/debrief.tsx`).
+Tapping "Not now" → `router.replace('/')` (matches the navigation call style of `session/abandoned.tsx` and `session/debrief.tsx`'s "go home" buttons — not their abandonment side-effects). **Decision (code review, 2026-06-18): this is an intentional soft-cancel, not a partial-abandonment path.** "Not now" performs no `enqueue`/`clearSessionInProgress`/`clearSessionIntention` calls — the exposure session is left exactly as it was (still `in_progress`, `sessionRecoveryData` still set), so the user can resume it later via the existing session-recovery modal. Do not add abandonment side-effects to this branch; only "Yes" (below) abandons the session.
 
 Tapping "Yes" first shows an inline one-tap SUDS prompt (reuse the `SudsScale` component pattern from `active.tsx`) — **Decision (code review, 2026-06-18): this story collects a fresh SUDS reading rather than approximating from `sessionRecoveryData.preSuds`**, so the debrief screen's narrative branch and crisis-contact display (`debriefSudsInt >= 8 || peakSudsInt >= 8`) reflect actual current distress. Once the user submits the fresh reading (call it `freshSuds`), proceed in order, mirroring the existing `session/grounding.tsx` `handleConfirmStop` pattern (the closest existing precedent for an early/abandoned exit) before navigating to `/session/debrief`:
 1. `getAdapter().enqueue('exposure_sessions', 'UPDATE', { id: sessionId, status: 'abandoned', ended_at: <now ISO> })`
@@ -245,3 +258,4 @@ Claude Sonnet 4.6 (claude-sonnet-4-6)
 | Date | Change |
 |---|---|
 | 2026-06-18 | Implemented Story 7.1: global Calm Me FAB, `calmMeConfig.ts`/`helplines.ts`, Calm Me screen (non-session + in-session layouts, Exit, Need to Stop → fresh-SUDS → debrief routing), 3 technique-picker placeholder routes, removal of 4 redundant local Calm Me entry points, full test coverage. Status: ready-for-dev → review. |
+| 2026-06-18 | Post-implementation code review: 0 AC violations. 5 patches applied (FAB/button accessibilityLabel, debrief-URL encoding, SUDS-prompt + FAB double-tap guards, missing Exit-during-SUDS test); 1 decision resolved ("Not now" confirmed as intentional soft-cancel, documented in Dev Notes); 2 items deferred (enqueue-failure handling, partial Hindi translations). Status: review → done. |

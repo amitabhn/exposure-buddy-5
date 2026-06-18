@@ -201,4 +201,16 @@ describe('CalmMeScreen — in-session layout', () => {
     expect(mockEnqueue).not.toHaveBeenCalled()
     expect(mockClearSessionInProgress).not.toHaveBeenCalled()
   })
+
+  it('Exit while the fresh-SUDS prompt is open dismisses it and the screen, with no enqueue/state change', () => {
+    const { getByLabelText, getByTestId } = render(<CalmMeScreen />)
+    fireEvent.press(getByLabelText('calmMe.needToStop'))
+    fireEvent.press(getByLabelText('calmMe.yes'))
+    expect(getByTestId('suds-btn-0')).toBeTruthy()
+    fireEvent.press(getByLabelText('calmMe.exit'))
+    expect(mockRouterBack).toHaveBeenCalledTimes(1)
+    expect(mockRouterPush).not.toHaveBeenCalledWith(expect.stringContaining('/session/debrief'))
+    expect(mockEnqueue).not.toHaveBeenCalled()
+    expect(mockClearSessionInProgress).not.toHaveBeenCalled()
+  })
 })
