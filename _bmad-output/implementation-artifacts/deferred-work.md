@@ -28,6 +28,15 @@ _Spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the story
 
 ---
 
+## Deferred from: code review of 7-2-breathing-coach (2026-06-18)
+
+_Spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the story document itself, since no implementation code exists yet (status: ready-for-dev). Decision-needed items were sanity-checked in a BMad party-mode roundtable (Sally/Winston/John/Amelia) before finalizing. Original findings in the Review Findings section of `7-2-breathing-coach.md`._
+
+- **Lightweight analytics event on early/incomplete breathing-session dismissal.** Raised by John (PM) in party-mode review: a user opening the breathing exercise and bailing within the first guided cycle could be a meaningful distress signal, distinct from structured ERP progress tracking (which this story correctly stays out of per AC #8 "treated as incomplete, no persistence"). Proposed shape: an analytics-only event (e.g. `calm_me_breathing_dismissed` with an elapsed-time bucket), no session-state persistence. Revisit when an analytics-event pattern exists for Calm Me/Support Toolkit tools. [`7-2-breathing-coach.md` AC #8]
+- **`color.accent.grounding` (`#8B6F47`) needs a formal designer+QA contrast audit.** `responsive-design-accessibility.md` flags this token as an unresolved risk ("verify or replace before sprint 1... no component enters sprint 1 without written sign-off on this audit") that does not appear to have happened. Story 7.2 worked around the gap by substituting `color.accent.courage` instead of using `accent.grounding`, per Winston (party-mode review): routing around the gate by default risks the gate never being honored if every future story does the same. Get the audit done, or formally retire the token. [`packages/ui/src/tokens/theme.ts:23`, `responsive-design-accessibility.md:35`]
+
+---
+
 ## Deferred from: code review of 6-3-home-screen-progressing-state-state-4 (2026-06-17)
 
 _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Acceptance Auditor found zero AC violations. Original findings: `6-3-home-screen-progressing-state-state-4.md` → "Code Review — Post-Implementation (2026-06-17)"._
