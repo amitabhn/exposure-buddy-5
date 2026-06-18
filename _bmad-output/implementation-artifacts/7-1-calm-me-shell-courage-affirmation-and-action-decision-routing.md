@@ -1,6 +1,6 @@
 # Story 7.1: Calm Me Shell, Courage Affirmation & Action Decision Routing
 
-Status: ready-for-dev
+Status: ready-for-dev (post code-review revision, 2026-06-18)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -15,14 +15,14 @@ so that I can access grounding tools without navigating away or losing my sessio
 1. **Global FAB.** `CalmMeButton` is mounted in `apps/mobile/app/_layout.tsx` outside the `<Stack />`, so it is always visible and tappable on every screen, persisting across all route transitions. `CalmMeButton` itself lives in `packages/ui/src/components/CalmMeButton.tsx`, is navigation-agnostic (accepts an `onPress` prop only — no router import inside `packages/ui`), and the root layout wires `onPress` to `router.push('/calm-me')`.
 2. **No double-stacking.** When the Calm Me screen (`/calm-me`) is the active route, the root layout hides or disables the FAB so a second Calm Me screen cannot be pushed on top of an open one.
 3. **`calmMeConfig.ts` created.** `packages/core/src/config/calmMeConfig.ts` exports `CALM_ME_AFFIRMATIONS: string[]` with one entry (`'calmMe.affirmation.1'`, canonical "Your nervous system is doing exactly what it's supposed to do") and a comment noting post-MVP rotation only requires adding entries. The support screen renders `t(CALM_ME_AFFIRMATIONS[0])`.
-4. **Exit affordance.** The Calm Me screen always shows an Exit icon (✕) top-right; tapping it returns the user to the screen they came from with no state change, in both session and non-session contexts.
-5. **Non-session layout.** When opened outside an active exposure session, the screen shows: (1) courage affirmation, (2) technique picker with three targets — Breathing, 5-4-3-2-1, Helplines (stubbed targets at this stage; Stories 7.2–7.4 implement their destinations) — and (3) **no** action footer.
+4. **Exit affordance.** The Calm Me screen always shows an Exit icon (✕) top-right; tapping it returns the user to the screen they came from with no state change, in both session and non-session contexts. If the "Debrief now?" inline confirm (AC #8) is open, Exit takes precedence — it dismisses the confirm and the screen together, with no state change, rather than dismissing only the confirm.
+5. **Non-session layout.** When opened outside an active exposure session, the screen shows: (1) courage affirmation, (2) technique picker with three targets — Breathing, 5-4-3-2-1, Helplines (each navigates to a minimal placeholder route at this stage, showing `t('calmMe.comingSoon')` copy; Stories 7.2–7.4 replace the placeholder content without changing the navigation wiring — see Dev Notes "Technique picker placeholder routes") — and (3) **no** action footer.
 6. **In-session layout.** When opened while an exposure is in progress (see Dev Notes — "Determining in-session context" for the concrete signal), the screen additionally shows an action footer with `t('calmMe.keepGoing')` ("I can keep going") and `t('calmMe.needToStop')` ("I need to stop").
 7. **Keep Going.** Tapping `t('calmMe.keepGoing')` closes the screen with a brief fade (≤300ms) back to the active exposure screen; no state-machine transition fires; no copy/toast beyond the fade.
-8. **Need to Stop.** Tapping `t('calmMe.needToStop')` shows an inline confirm with `t('calmMe.debriefNow')` ("Debrief now?") and two options — Yes and Not now (see Dev Notes — "Need to Stop routing" for the exact navigation and data contract both branches must satisfy).
-9. **`helplines.ts` created.** `packages/core/src/config/helplines.ts` exports the `Helpline` interface and `HELPLINES: Helpline[]` array exactly as specified in Dev Notes — pure data/types, zero RN/Linking imports (ARC-001). Story 7.4 is the only story that wires this to UI; this story only creates the file.
+8. **Need to Stop.** Tapping `t('calmMe.needToStop')` shows an inline confirm with `t('calmMe.debriefNow')` ("Debrief now?") and two options — Yes and Not now. Tapping Yes first prompts for a fresh one-tap SUDS reading (reusing the `SudsScale` pattern from `active.tsx`) before navigating to debrief, so the debrief screen's narrative branch and crisis-contact display reflect actual current distress rather than the stale pre-session reading (see Dev Notes — "Need to Stop routing" for the exact navigation and data contract both branches must satisfy).
+9. **`helplines.ts` created.** `packages/core/src/config/helplines.ts` exports the `Helpline` interface and `HELPLINES: Helpline[]` array exactly as specified in Dev Notes — pure data/types, zero RN/Linking imports (ARC-011). Story 7.4 is the only story that wires this to UI; this story only creates the file.
 10. **i18n.** Every visible string on the Calm Me screen uses `t()`; no raw string literals in JSX; CI i18next lint passes.
-11. **No duplicate entry points.** The three pre-existing local "Calm Me" buttons that are now redundant with the global FAB are removed, and their tests updated accordingly (see Dev Notes — "Existing Calm Me entry points to remove").
+11. **No duplicate entry points** *(story-author addition — not present in epics.md's Story 7.1 AC list; added because the new global FAB makes these obsolete, see Dev Notes — "AC #2 and AC #11 scope note")*. The four pre-existing local "Calm Me" buttons that are now redundant with the global FAB are removed, and their tests updated accordingly (see Dev Notes — "Existing Calm Me entry points to remove").
 
 ## Tasks / Subtasks
 
@@ -30,14 +30,16 @@ so that I can access grounding tools without navigating away or losing my sessio
   - [ ] Create `packages/core/src/config/calmMeConfig.ts` (`CALM_ME_AFFIRMATIONS`)
   - [ ] Create `packages/core/src/config/helplines.ts` (`Helpline` type + `HELPLINES`)
   - [ ] Export both from `packages/core/src/index.ts`
-  - [ ] No RN/Expo/`@supabase/*` imports in either file (ARC-001 boundary check)
+  - [ ] No RN/Expo/`@supabase/*` imports in either file (ARC-011 boundary check)
 - [ ] Task 2: `CalmMeButton` primitive (AC: #1)
   - [ ] Create `packages/ui/src/components/CalmMeButton.tsx` — `React.forwardRef`-wrapped `TouchableOpacity`, `onPress: () => void` prop only, no navigation import
   - [ ] Export `CalmMeButton` + `CalmMeButtonProps` from `packages/ui/src/index.ts`
 - [ ] Task 3: Build the Calm Me screen (AC: #4, #5, #6, #7, #8, #10)
-  - [ ] Replace the stub `apps/mobile/app/calm-me.tsx` with the real screen: affirmation, technique picker (3 stub targets), Exit icon, conditional action footer, "Debrief now?" inline confirm
+  - [ ] Replace the stub `apps/mobile/app/calm-me.tsx` with the real screen: affirmation, technique picker (3 placeholder-route targets), Exit icon, conditional action footer, "Debrief now?" inline confirm
   - [ ] Implement in-session detection per Dev Notes ("Determining in-session context")
-  - [ ] Implement Keep Going (fade dismiss) and Need to Stop (confirm → Yes/Not now) per Dev Notes ("Need to Stop routing")
+  - [ ] Implement Keep Going (fade dismiss) and Need to Stop (confirm → fresh SUDS prompt → Yes/Not now) per Dev Notes ("Need to Stop routing")
+  - [ ] Create the three technique-picker placeholder routes per Dev Notes ("Technique picker placeholder routes"): `apps/mobile/app/calm-me/breathing.tsx`, `calm-me/grounding.tsx`, `calm-me/helplines.tsx` — each with a top-left Back icon button (`router.back()`, `accessibilityLabel={t('calmMe.back')}`) to return to the Calm Me screen
+  - [ ] Implement the inline fresh-SUDS prompt on the "Need to Stop → Yes" path (reuse `SudsScale` pattern from `active.tsx`) per Dev Notes ("Need to Stop routing")
   - [ ] Add all new i18n keys to both `en.json` and `hi.json`
 - [ ] Task 4: Wire the FAB into the root layout (AC: #1, #2)
   - [ ] Mount `CalmMeButton` in `apps/mobile/app/_layout.tsx` outside `<Stack />`
@@ -46,12 +48,31 @@ so that I can access grounding tools without navigating away or losing my sessio
   - [ ] Remove the local Calm Me button from `apps/mobile/app/session/active.tsx` (`session.active.calmMe`) and its two assertions in `active.test.tsx`
   - [ ] Remove the local Calm Me button from `apps/mobile/app/session/abandoned.tsx`
   - [ ] Remove the local Calm Me button from `apps/mobile/app/(app)/index.tsx` and its two assertions in `index.test.tsx`
+  - [ ] Remove the local Calm Me button from `apps/mobile/app/session/debrief.tsx` (`home.calmMe.cta`, ~lines 220-225) — no test file references it, no test update needed
   - [ ] Leave `ladder.tsx`'s crisis-banner CTA untouched (different trigger — crisis-keyword detection, not a generic always-on button)
+  - [ ] Remove the now-orphaned i18n keys `session.active.calmMe` and `home.calmMe.cta` from both `en.json`/`hi.json` once all four buttons above are removed and nothing else references them
 - [ ] Task 6: Tests
   - [ ] `CalmMeButton.test.tsx` in `packages/ui` (renders, calls `onPress`)
-  - [ ] `calm-me.test.tsx` covering: non-session layout (no footer), in-session layout (footer present), Keep Going dismiss, Need to Stop → Yes routes to debrief with correct params + enqueues abandonment, Need to Stop → Not now routes home, Exit returns with no state change
+  - [ ] `calm-me.test.tsx` covering: non-session layout (no footer), in-session layout (footer present), Keep Going dismiss, Need to Stop → fresh-SUDS prompt → Yes routes to debrief with correct params (including the freshly-entered SUDS value) + enqueues abandonment, Need to Stop → Not now routes home, Exit returns with no state change, Exit while the "Debrief now?" confirm is open dismisses both with no state change
+  - [ ] AC #7's "≤300ms fade" is a design target, not a unit-tested assertion — tests should assert the fade *occurs* (screen dismisses, returns to the active exposure screen) and that no state-machine transition fires, not the exact duration
   - [ ] Update `_layout.test.tsx` (or equivalent) for FAB presence/hide-on-`/calm-me` if such a test file exists — check first
   - [ ] Run `pnpm turbo lint` to confirm no `i18next/no-literal-string` violations
+
+### Review Findings
+
+- [x] [Review][Patch] Resolve SUDS approximation gap by collecting a fresh reading — **Decision (2026-06-18): require a fresh SUDS reading rather than accept the approximation.** Applied: AC #8, Task 3, and the "Need to Stop routing" Dev Notes now require an inline fresh SUDS prompt before navigating to debrief.
+- [x] [Review][Patch] Relabel AC #2/#11 citation — **Decision (2026-06-18): keep both ACs, stop claiming epics.md as their source.** Applied: new Dev Note "AC #2 and AC #11 scope note" + AC #11 parenthetical mark these as story-author additions.
+- [x] [Review][Patch] Define stub technique-picker tap behavior — **Decision (2026-06-18): tappable, navigates to a placeholder screen.** Applied: AC #5, Task 3, and new Dev Note "Technique picker placeholder routes" specify the three placeholder routes + `calmMe.comingSoon` copy.
+- [x] [Review][Patch] Add missing 4th entry point `session/debrief.tsx` to the removal table — Applied: table, Task 5, Project Structure Notes, and AC #11 all updated to five total instances / four to remove.
+- [x] [Review][Patch] Add missing `clearSessionIntention(sessionId)` call to the "Need to Stop → Yes" contract — Applied: step 4 added to the Dev Notes contract.
+- [x] [Review][Patch] Fix wrong architecture citation — Applied: AC #9 now cites ARC-011; References now cites epics.md#ARC-011 with a note on the prior mistaken ADR-001 citation.
+- [x] [Review][Patch] Add a Task 5 subtask for orphaned i18n key cleanup — Applied.
+- [x] [Review][Patch] Commit to `calmMe.yes` / `calmMe.notNow` as the final i18n key names now — Applied: hedge removed from "i18n keys to add".
+- [x] [Review][Patch] Add an explicit `fearItemId` null-guard to the debrief URL contract — Applied: guard language added to step 5 of the Dev Notes contract.
+- [x] [Review][Patch] Specify Exit-vs-open-confirm precedence — Applied: AC #4 now states Exit takes precedence over an open confirm.
+- [x] [Review][Patch] Clarify AC #7's "≤300ms fade" isn't unit-tested — Applied: Task 6 now states the timing is a design target, not a unit-tested assertion.
+- [x] [Review][Defer] No error-handling spec for `getAdapter().enqueue()` failures in the "Need to Stop" flow [Dev Notes: "Need to Stop routing — exact contract"] — deferred, pre-existing: the same gap already exists in `grounding.tsx`'s `handleConfirmStop`, the pattern being mirrored here.
+- [x] [Review][Defer] FAB interaction with the non-dismissable recovery modal in `(app)/_layout.tsx` undocumented [`apps/mobile/app/(app)/_layout.tsx:95,127`] — deferred, likely a non-issue: RN's `<Modal>` renders in a separate native layer above all sibling content regardless of mount order, so the FAB shouldn't be reachable through it — but the interaction is never mentioned in the story.
 
 ## Dev Notes
 
@@ -61,17 +82,20 @@ so that I can access grounding tools without navigating away or losing my sessio
 
 **Use this combined signal for "in-session" (AC #6):** `sessionRecoveryData !== null && pathname === '/session/active'` (via `usePathname()` from `expo-router`). This correctly shows the action footer only when Calm Me is opened from the actual active-exposure screen, and falls back to the non-session layout everywhere else (including if the FAB is somehow tapped from the grounding screen itself, which already has its own resume/stop affordances and shouldn't show a second one). Do not attempt to build a new global session-phase store for this story — out of scope.
 
+### AC #2 and AC #11 scope note — story-author additions
+
+AC #2 (FAB hides on `/calm-me`) and AC #11 (remove the four pre-existing local Calm Me buttons) are not present in epics.md's Story 7.1 acceptance criteria (lines 1420–1490) — epics.md only specifies the FAB's always-visible behavior, folding the hide-on-open-Calm-Me behavior into the same Given/When/Then as AC #1. AC #11 specifically has no epics.md counterpart at all. Both are story-author additions, justified by the new global FAB making the existing local buttons redundant and avoiding a double-stacked Calm Me screen. Flagged here per code review (2026-06-18) so the distinction between epics.md-sourced ACs and story-author ACs is explicit.
+
 ### Need to Stop routing — exact contract
 
 Tapping "Not now" → `router.replace('/')` (matches the pattern in `session/abandoned.tsx` and `session/debrief.tsx`).
 
-Tapping "Yes" must, in order, mirror the existing `session/grounding.tsx` `handleConfirmStop` pattern (it is the closest existing precedent for an early/abandoned exit) before navigating to `/session/debrief`:
+Tapping "Yes" first shows an inline one-tap SUDS prompt (reuse the `SudsScale` component pattern from `active.tsx`) — **Decision (code review, 2026-06-18): this story collects a fresh SUDS reading rather than approximating from `sessionRecoveryData.preSuds`**, so the debrief screen's narrative branch and crisis-contact display (`debriefSudsInt >= 8 || peakSudsInt >= 8`) reflect actual current distress. Once the user submits the fresh reading (call it `freshSuds`), proceed in order, mirroring the existing `session/grounding.tsx` `handleConfirmStop` pattern (the closest existing precedent for an early/abandoned exit) before navigating to `/session/debrief`:
 1. `getAdapter().enqueue('exposure_sessions', 'UPDATE', { id: sessionId, status: 'abandoned', ended_at: <now ISO> })`
 2. If `fearItemId` is non-null: `getAdapter().enqueue('fear_ladder_items', 'UPDATE', { id: fearItemId, status: 'pending', updated_at: <now ISO>, updatedAt: Date.now() })`
 3. `clearSessionInProgress()`
-4. `router.push('/session/debrief?sessionId=...&fearItemId=...&preSuds=...&debriefSuds=...&peakSuds=...&completedAtMs=...')`
-
-**Known gap — no fresh SUDS reading is available.** `session/debrief.tsx` requires `debriefSuds` and `peakSuds` URL params (it computes which of 3 narrative branches to show, and whether to display crisis contacts, from `debriefSudsInt >= 8 || peakSudsInt >= 8`). Calm Me's AC does not describe collecting a new SUDS reading before navigating, and the root-level Calm Me screen has no access to `active.tsx`'s local `maxSudsLogged` component state (separate route, separate component tree) — `sessionRecoveryData` only carries `preSuds` (the value logged at session start). **Resolution for this story:** pass `preSuds` as both `debriefSuds` and `peakSuds` when building the debrief URL from this flow. This is a conservative approximation — it correctly routes to debrief Branch B/C (no false "improvement" claim) and still surfaces crisis contacts if the pre-session SUDS was already ≥8. Do not build new cross-screen SUDS plumbing to close this gap — it's out of scope for 7.1. Note it in the story's Completion Notes as a known approximation for product follow-up.
+4. `clearSessionIntention(sessionId)` if `sessionId` is non-null — mirrors `grounding.tsx`'s `handleConfirmStop`, which calls this immediately after `clearSessionInProgress()` (verified at `apps/mobile/app/session/grounding.tsx:51-52`); omitting it leaves a stale session-intention MMKV entry.
+5. `router.push('/session/debrief?sessionId=...&fearItemId=...&preSuds=...&debriefSuds=...&peakSuds=...&completedAtMs=...')` with `debriefSuds` and `peakSuds` both set to `freshSuds`. Guard `fearItemId` explicitly when building this URL: if `fearItemId` is null, omit/empty the param rather than interpolating the literal string `"null"` — mirror `active.tsx`'s existing null-guard pattern for this same param.
 
 You will need `sessionId` and `fearItemId` from `sessionRecoveryData` (it carries both) when constructing this URL from the Calm Me screen, since `/calm-me` itself receives no route params.
 
@@ -92,7 +116,11 @@ export const HELPLINES: Helpline[] = [
   { id: 'aasra',      name: 'AASRA',                 number: '02227546669', displayNumber: '+91-22-27546669' },
 ];
 ```
-This story creates the file only — Story 7.4 builds the UI that consumes it. The technique-picker target for "Helplines" in this story just navigates to a stub/placeholder route (Story 7.4 builds the real screen).
+This story creates the file only — Story 7.4 builds the UI that consumes it. The technique-picker target for "Helplines" in this story navigates to a placeholder route per "Technique picker placeholder routes" below (Story 7.4 builds the real screen).
+
+### Technique picker placeholder routes
+
+**Decision (code review, 2026-06-18): stub targets are tappable and navigate to a placeholder screen**, not disabled. Create three minimal placeholder routes: `apps/mobile/app/calm-me/breathing.tsx`, `apps/mobile/app/calm-me/grounding.tsx`, `apps/mobile/app/calm-me/helplines.tsx` — each renders a single centered `t('calmMe.comingSoon')` ("More on this soon") string plus a Back icon button (top-left, `accessibilityLabel={t('calmMe.back')}`) that calls `router.back()` to return to the Calm Me screen it was pushed from. Stories 7.2–7.4 replace the placeholder body with the real Breathing coach, 5-4-3-2-1 exercise, and Helplines screen respectively, without changing the navigation wiring from the technique picker or the Back button's presence/position.
 
 ### File-naming convention conflict — intentional, not an oversight
 
@@ -100,21 +128,23 @@ This story creates the file only — Story 7.4 builds the UI that consumes it. T
 
 ### Existing Calm Me entry points to remove
 
-Four local "Calm Me" buttons already exist in the codebase, each added by earlier stories as placeholders pending Epic 7, all pushing to `/calm-me` with no params:
+**Updated per code review (2026-06-18): five local "Calm Me" buttons exist, not four — `session/debrief.tsx` was missed in the original draft.** All five were added by earlier stories as placeholders pending Epic 7, all pushing to `/calm-me` with no params:
 
 | File | Label | Action |
 |---|---|---|
 | `apps/mobile/app/session/active.tsx` (~line 182) | `session.active.calmMe` | **Remove** — superseded by global FAB |
 | `apps/mobile/app/session/abandoned.tsx` | `home.calmMe.cta` | **Remove** — superseded by global FAB |
 | `apps/mobile/app/(app)/index.tsx` (~line 120) | `home.calmMe.cta` | **Remove** — superseded by global FAB |
+| `apps/mobile/app/session/debrief.tsx` (~lines 220-225) | `home.calmMe.cta` | **Remove** — superseded by global FAB (verified present; missed in the original draft) |
 | `apps/mobile/app/ladder.tsx` (~line 204) | `ladder.crisis.cta` | **Keep unchanged** — conditional on crisis-keyword detection (Epic 3), not a generic always-on entry point; distinct purpose from the FAB |
 
-Removing the three buttons breaks existing assertions — update, don't just delete the tests:
+Removing the four buttons breaks existing assertions — update, don't just delete the tests:
 - `apps/mobile/app/session/active.test.tsx` lines ~109, ~112-115 (`getByLabelText('session.active.calmMe')` presence + navigation assertions)
 - `apps/mobile/app/(app)/index.test.tsx` lines ~114, ~117-120 (`getByRole('button', { name: 'home.calmMe.cta' })` presence + navigation assertions)
 - `apps/mobile/app/session/abandoned.tsx` has no test file (confirmed) — no test updates needed for that removal
+- `apps/mobile/app/session/debrief.test.tsx` has no assertions referencing `calmMe`/`home.calmMe.cta` (confirmed) — no test updates needed for that removal either
 
-The now-orphaned i18n keys `session.active.calmMe` and `home.calmMe.cta` (in both `en.json`/`hi.json`) can be removed once no longer referenced — confirm nothing else uses them first.
+The now-orphaned i18n keys `session.active.calmMe` and `home.calmMe.cta` (in both `en.json`/`hi.json`) can be removed once no longer referenced — confirm nothing else uses them first (Task 5 owns this cleanup explicitly).
 
 ### Root layout integration point
 
@@ -131,22 +161,25 @@ New `calmMe` namespace in both `en.json` and `hi.json` (mirror the nesting style
 - `calmMe.keepGoing` — "I can keep going"
 - `calmMe.needToStop` — "I need to stop"
 - `calmMe.debriefNow` — "Debrief now?"
-- `calmMe.yes` / `calmMe.notNow` (exact key names not given in epics.md — choose consistent names; canonical copy "Yes" / "Not now")
+- `calmMe.yes` — "Yes"
+- `calmMe.notNow` — "Not now"
+- `calmMe.comingSoon` — "More on this soon" (used by the three technique-picker placeholder routes — see Dev Notes "Technique picker placeholder routes")
+- `calmMe.back` — "Back" (accessibility label for the Back icon button on the three placeholder routes)
 - Technique picker labels (Breathing, 5-4-3-2-1, Helplines) — these are new keys this story owns; Stories 7.2-7.4 reuse them, don't redefine
 
 Note: `calmMe.keepGoing` and `calmMe.needToStop` have copy identical to the pre-existing `session.grounding.resume` / `session.grounding.confirmStop` keys. Do not reuse those keys — the epics.md AC explicitly names the new `calmMe.*` keys, and the two screens are conceptually distinct flows even though current copy coincides.
 
 ### Project Structure Notes
 
-- New files: `packages/core/src/config/calmMeConfig.ts`, `packages/core/src/config/helplines.ts`, `packages/ui/src/components/CalmMeButton.tsx`
-- Modified files: `apps/mobile/app/calm-me.tsx` (stub → real), `apps/mobile/app/_layout.tsx` (mount FAB), `apps/mobile/app/session/active.tsx`, `apps/mobile/app/session/abandoned.tsx`, `apps/mobile/app/(app)/index.tsx` (remove redundant buttons), `packages/core/src/index.ts`, `packages/ui/src/index.ts` (barrel exports), both `en.json`/`hi.json`
+- New files: `packages/core/src/config/calmMeConfig.ts`, `packages/core/src/config/helplines.ts`, `packages/ui/src/components/CalmMeButton.tsx`, `apps/mobile/app/calm-me/breathing.tsx`, `apps/mobile/app/calm-me/grounding.tsx`, `apps/mobile/app/calm-me/helplines.tsx`
+- Modified files: `apps/mobile/app/calm-me.tsx` (stub → real), `apps/mobile/app/_layout.tsx` (mount FAB), `apps/mobile/app/session/active.tsx`, `apps/mobile/app/session/abandoned.tsx`, `apps/mobile/app/(app)/index.tsx`, `apps/mobile/app/session/debrief.tsx` (remove redundant buttons), `packages/core/src/index.ts`, `packages/ui/src/index.ts` (barrel exports), both `en.json`/`hi.json`
 - No new packages, no migrations, no Edge Functions
 - Consistent with existing structure: mobile screens in `apps/mobile/app/`, shared domain config in `packages/core/src/config/`, shared UI primitives in `packages/ui/src/components/`
 
 ### References
 
 - [Source: _bmad-output/planning-artifacts/epics.md#Story 7.1, lines 1420-1490] — canonical acceptance criteria
-- [Source: _bmad-output/planning-artifacts/architecture/core-architectural-decisions.md#ADR-001] — packages/core boundary (zero RN/Expo/@supabase imports)
+- [Source: _bmad-output/planning-artifacts/epics.md#ARC-011] — packages/core import boundary CI gate (zero RN/Expo/@supabase imports, even as devDeps) — corrected from an earlier mistaken `ADR-001` citation (ADR-001 in `core-architectural-decisions.md` covers packages/core's domain-layer scope, not the import boundary)
 - [Source: _bmad-output/planning-artifacts/architecture/implementation-patterns-consistency-rules.md#Naming Patterns] — file naming conventions (see conflict note above)
 - `apps/mobile/app/session/grounding.tsx` — pattern for abandonment enqueue + MMKV clear before navigation
 - `apps/mobile/app/(app)/_layout.tsx` — `handleRecoveryResume`/`handleRecoveryEnd` — closest existing precedent for a root-level component reading `sessionRecoveryData` and performing session-ending writes
