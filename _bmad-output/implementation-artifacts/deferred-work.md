@@ -1,5 +1,15 @@
 # Deferred Work
 
+## MUST-HAVE before MVP launch — from manual smoke test of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
+
+_Not pre-existing — both introduced by this story's `CalmMeButton`/`CalmMeFab` and discovered during manual smoke testing in the iOS Simulator, after the formal code review had already closed out. Unlike the deferrals below, these are not "low risk, mirrors an existing pattern" — they are open, unresolved UX decisions that must be closed before MVP ships._
+
+- **Decide the Calm Me button's final icon.** Currently a Text-glyph `♡` (heart outline) — a placeholder choice, not a deliberate design decision. Candidates discussed: stay with a Unicode glyph (🍃 leaf, ⚓ anchor, ☁ cloud, 🕊 dove — no new dependency) vs. switch to `@expo/vector-icons` (already a dependency of `apps/mobile`, not yet of `packages/ui`) for a crisper render (`heart-outline`, `leaf-outline`, `pulse-outline`, `shield-checkmark-outline`). [`packages/ui/src/components/CalmMeButton.tsx`]
+- **Add margin/safe spacing around the Calm Me FAB so it doesn't overlap screen headings.** Repositioning the FAB to top-right (2026-06-18, post-review) caused it to visually overlap the Home screen's "Welcome back. Keep going." heading — confirmed via simulator screenshot. Screens with native headers (`ladder.tsx`, `privacy-notice.tsx`) are also suspect — the FAB's `top: 48` may overlap the native header bar itself, not just heading text, but this hasn't been visually confirmed yet. Needs a full audit across every screen the FAB renders on (home, settings, ladder, session flow, onboarding) before this is safe to ship. [`apps/mobile/src/components/CalmMeFab.tsx`]
+- **Decide the final courage affirmation copy.** Current canonical text — "Your nervous system is doing exactly what it's supposed to do" — is mandated literally in `epics.md` (line 1441) but reads clinical/scientific rather than calming, which is the screen's actual intent. Candidates discussed during review: "This feeling will pass. You are safe right now." / "You don't have to fix this. Just breathe." / "Whatever you're feeling right now is okay." Changing this is a deliberate deviation from the `epics.md`-mandated copy and should be noted as such in the story's Dev Notes once decided (matching this story's existing pattern for documented AC deviations). [`calmMe.affirmation.1` in `apps/mobile/src/i18n/locales/en.json`, referenced by `packages/core/src/config/calmMeConfig.ts`]
+
+---
+
 ## Deferred from: post-implementation code review of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
 
 _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the implementation diff (`main...HEAD`). Acceptance Auditor found zero AC violations. Original findings: `7-1-calm-me-shell-courage-affirmation-and-action-decision-routing.md` → "Code Review — Post-Implementation (2026-06-18)"._

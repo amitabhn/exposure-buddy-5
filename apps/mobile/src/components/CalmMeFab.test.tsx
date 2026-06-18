@@ -39,6 +39,15 @@ describe('CalmMeFab', () => {
     expect(toJSON()).toBeNull()
   })
 
+  it.each(['/calm-me/breathing', '/calm-me/grounding', '/calm-me/helplines'])(
+    'hides on the %s technique sub-route (already has its own Back affordance to the hub)',
+    (pathname) => {
+      mockUsePathname.mockReturnValue(pathname)
+      const { toJSON } = render(<CalmMeFab />)
+      expect(toJSON()).toBeNull()
+    }
+  )
+
   it('pushes plain /calm-me when not in an active session', () => {
     mockUsePathname.mockReturnValue('/')
     const { getByRole } = render(<CalmMeFab />)
