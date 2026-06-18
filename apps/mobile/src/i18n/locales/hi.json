@@ -151,7 +151,6 @@
       "sudsModalTitle": "How anxious are you right now?",
       "logButton": "Log",
       "stopExposure": "Stop exposure",
-      "calmMe": "Need support?",
       "completeExposure": "Complete exposure",
       "completionModalTitle": "How are you feeling now?",
       "finishSession": "Finish session"
@@ -203,9 +202,6 @@
   "home": {
     "readyToStart": "Your Courage Ladder is ready. Let's go!",
     "welcomeBack": "Welcome back. Keep going.",
-    "calmMe": {
-      "cta": "Feeling overwhelmed?"
-    },
     "state4": {
       "context": "You have an exposure in progress",
       "cta": "Continue"
@@ -223,5 +219,10 @@
     "privacy": {
       "privacyNotice": "गोपनीयता सूचना"
     }
+  },
+  "calmMe": {
+    "needToStop": "मुझे रुकना है",
+    "yes": "हाँ",
+    "notNow": "अभी नहीं"
   }
 }

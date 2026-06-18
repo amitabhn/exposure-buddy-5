@@ -178,16 +178,6 @@ export default function ActiveScreen() {
             <Text style={styles.stopButtonText}>{t('session.active.stopExposure')}</Text>
           </TouchableOpacity>
         </View>
-
-        {/* CalmMe button — always accessible, UX-DR04 */}
-        <TouchableOpacity
-          style={styles.calmMeButton}
-          onPress={() => router.push('/calm-me')}
-          accessibilityRole="button"
-          accessibilityLabel={t('session.active.calmMe')}
-        >
-          <Text style={styles.calmMeText}>{t('session.active.calmMe')}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* SUDS logging modal */}
@@ -275,8 +265,6 @@ const styles = StyleSheet.create({
   completeButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   stopButtonText: { color: '#374151', fontSize: 16 },
-  calmMeButton: { paddingVertical: 14, alignItems: 'center' },
-  calmMeText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#ffffff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 48 },
   modalTitle: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 20 },

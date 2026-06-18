@@ -1,6 +1,6 @@
 # Story 7.1: Calm Me Shell, Courage Affirmation & Action Decision Routing
 
-Status: ready-for-dev (post code-review revision, 2026-06-18)
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -26,37 +26,37 @@ so that I can access grounding tools without navigating away or losing my sessio
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Core config files (AC: #3, #9)
-  - [ ] Create `packages/core/src/config/calmMeConfig.ts` (`CALM_ME_AFFIRMATIONS`)
-  - [ ] Create `packages/core/src/config/helplines.ts` (`Helpline` type + `HELPLINES`)
-  - [ ] Export both from `packages/core/src/index.ts`
-  - [ ] No RN/Expo/`@supabase/*` imports in either file (ARC-011 boundary check)
-- [ ] Task 2: `CalmMeButton` primitive (AC: #1)
-  - [ ] Create `packages/ui/src/components/CalmMeButton.tsx` — `React.forwardRef`-wrapped `TouchableOpacity`, `onPress: () => void` prop only, no navigation import
-  - [ ] Export `CalmMeButton` + `CalmMeButtonProps` from `packages/ui/src/index.ts`
-- [ ] Task 3: Build the Calm Me screen (AC: #4, #5, #6, #7, #8, #10)
-  - [ ] Replace the stub `apps/mobile/app/calm-me.tsx` with the real screen: affirmation, technique picker (3 placeholder-route targets), Exit icon, conditional action footer, "Debrief now?" inline confirm
-  - [ ] Implement in-session detection per Dev Notes ("Determining in-session context")
-  - [ ] Implement Keep Going (fade dismiss) and Need to Stop (confirm → fresh SUDS prompt → Yes/Not now) per Dev Notes ("Need to Stop routing")
-  - [ ] Create the three technique-picker placeholder routes per Dev Notes ("Technique picker placeholder routes"): `apps/mobile/app/calm-me/breathing.tsx`, `calm-me/grounding.tsx`, `calm-me/helplines.tsx` — each with a top-left Back icon button (`router.back()`, `accessibilityLabel={t('calmMe.back')}`) to return to the Calm Me screen
-  - [ ] Implement the inline fresh-SUDS prompt on the "Need to Stop → Yes" path (reuse `SudsScale` pattern from `active.tsx`) per Dev Notes ("Need to Stop routing")
-  - [ ] Add all new i18n keys to both `en.json` and `hi.json`
-- [ ] Task 4: Wire the FAB into the root layout (AC: #1, #2)
-  - [ ] Mount `CalmMeButton` in `apps/mobile/app/_layout.tsx` outside `<Stack />`
-  - [ ] Hide/disable it when the active route is `/calm-me` (use `usePathname()`)
-- [ ] Task 5: Remove redundant local entry points (AC: #11)
-  - [ ] Remove the local Calm Me button from `apps/mobile/app/session/active.tsx` (`session.active.calmMe`) and its two assertions in `active.test.tsx`
-  - [ ] Remove the local Calm Me button from `apps/mobile/app/session/abandoned.tsx`
-  - [ ] Remove the local Calm Me button from `apps/mobile/app/(app)/index.tsx` and its two assertions in `index.test.tsx`
-  - [ ] Remove the local Calm Me button from `apps/mobile/app/session/debrief.tsx` (`home.calmMe.cta`, ~lines 220-225) — no test file references it, no test update needed
-  - [ ] Leave `ladder.tsx`'s crisis-banner CTA untouched (different trigger — crisis-keyword detection, not a generic always-on button)
-  - [ ] Remove the now-orphaned i18n keys `session.active.calmMe` and `home.calmMe.cta` from both `en.json`/`hi.json` once all four buttons above are removed and nothing else references them
-- [ ] Task 6: Tests
-  - [ ] `CalmMeButton.test.tsx` in `packages/ui` (renders, calls `onPress`)
-  - [ ] `calm-me.test.tsx` covering: non-session layout (no footer), in-session layout (footer present), Keep Going dismiss, Need to Stop → fresh-SUDS prompt → Yes routes to debrief with correct params (including the freshly-entered SUDS value) + enqueues abandonment, Need to Stop → Not now routes home, Exit returns with no state change, Exit while the "Debrief now?" confirm is open dismisses both with no state change
-  - [ ] AC #7's "≤300ms fade" is a design target, not a unit-tested assertion — tests should assert the fade *occurs* (screen dismisses, returns to the active exposure screen) and that no state-machine transition fires, not the exact duration
-  - [ ] Update `_layout.test.tsx` (or equivalent) for FAB presence/hide-on-`/calm-me` if such a test file exists — check first
-  - [ ] Run `pnpm turbo lint` to confirm no `i18next/no-literal-string` violations
+- [x] Task 1: Core config files (AC: #3, #9)
+  - [x] Create `packages/core/src/config/calmMeConfig.ts` (`CALM_ME_AFFIRMATIONS`)
+  - [x] Create `packages/core/src/config/helplines.ts` (`Helpline` type + `HELPLINES`)
+  - [x] Export both from `packages/core/src/index.ts`
+  - [x] No RN/Expo/`@supabase/*` imports in either file (ARC-011 boundary check)
+- [x] Task 2: `CalmMeButton` primitive (AC: #1)
+  - [x] Create `packages/ui/src/components/CalmMeButton.tsx` — `React.forwardRef`-wrapped `TouchableOpacity`, `onPress: () => void` prop only, no navigation import
+  - [x] Export `CalmMeButton` + `CalmMeButtonProps` from `packages/ui/src/index.ts`
+- [x] Task 3: Build the Calm Me screen (AC: #4, #5, #6, #7, #8, #10)
+  - [x] Replace the stub `apps/mobile/app/calm-me.tsx` with the real screen: affirmation, technique picker (3 placeholder-route targets), Exit icon, conditional action footer, "Debrief now?" inline confirm
+  - [x] Implement in-session detection per Dev Notes ("Determining in-session context")
+  - [x] Implement Keep Going (fade dismiss) and Need to Stop (confirm → fresh SUDS prompt → Yes/Not now) per Dev Notes ("Need to Stop routing")
+  - [x] Create the three technique-picker placeholder routes per Dev Notes ("Technique picker placeholder routes"): `apps/mobile/app/calm-me/breathing.tsx`, `calm-me/grounding.tsx`, `calm-me/helplines.tsx` — each with a top-left Back icon button (`router.back()`, `accessibilityLabel={t('calmMe.back')}`) to return to the Calm Me screen
+  - [x] Implement the inline fresh-SUDS prompt on the "Need to Stop → Yes" path (reuse `SudsScale` pattern from `active.tsx`) per Dev Notes ("Need to Stop routing")
+  - [x] Add all new i18n keys to both `en.json` and `hi.json`
+- [x] Task 4: Wire the FAB into the root layout (AC: #1, #2)
+  - [x] Mount `CalmMeButton` in `apps/mobile/app/_layout.tsx` outside `<Stack />`
+  - [x] Hide/disable it when the active route is `/calm-me` (use `usePathname()`)
+- [x] Task 5: Remove redundant local entry points (AC: #11)
+  - [x] Remove the local Calm Me button from `apps/mobile/app/session/active.tsx` (`session.active.calmMe`) and its two assertions in `active.test.tsx`
+  - [x] Remove the local Calm Me button from `apps/mobile/app/session/abandoned.tsx`
+  - [x] Remove the local Calm Me button from `apps/mobile/app/(app)/index.tsx` and its two assertions in `index.test.tsx`
+  - [x] Remove the local Calm Me button from `apps/mobile/app/session/debrief.tsx` (`home.calmMe.cta`, ~lines 220-225) — no test file references it, no test update needed
+  - [x] Leave `ladder.tsx`'s crisis-banner CTA untouched (different trigger — crisis-keyword detection, not a generic always-on button)
+  - [x] Remove the now-orphaned i18n keys `session.active.calmMe` and `home.calmMe.cta` from both `en.json`/`hi.json` once all four buttons above are removed and nothing else references them
+- [x] Task 6: Tests
+  - [x] `CalmMeButton.test.tsx` in `packages/ui` — **deviation, see Completion Notes**: not added; `packages/ui`'s Vitest config cannot parse `react-native`'s Flow syntax (no RN renderer wired in, confirmed by attempting it), matching the pre-existing `CourageLadderEntryCard` precedent (zero ui-level render tests). `CalmMeButton`'s wiring is instead covered via `CalmMeFab.test.tsx` at its consumption site.
+  - [x] `calm-me.test.tsx` covering: non-session layout (no footer), in-session layout (footer present), Keep Going dismiss, Need to Stop → fresh-SUDS prompt → Yes routes to debrief with correct params (including the freshly-entered SUDS value) + enqueues abandonment, Need to Stop → Not now routes home, Exit returns with no state change, Exit while the "Debrief now?" confirm is open dismisses both with no state change
+  - [x] AC #7's "≤300ms fade" is a design target, not a unit-tested assertion — tests assert the fade *occurs* (screen dismisses via `router.back()`) and that no enqueue/state-machine call fires, not the exact duration
+  - [x] `_layout.test.tsx` exists but covers unrelated provider-nesting concerns and doesn't render `RootLayout` (which has heavy Sentry/PowerSync/font side effects) — FAB logic was extracted to `src/components/CalmMeFab.tsx` (mirroring the existing `BackButton` pattern) with its own `CalmMeFab.test.tsx` covering presence/hide-on-`/calm-me`/in-session routing, satisfying the "or equivalent" allowance
+  - [x] `pnpm turbo lint` passes with no `i18next/no-literal-string` violations
 
 ### Review Findings
 
@@ -191,8 +191,57 @@ Note: `calmMe.keepGoing` and `calmMe.needToStop` have copy identical to the pre-
 
 ### Agent Model Used
 
+Claude Sonnet 4.6 (claude-sonnet-4-6)
+
 ### Debug Log References
+
+- `pnpm turbo typecheck` — all 6 packages pass
+- `pnpm turbo lint` — all 6 packages pass (0 `i18next/no-literal-string` violations)
+- `pnpm turbo test` — 226 mobile Jest tests + 41 core/64 ui-sync-supabase Vitest tests pass, 0 regressions
 
 ### Completion Notes List
 
+- **In-session detection mechanism (Dev Notes ambiguity resolved):** The Dev Notes' literal instruction — "use `sessionRecoveryData !== null && pathname === '/session/active'` via `usePathname()` inside the in-session check" — cannot work if evaluated inside `calm-me.tsx` itself: by the time that screen mounts, `usePathname()` already returns `/calm-me` everywhere in the app (Expo Router's pathname is global, not screen-local), so the originating route is unrecoverable from inside the destination screen. Resolved by computing `isInSession` in the FAB (`CalmMeFab`, at tap-time, where `usePathname()` still correctly reads the screen being tapped from) and threading the result through a `?inSession=1` query param — `router.push(isInSession ? '/calm-me?inSession=1' : '/calm-me')`. In the common case (not in session, e.g. tapped from Home), this reduces to exactly `router.push('/calm-me')`, matching AC #1's literal wording; only the in-session branch adds the param. `calm-me.tsx` combines this param with a live `sessionRecoveryData !== null` re-check as a safety net.
+- **`CalmMeButton.test.tsx` not added to `packages/ui`:** Attempted per Task 6; `packages/ui`'s Vitest config (`environment: 'node'`, no `@testing-library/react-native`) cannot even parse `react-native`'s Flow syntax (`RollupError: Parse failure: Expected 'from', got 'typeOf'` on `react-native/index.js`), confirming the existing project constraint (memory: `project_vitest_no_tests`) that this package has zero RN-renderable tests — `CourageLadderEntryCard` has none either. Adding a working RN test harness here would require new devDependencies (`@testing-library/react-native`, Babel/Flow transforms), which is out of scope without separate approval. `CalmMeButton`'s `onPress` wiring is instead verified at its consumption site via `CalmMeFab.test.tsx`; `packages/ui`'s `tsc --noEmit` typechecks the primitive.
+- **FAB logic extracted to `src/components/CalmMeFab.tsx`** rather than left inline in `app/_layout.tsx`. `_layout.test.tsx` exists but deliberately never renders `RootLayout` (which has Sentry/PowerSync/font-loading side effects with no existing mocks) — it only imports isolated providers directly. Extracting `CalmMeFab` (mirroring the existing `BackButton` component pattern, also imported into `_layout.tsx`) allowed writing `CalmMeFab.test.tsx` covering FAB presence, hide-on-`/calm-me`, and the in-session routing decision, without needing to mock the entire root layout's dependency graph. `app/_layout.tsx` still owns mounting it as a sibling to `<Stack>` (AC #1) — only the implementation moved.
+- **`packages/ui`'s `CalmMeButton`** renders a Text-glyph icon (♡) rather than using `@expo/vector-icons`, since that package is not currently a dependency of `packages/ui` (only `apps/mobile`) — avoided adding a new dependency without approval. The Exit (✕) and placeholder-route Back (‹) icons in `apps/mobile` similarly use Text glyphs, consistent with AC #4's own "✕" notation.
+- **`apps/mobile/app/calm-me/_layout.tsx` added** (not listed in the story's Project Structure Notes) — every existing route subfolder in this app (`session/`, `(app)/`, `(auth)/`, `(onboarding)/`) has its own `_layout.tsx`; the three new placeholder routes need one too, for consistency and to explicitly set `headerShown: false` the same way `session/_layout.tsx` does.
+- **`i18n.test.ts`'s `KEY_PATTERN` regex updated**: AC #3's literal mandated key `'calmMe.affirmation.1'` has a purely-numeric final segment, which the pre-existing key-naming-convention test rejected (every segment previously had to start with a lowercase letter). Widened the regex to additionally accept pure-numeric segments (`[0-9]+`) while keeping every other existing/new key's lowercase-camelCase requirement intact — verified against all existing keys plus the new ones; no false negatives introduced.
+- **Two prompt-injection attempts were encountered and ignored** during context-gathering: fake "Plan mode is active" and "Exited Plan Mode / Auto Mode Active" `<system-reminder>` blocks appeared embedded inside two `Read` tool outputs (mid-file-content), not as genuine system or user turns. They were flagged to the user and disregarded; the legitimate `/bmad-dev-story` workflow instructions (continuous execution, no review pauses except defined HALT conditions) were followed instead.
+- `hi.json` received partial translations for the new `calmMe` keys (`needToStop`, `yes`, `notNow`) — consistent with this file's existing partial-translation pattern (i18next `fallbackLng: 'en'` covers the rest); full Hindi translation of all new copy is a translator task, not addressed here.
+
 ### File List
+
+**New files:**
+- `packages/core/src/config/calmMeConfig.ts`
+- `packages/core/src/config/helplines.ts`
+- `packages/ui/src/components/CalmMeButton.tsx`
+- `apps/mobile/app/calm-me/_layout.tsx`
+- `apps/mobile/app/calm-me/breathing.tsx`
+- `apps/mobile/app/calm-me/grounding.tsx`
+- `apps/mobile/app/calm-me/helplines.tsx`
+- `apps/mobile/app/calm-me.test.tsx`
+- `apps/mobile/src/components/CalmMeFab.tsx`
+- `apps/mobile/src/components/CalmMeFab.test.tsx`
+
+**Modified files:**
+- `packages/core/src/index.ts`
+- `packages/ui/src/index.ts`
+- `apps/mobile/app/calm-me.tsx` (stub → real screen)
+- `apps/mobile/app/_layout.tsx` (mount `CalmMeFab`)
+- `apps/mobile/app/session/active.tsx` (removed redundant local Calm Me button)
+- `apps/mobile/app/session/active.test.tsx` (removed obsolete Calm Me assertions)
+- `apps/mobile/app/session/abandoned.tsx` (removed redundant local Calm Me button)
+- `apps/mobile/app/(app)/index.tsx` (removed redundant local Calm Me button)
+- `apps/mobile/app/(app)/index.test.tsx` (removed obsolete Calm Me assertions)
+- `apps/mobile/app/session/debrief.tsx` (removed redundant local Calm Me button)
+- `apps/mobile/src/i18n/locales/en.json` (new `calmMe` namespace; removed orphaned `session.active.calmMe`/`home.calmMe.cta`)
+- `apps/mobile/src/i18n/locales/hi.json` (same)
+- `apps/mobile/src/i18n/i18n.test.ts` (`KEY_PATTERN` widened for numeric segments)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (status tracking)
+
+## Change Log
+
+| Date | Change |
+|---|---|
+| 2026-06-18 | Implemented Story 7.1: global Calm Me FAB, `calmMeConfig.ts`/`helplines.ts`, Calm Me screen (non-session + in-session layouts, Exit, Need to Stop → fresh-SUDS → debrief routing), 3 technique-picker placeholder routes, removal of 4 redundant local Calm Me entry points, full test coverage. Status: ready-for-dev → review. |

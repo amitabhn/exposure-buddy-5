@@ -23,3 +23,7 @@ export { transition } from './erp/session-state-machine'
 export { resolveHomeScreenState } from './erp/home-screen-state'
 export type { HomeScreenContext, HomeScreenState } from './erp/home-screen-state'
 export type { TechniqueType } from './types/technique'
+// Calm Me support screen (Story 7.1)
+export { CALM_ME_AFFIRMATIONS } from './config/calmMeConfig'
+export type { Helpline } from './config/helplines'
+export { HELPLINES } from './config/helplines'

@@ -115,15 +115,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       )}
-
-      <TouchableOpacity
-        style={styles.calmMeButton}
-        onPress={() => router.push('/calm-me')}
-        accessibilityRole="button"
-        accessibilityLabel={t('home.calmMe.cta')}
-      >
-        <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
-      </TouchableOpacity>
     </View>
   )
 }
@@ -131,8 +122,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 48, backgroundColor: '#ffffff' },
   greeting: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8 },
-  calmMeButton: { alignSelf: 'center', marginTop: 24 },
-  calmMeText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
   loadingIndicator: { marginVertical: 16 },
   placeholder: { fontSize: 15, color: '#374151', marginVertical: 16 },
   placeholderCard: {

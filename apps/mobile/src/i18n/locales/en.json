@@ -125,9 +125,6 @@
   "home": {
     "readyToStart": "Your Courage Ladder is ready. Let's go!",
     "welcomeBack": "Welcome back. Keep going.",
-    "calmMe": {
-      "cta": "Feeling overwhelmed?"
-    },
     "state4": {
       "context": "You have an exposure in progress",
       "cta": "Continue"
@@ -189,7 +186,6 @@
       "sudsModalTitle": "How anxious are you right now?",
       "logButton": "Log",
       "stopExposure": "Stop exposure",
-      "calmMe": "Need support?",
       "completeExposure": "Complete exposure",
       "completionModalTitle": "How are you feeling now?",
       "finishSession": "Finish session"
@@ -236,6 +232,24 @@
       "sessionContext": "You'll face your challenge, notice what comes up, and log how you feel. Take it one moment at a time.",
       "letterIntro": "Before you begin, here's what you wrote to yourself:",
       "readyButton": "I'm ready"
+    }
+  },
+  "calmMe": {
+    "exit": "Close",
+    "affirmation": {
+      "1": "Your nervous system is doing exactly what it's supposed to do"
+    },
+    "keepGoing": "I can keep going",
+    "needToStop": "I need to stop",
+    "debriefNow": "Debrief now?",
+    "yes": "Yes",
+    "notNow": "Not now",
+    "comingSoon": "More on this soon",
+    "back": "Back",
+    "technique": {
+      "breathing": "Breathing",
+      "grounding": "5-4-3-2-1",
+      "helplines": "Helplines"
     }
   },
   "nav": {

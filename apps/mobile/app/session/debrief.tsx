@@ -214,16 +214,6 @@ export default function DebriefScreen() {
             <Text style={styles.doneButtonText}>{t('session.debrief.done')}</Text>
           </TouchableOpacity>
         )}
-
-        {/* CalmMe — always accessible; required on Branch C (AC-4, UX-DR04) */}
-        <TouchableOpacity
-          style={styles.calmMeButton}
-          onPress={() => router.push('/calm-me')}
-          accessibilityRole="button"
-          accessibilityLabel={t('home.calmMe.cta')}
-        >
-          <Text style={styles.calmMeText}>{t('home.calmMe.cta')}</Text>
-        </TouchableOpacity>
       </ScrollView>
     </>
   )
@@ -255,6 +245,4 @@ const styles = StyleSheet.create({
   doneButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   doneButtonDisabled: { backgroundColor: '#d1d5db' },
   doneButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-  calmMeButton: { alignSelf: 'center', marginTop: 24 },
-  calmMeText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
 })

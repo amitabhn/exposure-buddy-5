@@ -104,16 +104,6 @@ describe('ActiveScreen — existing tests', () => {
     )
   })
 
-  it('renders CalmMe button', () => {
-    const { getByLabelText } = render(<ActiveScreen />)
-    expect(getByLabelText('session.active.calmMe')).toBeTruthy()
-  })
-
-  it('CalmMe button navigates to /calm-me', async () => {
-    const { getByLabelText } = render(<ActiveScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.active.calmMe')) })
-    expect(mockRouterPush).toHaveBeenCalledWith('/calm-me')
-  })
 })
 
 describe('ActiveScreen — maxSudsLogged initialisation', () => {
