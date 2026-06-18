@@ -4,8 +4,8 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
-import { getAdapter } from '../src/sync/adapter'
-import { SudsScale } from '../src/components/session/SudsScale'
+import { getAdapter } from '../../src/sync/adapter'
+import { SudsScale } from '../../src/components/session/SudsScale'
 
 export default function CalmMeScreen() {
   const { t } = useTranslation()

@@ -17,11 +17,11 @@ jest.mock('expo-router', () => ({
 
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
 
-jest.mock('../src/sync/adapter', () => ({
+jest.mock('../../src/sync/adapter', () => ({
   getAdapter: jest.fn(() => ({ enqueue: mockEnqueue })),
 }))
 
-jest.mock('../src/components/session/SudsScale', () => ({
+jest.mock('../../src/components/session/SudsScale', () => ({
   SudsScale: ({ onChange }: { onChange: (v: number) => void }) => {
     const { TouchableOpacity, Text } = require('react-native')
     return (
@@ -68,7 +68,7 @@ beforeEach(() => {
   useLocalSearchParams.mockReturnValue({})
 })
 
-const CalmMeScreen = require('./calm-me').default
+const CalmMeScreen = require('./index').default
 
 describe('CalmMeScreen — non-session layout', () => {
   it('renders the affirmation and technique picker without an action footer', () => {

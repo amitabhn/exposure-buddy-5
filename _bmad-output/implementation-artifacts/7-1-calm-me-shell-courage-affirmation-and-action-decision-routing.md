@@ -87,6 +87,12 @@ _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of th
 - [x] [Review][Defer] Sequential `enqueue()` calls in `handleFreshSudsSelected` aren't atomic and failures are only `console.error`'d, no user feedback [`apps/mobile/app/calm-me.tsx:54-66`] — deferred, pre-existing: same gap and pattern already logged above for `grounding.tsx`'s `handleConfirmStop`, which this code mirrors exactly; not introduced by this story.
 - [x] [Review][Defer] `hi.json` only translates 3 of the 11 new `calmMe.*` keys (`needToStop`, `yes`, `notNow`) [`apps/mobile/src/i18n/locales/hi.json`] — deferred, already documented in this story's own Completion Notes as a translator task; i18next `fallbackLng: 'en'` covers the rest.
 
+### Manual Smoke Test (2026-06-18) — critical runtime bug found and fixed
+
+_Static review (typecheck/lint/227 Jest tests) had passed clean, but none of it renders the real root navigator. Launched the actual app in the iOS Simulator (`pnpm ios`) per `docs/setup/ios-simulator.md` to verify the feature end-to-end._
+
+- [x] [Review][Patch] **App crashed on launch**: `ERROR [Error: A navigator cannot contain multiple 'Screen' components with the same name (found duplicate screen named 'calm-me')]`. Root cause: both `apps/mobile/app/calm-me.tsx` (file) and `apps/mobile/app/calm-me/` (directory, holding the new placeholder routes + `_layout.tsx`) existed simultaneously — an invalid Expo Router file+directory name collision. Never caught by Jest because `_layout.test.tsx` deliberately never renders the real `RootLayout` (documented in this story's own Completion Notes). Applied: moved `calm-me.tsx`/`calm-me.test.tsx` to `calm-me/index.tsx`/`calm-me/index.test.tsx` (the standard Expo Router pattern for a route that also has nested children), fixed the now-one-level-deeper relative imports, and added the `index` screen to `calm-me/_layout.tsx`'s `<Stack>`. Re-verified by relaunching the simulator and driving the app via `xcrun simctl openurl` deep links (screen-coordinate tapping wasn't available — this environment lacks the macOS Screen Recording/Accessibility permissions a real tap-and-screenshot loop needs): non-session `/calm-me` layout renders correctly (affirmation, 3 technique buttons, no footer), the FAB correctly hides only on the exact `/calm-me` route, and the `breathing` placeholder route renders correctly with a working Back affordance. No errors in the Metro log across the whole walk.
+
 ## Dev Notes
 
 ### Determining in-session context — there is no `SessionStateMachine` singleton
@@ -230,17 +236,17 @@ Claude Sonnet 4.6 (claude-sonnet-4-6)
 - `packages/core/src/config/helplines.ts`
 - `packages/ui/src/components/CalmMeButton.tsx`
 - `apps/mobile/app/calm-me/_layout.tsx`
+- `apps/mobile/app/calm-me/index.tsx` (stub `calm-me.tsx` → real screen, then moved to `calm-me/index.tsx` post-review to fix an Expo Router file+directory name collision — see "Manual Smoke Test" above)
+- `apps/mobile/app/calm-me/index.test.tsx`
 - `apps/mobile/app/calm-me/breathing.tsx`
 - `apps/mobile/app/calm-me/grounding.tsx`
 - `apps/mobile/app/calm-me/helplines.tsx`
-- `apps/mobile/app/calm-me.test.tsx`
 - `apps/mobile/src/components/CalmMeFab.tsx`
 - `apps/mobile/src/components/CalmMeFab.test.tsx`
 
 **Modified files:**
 - `packages/core/src/index.ts`
 - `packages/ui/src/index.ts`
-- `apps/mobile/app/calm-me.tsx` (stub → real screen)
 - `apps/mobile/app/_layout.tsx` (mount `CalmMeFab`)
 - `apps/mobile/app/session/active.tsx` (removed redundant local Calm Me button)
 - `apps/mobile/app/session/active.test.tsx` (removed obsolete Calm Me assertions)
