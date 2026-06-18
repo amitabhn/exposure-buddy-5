@@ -109,17 +109,6 @@ describe('HomeScreen', () => {
     expect(getByTestId('courage-card')).toBeTruthy()
   })
 
-  it('renders CalmMe button', () => {
-    const { getByRole } = render(<HomeScreen />)
-    expect(getByRole('button', { name: 'home.calmMe.cta' })).toBeTruthy()
-  })
-
-  it('CalmMe button navigates to /calm-me', () => {
-    const { getByRole } = render(<HomeScreen />)
-    fireEvent.press(getByRole('button', { name: 'home.calmMe.cta' }))
-    expect(mockPush).toHaveBeenCalledWith('/calm-me')
-  })
-
   it('sets accessibility focus on card after 100ms', () => {
     render(<HomeScreen />)
     act(() => {

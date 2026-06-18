@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BackButton } from '../src/components/navigation/BackButton'
+import { CalmMeFab } from '../src/components/CalmMeFab'
 import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { initErrorHandler } from '../src/error-handler'
@@ -101,6 +102,7 @@ export default function RootLayout() {
                   <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
                   <Stack.Screen name="session" options={{ headerShown: false }} />
                 </Stack>
+                <CalmMeFab />
                 <PortalHost />
               </ThemeProvider>
             </ReducedMotionProvider>

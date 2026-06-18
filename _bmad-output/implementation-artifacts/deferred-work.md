@@ -1,5 +1,33 @@
 # Deferred Work
 
+## MUST-HAVE before MVP launch — from manual smoke test of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
+
+_Not pre-existing — both introduced by this story's `CalmMeButton`/`CalmMeFab` and discovered during manual smoke testing in the iOS Simulator, after the formal code review had already closed out. Unlike the deferrals below, these are not "low risk, mirrors an existing pattern" — they are open, unresolved UX decisions that must be closed before MVP ships._
+
+- **Decide the Calm Me button's final icon.** Currently a Text-glyph `♡` (heart outline) — a placeholder choice, not a deliberate design decision. Candidates discussed: stay with a Unicode glyph (🍃 leaf, ⚓ anchor, ☁ cloud, 🕊 dove — no new dependency) vs. switch to `@expo/vector-icons` (already a dependency of `apps/mobile`, not yet of `packages/ui`) for a crisper render (`heart-outline`, `leaf-outline`, `pulse-outline`, `shield-checkmark-outline`). [`packages/ui/src/components/CalmMeButton.tsx`]
+- **Add margin/safe spacing around the Calm Me FAB so it doesn't overlap screen headings.** Repositioning the FAB to top-right (2026-06-18, post-review) caused it to visually overlap the Home screen's "Welcome back. Keep going." heading — confirmed via simulator screenshot. Screens with native headers (`ladder.tsx`, `privacy-notice.tsx`) are also suspect — the FAB's `top: 48` may overlap the native header bar itself, not just heading text, but this hasn't been visually confirmed yet. Needs a full audit across every screen the FAB renders on (home, settings, ladder, session flow, onboarding) before this is safe to ship. [`apps/mobile/src/components/CalmMeFab.tsx`]
+- **Decide the final courage affirmation copy.** Current canonical text — "Your nervous system is doing exactly what it's supposed to do" — is mandated literally in `epics.md` (line 1441) but reads clinical/scientific rather than calming, which is the screen's actual intent. Candidates discussed during review: "This feeling will pass. You are safe right now." / "You don't have to fix this. Just breathe." / "Whatever you're feeling right now is okay." Changing this is a deliberate deviation from the `epics.md`-mandated copy and should be noted as such in the story's Dev Notes once decided (matching this story's existing pattern for documented AC deviations). [`calmMe.affirmation.1` in `apps/mobile/src/i18n/locales/en.json`, referenced by `packages/core/src/config/calmMeConfig.ts`]
+
+---
+
+## Deferred from: post-implementation code review of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the implementation diff (`main...HEAD`). Acceptance Auditor found zero AC violations. Original findings: `7-1-calm-me-shell-courage-affirmation-and-action-decision-routing.md` → "Code Review — Post-Implementation (2026-06-18)"._
+
+- **Sequential `enqueue()` calls in `handleFreshSudsSelected` aren't atomic; failures are only `console.error`'d, no user feedback.** If the first `enqueue` (`exposure_sessions`) succeeds but the second (`fear_ladder_items`) throws, the session is marked abandoned while the fear ladder item is left stuck out of `pending` status, with no retry or user-visible error. Same gap and pattern already logged below for `grounding.tsx`'s `handleConfirmStop`, which this code mirrors exactly — not introduced by this story. [`apps/mobile/app/calm-me.tsx:54-66`]
+- **`hi.json` only translates 3 of the 11 new `calmMe.*` keys** (`needToStop`, `yes`, `notNow`) — already documented in the story's own Completion Notes as a translator task; i18next `fallbackLng: 'en'` covers the rest for now. [`apps/mobile/src/i18n/locales/hi.json`]
+
+---
+
+## Deferred from: code review of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
+
+_Spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the story document itself, since no implementation code exists yet (status: ready-for-dev). Original findings in the Review Findings section of `7-1-calm-me-shell-courage-affirmation-and-action-decision-routing.md`._
+
+- **No error-handling spec for `getAdapter().enqueue()` failures in the "Need to Stop" flow.** The story's exact contract for "Need to Stop → Yes" lists `getAdapter().enqueue(...)` calls with no mention of failure handling. Same gap already exists in `grounding.tsx`'s `handleConfirmStop`, the pattern this story explicitly mirrors — not introduced by this story. [`apps/mobile/app/session/grounding.tsx`]
+- **FAB interaction with the non-dismissable recovery modal in `(app)/_layout.tsx` is undocumented.** The recovery modal (`showRecoveryModal`, `onRequestClose={() => {}}`) can be visible at the same time the global Calm Me FAB is mounted (both render at the root, outside `<Stack>`). Likely a non-issue in practice — RN's `<Modal>` renders in a separate native layer above all sibling content regardless of mount order — but the story never mentions this interaction. [`apps/mobile/app/(app)/_layout.tsx:95,127`]
+
+---
+
 ## Deferred from: code review of 6-3-home-screen-progressing-state-state-4 (2026-06-17)
 
 _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Acceptance Auditor found zero AC violations. Original findings: `6-3-home-screen-progressing-state-state-4.md` → "Code Review — Post-Implementation (2026-06-17)"._

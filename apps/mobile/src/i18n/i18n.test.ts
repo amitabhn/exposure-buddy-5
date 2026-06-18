@@ -2,7 +2,9 @@ import enJson from './locales/en.json'
 import hiJson from './locales/hi.json'
 import { PRIVACY_NOTICE_LAST_UPDATED } from '../constants/legal'
 
-const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/
+// Numeric segments (e.g. calmMe.affirmation.1) are allowed for rotation-style lists
+// (Story 7.1's CALM_ME_AFFIRMATIONS) — every other segment still requires lowercase-first camelCase.
+const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.([a-z][a-zA-Z0-9]*|[0-9]+))+$/
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([key, value]) => {

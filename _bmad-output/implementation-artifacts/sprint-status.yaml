@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-17 # 6-4-re-engagement-after-gap-state-9 deferred to post-MVP
+last_updated: 2026-06-18 # story 7-1 code review complete, 5 patches applied, done
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -100,8 +100,8 @@ development_status:
   epic-6-retrospective: optional
 
   # ─── Epic 7: Support Toolkit ──────────────────────────────────────────────
-  epic-7: backlog
-  7-1-calm-me-shell-courage-affirmation-and-action-decision-routing: backlog
+  epic-7: in-progress
+  7-1-calm-me-shell-courage-affirmation-and-action-decision-routing: done                  # CR 2026-06-18, 5 patches
   7-2-breathing-coach: backlog
   7-3-5-4-3-2-1-sensory-grounding-exercise: backlog
   7-4-helpline-signpost: backlog
