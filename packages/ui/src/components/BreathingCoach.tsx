@@ -5,7 +5,6 @@ import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated'
 import { BREATHING_PATTERN, PHASE_ORDER } from '@exposure-buddy/core'
@@ -24,8 +23,12 @@ export interface BreathingCoachProps {
 }
 
 const RING_SIZE = 200
-// Half-cadence pulse: scale grows over inhale+holdIn, shrinks over exhale+holdOut.
-const HALF_CYCLE_MS = (BREATHING_PATTERN.inhale + BREATHING_PATTERN.holdIn) * 1000
+const RING_BASE_SCALE = 1
+const RING_PULSE_SCALE = 1.3
+const RING_BORDER_WIDTH = 3
+// The ring's pulse is a transform, which doesn't reserve extra layout space — without a
+// slot sized to the peak scale, the ring visually grows into whatever sits below it.
+const RING_SLOT_SIZE = RING_SIZE * RING_PULSE_SCALE
 
 function phaseName(phaseIndex: number): BreathingPhaseName {
   return PHASE_ORDER[phaseIndex % PHASE_ORDER.length]!
@@ -52,7 +55,7 @@ export const BreathingCoach = React.forwardRef<
   { phaseIndex, isGuided, remainingSeconds, phaseElapsedMs, reduced, promptText, readyLabel, onReadyPress },
   ref,
 ) {
-  const scale = useSharedValue(1)
+  const scale = useSharedValue(RING_BASE_SCALE)
 
   // AC #10: live region on every phase change, continuing identically through the passive
   // phase (AC #5) — the guided→passive structural transition itself gets no announcement.
@@ -62,20 +65,37 @@ export const BreathingCoach = React.forwardRef<
     AccessibilityInfo.announceForAccessibility(promptText)
   }, [phaseIndex])
 
-  // AC #11: static ring when reduced, looping pulse otherwise.
+  // Ring size tracks the breathing pattern directly, not a free-running loop: it grows over
+  // the full inhale duration, holds constant at peak through holdIn, shrinks over the full
+  // exhale duration, then holds constant at rest through holdOut. Same contract for every
+  // future breathing technique (see visual-design-foundation.md "Breathing techniques").
+  // AC #11: static ring when reduced — no transform at all.
   useEffect(() => {
     if (reduced) {
       cancelAnimation(scale)
-      scale.value = 1
+      scale.value = RING_BASE_SCALE
       return
     }
-    scale.value = withRepeat(
-      withTiming(1.3, { duration: HALF_CYCLE_MS, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    )
+    const name = phaseName(phaseIndex)
+    const durationMs = BREATHING_PATTERN[name] * 1000
+    switch (name) {
+      case 'inhale':
+        scale.value = withTiming(RING_PULSE_SCALE, { duration: durationMs, easing: Easing.inOut(Easing.ease) })
+        break
+      case 'holdIn':
+        cancelAnimation(scale)
+        scale.value = RING_PULSE_SCALE
+        break
+      case 'exhale':
+        scale.value = withTiming(RING_BASE_SCALE, { duration: durationMs, easing: Easing.inOut(Easing.ease) })
+        break
+      case 'holdOut':
+        cancelAnimation(scale)
+        scale.value = RING_BASE_SCALE
+        break
+    }
     return () => cancelAnimation(scale)
-  }, [reduced, scale])
+  }, [phaseIndex, reduced, scale])
 
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -83,15 +103,17 @@ export const BreathingCoach = React.forwardRef<
 
   return (
     <View ref={ref} style={styles.container}>
-      <Animated.View style={[styles.ring, ringStyle]} />
+      <View style={styles.ringSlot}>
+        <Animated.View style={[styles.ring, ringStyle]} />
+      </View>
 
-      {isGuided && (
-        <Text style={styles.prompt}>
-          {reduced
-            ? `${phaseSecondsRemaining(phaseIndex, phaseElapsedMs)}…`
-            : promptText}
-        </Text>
-      )}
+      {/* Instructions stay visible for the whole session, guided and passive alike — the
+          phase cycle (and its live-region announcement) runs identically in both. */}
+      <Text style={styles.prompt}>
+        {reduced
+          ? `${phaseSecondsRemaining(phaseIndex, phaseElapsedMs)}…`
+          : promptText}
+      </Text>
 
       <Text style={styles.timer}>{formatMMSS(remainingSeconds)}</Text>
 
@@ -113,16 +135,27 @@ export const BreathingCoach = React.forwardRef<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: color.surface.primary,
     gap: spacing[6],
   },
+  ringSlot: {
+    // Reserves layout space for the ring's peak pulse scale, not just its resting size, so
+    // the transform-driven animation never overlaps the text below it.
+    width: RING_SLOT_SIZE,
+    height: RING_SLOT_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ring: {
     width: RING_SIZE,
     height: RING_SIZE,
     borderRadius: RING_SIZE / 2,
-    backgroundColor: color.accent.courage,
+    backgroundColor: 'transparent',
+    borderWidth: RING_BORDER_WIDTH,
+    borderColor: color.accent.courage,
   },
   prompt: {
     fontSize: 20,

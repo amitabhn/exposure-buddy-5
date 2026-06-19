@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { BreathingCoach } from '@exposure-buddy/ui'
+import { BreathingCoach, color } from '@exposure-buddy/ui'
 import { PHASE_ORDER } from '@exposure-buddy/core'
 import { useAnimation } from '../../src/contexts/AnimationContext'
 import { useBreathingPhase } from '../../src/hooks/useBreathingPhase'
@@ -71,7 +71,7 @@ export default function BreathingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: color.surface.primary, alignItems: 'center', justifyContent: 'center' },
   backButton: { position: 'absolute', top: 48, left: 24, padding: 8, zIndex: 1 },
   backIcon: { fontSize: 28, color: '#111827' },
   sessionComplete: { fontSize: 16, color: '#374151' },

@@ -1519,11 +1519,11 @@ No magic numbers appear inline in the component; all values imported from this f
 
 **Given** the guided phase is active
 **When** each stage runs
-**Then** the circular animated indicator and text prompts cycle: `t('breathing.inhale')` (canonical: "Breathe in...") for 4 s → `t('breathing.holdIn')` (canonical: "Hold...") for 4 s → `t('breathing.exhale')` (canonical: "Breathe out...") for 4 s → `t('breathing.holdOut')` (canonical: "Hold...") for 4 s; one cycle = 16 s
+**Then** the circular animated indicator and text prompts cycle: `t('breathing.inhale')` (canonical: "Breathe in...") for 4 s, during which the ring grows to its peak size → `t('breathing.holdIn')` (canonical: "Hold...") for 4 s, during which the ring stays constant at peak size → `t('breathing.exhale')` (canonical: "Breathe out...") for 4 s, during which the ring shrinks back to its rest size → `t('breathing.holdOut')` (canonical: "Hold...") for 4 s, during which the ring stays constant at rest size; one cycle = 16 s
 
 **Given** `BREATHING_GUIDED_CYCLES` guided cycles have completed
 **When** the next cycle begins
-**Then** the screen transitions automatically to the passive phase: all text prompts disappear; the animated ring continues looping with the same 4-4-4-4 timing; a `t('breathing.passiveReady')` (canonical: "I'm ready") CTA becomes visible — the user may tap it at any point during the passive phase to end the session early
+**Then** the screen transitions automatically to the passive phase: the cycling text prompts continue identically (instructions remain visible for the whole session, guided and passive alike — never hidden); the animated ring continues looping with the same 4-4-4-4 timing; a `t('breathing.passiveReady')` (canonical: "I'm ready") CTA becomes visible — the user may tap it at any point during the passive phase to end the session early
 
 **Given** the session timer reaches zero during the passive phase
 **When** the countdown hits 00:00
