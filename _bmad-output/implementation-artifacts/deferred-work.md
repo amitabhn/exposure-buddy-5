@@ -567,3 +567,13 @@ _Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run
 - **The cross-device fallback's `preSuds=0` default builds directly on top of the already-tracked 6-1-CR-D3 gap** (unguarded `preSuds` forwarding) rather than mitigating it. Epic 9 candidate per 6-1-CR-D3 above; no new fix required within this story's scope. [`_bmad-output/implementation-artifacts/6-3-home-screen-progressing-state-state-4.md` Dev Notes — "Why the cross-device fallback still matters"]
 
 [`_bmad-output/implementation-artifacts/6-3-home-screen-progressing-state-state-4.md`]
+
+## Deferred from: code review of 7-3-5-4-3-2-1-sensory-grounding-exercise (2026-06-19)
+
+_Spec review of the story document itself (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run before implementation began — no diff existed yet beyond the story doc's own creation; the spec is the artifact reviewed._
+
+- **No AC/task addresses app-lifecycle interruption** (state lost if the app backgrounds or is killed mid-exercise). Matches the same unstated gap in `BreathingCoach` (Story 7.2), not unique to this story. [AC #1–#4]
+- **CTA/prompt text overflow for longer translations (Hindi) against the fixed 56px touch target, and unbounded prompt text length on small screens, have no general handling guidance anywhere in the codebase.** Pre-existing gap across all Calm Me components (`BreathingCoach`, `CalmMeButton`), not introduced uniquely by this story. [AC #11, Task 2]
+- **`sprint-status.yaml`'s per-story freeform `last_updated` comment keeps accumulating with no structure or cleanup mechanism.** Pre-existing pattern across the whole file, not introduced by this change. [`_bmad-output/implementation-artifacts/sprint-status.yaml`]
+
+[`_bmad-output/implementation-artifacts/7-3-5-4-3-2-1-sensory-grounding-exercise.md`]
