@@ -31,3 +31,5 @@ export { HELPLINES } from './config/helplines'
 export { BREATHING_GUIDED_CYCLES, BREATHING_TIMER_SECONDS, BREATHING_PATTERN } from './config/breathingCoach'
 export type { BreathingPhaseName, AdvancePhaseResult } from './calm-me/breathing-phase'
 export { PHASE_ORDER, advancePhase } from './calm-me/breathing-phase'
+// 5-4-3-2-1 grounding exercise (Story 7.3)
+export { GROUNDING_STEPS, GROUNDING_TOTAL_STEPS } from './config/grounding-exercise'

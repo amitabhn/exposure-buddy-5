@@ -261,6 +261,18 @@
     "passiveReady": "I'm ready",
     "sessionComplete": "Session complete"
   },
+  "grounding541": {
+    "see": "Notice 5 things you can see around you",
+    "hear": "Notice 4 sounds you can hear",
+    "touch": "Notice 3 things you can touch or feel",
+    "smell": "Notice 2 things you can smell",
+    "taste": "Notice 1 thing you can taste",
+    "gotIt": "Got it",
+    "doneFinal": "I'm done",
+    "complete": "Well done. You just brought yourself back to the present.",
+    "done": "Done",
+    "again": "Go again"
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
