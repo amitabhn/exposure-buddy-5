@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +11,11 @@ export default function GroundingScreen() {
   const router = useRouter()
   const { reduced } = useAnimation()
 
-  const steps = GROUNDING_STEPS.map(({ promptKey }) => ({ promptText: t(promptKey) }))
+  // Stable identity so GroundingPrompt's effects (keyed on `steps`) don't re-run every render.
+  const steps = useMemo(
+    () => GROUNDING_STEPS.map(({ promptKey }) => ({ promptText: t(promptKey) })),
+    [t],
+  )
 
   return (
     <>

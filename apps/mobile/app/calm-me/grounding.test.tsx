@@ -1,6 +1,6 @@
 import React from 'react'
 import { AccessibilityInfo } from 'react-native'
-import { render, fireEvent } from '@testing-library/react-native'
+import { render, fireEvent, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -162,5 +162,47 @@ describe('GroundingScreen', () => {
 
     fireEvent.press(getByText('grounding541.doneFinal'))
     expect(getByText('grounding541.complete')).toBeTruthy()
+  })
+
+  it('Double-tap guard: two synchronous taps on "Got it" advance only one step', () => {
+    const { getByText, queryByText } = render(<GroundingScreen />)
+    const button = getByText('grounding541.gotIt')
+
+    act(() => {
+      fireEvent.press(button)
+      fireEvent.press(button)
+    })
+
+    expect(queryByText('2 / 5')).toBeTruthy()
+    expect(queryByText('3 / 5')).toBeNull()
+  })
+
+  it('Double-tap guard: two synchronous taps on the completion view\'s "Done" call onComplete/router.back() only once', () => {
+    const { getByText } = render(<GroundingScreen />)
+    advanceToStep5(getByText)
+    fireEvent.press(getByText('grounding541.doneFinal'))
+
+    const doneButton = getByText('grounding541.done')
+    act(() => {
+      fireEvent.press(doneButton)
+      fireEvent.press(doneButton)
+    })
+
+    expect(mockRouterBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('Double-tap guard: releases after a transition completes, so a later separate "Done" press still navigates', () => {
+    const { getByText, getByLabelText } = render(<GroundingScreen />)
+    advanceToStep5(getByText)
+    fireEvent.press(getByText('grounding541.doneFinal'))
+
+    fireEvent.press(getByLabelText('grounding541.done'))
+    expect(mockRouterBack).toHaveBeenCalledTimes(1)
+
+    // A second, separate (non-rapid) press should still be honored — the guard must not
+    // stay permanently locked after the first "Done" tap (handleDone changes neither
+    // stepIndex nor complete, so the unlock can't depend on those alone).
+    fireEvent.press(getByLabelText('grounding541.done'))
+    expect(mockRouterBack).toHaveBeenCalledTimes(2)
   })
 })

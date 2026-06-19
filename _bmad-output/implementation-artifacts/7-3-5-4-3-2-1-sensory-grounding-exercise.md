@@ -1,6 +1,6 @@
 # Story 7.3: 5-4-3-2-1 Sensory Grounding Exercise
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -77,6 +77,17 @@ so that I can interrupt an anxiety spiral without needing to think about what to
 - [x] [Review][Defer] No AC/task addresses app-lifecycle interruption (state lost if the app backgrounds or is killed mid-exercise) [AC #1–#4] — deferred, matches the same unstated gap in `BreathingCoach` (Story 7.2), not unique to this story
 - [x] [Review][Defer] CTA/prompt text overflow for longer translations (Hindi) against the fixed 56px touch target, and unbounded prompt text length on small screens, have no general handling guidance anywhere in the codebase [AC #11, Task 2] — deferred, pre-existing gap across all Calm Me components (`BreathingCoach`, `CalmMeButton`), not introduced uniquely by this story
 - [x] [Review][Defer] `sprint-status.yaml`'s per-story freeform `last_updated` comment keeps accumulating with no structure or cleanup mechanism [`_bmad-output/implementation-artifacts/sprint-status.yaml`] — deferred, pre-existing pattern across the whole file, not introduced by this change
+
+### Code Review Findings (2026-06-19, post-implementation)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run against the merged commit._
+
+- [x] [Review][Patch] "Done" double-tap guard (`transitioningRef`) never resets after firing — `handleDone` sets it `true` but neither `stepIndex` nor `complete` change as a result, so the only reset effect (keyed on `[stepIndex, complete]`) never re-runs; the completion "Done" button is permanently inert after one tap unless `onComplete` happens to unmount the component. [`packages/ui/src/components/GroundingPrompt.tsx` `handleDone`] — applied (added a `transitionTick` counter that increments on every handler call and drives the unlock effect, independent of whether `stepIndex`/`complete` change)
+- [x] [Review][Patch] Live-region and animation `useEffect`s read `steps`, `completeMessage`, and `total` (derived from `steps`) but omit them from their dependency arrays (`[stepIndex, complete]` / `[stepIndex, complete, reduced]`) — a stale-closure risk, compounded by `grounding.tsx` rebuilding the `steps` array with a new identity on every render instead of memoizing it. [`packages/ui/src/components/GroundingPrompt.tsx` live-region & animation effects; `apps/mobile/app/calm-me/grounding.tsx` `steps` construction] — applied (live-region effect deps now include `steps`, `total`, `completeMessage`; `grounding.tsx` memoizes `steps` via `useMemo(..., [t])` so the effect doesn't re-run every parent render)
+- [x] [Review][Patch] No test exercises the double-tap guard, despite it being named three times in the story as an explicit "(added 2026-06-19 code review)" requirement (Task 2's render bullet, Task 2's completion-view bullet, Task 5's test bullet) — the bug above (Done's guard never unlocking) would have been caught by such a test. [`apps/mobile/app/calm-me/grounding.test.tsx`] — applied (3 new tests: synchronous double-tap on "Got it" advances once, synchronous double-tap on completion "Done" fires `onComplete`/`router.back()` once, and a regression test proving the guard releases after a transition so a later separate "Done" press still navigates)
+- [x] [Review][Defer] `hi.json` ships only 6 of the 10 `grounding541` keys — `touch`, `smell`, `taste`, and notably `complete` (the exercise's payoff line, "Well done. You just brought yourself back to the present.") fall back to English. Spec (Task 4) explicitly permits partial translation via `fallbackLng: 'en'`, matching the Story 7.2 `breathing` namespace precedent — pre-existing pattern across the app's i18n, not unique to this story. [`apps/mobile/src/i18n/locales/hi.json`] — deferred, pre-existing pattern
+- [x] [Review][Defer] `GROUNDING_EASING` is hardcoded to `Easing.inOut(Easing.ease)` rather than reading `groundingTokens.motion.easing` — a documented workaround (Completion Notes) for a TS typing conflict between the token's literal `'easeInOut'` type and the general `motion` union. If the design-system token's easing value changes, this component won't follow it; fixing properly requires a token-typing change, out of scope for this patch round. [`packages/ui/src/components/GroundingPrompt.tsx`] — deferred, requires token-typing change
+- [x] [Review][Defer] On initial mount (not a "step change"), the cross-fade effect still animates opacity 0→1 for step 1's content — AC #10 only explicitly requires the cross-fade "on each step change"; whether mount itself should count is ambiguous. Low severity (a brief entrance fade, not a functional defect), and is consistent with the story's own precedent of not special-casing transitions (the "Go again" reset is deliberately treated as "just another transition," per AC #10). [`packages/ui/src/components/GroundingPrompt.tsx` cross-fade effect] — deferred, ambiguous/low severity
 
 ## Dev Notes
 
@@ -241,3 +252,4 @@ None — implementation went green on first run for all 5 tasks; no failing-test
 ## Change Log
 
 - 2026-06-19: Story 7.3 implemented — all 11 ACs, all 5 tasks complete. `pnpm turbo lint`/`typecheck`/`test` pass with zero regressions (262 mobile tests). Status: ready-for-dev → review.
+- 2026-06-19: Code review complete — 3 patches applied (double-tap guard fix on "Done", `useEffect` dependency-array/memoization fix, 3 new double-tap regression tests), 3 items deferred, 12 dismissed. `pnpm turbo typecheck`/`lint`/`test` green (265 mobile tests). Status: review → done.

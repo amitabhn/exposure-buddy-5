@@ -577,3 +577,13 @@ _Spec review of the story document itself (Blind Hunter + Edge Case Hunter + Acc
 - **`sprint-status.yaml`'s per-story freeform `last_updated` comment keeps accumulating with no structure or cleanup mechanism.** Pre-existing pattern across the whole file, not introduced by this change. [`_bmad-output/implementation-artifacts/sprint-status.yaml`]
 
 [`_bmad-output/implementation-artifacts/7-3-5-4-3-2-1-sensory-grounding-exercise.md`]
+
+## Deferred from: code review of 7-3-5-4-3-2-1-sensory-grounding-exercise (2026-06-19, post-implementation)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run against the merged commit._
+
+- **`hi.json` ships only 6 of the 10 `grounding541` keys** — `touch`, `smell`, `taste`, and `complete` (the exercise's payoff line) fall back to English via `fallbackLng: 'en'`. Spec explicitly permits this (Task 4), matching the Story 7.2 `breathing` namespace precedent — pre-existing pattern across the app's i18n, not unique to this story. [`apps/mobile/src/i18n/locales/hi.json`]
+- **`GROUNDING_EASING` is hardcoded to `Easing.inOut(Easing.ease)` rather than reading `groundingTokens.motion.easing`** — a documented workaround for a TS typing conflict between the token's literal `'easeInOut'` type and the general `motion` union. If the design-system token's easing value changes, this component won't follow it; fixing properly requires a token-typing change. [`packages/ui/src/components/GroundingPrompt.tsx`]
+- **On initial mount, the cross-fade effect still animates opacity 0→1 for step 1's content**, even though AC #10 only explicitly requires the cross-fade "on each step change." Low severity (brief entrance fade, not a functional defect); ambiguous whether mount should count as a "step change." [`packages/ui/src/components/GroundingPrompt.tsx`]
+
+[`_bmad-output/implementation-artifacts/7-3-5-4-3-2-1-sensory-grounding-exercise.md`]

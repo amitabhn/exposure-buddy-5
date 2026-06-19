@@ -34,8 +34,12 @@ export const GroundingPrompt = React.forwardRef<
   const [stepIndex, setStepIndex] = useState(0)
   const [complete, setComplete] = useState(false)
   // Guards against rapid double-tap advancing two steps (or firing onComplete twice) — a ref,
-  // not state, so a second synchronous press in the same tick still sees the lock.
+  // not state, so a second synchronous press in the same tick still sees the lock. Unlocked by
+  // transitionTick below, which increments on every handler call regardless of whether
+  // stepIndex/complete actually change (handleDone changes neither, since it just calls
+  // onComplete — without this, the guard would stay locked forever after one "Done" tap).
   const transitioningRef = useRef(false)
+  const [transitionTick, setTransitionTick] = useState(0)
   const opacity = useSharedValue(1)
 
   // AC #7: live region — step counter read before the prompt text, on mount and every step
@@ -47,7 +51,7 @@ export const GroundingPrompt = React.forwardRef<
     }
     const promptText = steps[stepIndex]?.promptText ?? ''
     AccessibilityInfo.announceForAccessibility(`Step ${stepIndex + 1} of ${total}. ${promptText}`)
-  }, [stepIndex, complete])
+  }, [stepIndex, complete, steps, total, completeMessage])
 
   // AC #8, #10: cross-fade keyed on the displayed content (step index, or the completion view,
   // including the "Go again" reset — just another transition, not a special-cased snap).
@@ -66,16 +70,18 @@ export const GroundingPrompt = React.forwardRef<
     return () => cancelAnimation(opacity)
   }, [stepIndex, complete, reduced])
 
-  // Unlocks the transition guard once the content has actually changed.
+  // Unlocks the transition guard after every handler call, not just ones that change
+  // stepIndex/complete (handleDone changes neither).
   useEffect(() => {
     transitioningRef.current = false
-  }, [stepIndex, complete])
+  }, [transitionTick])
 
   const contentStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
 
   function handleAdvance() {
     if (transitioningRef.current) return
     transitioningRef.current = true
+    setTransitionTick((t) => t + 1)
     if (stepIndex < total - 1) {
       setStepIndex((i) => i + 1)
     } else {
@@ -86,12 +92,14 @@ export const GroundingPrompt = React.forwardRef<
   function handleDone() {
     if (transitioningRef.current) return
     transitioningRef.current = true
+    setTransitionTick((t) => t + 1)
     onComplete()
   }
 
   function handleAgain() {
     if (transitioningRef.current) return
     transitioningRef.current = true
+    setTransitionTick((t) => t + 1)
     setComplete(false)
     setStepIndex(0)
   }
