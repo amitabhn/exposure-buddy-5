@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
-import { color, groundingTokens } from '../tokens/theme'
+import { color, groundingTokens, spacing } from '../tokens/theme'
 
 export interface GroundingPromptProps {
   steps: { promptText: string }[] // ordered, pre-translated, 5 items
@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
+    paddingHorizontal: spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: color.surface.primary,
