@@ -13,7 +13,8 @@
     "eas-build-post-install": "cd ../.. && pnpm turbo run build --filter=@exposure-buddy/core --filter=@exposure-buddy/supabase --filter=@exposure-buddy/sync --filter=@exposure-buddy/ui"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "resolver": "react-native-worklets/jest/resolver.js"
   },
   "dependencies": {
     "@expo-google-fonts/dm-serif-display": "^0.4.2",

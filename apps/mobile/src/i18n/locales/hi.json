@@ -225,5 +225,11 @@
     "needToStop": "मुझे रुकना है",
     "yes": "हाँ",
     "notNow": "अभी नहीं"
+  },
+  "breathing": {
+    "inhale": "सांस अंदर लें...",
+    "exhale": "सांस छोड़ें...",
+    "passiveReady": "मैं तैयार हूं",
+    "sessionComplete": "सत्र पूरा हुआ"
   }
 }
