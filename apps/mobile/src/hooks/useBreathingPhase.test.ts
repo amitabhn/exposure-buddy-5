@@ -134,10 +134,13 @@ describe('useBreathingPhase', () => {
   })
 
   it('clears the interval on unmount', () => {
+    const setIntervalSpy = jest.spyOn(global as unknown as typeof globalThis, 'setInterval')
     const clearIntervalSpy = jest.spyOn(global as unknown as typeof globalThis, 'clearInterval')
     const { unmount } = renderHook(() => useBreathingPhase())
+    const intervalId = setIntervalSpy.mock.results[0]!.value
     unmount()
-    expect(clearIntervalSpy).toHaveBeenCalled()
+    expect(clearIntervalSpy).toHaveBeenCalledWith(intervalId)
+    setIntervalSpy.mockRestore()
     clearIntervalSpy.mockRestore()
   })
 })

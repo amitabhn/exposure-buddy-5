@@ -37,6 +37,15 @@ _Spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the story
 
 ---
 
+## Deferred from: code review of 7-2-breathing-coach (2026-06-19)
+
+_Implementation review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..story/7-2-breathing-coach` implementation diff. Acceptance Auditor found zero AC violations — all 11 ACs independently verified correct. Original findings in the "Review Findings — Implementation Code Review (2026-06-19)" section of `7-2-breathing-coach.md`._
+
+- **Live-region announcement effect depends only on `[phaseIndex]`, not `promptText`.** A live locale switch mid-phase would announce a stale translated string from before the switch. Pre-existing, since no live language-switching support exists anywhere in the i18n architecture yet. Revisit if/when the project adds live language-switching. [`packages/ui/src/components/BreathingCoach.tsx:1082-1084`]
+- **App-backgrounding phase/cycle catch-up behavior is undefined.** When the screen is backgrounded mid-session (phone locked, call received, app switched), the session countdown (`remainingSeconds`) stays wall-clock-accurate across the gap, but the phase/cycle index only ever advances by one step on resume regardless of gap size, desyncing `cycleCount`/`isGuided` from real elapsed time. Resolved via party-mode roundtable (Sally/Winston/John/Amelia, 2026-06-19): ship as-is. Low-frequency edge case in an ephemeral, non-clinical support tool — no AC depends on phase/cycle accuracy across a background gap; revisit if backgrounding-related complaints surface. If revisited, two implementation shapes were scoped in the roundtable: a reducer catch-up loop (`advancePhase` repeated until the elapsed gap is consumed, capped at the session-expiry boundary, with the guided→passive-straddle case explicitly designed rather than left implicit) vs. an `AppState`-driven pause/resume (stop the interval on background, shift `mountedAtRef`/`phaseStartedAt` by the paused duration on resume — touches zero reducer branches but introduces this codebase's first `AppState` lifecycle dependency). [`apps/mobile/src/hooks/useBreathingPhase.ts:765-792`, `packages/core/src/calm-me/breathing-phase.ts:964-978`]
+
+---
+
 ## Deferred from: code review of 6-3-home-screen-progressing-state-state-4 (2026-06-17)
 
 _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Acceptance Auditor found zero AC violations. Original findings: `6-3-home-screen-progressing-state-state-4.md` → "Code Review — Post-Implementation (2026-06-17)"._

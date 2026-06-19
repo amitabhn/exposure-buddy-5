@@ -109,6 +109,15 @@ describe('BreathingScreen', () => {
 
     expect(queryByText('breathing.inhale')).toBeNull()
     expect(getByText('4…')).toBeTruthy()
+
+    act(() => jest.advanceTimersByTime(1000))
+    expect(getByText('3…')).toBeTruthy()
+
+    act(() => jest.advanceTimersByTime(1000))
+    expect(getByText('2…')).toBeTruthy()
+
+    act(() => jest.advanceTimersByTime(1000))
+    expect(getByText('1…')).toBeTruthy()
   })
 
   it('AC #10: announces only on the 4 cycling phase legs, continuing uninterrupted through the passive transition', () => {
@@ -138,5 +147,6 @@ describe('BreathingScreen', () => {
 
     const button = getByLabelText('breathing.passiveReady')
     expect(button).toHaveStyle({ minHeight: 56 })
+    expect(button.props.hitSlop).toEqual({ top: 8, bottom: 8, left: 8, right: 8 })
   })
 })

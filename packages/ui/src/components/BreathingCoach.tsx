@@ -101,6 +101,7 @@ export const BreathingCoach = React.forwardRef<
           onPress={onReadyPress}
           accessibilityRole="button"
           accessibilityLabel={readyLabel}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={styles.readyLabel}>{readyLabel}</Text>
         </TouchableOpacity>
