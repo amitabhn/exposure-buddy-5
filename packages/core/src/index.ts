@@ -27,3 +27,7 @@ export type { TechniqueType } from './types/technique'
 export { CALM_ME_AFFIRMATIONS } from './config/calmMeConfig'
 export type { Helpline } from './config/helplines'
 export { HELPLINES } from './config/helplines'
+// Breathing coach (Story 7.2)
+export { BREATHING_GUIDED_CYCLES, BREATHING_TIMER_SECONDS, BREATHING_PATTERN } from './config/breathingCoach'
+export type { BreathingPhaseName, AdvancePhaseResult } from './calm-me/breathing-phase'
+export { PHASE_ORDER, advancePhase } from './calm-me/breathing-phase'

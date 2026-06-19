@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-18 # story 7-2 spec hardened via code review (18 patches, 1 deferred), still ready-for-dev — no implementation yet
+last_updated: 2026-06-19 # story 7-2 implemented, all ACs + tests passing — ready for code review
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -102,7 +102,7 @@ development_status:
   # ─── Epic 7: Support Toolkit ──────────────────────────────────────────────
   epic-7: in-progress
   7-1-calm-me-shell-courage-affirmation-and-action-decision-routing: done                  # CR 2026-06-18, 5 patches
-  7-2-breathing-coach: ready-for-dev
+  7-2-breathing-coach: review
   7-3-5-4-3-2-1-sensory-grounding-exercise: backlog
   7-4-helpline-signpost: backlog
   7-5-grounding-screen-full-technique-picker: backlog

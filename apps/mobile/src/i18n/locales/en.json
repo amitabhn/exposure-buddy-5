@@ -253,6 +253,14 @@
       "helplines": "Helplines"
     }
   },
+  "breathing": {
+    "inhale": "Breathe in...",
+    "holdIn": "Hold...",
+    "exhale": "Breathe out...",
+    "holdOut": "Hold...",
+    "passiveReady": "I'm ready",
+    "sessionComplete": "Session complete"
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
