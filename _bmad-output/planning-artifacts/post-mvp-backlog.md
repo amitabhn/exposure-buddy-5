@@ -161,6 +161,11 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Source:** Product backlog (added 2026-06-06).
 **Notes:** MVP ships with a single India-tuned tone. As the app expands to other markets (Phase 2), the same translated string may need a different register — e.g. more directive in some Western clinical traditions, more indirect and relationally framed in South/East Asian contexts. Recommended approach: introduce a `toneProfile` dimension alongside locale in `packages/core/src/config/` (e.g. `toneProfile: 'india-v1' | 'western-clinical'`); i18n keys stay unchanged, but a tone-variant content layer selects between alternate phrasings. Requires a content review workflow so clinicians can approve tone variants per region before shipping. Connects to item 4-2-D3 (practice scenario cultural validation) and item 1.30 (quote framing).
 
+### 1.32 Emergency Contact Profile Field
+**What:** A profile parameter — "Emergency Contact" (name + phone number) — required during onboarding, and modifiable afterward from Profile Settings.
+**Source:** Product backlog (added 2026-06-19).
+**Notes:** Not yet scoped into an epic/story. Open questions to resolve before story creation: (1) Is this purely informational (the user's own reference) or does the app ever act on it programmatically — e.g. a crisis-escalation contact surfaced alongside the helpline list (Story 7.4) or notified automatically on a SUDS-≥8 check-in (post-MVP item 1.22)? The two have very different UX, consent, and clinical-review implications. (2) "Required during onboarding" needs DPDPA review — this is third-party PII (someone else's name and phone number) collected without that person's direct consent, which is a different data-processing question than the user's own data; check with the DPO/legal track (see item 4.4, 4.5) before treating it as a hard onboarding gate rather than optional/skippable. (3) Where it surfaces: onboarding flow is `apps/mobile/app/(onboarding)/`; the existing Settings screen is `apps/mobile/app/(app)/settings/index.tsx` — "Profile Settings" as named doesn't exist yet as a distinct screen, so this may require either a new Profile section or reuse of the existing Settings screen.
+
 ---
 
 ## 2. Phase 2 — Content & Therapeutic Tracks
