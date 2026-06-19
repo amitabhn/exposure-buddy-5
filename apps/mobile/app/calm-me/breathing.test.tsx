@@ -56,15 +56,12 @@ describe('BreathingScreen', () => {
     expect(getByText('breathing.inhale')).toBeTruthy()
   })
 
-  it('auto-transitions to passive after 2 guided cycles (32s): text hidden, "I\'m ready" visible', () => {
-    const { getByText, queryByText } = render(<BreathingScreen />)
+  it('auto-transitions to passive after 2 guided cycles (32s): instructions stay visible, "I\'m ready" also appears', () => {
+    const { getByText } = render(<BreathingScreen />)
 
     act(() => jest.advanceTimersByTime(32000))
 
-    expect(queryByText('breathing.inhale')).toBeNull()
-    expect(queryByText('breathing.holdIn')).toBeNull()
-    expect(queryByText('breathing.exhale')).toBeNull()
-    expect(queryByText('breathing.holdOut')).toBeNull()
+    expect(getByText('breathing.inhale')).toBeTruthy()
     expect(getByText('breathing.passiveReady')).toBeTruthy()
   })
 

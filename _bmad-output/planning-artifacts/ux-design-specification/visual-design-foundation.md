@@ -129,6 +129,8 @@ theme: { extend: { borderRadius: { card: '14px', button: '12px' } } }
 - Motion tokens: `duration.normal: 200ms` · `duration.reduced: 0ms`
 - Animation default: `reduced: true` until provider confirms otherwise — fail-safe, not fail-open
 - Breathing animation: falls back to static ring + text countdown when reduced
+- Breathing techniques: instructional text/cues stay visible for the entire session, guided and passive/freeform phases alike — do not hide instructions once a technique's structured/guided portion ends (applies to box breathing and all future techniques, e.g. 4-7-8, Bhramari, Nadi Shodhana, body scan)
+- Breathing techniques: the ring's size is phase-locked, not a free-running pulse — it grows during the inhale phase, holds constant at peak size during the hold-in phase, shrinks during the exhale phase, and holds constant at rest size during the hold-out phase. The ring must never be mid-transition during a hold phase. Applies to box breathing and all future techniques.
 
 **Colour independence:** Rank badge: colour + number. SUDS delta: colour + `↑`/`↓` glyph. No information conveyed by colour alone.
 
