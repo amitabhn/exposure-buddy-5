@@ -1,6 +1,6 @@
 # Story 7.5: Grounding Screen — Full Technique Picker
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,29 +24,29 @@ so that I can calm myself before deciding whether to continue or end the session
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Rewrite `apps/mobile/app/session/grounding.tsx` (AC: #1, #2, #3, #4, #5, #6, #7)
-  - [ ] Replace the affirmation `t()` call and delete the breathing-prompt `<Text>` line (AC #1).
-  - [ ] Add the technique-picker block: 3 `TouchableOpacity` cards (Breathing / 5-4-3-2-1 / Helplines), each `accessibilityRole="button"`, `accessibilityLabel` matching its visible label, `onPress` pushing to the corresponding `/calm-me/*` route (AC #2). Mirror `calm-me/index.tsx`'s `techniqueCard`/`techniqueLabel` style shapes for visual consistency — inline duplication here is consistent with this codebase's existing precedent of duplicating small UI chrome (e.g. the identical back-button block repeated across `breathing.tsx`/`grounding.tsx`/`helplines.tsx`); do not refactor `calm-me/index.tsx` to extract a shared component as part of this story (out of scope, risks regressing a `done` story).
-  - [ ] Add the post-MVP TODO comment near the affirmation/intro copy (AC #3).
-  - [ ] Remove or update the file-header guard comment at the top of `grounding.tsx` (`// IMPORTANT: This screen ships as COMPLETE at MVP. No TODO, STUB, or Epic 7 comments...`) — it was written in Story 5.2 anticipating this exact story and now directly contradicts the AC #3 TODO comment being added to the same file. Leaving it in place would make the file self-contradictory.
-  - [ ] Update `handleResume` → call `transition('grounding', { type: 'grounding.resumed' })` (import `transition` from `@exposure-buddy/core`), bail silently if `!result.ok`, otherwise keep the existing `router.replace(...)` call unchanged (AC #5).
-  - [ ] Update `handleConfirmStop` → call `transition('grounding', { type: 'grounding.stopped' })` first, bail if `!result.ok`; keep the rest of the function (both `enqueue()` calls, MMKV clears, `router.push('/session/abandoned')`) **exactly as it is today** (AC #6).
-  - [ ] Rename the two footer buttons' labels/`accessibilityLabel`s to `t('grounding.keepGoing')` / `t('grounding.stopSession')` (AC #4).
-  - [ ] Add Android hardware-back interception: `useFocusEffect` (from `expo-router`, same import source as `useFocusOnMount.ts`) wrapping a `BackHandler.addEventListener('hardwareBackPress', () => true)` subscription, removed on cleanup via the returned subscription's `.remove()` (RN 0.81 API — no `removeEventListener` needed). Wrap the registration callback in `useCallback` (matches `useFocusOnMount.ts`'s pattern) (AC #7).
-- [ ] Task 2: i18n keys (AC: #4, #9)
-  - [ ] Add a new top-level `grounding` namespace to `en.json`: `{ "keepGoing": "I can keep going", "stopSession": "I need to stop this session" }` — placed as a sibling to `grounding541`/`breathing`/`helplines`, not nested under `session`.
-  - [ ] Remove `session.grounding.affirmation`, `session.grounding.breathingPrompt`, `session.grounding.resume`, `session.grounding.confirmStop` from `en.json` and `hi.json` — grep first to reconfirm `grounding.tsx`/`grounding.test.tsx` are the only consumers (verified during story creation; re-verify at implementation time in case anything changed).
-  - [ ] Optionally add the same `grounding` namespace to `hi.json` (partial coverage acceptable, per Story 7.2–7.4 precedent — `fallbackLng: 'en'` handles gaps).
-- [ ] Task 3: `session-state-machine.test.ts` gap check (AC: #8)
-  - [ ] Read the existing file (`packages/core/src/erp/session-state-machine.test.ts`) — it **already** has direct assertions for `grounding → active` (line 33–36) and `grounding → abandoned` (line 38–41), plus illegal-transition coverage for `grounding.resumed` attempted from `completed` (line 92) and `abandoned` (line 101), and `grounding.stopped` attempted from `idle` (line 114). It does **not** currently test attempting `grounding.resumed`/`grounding.stopped` from `active` or `pre_session`. Add only those missing illegal-transition assertions — do not duplicate what's already there.
-- [ ] Task 4: Update `apps/mobile/app/session/grounding.test.tsx` (AC: #1–#7)
-  - [ ] Add `transition: jest.fn(() => ({ ok: true }))` to the `@exposure-buddy/core` mock (mirror `active.test.tsx`'s mocking pattern, line ~46) — also re-export anything else this screen now imports from `@exposure-buddy/core` (none beyond `transition` and `CALM_ME_AFFIRMATIONS`).
-  - [ ] Mock `CALM_ME_AFFIRMATIONS: ['calmMe.affirmation.1']` and update the affirmation-text assertion to expect that key instead of `session.grounding.affirmation`; delete the breathing-prompt assertion (the line no longer exists).
-  - [ ] Add a `BackHandler` mock (`jest.mock('react-native', () => ({ ...jest.requireActual('react-native'), BackHandler: { addEventListener: jest.fn(() => ({ remove: jest.fn() })) } }))` or equivalent — check for any existing RN partial-mock pattern elsewhere in `apps/mobile` tests before writing a new one) and assert `addEventListener` was called with `'hardwareBackPress'` and a handler that returns `true`.
-  - [ ] Add 3 tests for the technique-picker cards: tapping each pushes to `/calm-me/breathing`, `/calm-me/grounding`, `/calm-me/helplines` respectively.
-  - [ ] Update existing Resume/Confirm-Stop tests: button labels now resolve via `getByLabelText('grounding.keepGoing')` / `getByLabelText('grounding.stopSession')`; add an assertion that `transition` was called with `('grounding', { type: 'grounding.resumed' })` / `('grounding', { type: 'grounding.stopped' })` before the existing enqueue/navigation assertions. Keep the existing enqueue-payload and `/session/abandoned` navigation assertions unchanged (AC #6 — destination did not change).
-  - [ ] `pnpm turbo lint` — 0 `i18next/no-literal-string` violations.
-  - [ ] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
+- [x] Task 1: Rewrite `apps/mobile/app/session/grounding.tsx` (AC: #1, #2, #3, #4, #5, #6, #7)
+  - [x] Replace the affirmation `t()` call and delete the breathing-prompt `<Text>` line (AC #1).
+  - [x] Add the technique-picker block: 3 `TouchableOpacity` cards (Breathing / 5-4-3-2-1 / Helplines), each `accessibilityRole="button"`, `accessibilityLabel` matching its visible label, `onPress` pushing to the corresponding `/calm-me/*` route (AC #2). Mirror `calm-me/index.tsx`'s `techniqueCard`/`techniqueLabel` style shapes for visual consistency — inline duplication here is consistent with this codebase's existing precedent of duplicating small UI chrome (e.g. the identical back-button block repeated across `breathing.tsx`/`grounding.tsx`/`helplines.tsx`); do not refactor `calm-me/index.tsx` to extract a shared component as part of this story (out of scope, risks regressing a `done` story).
+  - [x] Add the post-MVP TODO comment near the affirmation/intro copy (AC #3).
+  - [x] Remove or update the file-header guard comment at the top of `grounding.tsx` (`// IMPORTANT: This screen ships as COMPLETE at MVP. No TODO, STUB, or Epic 7 comments...`) — it was written in Story 5.2 anticipating this exact story and now directly contradicts the AC #3 TODO comment being added to the same file. Leaving it in place would make the file self-contradictory.
+  - [x] Update `handleResume` → call `transition('grounding', { type: 'grounding.resumed' })` (import `transition` from `@exposure-buddy/core`), bail silently if `!result.ok`, otherwise keep the existing `router.replace(...)` call unchanged (AC #5).
+  - [x] Update `handleConfirmStop` → call `transition('grounding', { type: 'grounding.stopped' })` first, bail if `!result.ok`; keep the rest of the function (both `enqueue()` calls, MMKV clears, `router.push('/session/abandoned')`) **exactly as it is today** (AC #6).
+  - [x] Rename the two footer buttons' labels/`accessibilityLabel`s to `t('grounding.keepGoing')` / `t('grounding.stopSession')` (AC #4).
+  - [x] Add Android hardware-back interception: `useFocusEffect` (from `expo-router`, same import source as `useFocusOnMount.ts`) wrapping a `BackHandler.addEventListener('hardwareBackPress', () => true)` subscription, removed on cleanup via the returned subscription's `.remove()` (RN 0.81 API — no `removeEventListener` needed). Wrap the registration callback in `useCallback` (matches `useFocusOnMount.ts`'s pattern) (AC #7).
+- [x] Task 2: i18n keys (AC: #4, #9)
+  - [x] Add a new top-level `grounding` namespace to `en.json`: `{ "keepGoing": "I can keep going", "stopSession": "I need to stop this session" }` — placed as a sibling to `grounding541`/`breathing`/`helplines`, not nested under `session`.
+  - [x] Remove `session.grounding.affirmation`, `session.grounding.breathingPrompt`, `session.grounding.resume`, `session.grounding.confirmStop` from `en.json` and `hi.json` — grep first to reconfirm `grounding.tsx`/`grounding.test.tsx` are the only consumers (verified during story creation; re-verify at implementation time in case anything changed).
+  - [x] Optionally add the same `grounding` namespace to `hi.json` (partial coverage acceptable, per Story 7.2–7.4 precedent — `fallbackLng: 'en'` handles gaps).
+- [x] Task 3: `session-state-machine.test.ts` gap check (AC: #8)
+  - [x] Read the existing file (`packages/core/src/erp/session-state-machine.test.ts`) — it **already** has direct assertions for `grounding → active` (line 33–36) and `grounding → abandoned` (line 38–41), plus illegal-transition coverage for `grounding.resumed` attempted from `completed` (line 92) and `abandoned` (line 101), and `grounding.stopped` attempted from `idle` (line 114). It does **not** currently test attempting `grounding.resumed`/`grounding.stopped` from `active` or `pre_session`. Add only those missing illegal-transition assertions — do not duplicate what's already there.
+- [x] Task 4: Update `apps/mobile/app/session/grounding.test.tsx` (AC: #1–#7)
+  - [x] Add `transition: jest.fn(() => ({ ok: true }))` to the `@exposure-buddy/core` mock (mirror `active.test.tsx`'s mocking pattern, line ~46) — also re-export anything else this screen now imports from `@exposure-buddy/core` (none beyond `transition` and `CALM_ME_AFFIRMATIONS`).
+  - [x] Mock `CALM_ME_AFFIRMATIONS: ['calmMe.affirmation.1']` and update the affirmation-text assertion to expect that key instead of `session.grounding.affirmation`; delete the breathing-prompt assertion (the line no longer exists).
+  - [x] Add a `BackHandler` mock (`jest.mock('react-native', () => ({ ...jest.requireActual('react-native'), BackHandler: { addEventListener: jest.fn(() => ({ remove: jest.fn() })) } }))` or equivalent — check for any existing RN partial-mock pattern elsewhere in `apps/mobile` tests before writing a new one) and assert `addEventListener` was called with `'hardwareBackPress'` and a handler that returns `true`.
+  - [x] Add 3 tests for the technique-picker cards: tapping each pushes to `/calm-me/breathing`, `/calm-me/grounding`, `/calm-me/helplines` respectively.
+  - [x] Update existing Resume/Confirm-Stop tests: button labels now resolve via `getByLabelText('grounding.keepGoing')` / `getByLabelText('grounding.stopSession')`; add an assertion that `transition` was called with `('grounding', { type: 'grounding.resumed' })` / `('grounding', { type: 'grounding.stopped' })` before the existing enqueue/navigation assertions. Keep the existing enqueue-payload and `/session/abandoned` navigation assertions unchanged (AC #6 — destination did not change).
+  - [x] `pnpm turbo lint` — 0 `i18next/no-literal-string` violations.
+  - [x] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
 
 ## Dev Notes
 
@@ -113,12 +113,32 @@ Story 7.4 updated `calm-me/*` screens to use `color.surface.primary` + `width: '
 
 ### Agent Model Used
 
+claude-sonnet-4-6 (Claude Code)
+
 ### Debug Log References
+
+None — no blocking failures encountered.
 
 ### Completion Notes List
 
+- Rewrote `apps/mobile/app/session/grounding.tsx` per AC #1–#7: affirmation now sources from `CALM_ME_AFFIRMATIONS[0]`, breathing-prompt line removed, 3-card technique picker added (reusing `/calm-me/breathing`, `/calm-me/grounding`, `/calm-me/helplines` routes — no new screens), post-MVP TODO comment added, stale Story 5.2 header guard comment removed, `handleResume`/`handleConfirmStop` now gated behind `transition('grounding', ...)` calls (bail-on-`!ok` pattern mirrored from `active.tsx`), footer buttons relabeled to new top-level `grounding.keepGoing`/`grounding.stopSession` i18n keys, Android hardware-back interception added via `useFocusEffect` + `BackHandler.addEventListener('hardwareBackPress', () => true)` (first use of `BackHandler` in this codebase).
+- `handleConfirmStop`'s enqueue payloads, MMKV clears, and `/session/abandoned` navigation target are byte-for-byte unchanged from the pre-story implementation — only the leading `transition()` guard call was added, per AC #6 and the Dev Notes "Stop destination" confirmation.
+- i18n: added top-level `grounding.keepGoing`/`grounding.stopSession` to `en.json` (sibling to `grounding541`/`breathing`/`helplines`) and `hi.json`; removed the now-orphaned `session.grounding.{affirmation,breathingPrompt,resume,confirmStop}` block from both locale files after re-confirming via grep that `grounding.tsx`/`grounding.test.tsx` were the only consumers.
+- `session-state-machine.test.ts`: confirmed existing `grounding→active`/`grounding→abandoned` legal-transition assertions and existing illegal-transition coverage (from `completed`/`abandoned`/`idle`); added the 4 genuinely missing illegal-transition assertions — `grounding.resumed`/`grounding.stopped` attempted from `active` and from `pre_session` — without duplicating existing tests.
+- `grounding.test.tsx`: rewritten with `transition` + `CALM_ME_AFFIRMATIONS` mocks for `@exposure-buddy/core`, 3 new technique-picker navigation tests, a hardware-back-interceptor test, and updated Resume/Stop tests that assert `transition()` is called before the existing enqueue/navigation assertions, plus 2 new "bails when transition fails" tests for both handlers.
+- Deviation from the story's literal `BackHandler` mock suggestion: `jest.mock('react-native', () => ({ ...jest.requireActual('react-native'), ... }))` broke jest-expo's native module bootstrapping (`TurboModuleRegistry.getEnforcing(...): 'DevMenu' could not be found`) when run under this project's jest-expo preset. Used `jest.spyOn(BackHandler, 'addEventListener')` instead — `BackHandler.ios.js` (jest-expo's default test platform) already ships a real, working no-op `addEventListener`, so spying on it avoids re-evaluating RN's native module graph while still asserting the call shape and handler behavior.
+- Container styling judgment call (Dev Notes "Container styling"): kept the existing raw `'#ffffff'`/`paddingHorizontal: 24` container styling as-is; only added new `techniquePicker`/`techniqueCard`/`techniqueLabel` styles (copied from `calm-me/index.tsx`'s shapes) — did not migrate to the `@exposure-buddy/ui` token system, to avoid an unscoped restyle.
+- Full validation: `pnpm turbo lint` (0 violations across all 6 packages), `pnpm turbo typecheck` (clean), `pnpm turbo test` (Vitest: core 53/53, supabase 27 passed/50 skipped, sync 23/23, ui 0 — passWithNoTests; Jest: mobile 277/277 across 32 suites, including the 13 tests in the rewritten `grounding.test.tsx`).
+
 ### File List
+
+- `apps/mobile/app/session/grounding.tsx` (modified)
+- `apps/mobile/app/session/grounding.test.tsx` (modified)
+- `apps/mobile/src/i18n/locales/en.json` (modified)
+- `apps/mobile/src/i18n/locales/hi.json` (modified)
+- `packages/core/src/erp/session-state-machine.test.ts` (modified)
 
 ## Change Log
 
 - 2026-06-20: Story 7.5 created via create-story workflow. Stop-destination ambiguity in epics.md (debrief vs. abandoned) investigated and resolved with user: keep `/session/abandoned`, unchanged from Story 5.2.
+- 2026-06-20: Story implemented — grounding screen rewritten with full technique picker, `transition()` wiring for resume/stop, Android hardware-back lockout, i18n migration, and `session-state-machine.test.ts` gap-fill. All tasks complete, full regression suite green. Status → review.

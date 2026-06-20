@@ -1,4 +1,5 @@
 import React from 'react'
+import { BackHandler } from 'react-native'
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
@@ -12,7 +13,13 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useLocalSearchParams: jest.fn(),
   useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
+  // useFocusEffect calls callback immediately in test environment (mirrors useFocusOnMount.test.tsx)
+  useFocusEffect: (cb: () => void) => { cb() },
 }))
+
+// BackHandler.ios.js (jest-expo's default test platform) ships a real no-op addEventListener —
+// spy on it rather than jest.mock('react-native', ...), which breaks jest-expo's native module setup.
+const mockAddEventListener = jest.spyOn(BackHandler, 'addEventListener')
 
 const mockClearSessionInProgress = jest.fn()
 const mockClearSessionIntention = jest.fn()
@@ -22,6 +29,11 @@ jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
+jest.mock('@exposure-buddy/core', () => ({
+  transition: jest.fn(() => ({ ok: true })),
+  CALM_ME_AFFIRMATIONS: ['calmMe.affirmation.1'],
+}))
+
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('../../src/sync/adapter', () => ({
@@ -29,6 +41,7 @@ jest.mock('../../src/sync/adapter', () => ({
 }))
 
 const { useLocalSearchParams } = require('expo-router')
+const { transition } = require('@exposure-buddy/core')
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -48,14 +61,9 @@ beforeEach(() => {
 const GroundingScreen = require('./grounding').default
 
 describe('GroundingScreen', () => {
-  it('renders affirmation text', () => {
+  it('renders affirmation text from CALM_ME_AFFIRMATIONS', () => {
     const { getByText } = render(<GroundingScreen />)
-    expect(getByText('session.grounding.affirmation')).toBeTruthy()
-  })
-
-  it('renders breathing prompt', () => {
-    const { getByText } = render(<GroundingScreen />)
-    expect(getByText('session.grounding.breathingPrompt')).toBeTruthy()
+    expect(getByText('calmMe.affirmation.1')).toBeTruthy()
   })
 
   it('no back button rendered (headerShown is false, forward-only screen)', () => {
@@ -63,9 +71,35 @@ describe('GroundingScreen', () => {
     expect(queryByLabelText('common.back')).toBeNull()
   })
 
-  it('Resume uses router.replace (not push) to /session/active', async () => {
+  it('registers Android hardware-back interceptor that swallows the event', () => {
+    render(<GroundingScreen />)
+    expect(mockAddEventListener).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function))
+    const handler = mockAddEventListener.mock.calls[0]?.[1]
+    expect(handler?.()).toBe(true)
+  })
+
+  it('tapping Breathing pushes to /calm-me/breathing', () => {
     const { getByLabelText } = render(<GroundingScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.grounding.resume')) })
+    fireEvent.press(getByLabelText('calmMe.technique.breathing'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/breathing')
+  })
+
+  it('tapping 5-4-3-2-1 pushes to /calm-me/grounding', () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    fireEvent.press(getByLabelText('calmMe.technique.grounding'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/grounding')
+  })
+
+  it('tapping Helplines pushes to /calm-me/helplines', () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    fireEvent.press(getByLabelText('calmMe.technique.helplines'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/helplines')
+  })
+
+  it('Keep Going calls transition then router.replace (not push) to /session/active', async () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.keepGoing')) })
+    expect(transition).toHaveBeenCalledWith('grounding', { type: 'grounding.resumed' })
     expect(mockRouterReplace).toHaveBeenCalledWith(
       expect.stringContaining('/session/active')
     )
@@ -74,9 +108,17 @@ describe('GroundingScreen', () => {
     )
   })
 
-  it('Confirm Stop enqueues exposure_sessions UPDATE with abandoned status', async () => {
+  it('Keep Going bails with no navigation when transition fails', async () => {
+    transition.mockReturnValueOnce({ ok: false, error: { code: 'INVALID_TRANSITION', message: 'no' } })
     const { getByLabelText } = render(<GroundingScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.grounding.confirmStop')) })
+    await act(async () => { fireEvent.press(getByLabelText('grounding.keepGoing')) })
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
+  it('Stop Session calls transition then enqueues exposure_sessions UPDATE with abandoned status', async () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    expect(transition).toHaveBeenCalledWith('grounding', { type: 'grounding.stopped' })
     await waitFor(() => {
       expect(mockEnqueue).toHaveBeenCalledWith(
         'exposure_sessions',
@@ -86,9 +128,17 @@ describe('GroundingScreen', () => {
     })
   })
 
-  it('Confirm Stop enqueues fear_ladder_items status reset to pending', async () => {
+  it('Stop Session bails with no enqueue/navigation when transition fails', async () => {
+    transition.mockReturnValueOnce({ ok: false, error: { code: 'INVALID_TRANSITION', message: 'no' } })
     const { getByLabelText } = render(<GroundingScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.grounding.confirmStop')) })
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    expect(mockEnqueue).not.toHaveBeenCalled()
+    expect(mockRouterPush).not.toHaveBeenCalledWith('/session/abandoned')
+  })
+
+  it('Stop Session enqueues fear_ladder_items status reset to pending', async () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
     await waitFor(() => {
       expect(mockEnqueue).toHaveBeenCalledWith(
         'fear_ladder_items',
@@ -98,18 +148,18 @@ describe('GroundingScreen', () => {
     })
   })
 
-  it('Confirm Stop clears SESSION_IN_PROGRESS and SESSION_INTENTION', async () => {
+  it('Stop Session clears SESSION_IN_PROGRESS and SESSION_INTENTION', async () => {
     const { getByLabelText } = render(<GroundingScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.grounding.confirmStop')) })
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
     await waitFor(() => {
       expect(mockClearSessionInProgress).toHaveBeenCalled()
       expect(mockClearSessionIntention).toHaveBeenCalledWith('session-uuid-1')
     })
   })
 
-  it('Confirm Stop navigates to /session/abandoned', async () => {
+  it('Stop Session navigates to /session/abandoned', async () => {
     const { getByLabelText } = render(<GroundingScreen />)
-    await act(async () => { fireEvent.press(getByLabelText('session.grounding.confirmStop')) })
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
     await waitFor(() => {
       expect(mockRouterPush).toHaveBeenCalledWith('/session/abandoned')
     })

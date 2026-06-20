@@ -190,12 +190,6 @@
       "completionModalTitle": "How are you feeling now?",
       "finishSession": "Finish session"
     },
-    "grounding": {
-      "affirmation": "You showed real courage by starting. Whatever you're feeling right now is okay.",
-      "breathingPrompt": "Take three slow breaths. In through your nose, out through your mouth. Let your body settle.",
-      "resume": "I can keep going",
-      "confirmStop": "I need to stop"
-    },
     "abandoned": {
       "message": "Stopping when you need to is an act of self-awareness. You can try again whenever you feel ready."
     },
@@ -277,6 +271,10 @@
     "intro": "Talking to someone helps. These services are free and confidential.",
     "call": "Call",
     "unavailable": "Helpline information is not available in your region yet."
+  },
+  "grounding": {
+    "keepGoing": "I can keep going",
+    "stopSession": "I need to stop this session"
   },
   "nav": {
     "home": "Home",

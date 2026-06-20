@@ -110,6 +110,38 @@ describe('SessionStateMachine', () => {
     }
   })
 
+  it('grounding.resumed from active is illegal', () => {
+    const result = transition('active', { type: 'grounding.resumed' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe('INVALID_TRANSITION')
+    }
+  })
+
+  it('grounding.stopped from active is illegal', () => {
+    const result = transition('active', { type: 'grounding.stopped' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe('INVALID_TRANSITION')
+    }
+  })
+
+  it('grounding.resumed from pre_session is illegal', () => {
+    const result = transition('pre_session', { type: 'grounding.resumed' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe('INVALID_TRANSITION')
+    }
+  })
+
+  it('grounding.stopped from pre_session is illegal', () => {
+    const result = transition('pre_session', { type: 'grounding.stopped' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe('INVALID_TRANSITION')
+    }
+  })
+
   it('error message includes current state and event type', () => {
     const result = transition('idle', { type: 'grounding.stopped' })
     expect(result.ok).toBe(false)
