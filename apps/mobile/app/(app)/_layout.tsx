@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useAuth, createSupabaseClient } from '@exposure-buddy/supabase'
 import { getAdapter } from '../../src/sync/adapter'
+import { PushRegistrationProvider } from '../../src/contexts/PushRegistrationContext'
 
 export default function AppLayout() {
   const { t } = useTranslation()
@@ -17,7 +18,9 @@ export default function AppLayout() {
     sessionRecoveryData,
     clearSessionInProgress,
     clearSessionIntention,
+    userId,
   } = useAuth()
+
   // Local dismissal flag: hides the modal after Resume without clearing session data,
   // so the recovery blob remains available if the app is force-quit mid-session again.
   // Resets automatically when sessionRecoveryData is cleared (abandonment/completion).
@@ -95,7 +98,7 @@ export default function AppLayout() {
   const showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null && !recoveryModalDismissed
 
   return (
-    <>
+    <PushRegistrationProvider userId={userId}>
       <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
           name="index"
@@ -149,7 +152,7 @@ export default function AppLayout() {
           </View>
         </View>
       </Modal>
-    </>
+    </PushRegistrationProvider>
   )
 }
 

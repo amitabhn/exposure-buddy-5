@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-06-18
+# last_updated: 2026-06-20
 # project: exposure-buddy
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-20 # story 7-5 code review complete, status done
+last_updated: 2026-06-20 # story 8-1 done — code review complete, 1 decision + 4 patches resolved, 7 deferred
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -109,8 +109,8 @@ development_status:
   epic-7-retrospective: optional
 
   # ─── Epic 8: Notifications & Achievements Tab ─────────────────────────────
-  epic-8: backlog
-  8-1-push-token-registration-and-shared-push-helper: backlog
+  epic-8: in-progress
+  8-1-push-token-registration-and-shared-push-helper: done
   8-2-daily-local-session-reminder: backlog
   8-3-window-close-notification-edge-function: backlog
   8-4-re-engagement-notifications-day-2-and-day-5-edge-function: backlog

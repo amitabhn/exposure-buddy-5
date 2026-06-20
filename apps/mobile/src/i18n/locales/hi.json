@@ -212,6 +212,12 @@
   "settings": {
     "privacy": {
       "privacyNotice": "गोपनीयता सूचना"
+    },
+    "reminders": {
+      "title": "अनुस्मारक",
+      "notYetRequested": "अनुस्मारक सक्षम करें",
+      "enabled": "अनुस्मारक सक्षम हैं",
+      "disabled": "अनुस्मारक अक्षम हैं — सेटिंग्स खोलने के लिए टैप करें"
     }
   },
   "calmMe": {

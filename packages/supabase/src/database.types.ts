@@ -91,6 +91,33 @@ export type Database = {
         }
         Relationships: []
       }
+      device_push_tokens: {
+        Row: {
+          id: string
+          last_seen_at: string
+          platform: string
+          registered_at: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_seen_at?: string
+          platform: string
+          registered_at?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          registered_at?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dpo_audit_log: {
         Row: {
           acting_operator_id: string
@@ -157,6 +184,7 @@ export type Database = {
           session_type: string
           started_at: string
           status: string
+          technique: string | null
           user_id: string
         }
         Insert: {
@@ -170,6 +198,7 @@ export type Database = {
           session_type?: string
           started_at?: string
           status?: string
+          technique?: string | null
           user_id: string
         }
         Update: {
@@ -183,6 +212,7 @@ export type Database = {
           session_type?: string
           started_at?: string
           status?: string
+          technique?: string | null
           user_id?: string
         }
         Relationships: [
@@ -368,6 +398,15 @@ export type Database = {
     Functions: {
       perform_user_erasure: {
         Args: { p_target_user_id: string }
+        Returns: undefined
+      }
+      swap_ladder_positions: {
+        Args: {
+          p_item_a_id: string
+          p_item_a_new_position: number
+          p_item_b_id: string
+          p_item_b_new_position: number
+        }
         Returns: undefined
       }
     }
