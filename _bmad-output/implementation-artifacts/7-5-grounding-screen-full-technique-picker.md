@@ -1,6 +1,6 @@
 # Story 7.5: Grounding Screen — Full Technique Picker
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -47,6 +47,15 @@ so that I can calm myself before deciding whether to continue or end the session
   - [x] Update existing Resume/Confirm-Stop tests: button labels now resolve via `getByLabelText('grounding.keepGoing')` / `getByLabelText('grounding.stopSession')`; add an assertion that `transition` was called with `('grounding', { type: 'grounding.resumed' })` / `('grounding', { type: 'grounding.stopped' })` before the existing enqueue/navigation assertions. Keep the existing enqueue-payload and `/session/abandoned` navigation assertions unchanged (AC #6 — destination did not change).
   - [x] `pnpm turbo lint` — 0 `i18next/no-literal-string` violations.
   - [x] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
+
+### Review Findings
+
+Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..story/7-5-grounding-screen-full-technique-picker` implementation diff. Acceptance Auditor found zero AC violations — all 9 ACs independently verified correct against the live codebase. 20 raw findings across the three layers; 16 dismissed as noise/false-positive/already-handled, 4 merged/surviving as pre-existing low-risk deferrals.
+
+- [x] [Review][Defer] `CALM_ME_AFFIRMATIONS[0]!` non-null assertion has no fallback if the array is ever emptied [`apps/mobile/app/session/grounding.tsx:86`] — deferred, pre-existing (identical pattern already shipped in `calm-me/index.tsx:104`; `calmMeConfig.ts` carries a "Post-MVP rotation" comment confirming the single-entry array is intentional, not an oversight)
+- [x] [Review][Defer] `useFocusEffect` test mock never exercises the `BackHandler` subscription's cleanup/unmount path [`apps/mobile/app/session/grounding.test.tsx`] — deferred, pre-existing (mirrors the same simplistic mock convention already used codebase-wide in `useFocusOnMount.test.tsx`)
+- [x] [Review][Defer] No double-tap guard on "I need to stop this session" — rapid double-tap could re-run `transition()`/double-enqueue the abandonment writes [`apps/mobile/app/session/grounding.tsx:28` `handleConfirmStop`] — deferred, pre-existing (AC #6 explicitly mandates keeping `handleConfirmStop`'s body unchanged; same class of gap already tracked as `5-2-W15`/`5-2-D2` in `deferred-work.md`)
+- [x] [Review][Defer] Tapping a technique card during `handleConfirmStop`'s async window can push into `/calm-me/*` mid-abandonment [`apps/mobile/app/session/grounding.tsx:88-116`] — deferred, needs a UX decision (disable the technique cards/footer while stop is in flight?) before it can be patched; new interaction surface introduced by this story's technique-picker cards combined with the pre-existing unguarded async window
 
 ## Dev Notes
 
@@ -142,3 +151,4 @@ None — no blocking failures encountered.
 
 - 2026-06-20: Story 7.5 created via create-story workflow. Stop-destination ambiguity in epics.md (debrief vs. abandoned) investigated and resolved with user: keep `/session/abandoned`, unchanged from Story 5.2.
 - 2026-06-20: Story implemented — grounding screen rewritten with full technique picker, `transition()` wiring for resume/stop, Android hardware-back lockout, i18n migration, and `session-state-machine.test.ts` gap-fill. All tasks complete, full regression suite green. Status → review.
+- 2026-06-20: Code review complete — multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Zero AC violations found. 4 low-risk pre-existing-pattern items deferred (see Review Findings + `deferred-work.md`); 16 findings dismissed as noise/false-positive/already-handled. Status → done.

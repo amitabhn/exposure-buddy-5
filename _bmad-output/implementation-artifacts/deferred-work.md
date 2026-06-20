@@ -1,5 +1,16 @@
 # Deferred Work
 
+## Deferred from: code review of 7-5-grounding-screen-full-technique-picker (2026-06-20)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..story/7-5-grounding-screen-full-technique-picker` implementation diff. Acceptance Auditor found zero AC violations — all 9 ACs independently verified correct. Original findings: `7-5-grounding-screen-full-technique-picker.md` → "Review Findings"._
+
+- **`CALM_ME_AFFIRMATIONS[0]!` non-null assertion has no fallback if the array is ever emptied.** Identical pattern already shipped in `calm-me/index.tsx:104`; `calmMeConfig.ts` carries a "Post-MVP rotation" comment confirming the single-entry array is intentional, not an oversight. [`apps/mobile/app/session/grounding.tsx:86`]
+- **`useFocusEffect` test mock never exercises the `BackHandler` subscription's cleanup/unmount path.** Mirrors the same simplistic mock convention already used codebase-wide in `useFocusOnMount.test.tsx`. [`apps/mobile/app/session/grounding.test.tsx`]
+- **No double-tap guard on "I need to stop this session" — rapid double-tap could re-run `transition()`/double-enqueue the abandonment writes.** AC #6 explicitly mandates keeping `handleConfirmStop`'s body unchanged; same class of gap already tracked as `5-2-W15`/`5-2-D2` below. [`apps/mobile/app/session/grounding.tsx:28`]
+- **Tapping a technique card during `handleConfirmStop`'s async window can push into `/calm-me/*` mid-abandonment.** New interaction surface introduced by this story's technique-picker cards combined with the pre-existing unguarded async window. Needs a UX decision (disable the technique cards/footer while stop is in flight?) before it can be patched. [`apps/mobile/app/session/grounding.tsx:88-116`]
+
+---
+
 ## MUST-HAVE before MVP launch — from manual smoke test of 7-1-calm-me-shell-courage-affirmation-and-action-decision-routing (2026-06-18)
 
 _Not pre-existing — both introduced by this story's `CalmMeButton`/`CalmMeFab` and discovered during manual smoke testing in the iOS Simulator, after the formal code review had already closed out. Unlike the deferrals below, these are not "low risk, mirrors an existing pattern" — they are open, unresolved UX decisions that must be closed before MVP ships._
