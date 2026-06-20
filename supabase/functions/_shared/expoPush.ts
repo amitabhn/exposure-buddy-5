@@ -24,6 +24,7 @@ interface ExpoPushResponse {
  * reuse it rather than re-deriving the chunking logic.
  */
 export function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) throw new Error('chunk: size must be > 0')
   const chunks: T[][] = []
   for (let i = 0; i < arr.length; i += size) {
     chunks.push(arr.slice(i, i + size))

@@ -1,4 +1,4 @@
-import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
+import { assertEquals, assertThrows } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import { chunk, sendPushNotification } from './expoPush.ts'
 
 function mockFetchOnce(response: { ok: boolean; json?: () => Promise<unknown> }) {
@@ -129,4 +129,9 @@ Deno.test('chunk — empty array returns empty array', () => {
 Deno.test('chunk — array smaller than size returns a single chunk', () => {
   const input = [1, 2, 3]
   assertEquals(chunk(input, 100), [[1, 2, 3]])
+})
+
+Deno.test('chunk — size <= 0 throws instead of looping forever', () => {
+  assertThrows(() => chunk([1, 2, 3], 0))
+  assertThrows(() => chunk([1, 2, 3], -1))
 })

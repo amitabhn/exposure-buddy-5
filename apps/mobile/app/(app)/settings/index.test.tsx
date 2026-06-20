@@ -25,8 +25,8 @@ jest.mock('@exposure-buddy/supabase', () => ({
 
 const mockRegisterNow = jest.fn().mockResolvedValue(undefined)
 
-jest.mock('../../../src/hooks/usePushRegistration', () => ({
-  usePushRegistration: () => ({ registerNow: mockRegisterNow }),
+jest.mock('../../../src/contexts/PushRegistrationContext', () => ({
+  usePushRegistrationContext: () => ({ registerNow: mockRegisterNow }),
 }))
 
 const mockGetPermissionsAsync = jest.fn()

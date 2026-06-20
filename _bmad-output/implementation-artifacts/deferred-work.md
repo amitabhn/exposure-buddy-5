@@ -616,3 +616,17 @@ _Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Accep
 - **AC #3's "no error surface" leaves a crisis-screen user with zero on-screen recourse on call failure.** Only `console.error` is logged if `Linking.openURL` fails (e.g. no telephony on a tablet/simulator). This is explicit, hard-required spec behavior (AC #3), not an implementation defect — addressing it (e.g. a fallback "copy number" affordance) is a product decision out of scope for this patch round. [AC #3, `apps/mobile/app/calm-me/helplines.tsx` `handleCall`]
 
 [`_bmad-output/implementation-artifacts/7-4-helpline-signpost.md`]
+
+## Deferred from: code review of 8-1-push-token-registration-and-shared-push-helper (2026-06-20)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run against the branch diff vs `main` after Story 8.1 was implemented._
+
+- **No retry/backoff after a registration failure.** Once `registerNow()` throws on mount, `hasRegisteredRef` stays false and the foreground `AppState` listener never retries until app relaunch. [`apps/mobile/src/hooks/usePushRegistration.ts`]
+- **EAS `projectId` read without validation.** `Constants.expoConfig?.extra?.eas?.projectId` is passed to `getExpoPushTokenAsync` unchecked; failures here are indistinguishable from permission/network failures in logs. [`apps/mobile/src/hooks/usePushRegistration.ts:14`]
+- **`registerPushToken` doesn't validate `token`/`userId` are non-empty.** [`packages/supabase/src/functions/push-tokens.ts`]
+- **`usePushRegistration` doesn't validate a non-empty token before registering.** [`apps/mobile/src/hooks/usePushRegistration.ts:33`]
+- **`sendPushNotification` has no fetch timeout/AbortController.** A hung connection to Expo's endpoint could hold an Edge Function invocation open indefinitely. [`supabase/functions/_shared/expoPush.ts`]
+- **`sendPushNotification`'s response-shape assumption is unverified for the future multi-token batch path.** `payload.data?.[0]` assumes a single-ticket response; the ordering/shape contract for a future batched call (Stories 8.3/8.4) using `chunk()` is not validated here. [`supabase/functions/_shared/expoPush.ts`]
+- **`PruneToken` hard-delete has no implemented caller and no guard against deleting a freshly re-registered token.** Flag for whichever of Stories 8.3/8.4 implements the first caller of `sendPushNotification`'s `PruneToken` signal; a delete keyed purely on token string with no `last_seen_at`/timestamp guard could race against a concurrent re-registration. [`supabase/functions/_shared/expoPush.ts`]
+
+[`_bmad-output/implementation-artifacts/8-1-push-token-registration-and-shared-push-helper.md`]

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, AppState, Linking } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import * as Notifications from 'expo-notifications'
 import { useAuth } from '@exposure-buddy/supabase'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
-import { usePushRegistration } from '../../../src/hooks/usePushRegistration'
+import { usePushRegistrationContext } from '../../../src/contexts/PushRegistrationContext'
 
 type ReminderPermissionState = 'not-yet-requested' | 'enabled' | 'disabled'
 
@@ -39,8 +39,8 @@ function derivePermissionState(status: string | undefined): ReminderPermissionSt
 export default function SettingsScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { signOut, requestAccountDeletion, userId } = useAuth()
-  const { registerNow } = usePushRegistration(userId)
+  const { signOut, requestAccountDeletion } = useAuth()
+  const { registerNow } = usePushRegistrationContext()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
@@ -81,17 +81,25 @@ export default function SettingsScreen() {
     return () => sub.remove()
   }, [refreshReminderState])
 
+  const isHandlingReminderPressRef = useRef(false)
+
   async function handleReminderPress() {
-    if (reminderState === 'disabled') {
-      Linking.openSettings()
-      return
-    }
-    if (reminderState === 'not-yet-requested') {
-      const { status } = await Notifications.requestPermissionsAsync()
-      setReminderState(derivePermissionState(status))
-      if (status === 'granted') {
-        await registerNow()
+    if (isHandlingReminderPressRef.current) return
+    isHandlingReminderPressRef.current = true
+    try {
+      if (reminderState === 'disabled') {
+        Linking.openSettings()
+        return
       }
+      if (reminderState === 'not-yet-requested') {
+        const { status } = await Notifications.requestPermissionsAsync()
+        setReminderState(derivePermissionState(status))
+        if (status === 'granted') {
+          await registerNow()
+        }
+      }
+    } finally {
+      isHandlingReminderPressRef.current = false
     }
   }
 

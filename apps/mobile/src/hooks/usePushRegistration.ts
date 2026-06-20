@@ -41,8 +41,11 @@ export function usePushRegistration(userId: string | undefined | null): UsePushR
     let cancelled = false
 
     async function run() {
-      await registerNow()
-      if (cancelled) return
+      try {
+        await registerNow()
+      } catch (err) {
+        if (!cancelled) console.warn('[usePushRegistration] mount registration failed:', err)
+      }
     }
     run()
 
@@ -54,7 +57,9 @@ export function usePushRegistration(userId: string | undefined | null): UsePushR
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active' && hasRegisteredRef.current) {
-        registerNow()
+        registerNow().catch(err => {
+          console.warn('[usePushRegistration] foreground re-registration failed:', err)
+        })
       }
     })
     return () => sub.remove()
