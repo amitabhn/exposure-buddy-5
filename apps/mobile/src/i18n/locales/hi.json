@@ -165,12 +165,6 @@
       "acknowledgementNoImprovement": "You showed up. That takes real courage, even when it's hard.",
       "crisisHeading": "If you need support right now:"
     },
-    "grounding": {
-      "affirmation": "You showed real courage by starting. Whatever you're feeling right now is okay.",
-      "breathingPrompt": "Take three slow breaths. In through your nose, out through your mouth. Let your body settle.",
-      "resume": "I can keep going",
-      "confirmStop": "I need to stop"
-    },
     "abandoned": {
       "message": "Stopping when you need to is an act of self-awareness. You can try again whenever you feel ready."
     },
@@ -243,5 +237,9 @@
   "helplines": {
     "intro": "किसी से बात करना मदद करता है। ये सेवाएं नि:शुल्क और गोपनीय हैं।",
     "call": "कॉल करें"
+  },
+  "grounding": {
+    "keepGoing": "मैं जारी रख सकता हूं",
+    "stopSession": "मुझे यह सत्र रोकना है"
   }
 }
