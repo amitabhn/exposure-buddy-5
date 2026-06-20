@@ -62,7 +62,7 @@ describe('HelplinesScreen', () => {
 
   it('AC #3: tapping a Call button dials tel: + that entry\'s number', () => {
     const { getByLabelText } = render(<HelplinesScreen />)
-    fireEvent.press(getByLabelText('Call Tele MANAS: 1800-891-4416'))
+    fireEvent.press(getByLabelText('helplines.call Tele MANAS: 1800-891-4416'))
     expect(Linking.openURL).toHaveBeenCalledWith('tel:18008914416')
   })
 
@@ -72,7 +72,7 @@ describe('HelplinesScreen', () => {
     const { getByLabelText, getByText } = render(<HelplinesScreen />)
 
     await act(async () => {
-      fireEvent.press(getByLabelText('Call Tele MANAS: 1800-891-4416'))
+      fireEvent.press(getByLabelText('helplines.call Tele MANAS: 1800-891-4416'))
       await Promise.resolve()
     })
 
@@ -88,7 +88,7 @@ describe('HelplinesScreen', () => {
     const { getByLabelText } = render(<HelplinesScreen />)
 
     expect(() => {
-      fireEvent.press(getByLabelText('Call Tele MANAS: 1800-891-4416'))
+      fireEvent.press(getByLabelText('helplines.call Tele MANAS: 1800-891-4416'))
     }).not.toThrow()
     expect(console.error).toHaveBeenCalledWith('[HelplinesScreen] call failed:', expect.any(Error))
   })
@@ -101,14 +101,14 @@ describe('HelplinesScreen', () => {
 
   it('AC #7/#8: each Call button has minHeight >= 56 and the expected accessibilityLabel format', () => {
     const { getByLabelText } = render(<HelplinesScreen />)
-    const button = getByLabelText('Call Tele MANAS: 1800-891-4416')
+    const button = getByLabelText('helplines.call Tele MANAS: 1800-891-4416')
     expect(button).toHaveStyle({ minHeight: 56 })
     expect(button.props.accessibilityRole).toBe('button')
 
-    expect(getByLabelText('Call KIRAN: 1800-599-0019')).toBeTruthy()
-    expect(getByLabelText('Call iCall: 9152987821')).toBeTruthy()
-    expect(getByLabelText('Call Vandrevala Foundation: 9999-666-555')).toBeTruthy()
-    expect(getByLabelText('Call AASRA: +91-22-27546669')).toBeTruthy()
+    expect(getByLabelText('helplines.call KIRAN: 1800-599-0019')).toBeTruthy()
+    expect(getByLabelText('helplines.call iCall: 9152987821')).toBeTruthy()
+    expect(getByLabelText('helplines.call Vandrevala Foundation: 9999-666-555')).toBeTruthy()
+    expect(getByLabelText('helplines.call AASRA: +91-22-27546669')).toBeTruthy()
   })
 
   it('AC #2: renders the unavailable fallback instead of a blank list when HELPLINES is empty', () => {

@@ -596,3 +596,12 @@ _Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run
 - **`accessibilityLabel` convention diverges from `debrief.tsx`'s existing "call a helpline" pattern, left unreconciled.** This story mandates `"Call {name}: {displayNumber}"` (AC #8); `debrief.tsx`'s pre-existing crisis-contact links use `"{name}: {number}"` (no "Call " prefix) with `accessibilityRole="link"` instead of `"button"`. The story explicitly declines to touch `debrief.tsx` (correctly, out of scope) but the app now has two divergent a11y conventions for the same user action. [AC #8, `apps/mobile/app/session/debrief.tsx:159,166,173`]
 
 [`_bmad-output/implementation-artifacts/7-4-helpline-signpost.md`]
+
+## Deferred from: code review of 7-4-helpline-signpost (2026-06-20, post-implementation)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run against the branch diff vs `main` after Story 7.4 was implemented._
+
+- **No double-tap guard on the Call button.** `Linking.openURL` can fire multiple times for a rapid double-tap — a plausible interaction for a user under crisis-level distress. No `disabled`/debounce guard exists in `HelplineCard`'s `TouchableOpacity` or `helplines.tsx`'s `handleCall`. Pre-existing app-wide pattern: `debrief.tsx`'s existing `Linking.openURL('tel:...')` calls have the same gap, and no AC requires a guard. [`packages/ui/src/components/HelplineCard.tsx`, `apps/mobile/app/calm-me/helplines.tsx` `handleCall`]
+- **AC #3's "no error surface" leaves a crisis-screen user with zero on-screen recourse on call failure.** Only `console.error` is logged if `Linking.openURL` fails (e.g. no telephony on a tablet/simulator). This is explicit, hard-required spec behavior (AC #3), not an implementation defect — addressing it (e.g. a fallback "copy number" affordance) is a product decision out of scope for this patch round. [AC #3, `apps/mobile/app/calm-me/helplines.tsx` `handleCall`]
+
+[`_bmad-output/implementation-artifacts/7-4-helpline-signpost.md`]

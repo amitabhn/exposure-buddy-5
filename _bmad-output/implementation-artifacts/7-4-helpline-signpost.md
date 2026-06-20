@@ -1,6 +1,6 @@
 # Story 7.4: Helpline Signpost
 
-Status: review (spec reviewed 2026-06-20 — 2 patches applied, 2 deferred)
+Status: done (spec reviewed 2026-06-20 — 2 patches applied, 2 deferred; code reviewed 2026-06-20 — 1 patch applied, 2 deferred)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -19,14 +19,14 @@ so that I can reach human support immediately, even offline (FR-CRISIS-01, NFR-O
 5. **No hardcoded helpline data in the component.** `HELPLINES` and `Helpline` are imported solely from `packages/core/src/config/helplines.ts` (via the `@exposure-buddy/core` barrel); updating that file is the only change required to add/edit/remove any helpline entry. No helpline name/number is typed literally anywhere in `apps/mobile` or `packages/ui` for this screen.
 6. **i18n.** *(story-author addition — epics.md's Story 7.4 section omits this AC, unlike Stories 7.1–7.3, but the project-wide CI gate still applies.)* Every visible string on the helpline screen uses `t()`; no raw string literals in component JSX; CI `i18next/no-literal-string` lint passes.
 7. **Touch target — 56px, in-the-moment register.** *(story-author addition, sourced from `responsive-design-accessibility.md`'s "56×56px: all in-the-moment interactive elements" rule, applied identically to `BreathingCoach`'s "I'm ready" CTA in Story 7.2 and `GroundingPrompt`'s CTA in Story 7.3.)* The "Call" button on each card uses a minimum height of `tapTarget.inTheMoment` (56px) — this screen is reached exclusively through the Calm Me flow, the same register as those two components.
-8. **Card accessibility label.** *(story-author addition, sourced from `component-strategy.md`'s `HelplineCard` spec — see Dev Notes "component-strategy.md's HelplineCard — same name, different screen, partially reusable spec.")* Each card's "Call" button has `accessibilityLabel={"Call " + name + ": " + displayNumber}` (e.g. "Call Tele MANAS: 1800-891-4416") and `accessibilityRole="button"`.
+8. **Card accessibility label.** *(story-author addition, sourced from `component-strategy.md`'s `HelplineCard` spec — see Dev Notes "component-strategy.md's HelplineCard — same name, different screen, partially reusable spec.")* Each card's "Call" button has `accessibilityLabel={callLabel + " " + name + ": " + displayNumber}` — built from the same pre-translated `callLabel` prop used for the button's visible text (e.g. "Call Tele MANAS: 1800-891-4416" in English) so the label is locale-correct, not a hardcoded English literal — and `accessibilityRole="button"`. *(Amended 2026-06-20 post-implementation code review — see Review Findings: the original wording hardcoded the English word "Call" regardless of locale.)*
 
 ## Tasks / Subtasks
 
 - [x] Task 1: `HelplineCard` component (AC: #1, #3, #6, #7, #8)
   - [x] Create `packages/ui/src/components/HelplineCard.tsx` — presentational, mirrors `CourageLadderEntryCard.tsx`'s shape (`React.forwardRef`, `StyleSheet.create()`, no NativeWind, named export + separately-exported props type, added to `packages/ui/src/index.ts`'s barrel).
   - [x] Props: `name: string`, `displayNumber: string`, `callLabel: string` (pre-translated — see Dev Notes "Pre-translated props, not `useTranslation()` inside `packages/ui`"), `onCallPress: () => void`. **Do not import `Linking` or call it inside this component** — `packages/ui`'s import boundary forbids RN platform-integration APIs (`component-strategy.md`: "Forbidden: ... RN platform APIs"); the component exposes `onCallPress` and the screen wrapper performs the actual `Linking.openURL` call and its try/catch (AC #3). This mirrors `GroundingPrompt`'s `onComplete` callback pattern — the primitive never owns the side effect.
-  - [x] Render: `name`, `displayNumber`, a single "Call" `TouchableOpacity` with `minHeight: tapTarget.inTheMoment` (AC #7), `accessibilityRole="button"`, `accessibilityLabel={\`Call ${name}: ${displayNumber}\`}` (AC #8). Use `color.accent.courage` for the Call button's accent styling, **not** `color.accent.grounding` — continue the same unaudited-token substitution `BreathingCoach`/`GroundingPrompt` already established (see Dev Notes "`color.accent.grounding` still unaudited").
+  - [x] Render: `name`, `displayNumber`, a single "Call" `TouchableOpacity` with `minHeight: tapTarget.inTheMoment` (AC #7), `accessibilityRole="button"`, `accessibilityLabel={\`${callLabel} ${name}: ${displayNumber}\`}` (AC #8 — built from the translated `callLabel` prop, not a hardcoded "Call" literal). Use `color.accent.courage` for the Call button's accent styling, **not** `color.accent.grounding` — continue the same unaudited-token substitution `BreathingCoach`/`GroundingPrompt` already established (see Dev Notes "`color.accent.grounding` still unaudited").
   - [x] No co-located `HelplineCard.test.tsx` — `packages/ui`'s Vitest config has no RN renderer (same documented wall every other `packages/ui` component hits); `tsc --noEmit` typechecks the primitive, behavior is covered via the screen-level test in Task 4.
   - [x] Export `HelplineCard` + its props type from `packages/ui/src/index.ts`.
 - [x] Task 2: Screen wiring (AC: #1, #2, #3, #4, #5, #6)
@@ -150,6 +150,12 @@ That ADR was already implicitly resolved by Story 7.1: `HELPLINES` is a static b
 - [x] [Review][Defer] ScrollView vs. plain `View` judgment call has no AC or test backing either choice — deferred, the correct threshold is a UX call, not a code-correctness issue; no single unambiguous fix. [7-4-helpline-signpost.md:42]
 - [x] [Review][Defer] `accessibilityLabel` convention diverges from `debrief.tsx`'s existing "call a helpline" pattern, left unreconciled — deferred, pre-existing inconsistency in `debrief.tsx` that this story correctly declines to touch (out of scope); two different a11y label conventions for the same action now coexist in the app. [7-4-helpline-signpost.md:22, apps/mobile/app/session/debrief.tsx:159,166,173]
 
+### Code Review Findings (2026-06-20, post-implementation)
+
+- [x] [Review][Patch] `HelplineCard`'s `accessibilityLabel` hardcoded the English word "Call" regardless of locale, even though a pre-translated `callLabel` prop already exists for the visible button text. Resolved 2026-06-20: AC #8 amended and `accessibilityLabel` now built from `callLabel` (`\`${callLabel} ${name}: ${displayNumber}\``) instead of a hardcoded literal; `helplines.test.tsx`'s `getByLabelText` assertions updated to match. [`packages/ui/src/components/HelplineCard.tsx`, AC #8]
+- [x] [Review][Defer] No double-tap guard on the Call button — `Linking.openURL` can fire multiple times for a rapid double-tap (a plausible interaction for a user under crisis-level distress); no `disabled`/debounce guard anywhere in `HelplineCard`'s `TouchableOpacity` or `helplines.tsx`'s `handleCall`. Deferred, pre-existing pattern: `debrief.tsx`'s existing `Linking.openURL('tel:...')` calls have the same gap, and no AC requires a guard here. [`packages/ui/src/components/HelplineCard.tsx`, `apps/mobile/app/calm-me/helplines.tsx` `handleCall`]
+- [x] [Review][Defer] AC #3's "no error surface shown to the user" leaves a crisis-screen user with zero on-screen recourse if `Linking.openURL` fails (e.g. no telephony on a tablet/simulator) — only a `console.error` is logged. Deferred: this is explicit, hard-required spec behavior (AC #3), not an implementation defect; addressing it would require an AC change (e.g. a fallback "copy number" affordance), a product decision out of scope for this patch round. [AC #3, `apps/mobile/app/calm-me/helplines.tsx` `handleCall`]
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -183,3 +189,4 @@ None — implementation went green on first run for Tasks 1–3. Task 4's empty-
 ## Change Log
 
 - 2026-06-20: Story 7.4 implemented — all 8 ACs, all 4 tasks complete. `pnpm turbo lint`/`typecheck`/`test` pass with zero regressions (272 mobile tests). Status: ready-for-dev → review.
+- 2026-06-20: Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — 0 AC violations, 1 patch applied (AC #8 `accessibilityLabel` amended to use the translated `callLabel` prop instead of a hardcoded "Call" literal), 2 deferred (no double-tap guard on Call button; AC #3's "no error surface" leaves no on-screen recourse on call failure — both pre-existing patterns, not regressions). Status: review → done.

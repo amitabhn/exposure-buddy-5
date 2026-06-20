@@ -23,7 +23,7 @@ export const HelplineCard = React.forwardRef<
         style={styles.callButton}
         onPress={onCallPress}
         accessibilityRole="button"
-        accessibilityLabel={`Call ${name}: ${displayNumber}`}
+        accessibilityLabel={`${callLabel} ${name}: ${displayNumber}`}
       >
         <Text style={styles.callLabel}>{callLabel}</Text>
       </TouchableOpacity>
