@@ -103,7 +103,7 @@ PowerSync handles WorkManager configuration + OEM battery management (MIUI, One 
 
 **Check-In Offline Fallback:** Check-in read must degrade gracefully when offline — default to safe state ("not yet completed today") rather than error. Never cache check-in state across calendar days.
 
-**Push Notification Idempotency:** Edge Function checks notifications_sent log table before calling FCM/APNs. Insert idempotency key before FCM call; skip if already present. FCM/APNs invalid-token responses trigger device_tokens status update; app refreshes token on next foreground.
+**Push Notification Idempotency:** Edge Function checks an idempotency log table before calling FCM/APNs; insert idempotency key before the FCM call, skip if already present. The exact log table name/schema is owned by Story 8.3 (first sender implementation) — not yet designed. Device tokens are stored in `device_push_tokens` (Story 8.1); a `DeviceNotRegistered` response triggers a hard DELETE of that token's row (not a status-update column — pruning is destructive by design, performed via `service_role`); the app re-registers a fresh token on next foreground via the existing upsert path. `InvalidCredentials` responses are project-wide credential errors, not per-token — they must never trigger token deletion.
 
 **Crisis Detection Priority:** Crisis interrupt is a top-priority state machine transition in packages/core — preempts all other state mutations including the PowerSync outbox queue. Crisis detection accepts testMode: boolean flag — disabled in test environments, never in production builds.
 
