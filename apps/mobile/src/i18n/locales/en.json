@@ -273,6 +273,11 @@
     "done": "Done",
     "again": "Go again"
   },
+  "helplines": {
+    "intro": "Talking to someone helps. These services are free and confidential.",
+    "call": "Call",
+    "unavailable": "Helpline information is not available in your region yet."
+  },
   "nav": {
     "home": "Home",
     "settings": "Settings"
