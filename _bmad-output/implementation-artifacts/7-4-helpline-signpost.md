@@ -1,6 +1,6 @@
 # Story 7.4: Helpline Signpost
 
-Status: ready-for-dev
+Status: ready-for-dev (spec reviewed 2026-06-20 — 2 patches applied, 2 deferred)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -31,7 +31,7 @@ so that I can reach human support immediately, even offline (FR-CRISIS-01, NFR-O
   - [ ] Export `HelplineCard` + its props type from `packages/ui/src/index.ts`.
 - [ ] Task 2: Screen wiring (AC: #1, #2, #3, #4, #5, #6)
   - [ ] Replace the placeholder body in `apps/mobile/app/calm-me/helplines.tsx` with a thin wrapper: import `HELPLINES` and `Helpline` from `@exposure-buddy/core`, import `HelplineCard` and `color` from `@exposure-buddy/ui`. Render `t('helplines.intro')`, then either the mapped `HelplineCard` list (AC #1) or the `t('helplines.unavailable')` fallback when `HELPLINES.length === 0` (AC #2). **Do not** change the route's nav wiring, the `Stack.Screen` options, or the existing top-left Back button's position/behavior (see Dev Notes "Reuse the existing placeholder shell").
-  - [ ] Implement `handleCall(number: string)`: calls `Linking.openURL('tel:' + number)` and attaches a `.catch((err) => console.error('[HelplinesScreen] call failed:', err))` — the call is fire-and-forget from the UI's perspective; no loading/disabled state on failure, no user-visible error (AC #3). Import `Linking` from `react-native` in this screen file only.
+  - [ ] Implement `handleCall(number: string)`: wrap the `Linking.openURL('tel:' + number)` call in `try/catch` AND attach a `.catch((err) => console.error('[HelplinesScreen] call failed:', err))` to the returned promise — the `try/catch` covers a synchronous throw from `Linking.openURL` itself, the `.catch()` covers a rejected promise; AC #3 requires both paths logged via `console.error`, a `.catch()` alone only covers promise rejection. The call is fire-and-forget from the UI's perspective; no loading/disabled state on failure, no user-visible error (AC #3). Import `Linking` from `react-native` in this screen file only.
   - [ ] Use `color.surface.primary` and `width: '100%'` on the screen container, matching the `breathing.tsx`/`grounding.tsx` post-fix pattern (do not reintroduce the placeholder's raw `'#ffffff'`/no-`width` pattern).
   - [ ] Wrap the helpline list in a `ScrollView` if more than a few cards risk overflowing a small screen — there is no existing precedent for this in the Calm Me screens (`breathing.tsx`/`grounding.tsx` both render single-focus content that fits without scrolling), so use your judgment based on 5 cards' rendered height; a plain `View` is acceptable if it fits.
 - [ ] Task 3: i18n keys (AC: #1, #2, #6)
@@ -42,6 +42,7 @@ so that I can reach human support immediately, even offline (FR-CRISIS-01, NFR-O
   - [ ] Cover: all 5 `HELPLINES` entries render with their `name`/`displayNumber` and a "Call" button (AC #1); tapping a card's Call button calls `Linking.openURL('tel:' + that entry's number)` (AC #3); when `Linking.openURL` rejects, the test asserts `console.error` was called and the screen does not throw/crash and renders unchanged (AC #3); the top-left Back button calls `router.back()` with no error (mirrors `grounding.test.tsx`'s Back-button test); each Call button has `minHeight` ≥ 56 (AC #7) and the expected `accessibilityLabel` format (AC #8). Do **not** write a live-test for the AC #2 empty-state branch by mutating the real `HELPLINES` export — instead unit-test the conditional rendering logic by mocking `@exposure-buddy/core`'s `HELPLINES` export to `[]` for that one test case, following whatever core-mocking pattern (if any) existing `apps/mobile` tests use — grep for `jest.mock('@exposure-buddy/core'` before deciding the approach; if no precedent exists, a simple `jest.mock` with `jest.requireActual` spread plus an override is the standard pattern.
   - [ ] `pnpm turbo lint` passes — 0 `i18next/no-literal-string` violations.
   - [ ] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
+  - [ ] AC #4 (offline-safe rendering / NFR-OFFLINE-03) has no dedicated runtime test — it is satisfied by inspection, not assertion: this screen imports no networking API (`fetch`, `axios`, PowerSync, etc.), only `Linking` for `tel:` URIs, so there is nothing to mock or assert. Confirm at review time that no such import was introduced.
 
 ## Dev Notes
 
@@ -141,6 +142,13 @@ That ADR was already implicitly resolved by Story 7.1: `HELPLINES` is a static b
 - `packages/core/src/config/helplines.ts`, `packages/core/src/index.ts` — `Helpline`/`HELPLINES` already exported
 - `packages/ui/src/components/CourageLadderEntryCard.tsx`, `packages/ui/src/components/BreathingCoach.tsx`, `packages/ui/src/components/GroundingPrompt.tsx` — component shape/export pattern, pre-translated-props pattern, and callback-boundary pattern to mirror
 - `packages/ui/src/tokens/theme.ts` — `tapTarget.inTheMoment` (56px), `color.accent.courage`, `color.surface.primary`
+
+### Review Findings
+
+- [x] [Review][Patch] `Linking.openURL` `.catch()` doesn't cover the synchronous-throw case epics.md actually requires — AC #3 (line 23) broadens epics.md's canonical wording ("if `Linking.openURL` throws, the error is caught") to "rejects/throws," but Task 2's implementation note (line 40) only attaches `.catch()` to the call. A `.catch()` only handles promise rejection, not a synchronous throw from the call expression itself — an implementer following Task 2 literally will not satisfy the synchronous-throw half of AC #3/epics.md. Wrap the `Linking.openURL(...)` call itself in `try/catch` in addition to (or instead of) the `.catch()`, or clarify the wording so the implementation note matches what AC #3 actually demands. [7-4-helpline-signpost.md:23,40]
+- [x] [Review][Patch] Task 4 claims "AC: #1–#8" coverage but never tests AC #4 (offline/no-network-call) — every other AC maps to an explicit assertion in Task 4's coverage list; AC #4 (NFR-OFFLINE-03, "no network call of any kind is made to render this screen") has none. Since this screen imports no networking API at all (confirmed: no `fetch`/`axios`/PowerSync usage anywhere in scope), add a closing note to Task 4 stating AC #4 is satisfied by inspection (no networking import exists in the component) rather than a runtime assertion, so the coverage claim is honest and a future reviewer doesn't go looking for a missing test. [7-4-helpline-signpost.md:48]
+- [x] [Review][Defer] ScrollView vs. plain `View` judgment call has no AC or test backing either choice — deferred, the correct threshold is a UX call, not a code-correctness issue; no single unambiguous fix. [7-4-helpline-signpost.md:42]
+- [x] [Review][Defer] `accessibilityLabel` convention diverges from `debrief.tsx`'s existing "call a helpline" pattern, left unreconciled — deferred, pre-existing inconsistency in `debrief.tsx` that this story correctly declines to touch (out of scope); two different a11y label conventions for the same action now coexist in the app. [7-4-helpline-signpost.md:22, apps/mobile/app/session/debrief.tsx:159,166,173]
 
 ## Dev Agent Record
 

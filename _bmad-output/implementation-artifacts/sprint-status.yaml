@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-06-20 # story 7-4 created, status ready-for-dev
+last_updated: 2026-06-20 # story 7-4 spec reviewed (pre-implementation), 2 patches applied, status remains ready-for-dev
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
