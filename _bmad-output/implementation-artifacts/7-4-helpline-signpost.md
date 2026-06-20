@@ -1,6 +1,6 @@
 # Story 7.4: Helpline Signpost
 
-Status: ready-for-dev (spec reviewed 2026-06-20 — 2 patches applied, 2 deferred)
+Status: review (spec reviewed 2026-06-20 — 2 patches applied, 2 deferred)
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,26 +23,26 @@ so that I can reach human support immediately, even offline (FR-CRISIS-01, NFR-O
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `HelplineCard` component (AC: #1, #3, #6, #7, #8)
-  - [ ] Create `packages/ui/src/components/HelplineCard.tsx` — presentational, mirrors `CourageLadderEntryCard.tsx`'s shape (`React.forwardRef`, `StyleSheet.create()`, no NativeWind, named export + separately-exported props type, added to `packages/ui/src/index.ts`'s barrel).
-  - [ ] Props: `name: string`, `displayNumber: string`, `callLabel: string` (pre-translated — see Dev Notes "Pre-translated props, not `useTranslation()` inside `packages/ui`"), `onCallPress: () => void`. **Do not import `Linking` or call it inside this component** — `packages/ui`'s import boundary forbids RN platform-integration APIs (`component-strategy.md`: "Forbidden: ... RN platform APIs"); the component exposes `onCallPress` and the screen wrapper performs the actual `Linking.openURL` call and its try/catch (AC #3). This mirrors `GroundingPrompt`'s `onComplete` callback pattern — the primitive never owns the side effect.
-  - [ ] Render: `name`, `displayNumber`, a single "Call" `TouchableOpacity` with `minHeight: tapTarget.inTheMoment` (AC #7), `accessibilityRole="button"`, `accessibilityLabel={\`Call ${name}: ${displayNumber}\`}` (AC #8). Use `color.accent.courage` for the Call button's accent styling, **not** `color.accent.grounding` — continue the same unaudited-token substitution `BreathingCoach`/`GroundingPrompt` already established (see Dev Notes "`color.accent.grounding` still unaudited").
-  - [ ] No co-located `HelplineCard.test.tsx` — `packages/ui`'s Vitest config has no RN renderer (same documented wall every other `packages/ui` component hits); `tsc --noEmit` typechecks the primitive, behavior is covered via the screen-level test in Task 4.
-  - [ ] Export `HelplineCard` + its props type from `packages/ui/src/index.ts`.
-- [ ] Task 2: Screen wiring (AC: #1, #2, #3, #4, #5, #6)
-  - [ ] Replace the placeholder body in `apps/mobile/app/calm-me/helplines.tsx` with a thin wrapper: import `HELPLINES` and `Helpline` from `@exposure-buddy/core`, import `HelplineCard` and `color` from `@exposure-buddy/ui`. Render `t('helplines.intro')`, then either the mapped `HelplineCard` list (AC #1) or the `t('helplines.unavailable')` fallback when `HELPLINES.length === 0` (AC #2). **Do not** change the route's nav wiring, the `Stack.Screen` options, or the existing top-left Back button's position/behavior (see Dev Notes "Reuse the existing placeholder shell").
-  - [ ] Implement `handleCall(number: string)`: wrap the `Linking.openURL('tel:' + number)` call in `try/catch` AND attach a `.catch((err) => console.error('[HelplinesScreen] call failed:', err))` to the returned promise — the `try/catch` covers a synchronous throw from `Linking.openURL` itself, the `.catch()` covers a rejected promise; AC #3 requires both paths logged via `console.error`, a `.catch()` alone only covers promise rejection. The call is fire-and-forget from the UI's perspective; no loading/disabled state on failure, no user-visible error (AC #3). Import `Linking` from `react-native` in this screen file only.
-  - [ ] Use `color.surface.primary` and `width: '100%'` on the screen container, matching the `breathing.tsx`/`grounding.tsx` post-fix pattern (do not reintroduce the placeholder's raw `'#ffffff'`/no-`width` pattern).
-  - [ ] Wrap the helpline list in a `ScrollView` if more than a few cards risk overflowing a small screen — there is no existing precedent for this in the Calm Me screens (`breathing.tsx`/`grounding.tsx` both render single-focus content that fits without scrolling), so use your judgment based on 5 cards' rendered height; a plain `View` is acceptable if it fits.
-- [ ] Task 3: i18n keys (AC: #1, #2, #6)
-  - [ ] Add new `helplines` namespace to `en.json`: `intro`, `call`, `unavailable` — exact canonical copy quoted in the ACs above. Reuse the existing `calmMe.technique.helplines` ("Helplines") and `calmMe.back` keys — already present and already wired in `calm-me/index.tsx` — do not redefine them.
-  - [ ] Add the same keys to `hi.json` (full or partial translation — `fallbackLng: 'en'` covers any gaps, matching the Story 7.2/7.3 precedent of partial Hindi coverage).
-- [ ] Task 4: Tests (AC: #1–#8)
-  - [ ] `apps/mobile/app/calm-me/helplines.test.tsx` — new file (verified: no existing test file for this route — only `index.test.tsx`, `breathing.test.tsx`, `grounding.test.tsx` exist in `apps/mobile/app/calm-me/`). Mirror `breathing.test.tsx`'s mocking convention: `jest.mock('react-i18next', ...)` with `t` as identity, `jest.mock('expo-router', ...)` for `Stack`/`useRouter`, plus `jest.mock('react-native', ...)` or a spy on `Linking.openURL` (check `react-native`'s existing jest preset in this repo first — search for any prior `Linking` mock in the test suite before writing a new one).
-  - [ ] Cover: all 5 `HELPLINES` entries render with their `name`/`displayNumber` and a "Call" button (AC #1); tapping a card's Call button calls `Linking.openURL('tel:' + that entry's number)` (AC #3); when `Linking.openURL` rejects, the test asserts `console.error` was called and the screen does not throw/crash and renders unchanged (AC #3); the top-left Back button calls `router.back()` with no error (mirrors `grounding.test.tsx`'s Back-button test); each Call button has `minHeight` ≥ 56 (AC #7) and the expected `accessibilityLabel` format (AC #8). Do **not** write a live-test for the AC #2 empty-state branch by mutating the real `HELPLINES` export — instead unit-test the conditional rendering logic by mocking `@exposure-buddy/core`'s `HELPLINES` export to `[]` for that one test case, following whatever core-mocking pattern (if any) existing `apps/mobile` tests use — grep for `jest.mock('@exposure-buddy/core'` before deciding the approach; if no precedent exists, a simple `jest.mock` with `jest.requireActual` spread plus an override is the standard pattern.
-  - [ ] `pnpm turbo lint` passes — 0 `i18next/no-literal-string` violations.
-  - [ ] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
-  - [ ] AC #4 (offline-safe rendering / NFR-OFFLINE-03) has no dedicated runtime test — it is satisfied by inspection, not assertion: this screen imports no networking API (`fetch`, `axios`, PowerSync, etc.), only `Linking` for `tel:` URIs, so there is nothing to mock or assert. Confirm at review time that no such import was introduced.
+- [x] Task 1: `HelplineCard` component (AC: #1, #3, #6, #7, #8)
+  - [x] Create `packages/ui/src/components/HelplineCard.tsx` — presentational, mirrors `CourageLadderEntryCard.tsx`'s shape (`React.forwardRef`, `StyleSheet.create()`, no NativeWind, named export + separately-exported props type, added to `packages/ui/src/index.ts`'s barrel).
+  - [x] Props: `name: string`, `displayNumber: string`, `callLabel: string` (pre-translated — see Dev Notes "Pre-translated props, not `useTranslation()` inside `packages/ui`"), `onCallPress: () => void`. **Do not import `Linking` or call it inside this component** — `packages/ui`'s import boundary forbids RN platform-integration APIs (`component-strategy.md`: "Forbidden: ... RN platform APIs"); the component exposes `onCallPress` and the screen wrapper performs the actual `Linking.openURL` call and its try/catch (AC #3). This mirrors `GroundingPrompt`'s `onComplete` callback pattern — the primitive never owns the side effect.
+  - [x] Render: `name`, `displayNumber`, a single "Call" `TouchableOpacity` with `minHeight: tapTarget.inTheMoment` (AC #7), `accessibilityRole="button"`, `accessibilityLabel={\`Call ${name}: ${displayNumber}\`}` (AC #8). Use `color.accent.courage` for the Call button's accent styling, **not** `color.accent.grounding` — continue the same unaudited-token substitution `BreathingCoach`/`GroundingPrompt` already established (see Dev Notes "`color.accent.grounding` still unaudited").
+  - [x] No co-located `HelplineCard.test.tsx` — `packages/ui`'s Vitest config has no RN renderer (same documented wall every other `packages/ui` component hits); `tsc --noEmit` typechecks the primitive, behavior is covered via the screen-level test in Task 4.
+  - [x] Export `HelplineCard` + its props type from `packages/ui/src/index.ts`.
+- [x] Task 2: Screen wiring (AC: #1, #2, #3, #4, #5, #6)
+  - [x] Replace the placeholder body in `apps/mobile/app/calm-me/helplines.tsx` with a thin wrapper: import `HELPLINES` and `Helpline` from `@exposure-buddy/core`, import `HelplineCard` and `color` from `@exposure-buddy/ui`. Render `t('helplines.intro')`, then either the mapped `HelplineCard` list (AC #1) or the `t('helplines.unavailable')` fallback when `HELPLINES.length === 0` (AC #2). **Do not** change the route's nav wiring, the `Stack.Screen` options, or the existing top-left Back button's position/behavior (see Dev Notes "Reuse the existing placeholder shell").
+  - [x] Implement `handleCall(number: string)`: wrap the `Linking.openURL('tel:' + number)` call in `try/catch` AND attach a `.catch((err) => console.error('[HelplinesScreen] call failed:', err))` to the returned promise — the `try/catch` covers a synchronous throw from `Linking.openURL` itself, the `.catch()` covers a rejected promise; AC #3 requires both paths logged via `console.error`, a `.catch()` alone only covers promise rejection. The call is fire-and-forget from the UI's perspective; no loading/disabled state on failure, no user-visible error (AC #3). Import `Linking` from `react-native` in this screen file only.
+  - [x] Use `color.surface.primary` and `width: '100%'` on the screen container, matching the `breathing.tsx`/`grounding.tsx` post-fix pattern (do not reintroduce the placeholder's raw `'#ffffff'`/no-`width` pattern).
+  - [x] Wrap the helpline list in a `ScrollView` if more than a few cards risk overflowing a small screen — there is no existing precedent for this in the Calm Me screens (`breathing.tsx`/`grounding.tsx` both render single-focus content that fits without scrolling), so use your judgment based on 5 cards' rendered height; a plain `View` is acceptable if it fits.
+- [x] Task 3: i18n keys (AC: #1, #2, #6)
+  - [x] Add new `helplines` namespace to `en.json`: `intro`, `call`, `unavailable` — exact canonical copy quoted in the ACs above. Reuse the existing `calmMe.technique.helplines` ("Helplines") and `calmMe.back` keys — already present and already wired in `calm-me/index.tsx` — do not redefine them.
+  - [x] Add the same keys to `hi.json` (full or partial translation — `fallbackLng: 'en'` covers any gaps, matching the Story 7.2/7.3 precedent of partial Hindi coverage).
+- [x] Task 4: Tests (AC: #1–#8)
+  - [x] `apps/mobile/app/calm-me/helplines.test.tsx` — new file (verified: no existing test file for this route — only `index.test.tsx`, `breathing.test.tsx`, `grounding.test.tsx` exist in `apps/mobile/app/calm-me/`). Mirror `breathing.test.tsx`'s mocking convention: `jest.mock('react-i18next', ...)` with `t` as identity, `jest.mock('expo-router', ...)` for `Stack`/`useRouter`, plus `jest.mock('react-native', ...)` or a spy on `Linking.openURL` (check `react-native`'s existing jest preset in this repo first — search for any prior `Linking` mock in the test suite before writing a new one).
+  - [x] Cover: all 5 `HELPLINES` entries render with their `name`/`displayNumber` and a "Call" button (AC #1); tapping a card's Call button calls `Linking.openURL('tel:' + that entry's number)` (AC #3); when `Linking.openURL` rejects, the test asserts `console.error` was called and the screen does not throw/crash and renders unchanged (AC #3); the top-left Back button calls `router.back()` with no error (mirrors `grounding.test.tsx`'s Back-button test); each Call button has `minHeight` ≥ 56 (AC #7) and the expected `accessibilityLabel` format (AC #8). Do **not** write a live-test for the AC #2 empty-state branch by mutating the real `HELPLINES` export — instead unit-test the conditional rendering logic by mocking `@exposure-buddy/core`'s `HELPLINES` export to `[]` for that one test case, following whatever core-mocking pattern (if any) existing `apps/mobile` tests use — grep for `jest.mock('@exposure-buddy/core'` before deciding the approach; if no precedent exists, a simple `jest.mock` with `jest.requireActual` spread plus an override is the standard pattern.
+  - [x] `pnpm turbo lint` passes — 0 `i18next/no-literal-string` violations.
+  - [x] `pnpm turbo typecheck` and `pnpm turbo test` — zero regressions across all 6 packages.
+  - [x] AC #4 (offline-safe rendering / NFR-OFFLINE-03) has no dedicated runtime test — it is satisfied by inspection, not assertion: this screen imports no networking API (`fetch`, `axios`, PowerSync, etc.), only `Linking` for `tel:` URIs, so there is nothing to mock or assert. Confirm at review time that no such import was introduced.
 
 ## Dev Notes
 
@@ -154,8 +154,32 @@ That ADR was already implicitly resolved by Story 7.1: `HELPLINES` is a static b
 
 ### Agent Model Used
 
+claude-sonnet-4-6
+
 ### Debug Log References
+
+None — implementation went green on first run for Tasks 1–3. Task 4's empty-state test (AC #2) needed two iterations: an initial `jest.isolateModules` + `jest.doMock` approach crashed with "Cannot read properties of null (reading 'useReducer')" — `isolateModules` creates a separate module registry, which pulled in a second `react`/`react-test-renderer` instance and broke hooks. Replaced with a mutable `mockHelplinesOverride` variable plus a true `Object.defineProperty`-based getter on the `@exposure-buddy/core` mock (object-spread merges getters into plain snapshotted values via the `_objectSpread` Babel helper, which would have frozen the override at first-require time — `defineProperty` avoids that).
 
 ### Completion Notes List
 
+- Task 1: `HelplineCard.tsx` created per spec — `React.forwardRef`, `StyleSheet.create()`, no `Linking` import (the screen owns the side effect via `onCallPress`), `accessibilityLabel="Call ${name}: ${displayNumber}"` (AC #8) and `accessibilityRole="button"`, `minHeight: tapTarget.inTheMoment` on the Call button (AC #7), `color.accent.courage` accent (continuing the `accent.grounding` substitution). Exported from `packages/ui/src/index.ts`. Confirmed `packages/ui/.eslintrc.js` has no `i18next/no-literal-string` rule, so the literal `"Call "` prefix in the accessibility label is not a lint violation.
+- Task 2: `helplines.tsx` placeholder body replaced with a thin wrapper. `handleCall` wraps `Linking.openURL('tel:' + number)` in both a `try/catch` (synchronous-throw path) and a `.catch()` on the returned promise (rejection path), each logging via `console.error('[HelplinesScreen] call failed:', err)` per AC #3 and the Review Findings patch. `Stack.Screen` options and the Back button are untouched. Container uses `color.surface.primary`/`width: '100%'`; helpline list wrapped in a `ScrollView` (5 cards judged enough to risk overflow on small screens).
+- Task 3: `helplines` namespace added to `en.json` in full (`intro`/`call`/`unavailable`, canonical AC copy verbatim) and to `hi.json` as a partial translation (`intro`/`call`; `unavailable` omitted, relies on `fallbackLng: 'en'`), matching the Story 7.2/7.3 precedent of partial Hindi coverage.
+- Task 4: `helplines.test.tsx` — 7 tests, all green. AC #1 (intro + all 5 entries' name/displayNumber/Call button), AC #3 (tap dials `tel:` + correct number; a rejected `Linking.openURL` is caught and logged via `console.error` with the screen unchanged; a synchronous throw from `Linking.openURL` is also caught and logged with no crash), Back button → `router.back()`, AC #7/#8 (56px `minHeight` + exact `accessibilityLabel` format on all 5 cards), AC #2 (empty-state fallback, via the `mockHelplinesOverride` getter-based `@exposure-buddy/core` mock described above). AC #4 (offline/no-network-call) is satisfied by inspection per the story's own Task 4 note — confirmed no `fetch`/`axios`/PowerSync import exists anywhere in `HelplineCard.tsx` or `helplines.tsx`.
+- Full validation: `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` all green across all 6 packages — 272 mobile tests + 49 core + 27 supabase + 23 sync passed, 0 regressions. Two lint fixups during validation: an `eslint-disable-next-line i18next/no-literal-string` needed on the `'tel:' + number` literal in `helplines.tsx` (mirroring `debrief.tsx`'s precedent), and two `no-extra-semi` violations in the test file from a leading-semicolon ASI-guard pattern — replaced with a plain `const openURL = Linking.openURL as jest.Mock` assignment instead. No new dependencies added (`Linking` is built into `react-native`).
+
 ### File List
+
+**New:**
+- `packages/ui/src/components/HelplineCard.tsx`
+- `apps/mobile/app/calm-me/helplines.test.tsx`
+
+**Modified:**
+- `apps/mobile/app/calm-me/helplines.tsx`
+- `packages/ui/src/index.ts`
+- `apps/mobile/src/i18n/locales/en.json`
+- `apps/mobile/src/i18n/locales/hi.json`
+
+## Change Log
+
+- 2026-06-20: Story 7.4 implemented — all 8 ACs, all 4 tasks complete. `pnpm turbo lint`/`typecheck`/`test` pass with zero regressions (272 mobile tests). Status: ready-for-dev → review.
