@@ -1,6 +1,6 @@
 # Story 8.1: Push Token Registration & Shared Push Helper
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,21 +24,21 @@ This is a technical prerequisite story — no FR is directly implemented here. I
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Database migration (AC: 1, 2)
-  - [ ] 1.1 Create `supabase/migrations/0028_device_push_tokens.sql` following the `0013_fear_ladder_items.sql` template: `CREATE TABLE IF NOT EXISTS public.device_push_tokens`, `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, `device_push_tokens_select_own` policy (`USING auth.uid() = user_id`), `device_push_tokens_insert_own` policy (`WITH CHECK auth.uid() = user_id`), no UPDATE/DELETE policy (with an inline comment explaining client UPDATE/DELETE is blocked by RLS — pruning is `service_role`-only and bypasses RLS), `CREATE UNIQUE INDEX uq_push_token`, `CREATE INDEX idx_device_push_tokens_user_id ON public.device_push_tokens (user_id)` (matches the `0016_exposure_sessions.sql` precedent of indexing the column the RLS `SELECT` policy filters on), `COMMENT ON TABLE`.
-  - [ ] 1.2 In the same migration file, add the standard PostgREST grant line matching the project convention established in `0024_grant_table_permissions.sql`: `GRANT SELECT, INSERT, UPDATE, DELETE ON public.device_push_tokens TO anon, authenticated, service_role;` — RLS policies (not withheld grants) are what block UPDATE/DELETE for authenticated users; `service_role` bypasses RLS entirely in Supabase, so its DELETE grant is what pruning (Stories 8.3/8.4) will use.
-  - [ ] 1.3 Run `supabase db reset` locally to apply, then regenerate types: `supabase gen types typescript --local > packages/supabase/src/database.types.ts`.
-- [ ] Task 2: packages/supabase — push token registration service (AC: 3, 4)
-  - [ ] 2.1 Create `packages/supabase/src/functions/push-tokens.ts` exporting `registerPushToken(params: { token: string; platform: 'ios' | 'android'; userId: string }): Promise<void>` that calls `createSupabaseClient().from('device_push_tokens').upsert({ token: params.token, platform: params.platform, user_id: params.userId, last_seen_at: new Date().toISOString() }, { onConflict: 'token' })`; throw the raw Supabase error on failure (`if (error) throw error`) — this matches the existing convention in `packages/supabase/src/functions/call-edge-fn.ts:9`; there is no existing error-mapper in `packages/supabase` to reuse (no `errors/` directory exists in the package), so do not invent a reference to one.
-  - [ ] 2.2 Export `registerPushToken` from `packages/supabase/src/index.ts`.
-  - [ ] 2.3 This is a direct table upsert, not an Edge Function call — the "Edge Functions only from packages/supabase" rule does not apply here. Apply the same convention this codebase already uses elsewhere (e.g. `consent-record.ts`): `apps/mobile` calls the `packages/supabase` wrapper, never `supabase.from(...)` inline in a screen or hook body beyond the wrapper itself.
-- [ ] Task 3: apps/mobile — push token registration hook (AC: 3, 4)
-  - [ ] 3.1 Add `expo-notifications` to `apps/mobile/package.json` (check latest version compatible with Expo SDK 54 — see Latest Tech Information below) and add `'expo-notifications'` to the `plugins` array in `apps/mobile/app.config.ts`.
-  - [ ] 3.2 Create `apps/mobile/src/hooks/usePushRegistration.ts`: on permission-granted + foreground, calls `Notifications.getExpoPushTokenAsync({ projectId })` (read `projectId` from `Constants.expoConfig?.extra?.eas?.projectId`, mirroring the existing `extra.eas.projectId` already in `app.config.ts`), detects platform via `Platform.OS` (`react-native`'s `Platform`, not previously used elsewhere in this codebase — this is a new pattern), and calls `registerPushToken` from `@exposure-buddy/supabase`.
-  - [ ] 3.3 Wire the foreground re-registration trigger (AC 4) using the same `AppState.addEventListener('change', ...)` pattern already established in `apps/mobile/app/(app)/_layout.tsx:42-49` for session refresh — add a second listener (or extend the existing one) that re-runs token registration when `state === 'active'` and a token was previously registered this session. Use the async-`useEffect` three-guard shape (loading guard, `cancelled` flag, complete dep array) from `implementation-patterns-consistency-rules.md`.
-  - [ ] 3.4 Only attempt registration if `Notifications.getPermissionsAsync()` reports `granted` — do not request permission from this hook; permission requesting is owned exclusively by the Settings card (Task 4).
-- [ ] Task 4: Shared Edge Function push helper (AC: 5, 6)
-  - [ ] 4.1 Create `supabase/functions/_shared/expoPush.ts`:
+- [x] Task 1: Database migration (AC: 1, 2)
+  - [x] 1.1 Create `supabase/migrations/0028_device_push_tokens.sql` following the `0013_fear_ladder_items.sql` template: `CREATE TABLE IF NOT EXISTS public.device_push_tokens`, `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, `device_push_tokens_select_own` policy (`USING auth.uid() = user_id`), `device_push_tokens_insert_own` policy (`WITH CHECK auth.uid() = user_id`), no UPDATE/DELETE policy (with an inline comment explaining client UPDATE/DELETE is blocked by RLS — pruning is `service_role`-only and bypasses RLS), `CREATE UNIQUE INDEX uq_push_token`, `CREATE INDEX idx_device_push_tokens_user_id ON public.device_push_tokens (user_id)` (matches the `0016_exposure_sessions.sql` precedent of indexing the column the RLS `SELECT` policy filters on), `COMMENT ON TABLE`.
+  - [x] 1.2 In the same migration file, add the standard PostgREST grant line matching the project convention established in `0024_grant_table_permissions.sql`: `GRANT SELECT, INSERT, UPDATE, DELETE ON public.device_push_tokens TO anon, authenticated, service_role;` — RLS policies (not withheld grants) are what block UPDATE/DELETE for authenticated users; `service_role` bypasses RLS entirely in Supabase, so its DELETE grant is what pruning (Stories 8.3/8.4) will use.
+  - [x] 1.3 Run `supabase db reset` locally to apply, then regenerate types: `supabase gen types typescript --local > packages/supabase/src/database.types.ts`.
+- [x] Task 2: packages/supabase — push token registration service (AC: 3, 4)
+  - [x] 2.1 Create `packages/supabase/src/functions/push-tokens.ts` exporting `registerPushToken(params: { token: string; platform: 'ios' | 'android'; userId: string }): Promise<void>` that calls `createSupabaseClient().from('device_push_tokens').upsert({ token: params.token, platform: params.platform, user_id: params.userId, last_seen_at: new Date().toISOString() }, { onConflict: 'token' })`; throw the raw Supabase error on failure (`if (error) throw error`) — this matches the existing convention in `packages/supabase/src/functions/call-edge-fn.ts:9`; there is no existing error-mapper in `packages/supabase` to reuse (no `errors/` directory exists in the package), so do not invent a reference to one.
+  - [x] 2.2 Export `registerPushToken` from `packages/supabase/src/index.ts`.
+  - [x] 2.3 This is a direct table upsert, not an Edge Function call — the "Edge Functions only from packages/supabase" rule does not apply here. Apply the same convention this codebase already uses elsewhere (e.g. `consent-record.ts`): `apps/mobile` calls the `packages/supabase` wrapper, never `supabase.from(...)` inline in a screen or hook body beyond the wrapper itself.
+- [x] Task 3: apps/mobile — push token registration hook (AC: 3, 4)
+  - [x] 3.1 Add `expo-notifications` to `apps/mobile/package.json` (check latest version compatible with Expo SDK 54 — see Latest Tech Information below) and add `'expo-notifications'` to the `plugins` array in `apps/mobile/app.config.ts`.
+  - [x] 3.2 Create `apps/mobile/src/hooks/usePushRegistration.ts`: on permission-granted + foreground, calls `Notifications.getExpoPushTokenAsync({ projectId })` (read `projectId` from `Constants.expoConfig?.extra?.eas?.projectId`, mirroring the existing `extra.eas.projectId` already in `app.config.ts`), detects platform via `Platform.OS` (`react-native`'s `Platform`, not previously used elsewhere in this codebase — this is a new pattern), and calls `registerPushToken` from `@exposure-buddy/supabase`.
+  - [x] 3.3 Wire the foreground re-registration trigger (AC 4) using the same `AppState.addEventListener('change', ...)` pattern already established in `apps/mobile/app/(app)/_layout.tsx:42-49` for session refresh — add a second listener (or extend the existing one) that re-runs token registration when `state === 'active'` and a token was previously registered this session. Use the async-`useEffect` three-guard shape (loading guard, `cancelled` flag, complete dep array) from `implementation-patterns-consistency-rules.md`.
+  - [x] 3.4 Only attempt registration if `Notifications.getPermissionsAsync()` reports `granted` — do not request permission from this hook; permission requesting is owned exclusively by the Settings card (Task 4).
+- [x] Task 4: Shared Edge Function push helper (AC: 5, 6)
+  - [x] 4.1 Create `supabase/functions/_shared/expoPush.ts`:
     ```typescript
     export type PushResult =
       | { ok: true }
@@ -51,19 +51,19 @@ This is a technical prerequisite story — no FR is directly implemented here. I
     ): Promise<PushResult>
     ```
     Internally this should support batching — design the function so a future caller (Story 8.4) can pass many tokens and have them chunked into groups of ≤100 per Expo's documented batch limit (`https://exp.host/--/api/v2/push/send` accepts an array body). For this story, implement and test the single-token path; structure the chunking logic as a small internal helper (e.g. `chunk<T>(arr: T[], size: number): T[][]`) so 8.3/8.4 reuse it rather than re-deriving it.
-  - [ ] 4.2 Map Expo ticket `DeviceNotRegistered` to `{ ok: false, signal: 'PruneToken' }`; map `InvalidCredentials` to `{ ok: false, signal: 'Unknown' }` — it signals a project-wide FCM/APNs credential misconfiguration, not a dead token, and must never trigger pruning (see Dev Notes "InvalidCredentials is not a token problem"); network/fetch failures (timeout, non-2xx, malformed response) to `{ ok: false, signal: 'RetryLater' }`; anything else not covered above to `{ ok: false, signal: 'Unknown' }`.
-  - [ ] 4.3 No `Deno.test` pattern exists yet in `supabase/functions/` — this story introduces it. Create `supabase/functions/_shared/expoPush.test.ts` using `Deno.test()`, mocking `fetch` to cover: success, `DeviceNotRegistered` → `PruneToken`, `InvalidCredentials` → `Unknown`, network error → `RetryLater`, and the chunking helper with >100 inputs.
-- [ ] Task 5: Settings screen — "Enable reminders" card (AC: 7)
-  - [ ] 5.1 Add a new section to `apps/mobile/app/(app)/settings/index.tsx` following the existing `sectionTitle` + `row` pattern (see `styles.sectionTitle` / `styles.row` at lines 102–115) — do not introduce a new card component; this screen uses flat row/section composition, not a card-list pattern.
-  - [ ] 5.2 Permission state derivation: call `Notifications.getPermissionsAsync()` on mount (and on foreground via the `AppState` pattern) to compute one of three states — `not-yet-requested` (`status === 'undetermined'`), `enabled` (`status === 'granted'`), `disabled` (`status === 'denied'`). Render distinct row label text per state via `t('settings.reminders.<state>')`.
-  - [ ] 5.3 Tap handler: if `not-yet-requested`, call `Notifications.requestPermissionsAsync()`; if `granted` after the call, trigger `usePushRegistration`'s registration path immediately (do not wait for the next foreground event). If `disabled` (previously denied — iOS/Android will not re-prompt), call `Linking.openSettings()` to deep-link to OS settings.
-  - [ ] 5.4 After returning from `Linking.openSettings()`, the existing `AppState` `'active'` trigger re-evaluates permission state — no separate handler needed, reuse Task 3.3's listener.
-  - [ ] 5.5 Add new i18n keys under `settings.reminders.*` in `apps/mobile/src/i18n/locales/en.json` and `hi.json` (the project enforces no hardcoded UI strings via the `i18next/no-literal-string` ESLint rule in `apps/mobile/.eslintrc.js`): `title`, `notYetRequested`, `enabled`, `disabled`.
-- [ ] Task 6: Tests
-  - [ ] 6.1 `packages/supabase/__tests__/` — test for `registerPushToken` (upsert call shape, conflict target, error mapping).
-  - [ ] 6.2 `supabase/functions/_shared/expoPush.test.ts` — see 4.3.
-  - [ ] 6.3 `apps/mobile` — co-located test for the Settings screen covering all three permission-state renders and the tap handler branching (request vs. deep-link). Co-located test for `usePushRegistration` covering the foreground re-registration guard logic (concurrency guard, cancelled flag — per the async useEffect pattern).
-  - [ ] 6.4 Run `pnpm turbo typecheck && pnpm turbo lint && pnpm turbo test` before marking complete.
+  - [x] 4.2 Map Expo ticket `DeviceNotRegistered` to `{ ok: false, signal: 'PruneToken' }`; map `InvalidCredentials` to `{ ok: false, signal: 'Unknown' }` — it signals a project-wide FCM/APNs credential misconfiguration, not a dead token, and must never trigger pruning (see Dev Notes "InvalidCredentials is not a token problem"); network/fetch failures (timeout, non-2xx, malformed response) to `{ ok: false, signal: 'RetryLater' }`; anything else not covered above to `{ ok: false, signal: 'Unknown' }`.
+  - [x] 4.3 No `Deno.test` pattern exists yet in `supabase/functions/` — this story introduces it. Create `supabase/functions/_shared/expoPush.test.ts` using `Deno.test()`, mocking `fetch` to cover: success, `DeviceNotRegistered` → `PruneToken`, `InvalidCredentials` → `Unknown`, network error → `RetryLater`, and the chunking helper with >100 inputs.
+- [x] Task 5: Settings screen — "Enable reminders" card (AC: 7)
+  - [x] 5.1 Add a new section to `apps/mobile/app/(app)/settings/index.tsx` following the existing `sectionTitle` + `row` pattern (see `styles.sectionTitle` / `styles.row` at lines 102–115) — do not introduce a new card component; this screen uses flat row/section composition, not a card-list pattern.
+  - [x] 5.2 Permission state derivation: call `Notifications.getPermissionsAsync()` on mount (and on foreground via the `AppState` pattern) to compute one of three states — `not-yet-requested` (`status === 'undetermined'`), `enabled` (`status === 'granted'`), `disabled` (`status === 'denied'`). Render distinct row label text per state via `t('settings.reminders.<state>')`.
+  - [x] 5.3 Tap handler: if `not-yet-requested`, call `Notifications.requestPermissionsAsync()`; if `granted` after the call, trigger `usePushRegistration`'s registration path immediately (do not wait for the next foreground event). If `disabled` (previously denied — iOS/Android will not re-prompt), call `Linking.openSettings()` to deep-link to OS settings.
+  - [x] 5.4 After returning from `Linking.openSettings()`, the existing `AppState` `'active'` trigger re-evaluates permission state — no separate handler needed, reuse Task 3.3's listener.
+  - [x] 5.5 Add new i18n keys under `settings.reminders.*` in `apps/mobile/src/i18n/locales/en.json` and `hi.json` (the project enforces no hardcoded UI strings via the `i18next/no-literal-string` ESLint rule in `apps/mobile/.eslintrc.js`): `title`, `notYetRequested`, `enabled`, `disabled`.
+- [x] Task 6: Tests
+  - [x] 6.1 `packages/supabase/__tests__/` — test for `registerPushToken` (upsert call shape, conflict target, error mapping).
+  - [x] 6.2 `supabase/functions/_shared/expoPush.test.ts` — see 4.3.
+  - [x] 6.3 `apps/mobile` — co-located test for the Settings screen covering all three permission-state renders and the tap handler branching (request vs. deep-link). Co-located test for `usePushRegistration` covering the foreground re-registration guard logic (concurrency guard, cancelled flag — per the async useEffect pattern).
+  - [x] 6.4 Run `pnpm turbo typecheck && pnpm turbo lint && pnpm turbo test` before marking complete.
 
 ## Dev Notes
 
@@ -174,10 +174,49 @@ Per `implementation-patterns-consistency-rules.md` State Management Patterns: th
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-sonnet-4-6
 
 ### Debug Log References
 
+- `supabase db reset` applied migration `0028_device_push_tokens.sql` cleanly on first attempt; `supabase gen types typescript --local` initially captured a stray "Connecting to db 5432" CLI banner line into `database.types.ts` (redirected stdout without `2>/dev/null`), which broke `tsc` with `TS1434` — fixed by regenerating with stderr suppressed.
+- Deno was not installed in the dev environment; installed via `brew install deno` (v2.8.3) to actually run the new `expoPush.test.ts` Deno test suite rather than leaving it unverified.
+- `pnpm turbo lint` initially failed on 11 `i18next/no-literal-string` violations in `settings/index.tsx` and `usePushRegistration.ts` — these are internal state-machine string literals (`'granted'`, `'ios'`, etc.), not user-facing text. Resolved with `eslint-disable-next-line i18next/no-literal-string` comments, matching the existing convention used in `apps/mobile/app/(app)/_layout.tsx` for the same class of literal.
+- `Linking.openSettings` mock in the Settings screen test initially used `mockImplementation(() => {})`, which failed `tsc` because the real signature returns `Promise<void>`; switched to `mockResolvedValue()`.
+- Several Settings screen tests produced a React "not wrapped in act(...)" warning because `refreshReminderState`'s promise resolved after the synchronous `render()` call returned; added `await act(async () => {})` after each render to flush the mount-effect microtask deterministically.
+
 ### Completion Notes List
 
+- Task 1: Added `supabase/migrations/0028_device_push_tokens.sql` (table, RLS select/insert-own policies, unique index on `token`, secondary index on `user_id`, standard PostgREST grant line, table comment). Verified via `supabase db reset` (clean apply) and regenerated `packages/supabase/src/database.types.ts`.
+- Task 2: Added `registerPushToken` in `packages/supabase/src/functions/push-tokens.ts` (raw upsert, `onConflict: 'token'`, throws raw Supabase error on failure per the `call-edge-fn.ts` convention) and exported it from the package's `functions/index.ts` and top-level `index.ts`. Unit tested with a mocked `createSupabaseClient`.
+- Task 3: Added `expo-notifications@~0.32.17` (via `npx expo install`, SDK-54-resolved) and the `expo-notifications` Expo config plugin. Built `usePushRegistration` hook: checks `getPermissionsAsync()` before ever calling `getExpoPushTokenAsync`/`registerPushToken` (never requests permission itself), tracks "registered this session" via a ref to gate the AC4 foreground re-registration trigger, owns its own `AppState` listener (the Dev Notes' explicitly-permitted "second listener" option, kept the hook self-contained and independently testable), and exposes `registerNow()` so the Settings card (Task 5) can trigger immediate registration after a fresh grant. Wired into `apps/mobile/app/(app)/_layout.tsx` via `usePushRegistration(userId)`.
+- Task 4: Added `supabase/functions/_shared/expoPush.ts` — `sendPushNotification` (single-token, generic `fetch` to the Expo push endpoint) and an exported `chunk<T>` helper for future multi-token batching (Stories 8.3/8.4). Ticket mapping: `DeviceNotRegistered` → `PruneToken`; `InvalidCredentials` → `Unknown` (per the story's spec-review correction — never `PruneToken`, to avoid mass-deleting tokens during a credential outage); any other error ticket → `Unknown`; network/fetch throw, non-2xx, or malformed JSON → `RetryLater`. Verified with 10 Deno tests (mocked `fetch`) covering every branch plus the chunking helper's boundary behavior.
+- Task 5: Added the "Enable reminders" section to `settings/index.tsx` using the existing `sectionTitle`/`row` pattern (no new card component). Permission state derivation handles all three known statuses plus the AC7 edge case (unexpected status value or a throwing `getPermissionsAsync()` — both fall back to `not-yet-requested` with a `console.warn`, no crash). Tap handler branches: `not-yet-requested` → `requestPermissionsAsync()`, then `registerNow()` immediately if granted; `disabled` → `Linking.openSettings()`; `enabled` → no-op. A second `AppState` listener in the screen re-evaluates permission state on foreground, which also covers the post-`openSettings()` return path (Task 5.4) without a separate handler. Added `settings.reminders.{title,notYetRequested,enabled,disabled}` to `en.json` and `hi.json`.
+- Task 6: Added co-located tests for all new code: `packages/supabase/__tests__/push-tokens.test.ts` (2 tests), `supabase/functions/_shared/expoPush.test.ts` (10 Deno tests), `apps/mobile/src/hooks/usePushRegistration.test.ts` (7 tests), and extended `apps/mobile/app/(app)/settings/index.test.tsx` (+9 tests for the reminders card). Full validation run: `pnpm turbo typecheck` (10/10 tasks pass), `pnpm turbo lint` (clean after the literal-string fixes above), `pnpm turbo test` (293 mobile + 29 supabase + 23 sync + 53 core tests pass), plus `deno test --allow-net supabase/functions/_shared/expoPush.test.ts` (10/10 pass, run separately since Deno Edge Functions are outside the turbo/pnpm graph).
+- Scope note: per the story's explicit boundary, no Edge Function in this story calls `sendPushNotification` — AC6's `PruneToken`-handling contract is documented but has no caller yet (Stories 8.3/8.4). No automatic post-first-session permission prompt was added anywhere (PRD constraint) — only the manual Settings-card trigger from AC7.
+- Flag for follow-up (not a defect in this story): per Dev Notes, iOS APNs credential provisioning (`eas credentials`) is infra-only and out of this story's file scope — not attempted here.
+
 ### File List
+
+- `supabase/migrations/0028_device_push_tokens.sql` (new)
+- `packages/supabase/src/database.types.ts` (regenerated)
+- `packages/supabase/src/functions/push-tokens.ts` (new)
+- `packages/supabase/src/functions/index.ts` (modified — export `registerPushToken`)
+- `packages/supabase/src/index.ts` (modified — export `registerPushToken`)
+- `packages/supabase/__tests__/push-tokens.test.ts` (new)
+- `supabase/functions/_shared/expoPush.ts` (new)
+- `supabase/functions/_shared/expoPush.test.ts` (new)
+- `deno.lock` (new — first Deno test in the repo)
+- `apps/mobile/src/hooks/usePushRegistration.ts` (new)
+- `apps/mobile/src/hooks/usePushRegistration.test.ts` (new)
+- `apps/mobile/app/(app)/_layout.tsx` (modified — wires `usePushRegistration(userId)`)
+- `apps/mobile/app/(app)/settings/index.tsx` (modified — "Enable reminders" card)
+- `apps/mobile/app/(app)/settings/index.test.tsx` (modified — reminders card tests + act-warning fixes for pre-existing tests)
+- `apps/mobile/app.config.ts` (modified — `expo-notifications` plugin)
+- `apps/mobile/package.json` (modified — `expo-notifications` dependency)
+- `apps/mobile/src/i18n/locales/en.json` (modified — `settings.reminders.*` keys)
+- `apps/mobile/src/i18n/locales/hi.json` (modified — `settings.reminders.*` keys)
+- `pnpm-lock.yaml` (modified — `expo-notifications` and transitive deps)
+
+## Change Log
+
+- 2026-06-20: Story implemented — `device_push_tokens` migration, `registerPushToken` upsert service, `usePushRegistration` mobile hook with foreground re-registration, shared `expoPush.ts` Edge Function helper (chunking + ticket-error mapping), and the Settings "Enable reminders" card. All tasks complete, full regression suite green (`pnpm turbo typecheck/lint/test` + `deno test`). Status → review.

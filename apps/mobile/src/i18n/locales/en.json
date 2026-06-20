@@ -57,6 +57,12 @@
       "privacyNotice": "Privacy Notice",
       "deleteAccount": "Delete my account"
     },
+    "reminders": {
+      "title": "Reminders",
+      "notYetRequested": "Enable reminders",
+      "enabled": "Reminders enabled",
+      "disabled": "Reminders disabled — tap to open settings"
+    },
     "deletion": {
       "dialogTitle": "Delete your account",
       "whatHappens": "All your personal data will be permanently deleted after 30 days.",
