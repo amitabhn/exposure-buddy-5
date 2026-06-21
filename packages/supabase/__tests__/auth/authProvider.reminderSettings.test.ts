@@ -9,6 +9,10 @@ function makeMockMmkv() {
       const v = store.get(key)
       return typeof v === 'string' ? v : undefined
     },
+    getBoolean: (key: string) => {
+      const v = store.get(key)
+      return typeof v === 'boolean' ? v : undefined
+    },
     set: (key: string, value: string | boolean | number) => store.set(key, value),
     delete: (key: string) => store.delete(key),
     has: (key: string) => store.has(key),
@@ -35,6 +39,14 @@ function setReminderNotificationId(mmkv: ReturnType<typeof makeMockMmkv>, userId
 
 function clearReminderNotificationId(mmkv: ReturnType<typeof makeMockMmkv>, userId: string): void {
   mmkv.delete(KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId))
+}
+
+function getReminderEnabled(mmkv: ReturnType<typeof makeMockMmkv>, userId: string): boolean {
+  return mmkv.getBoolean(KV_KEYS.SESSION_REMINDER_ENABLED(userId)) ?? false
+}
+
+function setReminderEnabled(mmkv: ReturnType<typeof makeMockMmkv>, userId: string, enabled: boolean): void {
+  mmkv.set(KV_KEYS.SESSION_REMINDER_ENABLED(userId), enabled)
 }
 
 describe('getReminderTime / setReminderTime', () => {
@@ -81,5 +93,33 @@ describe('getReminderNotificationId / setReminderNotificationId / clearReminderN
   it('clearing a never-set id is a safe no-op', () => {
     expect(() => clearReminderNotificationId(mmkv, USER_ID)).not.toThrow()
     expect(getReminderNotificationId(mmkv, USER_ID)).toBeNull()
+  })
+})
+
+describe('getReminderEnabled / setReminderEnabled', () => {
+  let mmkv: ReturnType<typeof makeMockMmkv>
+
+  beforeEach(() => { mmkv = makeMockMmkv() })
+
+  it('defaults to false when never set', () => {
+    expect(getReminderEnabled(mmkv, USER_ID)).toBe(false)
+  })
+
+  it('returns true after being enabled', () => {
+    setReminderEnabled(mmkv, USER_ID, true)
+    expect(getReminderEnabled(mmkv, USER_ID)).toBe(true)
+  })
+
+  it('returns false after being disabled again', () => {
+    setReminderEnabled(mmkv, USER_ID, true)
+    setReminderEnabled(mmkv, USER_ID, false)
+    expect(getReminderEnabled(mmkv, USER_ID)).toBe(false)
+  })
+
+  it('is independent of the stored reminder time — disabling does not clear it', () => {
+    setReminderTime(mmkv, USER_ID, '11:00')
+    setReminderEnabled(mmkv, USER_ID, true)
+    setReminderEnabled(mmkv, USER_ID, false)
+    expect(getReminderTime(mmkv, USER_ID)).toBe('11:00')
   })
 })

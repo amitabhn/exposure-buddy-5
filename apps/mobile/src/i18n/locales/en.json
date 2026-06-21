@@ -58,11 +58,10 @@
       "deleteAccount": "Delete my account"
     },
     "reminders": {
-      "title": "Reminders",
-      "notYetRequested": "Enable reminders",
-      "enabled": "Reminders enabled",
-      "disabled": "Reminders disabled — tap to open settings",
-      "manageTime": "Set reminder time"
+      "rowLabel": "Daily reminder",
+      "disabledValue": "Disabled",
+      "am": "AM",
+      "pm": "PM"
     },
     "deletion": {
       "dialogTitle": "Delete your account",
@@ -75,11 +74,14 @@
     }
   },
   "reminderSettings": {
-    "screenTitle": "Reminder time",
+    "screenTitle": "Daily reminder",
+    "disableOption": "Disable",
+    "enableOption": "Enable",
+    "permissionRequired": "Notification permission is required to enable reminders.",
+    "openSettings": "Open Settings",
     "saveButton": "Save"
   },
   "notifications": {
-    "reminderSet": "Reminder set for {{time}} — see you then",
     "dailyReminder": {
       "title": "Exposure Buddy",
       "body": "A few minutes for yourself today?"

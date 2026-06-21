@@ -44,6 +44,8 @@ interface UseAuthResult {
   getReminderNotificationId: () => string | null
   setReminderNotificationId: (id: string) => void
   clearReminderNotificationId: () => void
+  getReminderEnabled: () => boolean
+  setReminderEnabled: (enabled: boolean) => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -87,5 +89,7 @@ export function useAuth(): UseAuthResult {
     getReminderNotificationId: auth.getReminderNotificationId,
     setReminderNotificationId: auth.setReminderNotificationId,
     clearReminderNotificationId: auth.clearReminderNotificationId,
+    getReminderEnabled: auth.getReminderEnabled,
+    setReminderEnabled: auth.setReminderEnabled,
   }
 }

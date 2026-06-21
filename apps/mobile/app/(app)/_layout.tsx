@@ -24,6 +24,7 @@ export default function AppLayout() {
     getReminderNotificationId,
     setReminderNotificationId,
     clearReminderNotificationId,
+    getReminderEnabled,
   } = useAuth()
 
   // Mirrors the latest userId outside of render so an in-flight foreground reschedule
@@ -66,6 +67,7 @@ export default function AppLayout() {
     try {
       const startUserId = userIdRef.current
       if (!startUserId) return
+      if (!getReminderEnabled()) return
       const time = getReminderTime()
       if (!time) return
 
@@ -95,7 +97,7 @@ export default function AppLayout() {
     } finally {
       isReschedulingReminderRef.current = false
     }
-  }, [getReminderTime, getReminderNotificationId, setReminderNotificationId, clearReminderNotificationId, t])
+  }, [getReminderEnabled, getReminderTime, getReminderNotificationId, setReminderNotificationId, clearReminderNotificationId, t])
 
   // Refresh session on foreground resume to catch token expiry during background suspension (ADR-008 §5b)
   useEffect(() => {

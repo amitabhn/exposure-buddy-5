@@ -23,6 +23,7 @@ const mockGetReminderNotificationId = jest.fn()
 const mockSetReminderNotificationId = jest.fn()
 const mockClearReminderNotificationId = jest.fn()
 const mockSetReminderTime = jest.fn()
+const mockGetReminderEnabled = jest.fn()
 const layoutAuthState = { userId: 'user-1' }
 
 jest.mock('@exposure-buddy/supabase', () => ({
@@ -40,6 +41,7 @@ jest.mock('@exposure-buddy/supabase', () => ({
     setReminderNotificationId: mockSetReminderNotificationId,
     clearReminderNotificationId: mockClearReminderNotificationId,
     setReminderTime: mockSetReminderTime,
+    getReminderEnabled: mockGetReminderEnabled,
   }),
   createSupabaseClient: () => ({ auth: { getSession: mockGetSession } }),
 }))
@@ -76,6 +78,7 @@ describe('AppLayout — foreground session-reminder reschedule (AC4)', () => {
     mockGetSession.mockResolvedValue(undefined)
     mockGetReminderTime.mockReturnValue(null)
     mockGetReminderNotificationId.mockReturnValue(null)
+    mockGetReminderEnabled.mockReturnValue(true)
     mockScheduleSessionReminder.mockResolvedValue('notif-new')
     mockCancelSessionReminder.mockResolvedValue(undefined)
   })
@@ -98,6 +101,21 @@ describe('AppLayout — foreground session-reminder reschedule (AC4)', () => {
 
   it('no-ops when no reminder time has been stored', async () => {
     mockGetReminderTime.mockReturnValue(null)
+
+    render(<AppLayout />)
+    emitAppStateChange('active')
+
+    await waitFor(() => {
+      expect(mockGetSession).toHaveBeenCalled()
+    })
+    expect(mockScheduleSessionReminder).not.toHaveBeenCalled()
+    expect(mockCancelSessionReminder).not.toHaveBeenCalled()
+  })
+
+  it('no-ops when the reminder is disabled, even if a time is still stored', async () => {
+    mockGetReminderEnabled.mockReturnValue(false)
+    mockGetReminderTime.mockReturnValue('08:00')
+    mockGetReminderNotificationId.mockReturnValue('notif-old')
 
     render(<AppLayout />)
     emitAppStateChange('active')

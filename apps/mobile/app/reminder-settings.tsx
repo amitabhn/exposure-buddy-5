@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { Stack } from 'expo-router'
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
+import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import * as Notifications from 'expo-notifications'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useAuth } from '@exposure-buddy/supabase'
 import { BackButton } from '../src/components/navigation/BackButton'
+import { usePushRegistration } from '../src/hooks/usePushRegistration'
 import { scheduleSessionReminder, cancelSessionReminder, parseTime, DEFAULT_TIME } from '../src/notifications/sessionReminder'
+
+type ReminderSelection = 'disable' | 'enable'
 
 function timeStringToDate(time: string | null): Date {
   const { hour, minute } = parseTime(time ?? DEFAULT_TIME)
@@ -22,6 +26,7 @@ function dateToTimeString(date: Date): string {
 
 export default function ReminderSettingsScreen() {
   const { t } = useTranslation()
+  const router = useRouter()
   const {
     userId,
     getReminderTime,
@@ -29,11 +34,21 @@ export default function ReminderSettingsScreen() {
     getReminderNotificationId,
     setReminderNotificationId,
     clearReminderNotificationId,
+    getReminderEnabled,
+    setReminderEnabled,
   } = useAuth()
+  // Called directly (not via PushRegistrationContext) — this screen is a top-level Stack.Screen
+  // outside the (app) group, so it isn't a descendant of the PushRegistrationProvider mounted
+  // there; calling the hook here gives an independent, correctly-scoped registerNow.
+  const { registerNow } = usePushRegistration(userId)
 
+  const [selection, setSelection] = useState<ReminderSelection>(
+    // eslint-disable-next-line i18next/no-literal-string -- internal state-machine value, not user-facing text
+    () => (getReminderEnabled() ? 'enable' : 'disable'),
+  )
   const [draftDate, setDraftDate] = useState<Date>(() => timeStringToDate(getReminderTime()))
-  const [confirmation, setConfirmation] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [permissionError, setPermissionError] = useState(false)
   const isHandlingSaveRef = useRef(false)
   // Mirrors the latest userId outside of render so an in-flight Save can detect a
   // sign-out/sign-in-as-different-user race that happens during its awaits.
@@ -52,15 +67,66 @@ export default function ReminderSettingsScreen() {
     if (selected) setDraftDate(selected)
   }
 
+  function selectDisable() {
+    // eslint-disable-next-line i18next/no-literal-string -- internal state-machine value, not user-facing text
+    setSelection('disable')
+    setPermissionError(false)
+  }
+
+  function selectEnable() {
+    // eslint-disable-next-line i18next/no-literal-string -- internal state-machine value, not user-facing text
+    setSelection('enable')
+    setPermissionError(false)
+  }
+
   async function handleSave() {
     if (isHandlingSaveRef.current) return
     isHandlingSaveRef.current = true
     setIsSaving(true)
-    setConfirmation(null)
+    setPermissionError(false)
     const startUserId = userIdRef.current
-    const time = dateToTimeString(draftDate)
 
     try {
+      if (selection === 'disable') {
+        const existingId = getReminderNotificationId()
+        if (existingId) {
+          await cancelSessionReminder(existingId)
+        }
+        if (userIdRef.current !== startUserId) return
+        setReminderEnabled(false)
+        clearReminderNotificationId()
+        router.back()
+        return
+      }
+
+      // selection === 'enable' — OS permission is required before we'll schedule anything.
+      // Save blocks (rather than silently persisting a non-functional enabled state) and
+      // surfaces inline guidance to open OS Settings when permission isn't granted.
+      let status: string
+      try {
+        status = (await Notifications.getPermissionsAsync()).status
+      } catch (err) {
+        console.warn('[ReminderSettingsScreen] getPermissionsAsync threw:', err)
+        // eslint-disable-next-line i18next/no-literal-string -- OS permission status identifier, not user-facing text
+        status = 'undetermined'
+      }
+      // eslint-disable-next-line i18next/no-literal-string
+      if (status !== 'granted') {
+        const requested = await Notifications.requestPermissionsAsync()
+        status = requested.status
+      }
+      if (userIdRef.current !== startUserId) return
+      // eslint-disable-next-line i18next/no-literal-string
+      if (status !== 'granted') {
+        setPermissionError(true)
+        return
+      }
+
+      registerNow().catch(err => {
+        console.warn('[ReminderSettingsScreen] registerNow failed:', err)
+      })
+
+      const time = dateToTimeString(draftDate)
       const existingId = getReminderNotificationId()
       if (existingId) {
         await cancelSessionReminder(existingId)
@@ -80,13 +146,15 @@ export default function ReminderSettingsScreen() {
       }
 
       setReminderTime(time)
+      setReminderEnabled(true)
 
       if (result) {
         setReminderNotificationId(result)
-        if (isMountedRef.current) setConfirmation(t('notifications.reminderSet', { time }))
       } else {
         clearReminderNotificationId()
       }
+
+      router.back()
     } finally {
       isHandlingSaveRef.current = false
       if (isMountedRef.current) setIsSaving(false)
@@ -109,14 +177,51 @@ export default function ReminderSettingsScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>{t('reminderSettings.screenTitle')}</Text>
 
-        <DateTimePicker
-          value={draftDate}
-          // eslint-disable-next-line i18next/no-literal-string
-          mode="time"
-          // eslint-disable-next-line i18next/no-literal-string
-          display="spinner"
-          onChange={handleChange}
-        />
+        <TouchableOpacity
+          style={styles.radioRow}
+          onPress={selectDisable}
+          accessibilityRole="radio"
+          accessibilityState={{ checked: selection === 'disable' }}
+          accessibilityLabel={t('reminderSettings.disableOption')}
+        >
+          <View style={[styles.radioCircle, selection === 'disable' && styles.radioCircleSelected]} />
+          <Text style={styles.radioLabel}>{t('reminderSettings.disableOption')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.radioRow}
+          onPress={selectEnable}
+          accessibilityRole="radio"
+          accessibilityState={{ checked: selection === 'enable' }}
+          accessibilityLabel={t('reminderSettings.enableOption')}
+        >
+          <View style={[styles.radioCircle, selection === 'enable' && styles.radioCircleSelected]} />
+          <Text style={styles.radioLabel}>{t('reminderSettings.enableOption')}</Text>
+        </TouchableOpacity>
+
+        {selection === 'enable' && (
+          <DateTimePicker
+            value={draftDate}
+            // eslint-disable-next-line i18next/no-literal-string
+            mode="time"
+            // eslint-disable-next-line i18next/no-literal-string
+            display="spinner"
+            onChange={handleChange}
+          />
+        )}
+
+        {permissionError ? (
+          <View style={styles.permissionErrorBox}>
+            <Text style={styles.permissionErrorText}>{t('reminderSettings.permissionRequired')}</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openSettings()}
+              accessibilityRole="button"
+              accessibilityLabel={t('reminderSettings.openSettings')}
+            >
+              <Text style={styles.openSettingsText}>{t('reminderSettings.openSettings')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -127,8 +232,6 @@ export default function ReminderSettingsScreen() {
         >
           <Text style={styles.saveButtonText}>{t('reminderSettings.saveButton')}</Text>
         </TouchableOpacity>
-
-        {confirmation ? <Text style={styles.confirmationText}>{confirmation}</Text> : null}
       </View>
     </>
   )
@@ -147,6 +250,45 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 24,
   },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#9ca3af',
+    marginRight: 12,
+  },
+  radioCircleSelected: {
+    borderColor: '#111827',
+    backgroundColor: '#111827',
+  },
+  radioLabel: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  permissionErrorBox: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+  },
+  permissionErrorText: {
+    fontSize: 14,
+    color: '#b91c1c',
+    marginBottom: 8,
+  },
+  openSettingsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#b91c1c',
+  },
   saveButton: {
     backgroundColor: '#111827',
     borderRadius: 8,
@@ -161,11 +303,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '600',
-  },
-  confirmationText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#16a34a',
-    textAlign: 'center',
   },
 })

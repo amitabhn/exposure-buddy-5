@@ -214,19 +214,21 @@
       "privacyNotice": "गोपनीयता सूचना"
     },
     "reminders": {
-      "title": "अनुस्मारक",
-      "notYetRequested": "अनुस्मारक सक्षम करें",
-      "enabled": "अनुस्मारक सक्षम हैं",
-      "disabled": "अनुस्मारक अक्षम हैं — सेटिंग्स खोलने के लिए टैप करें",
-      "manageTime": "अनुस्मारक समय सेट करें"
+      "rowLabel": "दैनिक अनुस्मारक",
+      "disabledValue": "अक्षम",
+      "am": "AM",
+      "pm": "PM"
     }
   },
   "reminderSettings": {
-    "screenTitle": "अनुस्मारक समय",
+    "screenTitle": "दैनिक अनुस्मारक",
+    "disableOption": "अक्षम करें",
+    "enableOption": "सक्षम करें",
+    "permissionRequired": "अनुस्मारक सक्षम करने के लिए सूचना अनुमति आवश्यक है।",
+    "openSettings": "सेटिंग्स खोलें",
     "saveButton": "सहेजें"
   },
   "notifications": {
-    "reminderSet": "{{time}} के लिए अनुस्मारक सेट किया गया — तब मिलते हैं",
     "dailyReminder": {
       "title": "Exposure Buddy",
       "body": "आज अपने लिए कुछ मिनट?"

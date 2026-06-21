@@ -53,3 +53,14 @@ export async function cancelSessionReminder(notificationId: string): Promise<voi
     console.warn('[sessionReminder] cancelScheduledNotificationAsync failed:', err)
   }
 }
+
+// Renders a stored "HH:mm" time as a 12-hour clock with AM/PM, e.g. "08:00" -> "8:00 AM".
+// amLabel/pmLabel are caller-supplied (via t()) rather than hardcoded so the period
+// marker stays translatable.
+export function formatTimeForDisplay(time: string, amLabel: string, pmLabel: string): string {
+  const { hour, minute } = parseTime(time)
+  const period = hour < 12 ? amLabel : pmLabel
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12
+  const mm = String(minute).padStart(2, '0')
+  return `${displayHour}:${mm} ${period}`
+}

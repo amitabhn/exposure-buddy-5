@@ -46,6 +46,8 @@ interface AuthContextValue {
   getReminderNotificationId: () => string | null
   setReminderNotificationId: (id: string) => void
   clearReminderNotificationId: () => void
+  getReminderEnabled: () => boolean
+  setReminderEnabled: (enabled: boolean) => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -76,6 +78,8 @@ export const AuthContext = createContext<AuthContextValue>({
   getReminderNotificationId: () => null,
   setReminderNotificationId: () => {},
   clearReminderNotificationId: () => {},
+  getReminderEnabled: () => false,
+  setReminderEnabled: () => {},
 })
 
 interface AuthProviderProps {
@@ -373,6 +377,20 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     store.delete(KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId))
   }
 
+  function getReminderEnabled(): boolean {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return false
+    return store.getBoolean(KV_KEYS.SESSION_REMINDER_ENABLED(userId)) ?? false
+  }
+
+  function setReminderEnabled(enabled: boolean): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.SESSION_REMINDER_ENABLED(userId), enabled)
+  }
+
   return (
     <AuthContext.Provider value={{
       authState,
@@ -396,6 +414,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       getReminderNotificationId,
       setReminderNotificationId,
       clearReminderNotificationId,
+      getReminderEnabled,
+      setReminderEnabled,
     }}>
       {children}
     </AuthContext.Provider>

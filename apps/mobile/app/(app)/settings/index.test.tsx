@@ -1,6 +1,5 @@
 import React from 'react'
-import { Linking } from 'react-native'
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native'
+import { render, fireEvent, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -12,10 +11,17 @@ const mockRouterPush = jest.fn()
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockRouterPush }),
+  // Deferred to a real effect (post-commit) rather than called synchronously during render —
+  // this screen's focus callback calls setState, which would render-loop under the
+  // call-immediately pattern used elsewhere (e.g. useFocusOnMount.test.tsx) where the
+  // callback is side-effect-only.
+  useFocusEffect: (cb: () => void) => { require('react').useEffect(cb) },
 }))
 
 const mockSignOut = jest.fn().mockResolvedValue(undefined)
 const mockRequestAccountDeletion = jest.fn().mockResolvedValue(undefined)
+const mockGetReminderTime = jest.fn()
+const mockGetReminderEnabled = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
@@ -26,21 +32,9 @@ jest.mock('@exposure-buddy/supabase', () => ({
     isAuthenticated: true,
     pendingDeletion: null,
     userId: 'u1',
+    getReminderTime: mockGetReminderTime,
+    getReminderEnabled: mockGetReminderEnabled,
   }),
-}))
-
-const mockRegisterNow = jest.fn().mockResolvedValue(undefined)
-
-jest.mock('../../../src/contexts/PushRegistrationContext', () => ({
-  usePushRegistrationContext: () => ({ registerNow: mockRegisterNow }),
-}))
-
-const mockGetPermissionsAsync = jest.fn()
-const mockRequestPermissionsAsync = jest.fn()
-
-jest.mock('expo-notifications', () => ({
-  getPermissionsAsync: (...args: unknown[]) => mockGetPermissionsAsync(...args),
-  requestPermissionsAsync: (...args: unknown[]) => mockRequestPermissionsAsync(...args),
 }))
 
 jest.mock('../../../src/components/settings/DeleteAccountModal', () => ({
@@ -65,12 +59,8 @@ import SettingsScreen from './index'
 describe('SettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockGetPermissionsAsync.mockResolvedValue({ status: 'undetermined' })
-    jest.spyOn(Linking, 'openSettings').mockResolvedValue()
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
+    mockGetReminderTime.mockReturnValue(null)
+    mockGetReminderEnabled.mockReturnValue(false)
   })
 
   it('renders the Sign out button', async () => {
@@ -100,112 +90,66 @@ describe('SettingsScreen', () => {
     expect(getByLabelText('confirm-delete')).toBeTruthy()
   })
 
-  describe('Enable reminders card', () => {
-    it('renders the not-yet-requested state on mount', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'undetermined' })
-      const { findByText } = render(<SettingsScreen />)
+  describe('Daily reminder row', () => {
+    it('shows "Disabled" when no reminder is enabled', async () => {
+      mockGetReminderEnabled.mockReturnValue(false)
+      mockGetReminderTime.mockReturnValue(null)
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      expect(await findByText('settings.reminders.notYetRequested')).toBeTruthy()
+      expect(getByText('settings.reminders.disabledValue')).toBeTruthy()
     })
 
-    it('renders the enabled state when permission is already granted', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'granted' })
-      const { findByText } = render(<SettingsScreen />)
+    it('shows "Disabled" when a time is stored but the reminder is not enabled', async () => {
+      mockGetReminderEnabled.mockReturnValue(false)
+      mockGetReminderTime.mockReturnValue('08:00')
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      expect(await findByText('settings.reminders.enabled')).toBeTruthy()
+      expect(getByText('settings.reminders.disabledValue')).toBeTruthy()
     })
 
-    it('renders the disabled state when permission was previously denied', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'denied' })
-      const { findByText } = render(<SettingsScreen />)
+    it('shows the 12-hour formatted time when enabled', async () => {
+      mockGetReminderEnabled.mockReturnValue(true)
+      mockGetReminderTime.mockReturnValue('23:00')
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      expect(await findByText('settings.reminders.disabled')).toBeTruthy()
+      expect(getByText('11:00 settings.reminders.pm')).toBeTruthy()
     })
 
-    it('falls back to not-yet-requested and logs when getPermissionsAsync returns an unexpected status', async () => {
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'provisional' })
-      const { findByText } = render(<SettingsScreen />)
+    it('shows AM for morning hours', async () => {
+      mockGetReminderEnabled.mockReturnValue(true)
+      mockGetReminderTime.mockReturnValue('08:00')
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      expect(await findByText('settings.reminders.notYetRequested')).toBeTruthy()
-      expect(warnSpy).toHaveBeenCalled()
+      expect(getByText('8:00 settings.reminders.am')).toBeTruthy()
     })
 
-    it('falls back to not-yet-requested and logs when getPermissionsAsync throws', async () => {
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-      mockGetPermissionsAsync.mockRejectedValue(new Error('native module unavailable'))
-      const { findByText } = render(<SettingsScreen />)
+    it('falls back to "Disabled" when enabled but no time is stored', async () => {
+      mockGetReminderEnabled.mockReturnValue(true)
+      mockGetReminderTime.mockReturnValue(null)
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      expect(await findByText('settings.reminders.notYetRequested')).toBeTruthy()
-      expect(warnSpy).toHaveBeenCalled()
+      expect(getByText('settings.reminders.disabledValue')).toBeTruthy()
     })
 
-    it('tapping when not-yet-requested calls requestPermissionsAsync and registers on grant', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'undetermined' })
-      mockRequestPermissionsAsync.mockResolvedValue({ status: 'granted' })
-      const { findByText } = render(<SettingsScreen />)
+    it('pressing the row navigates to /reminder-settings', async () => {
+      const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
-      const row = await findByText('settings.reminders.notYetRequested')
+      fireEvent.press(getByText('settings.reminders.rowLabel'))
+      expect(mockRouterPush).toHaveBeenCalledWith('/reminder-settings')
+    })
 
+    it('refreshes the displayed state on focus', async () => {
+      mockGetReminderEnabled.mockReturnValue(false)
+      const { getByText, rerender } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(getByText('settings.reminders.disabledValue')).toBeTruthy()
+
+      mockGetReminderEnabled.mockReturnValue(true)
+      mockGetReminderTime.mockReturnValue('19:30')
       await act(async () => {
-        fireEvent.press(row)
+        rerender(<SettingsScreen />)
       })
-
-      expect(mockRequestPermissionsAsync).toHaveBeenCalledTimes(1)
-      expect(mockRegisterNow).toHaveBeenCalledTimes(1)
-      await waitFor(async () => {
-        expect(await findByText('settings.reminders.enabled')).toBeTruthy()
-      })
+      expect(getByText('7:30 settings.reminders.pm')).toBeTruthy()
     })
-
-    it('tapping when not-yet-requested and permission is denied does not register', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'undetermined' })
-      mockRequestPermissionsAsync.mockResolvedValue({ status: 'denied' })
-      const { findByText } = render(<SettingsScreen />)
-      await act(async () => {})
-      const row = await findByText('settings.reminders.notYetRequested')
-
-      await act(async () => {
-        fireEvent.press(row)
-      })
-
-      expect(mockRequestPermissionsAsync).toHaveBeenCalledTimes(1)
-      expect(mockRegisterNow).not.toHaveBeenCalled()
-    })
-
-    it('tapping when disabled opens OS settings via deep-link, not requestPermissionsAsync', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'denied' })
-      const { findByText } = render(<SettingsScreen />)
-      await act(async () => {})
-      const row = await findByText('settings.reminders.disabled')
-
-      await act(async () => {
-        fireEvent.press(row)
-      })
-
-      expect(Linking.openSettings).toHaveBeenCalledTimes(1)
-      expect(mockRequestPermissionsAsync).not.toHaveBeenCalled()
-    })
-
-    it('tapping when already enabled does not call requestPermissionsAsync or openSettings', async () => {
-      mockGetPermissionsAsync.mockResolvedValue({ status: 'granted' })
-      const { findByText } = render(<SettingsScreen />)
-      await act(async () => {})
-      const row = await findByText('settings.reminders.enabled')
-
-      await act(async () => {
-        fireEvent.press(row)
-      })
-
-      expect(mockRequestPermissionsAsync).not.toHaveBeenCalled()
-      expect(Linking.openSettings).not.toHaveBeenCalled()
-    })
-  })
-
-  it('pressing the manage reminder time row navigates to /reminder-settings', async () => {
-    const { getByText } = render(<SettingsScreen />)
-    await act(async () => {})
-    fireEvent.press(getByText('settings.reminders.manageTime'))
-    expect(mockRouterPush).toHaveBeenCalledWith('/reminder-settings')
   })
 })
