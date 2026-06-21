@@ -668,3 +668,14 @@ _Post-"done" redesign of the reminder Settings UI, driven by user-supplied mocku
 - **Save is silent on both Enable and Disable paths — no confirmation toast/highlight.** Raised by Sally in the party-mode review as a potential trust/reassurance gap for an anxiety-focused app; explicitly confirmed by the user as intentional minimalism, not an oversight. Listed here for visibility, not as open work — revisit only if user feedback indicates otherwise. [`apps/mobile/app/reminder-settings.tsx`]
 
 [`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder — UX redesign diff (2026-06-21)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `90c13e0..04d7338` diff — the UX-redesign implementation commit. 0 AC violations found. Original findings in the "Review Findings — UX redesign code review (2026-06-21)" section of `8-2-daily-local-session-reminder.md`._
+
+- **`getReminderEnabled`/`setReminderEnabled` MMKV calls lack try/catch.** Mirrors every other existing `AuthProvider` KV getter/setter (`getReminderTime`, `getLastUsedTechnique`, etc.), none of which have try/catch either — pre-existing pattern across the whole helper family, not a new gap introduced by this diff. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **The userId race-guard early-return in `handleSave`'s "enable" path doesn't resync `selection`/`draftDate`/`permissionError`** to the new (switched-to) user's actual state after a mid-save sign-out/sign-in-as-different-user race. Narrow edge case mirroring the pre-existing, already-accepted race-guard pattern from the original Story 8.2 review. [`apps/mobile/app/reminder-settings.tsx`]
+- **`router.back()` is called unconditionally with no `canGoBack()` guard.** Currently unreachable as a problem — this screen has exactly one entry point (`router.push` from Settings) and no deep-link/notification-action routing exists anywhere in this codebase yet. [`apps/mobile/app/reminder-settings.tsx`]
+- **Hindi locale's `am`/`pm` keys are set to literal "AM"/"PM", identical to English**, rather than a Hindi-specific rendering. Plausibly an intentional, common Indian-app convention rather than an oversight, but unconfirmed — needs translator/product input, consistent with this project's existing "needs translator pass" backlog pattern for partial Hindi coverage. [`apps/mobile/src/i18n/locales/hi.json`]
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
