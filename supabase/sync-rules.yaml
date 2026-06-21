@@ -8,6 +8,17 @@ bucket_definitions:
     parameters: SELECT token_parameters.user_id AS user_id
 
     data:
+      # users — added Story 9.1 (was previously write-only via outbox; never synced down)
+      - SELECT id, email, created_at
+        FROM public.users
+        WHERE id = bucket.user_id
+
+      # user_onboarding_metadata — added Story 9.1 (was previously write-only via outbox;
+      # flagged as an Epic 9 cleanup item in Story 6.2-A's Dev Notes)
+      - SELECT id, user_id, suds_calibration_value, completed_at, created_at
+        FROM public.user_onboarding_metadata
+        WHERE user_id = bucket.user_id
+
       # fear_ladder_items — column renamed actual_suds → peak_suds in migration 0015
       - SELECT id, user_id, description, predicted_suds, peak_suds, position, status, created_at, updated_at
         FROM public.fear_ladder_items

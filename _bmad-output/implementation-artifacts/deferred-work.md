@@ -1,5 +1,14 @@
 # Deferred Work
 
+## 2026-06-21 — Story 9.1: silent enqueue-failure remediation (`4-2-D2`/`4-2-D4`, `5-2-W15`) given owner + trigger condition
+
+- **`ADR-OFFLINE-DEGRADATION.md` Decision 2** (finalized in Story 9.1) documents that offline write failures fail silently in MVP — `console.error` only, no user-visible toast/banner/retry UI — at the two known call sites: `apps/mobile/app/(onboarding)/assessment.tsx:handleNext` (`4-2-D2`/`4-2-D4` below) and `apps/mobile/app/session/grounding.tsx:52-56` (`5-2-W15` below). This is accepted as the MVP state, not a fresh defect.
+- **Owner: Engineering lead.**
+- **Trigger condition: the next story that touches the sync mutation queue (e.g. a future outbox/retry-UX story), or before Epic 10 begins — whichever comes first.** When triggered, implement a user-visible error/retry affordance (toast or banner + retry action) at both call sites listed above, and re-audit for any third silent-failure site introduced since Story 9.1.
+- This entry exists so `ADR-OFFLINE-DEGRADATION.md` Decision 2 can carry the `Accepted — deferred remediation` sub-status per the Story 9.1 review-resolved condition that the deferred-work.md entry have a named owner and a concrete (non-"someday") trigger.
+
+---
+
 ## 2026-06-21 — Story 8.5 (Achievements Tab) formally deferred post-MVP (reduce MVP scope)
 
 - **FR-PROG-01/FR-PROG-02 — SUDS trend graph, session history log, and SUDS arc detail (the entire Achievements/"Progress" tab) deferred post-MVP.** Deferred whole, not split — the three sections share one screen, one empty-state, and one offline-read contract; partial implementation would leave the screen in an inconsistent half-built state. Story 8.5 is marked DEFERRED in `epics.md`; PRD `FR-PROG-01`/`FR-PROG-02` lines are commented out with the deferral note; FR Coverage Map carries the full decision record. Logged in post-mvp-backlog.md as item 1.35.
