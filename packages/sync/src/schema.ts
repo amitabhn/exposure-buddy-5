@@ -1,5 +1,23 @@
 import { Schema, Table, column } from '@powersync/react-native'
 
+// Schema verification checklist (Story 9.1) — verified against supabase/migrations/*.sql
+// through migration 0029 (device_push_tokens_update_policy). Re-verify on schema-affecting
+// migration changes; CI gate `verify-schema-drift` (.github/workflows/ci.yml) enforces this
+// going forward.
+//
+// Verified tables (columns match migration history exactly):
+//   - users
+//   - user_onboarding_metadata
+//   - fear_ladder_items (peak_suds — column was renamed in migration 0015; see that
+//     migration for the prior column name)
+//   - exposure_sessions
+//   - suds_readings
+//
+// Excluded tables (not part of AppSchema, by design):
+//   - suds_baselines — not created at MVP (Story 6.4 deferred-post-mvp); no migration exists.
+//   - device_push_tokens — written directly via the packages/supabase push-tokens Edge
+//     Function client (packages/supabase/src/functions/push-tokens.ts), not synced through
+//     PowerSync.
 const users = new Table({
   email: column.text,
   created_at: column.text,
