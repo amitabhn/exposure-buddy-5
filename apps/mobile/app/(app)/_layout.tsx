@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { useAuth, createSupabaseClient } from '@exposure-buddy/supabase'
 import { getAdapter } from '../../src/sync/adapter'
 import { PushRegistrationProvider } from '../../src/contexts/PushRegistrationContext'
+import { scheduleSessionReminder, cancelSessionReminder } from '../../src/notifications/sessionReminder'
 
 export default function AppLayout() {
   const { t } = useTranslation()
@@ -19,7 +20,21 @@ export default function AppLayout() {
     clearSessionInProgress,
     clearSessionIntention,
     userId,
+    getReminderTime,
+    getReminderNotificationId,
+    setReminderNotificationId,
+    clearReminderNotificationId,
   } = useAuth()
+
+  // Mirrors the latest userId outside of render so an in-flight foreground reschedule
+  // can detect a sign-out/sign-in-as-different-user race that happens during its awaits.
+  const userIdRef = useRef(userId)
+  useEffect(() => {
+    userIdRef.current = userId
+  }, [userId])
+  // Guards overlapping 'active' events (rapid app-switching) from running the reminder
+  // reschedule concurrently.
+  const isReschedulingReminderRef = useRef(false)
 
   // Local dismissal flag: hides the modal after Resume without clearing session data,
   // so the recovery blob remains available if the app is force-quit mid-session again.
@@ -41,15 +56,52 @@ export default function AppLayout() {
     }
   }, [isLoading, isAuthenticated, isOnboardingComplete, isStorageDegraded, router])
 
+  // AC4: reschedule the daily session reminder on every foreground while authenticated —
+  // covers the device timezone changing without tracking timezone state directly, since
+  // DailyTriggerInput's hour/minute are resolved against the device's current local
+  // timezone at the moment scheduleNotificationAsync runs (see story Dev Notes).
+  const rescheduleSessionReminder = useCallback(async () => {
+    if (isReschedulingReminderRef.current) return
+    isReschedulingReminderRef.current = true
+    try {
+      const startUserId = userIdRef.current
+      if (!startUserId) return
+      const time = getReminderTime()
+      if (!time) return
+
+      const existingId = getReminderNotificationId()
+      if (existingId) {
+        await cancelSessionReminder(existingId)
+      }
+
+      const result = await scheduleSessionReminder(time, {
+        title: t('notifications.dailyReminder.title'),
+        body: t('notifications.dailyReminder.body'),
+      })
+
+      // Guards against a sign-out/sign-in-as-different-user race during the awaits above.
+      if (userIdRef.current !== startUserId) return
+
+      if (result) {
+        setReminderNotificationId(result)
+      } else {
+        clearReminderNotificationId()
+      }
+    } finally {
+      isReschedulingReminderRef.current = false
+    }
+  }, [getReminderTime, getReminderNotificationId, setReminderNotificationId, clearReminderNotificationId, t])
+
   // Refresh session on foreground resume to catch token expiry during background suspension (ADR-008 §5b)
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') {
         createSupabaseClient().auth.getSession()
+        rescheduleSessionReminder()
       }
     })
     return () => sub.remove()
-  }, [])
+  }, [rescheduleSessionReminder])
 
   function handleRecoveryResume() {
     if (!sessionRecoveryData) return

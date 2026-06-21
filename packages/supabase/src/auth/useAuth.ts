@@ -38,6 +38,12 @@ interface UseAuthResult {
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
+  // Session reminder helpers (Story 8.2)
+  getReminderTime: () => string | null
+  setReminderTime: (time: string) => void
+  getReminderNotificationId: () => string | null
+  setReminderNotificationId: (id: string) => void
+  clearReminderNotificationId: () => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -75,5 +81,11 @@ export function useAuth(): UseAuthResult {
     // Technique preference (AuthContext)
     getLastUsedTechnique: auth.getLastUsedTechnique,
     setLastUsedTechnique: auth.setLastUsedTechnique,
+    // Session reminder (AuthContext)
+    getReminderTime: auth.getReminderTime,
+    setReminderTime: auth.setReminderTime,
+    getReminderNotificationId: auth.getReminderNotificationId,
+    setReminderNotificationId: auth.setReminderNotificationId,
+    clearReminderNotificationId: auth.clearReminderNotificationId,
   }
 }

@@ -40,6 +40,12 @@ interface AuthContextValue {
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
+  // Session reminder helpers (Story 8.2)
+  getReminderTime: () => string | null
+  setReminderTime: (time: string) => void
+  getReminderNotificationId: () => string | null
+  setReminderNotificationId: (id: string) => void
+  clearReminderNotificationId: () => void
 }
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -65,6 +71,11 @@ export const AuthContext = createContext<AuthContextValue>({
   getSessionIntention: () => null,
   getLastUsedTechnique: () => null,
   setLastUsedTechnique: () => {},
+  getReminderTime: () => null,
+  setReminderTime: () => {},
+  getReminderNotificationId: () => null,
+  setReminderNotificationId: () => {},
+  clearReminderNotificationId: () => {},
 })
 
 interface AuthProviderProps {
@@ -327,6 +338,41 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     store.set(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId), technique)
   }
 
+  function getReminderTime(): string | null {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return null
+    return store.getString(KV_KEYS.SESSION_REMINDER_TIME(userId)) ?? null
+  }
+
+  function setReminderTime(time: string): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.SESSION_REMINDER_TIME(userId), time)
+  }
+
+  function getReminderNotificationId(): string | null {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return null
+    return store.getString(KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId)) ?? null
+  }
+
+  function setReminderNotificationId(id: string): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId), id)
+  }
+
+  function clearReminderNotificationId(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.delete(KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId))
+  }
+
   return (
     <AuthContext.Provider value={{
       authState,
@@ -345,6 +391,11 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       getSessionIntention,
       getLastUsedTechnique,
       setLastUsedTechnique,
+      getReminderTime,
+      setReminderTime,
+      getReminderNotificationId,
+      setReminderNotificationId,
+      clearReminderNotificationId,
     }}>
       {children}
     </AuthContext.Provider>

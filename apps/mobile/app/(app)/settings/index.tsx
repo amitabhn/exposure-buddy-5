@@ -154,6 +154,15 @@ export default function SettingsScreen() {
         <Text style={styles.rowText}>{t(`settings.reminders.${REMINDER_STATE_I18N_KEY[reminderState]}`)}</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => router.push('/reminder-settings')}
+        accessibilityRole="link"
+        accessibilityLabel={t('settings.reminders.manageTime')}
+      >
+        <Text style={styles.rowText}>{t('settings.reminders.manageTime')}</Text>
+      </TouchableOpacity>
+
       <Text style={styles.sectionTitle}>{t('settings.privacy.title')}</Text>
 
       <TouchableOpacity

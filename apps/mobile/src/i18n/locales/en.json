@@ -61,7 +61,8 @@
       "title": "Reminders",
       "notYetRequested": "Enable reminders",
       "enabled": "Reminders enabled",
-      "disabled": "Reminders disabled — tap to open settings"
+      "disabled": "Reminders disabled — tap to open settings",
+      "manageTime": "Set reminder time"
     },
     "deletion": {
       "dialogTitle": "Delete your account",
@@ -71,6 +72,17 @@
       "dpoContact": "For questions about your data, contact our Data Protection Officer at {{dpoEmail}}.",
       "confirmButton": "Delete my account",
       "cancelButton": "Cancel"
+    }
+  },
+  "reminderSettings": {
+    "screenTitle": "Reminder time",
+    "saveButton": "Save"
+  },
+  "notifications": {
+    "reminderSet": "Reminder set for {{time}} — see you then",
+    "dailyReminder": {
+      "title": "Exposure Buddy",
+      "body": "A few minutes for yourself today?"
     }
   },
   "onboarding": {

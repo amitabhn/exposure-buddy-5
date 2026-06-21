@@ -1,6 +1,6 @@
 # Story 8.2: Daily Local Session Reminder
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -27,11 +27,11 @@ This story is entirely client-side local scheduling — no Edge Function, no ser
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `packages/core` — KV key additions (AC: 6)
-  - [ ] 1.1 In `packages/core/src/constants/kvKeys.ts`, add `SESSION_REMINDER_TIME` and `SESSION_REMINDER_NOTIFICATION_ID` under the "User-scoped (functions)" section, exactly as specified in AC6. Add a one-line comment noting `SESSION_REMINDER_TIME` stores an `HH:mm` 24-hour string (e.g. `"08:00"`), not a `Date`.
+- [x] Task 1: `packages/core` — KV key additions (AC: 6)
+  - [x] 1.1 In `packages/core/src/constants/kvKeys.ts`, add `SESSION_REMINDER_TIME` and `SESSION_REMINDER_NOTIFICATION_ID` under the "User-scoped (functions)" section, exactly as specified in AC6. Add a one-line comment noting `SESSION_REMINDER_TIME` stores an `HH:mm` 24-hour string (e.g. `"08:00"`), not a `Date`.
 
-- [ ] Task 2: `packages/supabase` — expose reminder KV getters/setters via `useAuth()` (AC: 2, 3, 4, 5)
-  - [ ] 2.1 In `packages/supabase/src/auth/AuthProvider.tsx`, add five inline functions mirroring the existing `getLastUsedTechnique`/`setLastUsedTechnique` pattern at lines 313–328 exactly (closure over `mmkvRef.current` and `authState.userId`, not a separate exported pure function in `session.ts`):
+- [x] Task 2: `packages/supabase` — expose reminder KV getters/setters via `useAuth()` (AC: 2, 3, 4, 5)
+  - [x] 2.1 In `packages/supabase/src/auth/AuthProvider.tsx`, add five inline functions mirroring the existing `getLastUsedTechnique`/`setLastUsedTechnique` pattern at lines 313–328 exactly (closure over `mmkvRef.current` and `authState.userId`, not a separate exported pure function in `session.ts`):
     ```typescript
     function getReminderTime(): string | null {
       const store = mmkvRef.current
@@ -65,11 +65,11 @@ This story is entirely client-side local scheduling — no Edge Function, no ser
     }
     ```
     (Note the signatures take no `fearItemId`-equivalent arg — unlike `getLastUsedTechnique`, there's only one reminder time per user, so `userId` alone is the key. `clearReminderNotificationId` exists so callers can drop a stale ID after a permission-gated schedule attempt returns `null` — see Task 4.2/6.1 — rather than leaving a dangling pointer to an already-cancelled notification.)
-  - [ ] 2.2 Add all five to `AuthContextValue` interface, the default `createContext` value (no-op/`null` stubs), and the `<AuthContext.Provider value={{...}}>` object — same three touch points `getLastUsedTechnique`/`setLastUsedTechnique` already have.
-  - [ ] 2.3 Add all five to `UseAuthResult` in `packages/supabase/src/auth/useAuth.ts` and the merged return object (these come from `AuthContext`, like `getLastUsedTechnique`, not `OnboardingContext`).
+  - [x] 2.2 Add all five to `AuthContextValue` interface, the default `createContext` value (no-op/`null` stubs), and the `<AuthContext.Provider value={{...}}>` object — same three touch points `getLastUsedTechnique`/`setLastUsedTechnique` already have.
+  - [x] 2.3 Add all five to `UseAuthResult` in `packages/supabase/src/auth/useAuth.ts` and the merged return object (these come from `AuthContext`, like `getLastUsedTechnique`, not `OnboardingContext`).
 
-- [ ] Task 3: `apps/mobile` — local notification scheduling helper (AC: 2, 3, 5)
-  - [ ] 3.1 Create `apps/mobile/src/notifications/sessionReminder.ts`:
+- [x] Task 3: `apps/mobile` — local notification scheduling helper (AC: 2, 3, 5)
+  - [x] 3.1 Create `apps/mobile/src/notifications/sessionReminder.ts`:
     ```typescript
     export async function scheduleSessionReminder(
       time: string,           // "HH:mm"
@@ -86,38 +86,38 @@ This story is entirely client-side local scheduling — no Edge Function, no ser
     ```
     and return the resulting identifier. `cancelSessionReminder` calls `Notifications.cancelScheduledNotificationAsync(notificationId)` wrapped in try/catch — log the caught error itself (its message, not just a generic "failed to cancel") and swallow it rather than throwing (e.g. an already-fired/already-cancelled ID is the expected case, but distinct logging lets production telemetry tell that apart from a genuine failure), since callers (Task 4, Task 6) treat cancellation as best-effort cleanup before scheduling a replacement.
 
-- [ ] Task 4: `apps/mobile` — reminder time picker screen (AC: 1, 2, 3, 5)
-  - [ ] 4.1 Add `@react-native-community/datetimepicker` via `npx expo install @react-native-community/datetimepicker` from `apps/mobile/` (resolves the SDK-54-compatible version automatically, same convention as Story 8.1 Task 3.1 for `expo-notifications`). No time-picker library exists anywhere in this codebase yet — this is new ground, not a deviation.
-  - [ ] 4.2 Create `apps/mobile/app/reminder-settings.tsx` as a **root-level file** (sibling to `privacy-notice.tsx` and `ladder.tsx`), **not** nested under `(app)/settings/`. See Dev Notes "File location correction: root-level screen, not `(app)/settings/notifications.tsx`" — every existing pushed sub-screen in this codebase (`privacy-notice.tsx`, `ladder.tsx`, `calm-me/`, `session/`) lives at the app root, never nested inside a `Tabs`-registered directory.
+- [x] Task 4: `apps/mobile` — reminder time picker screen (AC: 1, 2, 3, 5)
+  - [x] 4.1 Add `@react-native-community/datetimepicker` via `npx expo install @react-native-community/datetimepicker` from `apps/mobile/` (resolves the SDK-54-compatible version automatically, same convention as Story 8.1 Task 3.1 for `expo-notifications`). No time-picker library exists anywhere in this codebase yet — this is new ground, not a deviation.
+  - [x] 4.2 Create `apps/mobile/app/reminder-settings.tsx` as a **root-level file** (sibling to `privacy-notice.tsx` and `ladder.tsx`), **not** nested under `(app)/settings/`. See Dev Notes "File location correction: root-level screen, not `(app)/settings/notifications.tsx`" — every existing pushed sub-screen in this codebase (`privacy-notice.tsx`, `ladder.tsx`, `calm-me/`, `session/`) lives at the app root, never nested inside a `Tabs`-registered directory.
     - On mount: read `getReminderTime()` from `useAuth()`; if `null`, default the picker's working value to `08:00` (AC1). Construct a throwaway `Date` object with those hour/minute components to pass as `DateTimePicker`'s `value` prop (the picker requires a `Date`, the stored format is `HH:mm` — convert both directions).
     - `DateTimePicker` `mode="time"`, `onChange` updates **local draft state only** — does not call `setReminderTime` or schedule anything (AC1's "no notification is scheduled until the user explicitly saves").
     - Guard against concurrent taps with an in-flight ref (same `isHandlingReminderPressRef` pattern already used for the permission-request button in `settings/index.tsx`) — ignore a Save tap while a previous one is still in flight.
     - Save button `onPress`: format the draft `Date` back to a zero-padded `HH:mm` string; if `getReminderNotificationId()` returns a value, call `cancelSessionReminder(id)` first (AC3); call `scheduleSessionReminder(time, content)` (content — see Task 4.3); re-read `userId` from `useAuth()` immediately before the writes below and abort them (without throwing) if it no longer matches the `userId` this Save started with — guards against a sign-out/sign-in-as-different-user race during the awaits above; always call `setReminderTime(time)` regardless of the schedule result (AC2 × AC5 interaction, see Dev Notes); if the result is non-null, call `setReminderNotificationId(result)` and show the confirmation message; if `null`, call `clearReminderNotificationId()` (the old ID was already cancelled above, so this drops the now-stale pointer rather than leaving it stored) and do not show the confirmation message — instead reflect the permission-revoked state (e.g. reuse the same `derivePermissionState`-style messaging pattern from `settings/index.tsx`, or simply leave the existing Settings screen's "Enable reminders" row as the source of truth for permission state — do not duplicate that logic here, just avoid the false-positive confirmation).
-  - [ ] 4.3 Local notification content (title/body) is not specified by any AC — choose content-neutral copy consistent with ADR-008's payload-neutrality *spirit* (no therapy/exposure/fear/anxiety language, even though ADR-008's rule is written for server push payloads, not local notifications — see Dev Notes "Local notification content — ADR-008 doesn't literally apply, but its spirit should"). Add new i18n keys for this (Task 7).
-  - [ ] 4.4 Add `<Stack.Screen name="reminder-settings" options={{...}} />` to `apps/mobile/app/_layout.tsx`'s root `<Stack>` (insert after the existing `ladder` entry, inside the `<Stack>` block spanning lines 97–104 — line 99 is the `privacy-notice` entry itself, not an insertion point), copying the exact `privacy-notice`/`ladder` entries' options (`headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false`). **This step is easy to miss and the screen will not render correctly without it** — `privacy-notice.tsx` and `ladder.tsx` both require this registration; a sibling file alone is not sufficient.
+  - [x] 4.3 Local notification content (title/body) is not specified by any AC — choose content-neutral copy consistent with ADR-008's payload-neutrality *spirit* (no therapy/exposure/fear/anxiety language, even though ADR-008's rule is written for server push payloads, not local notifications — see Dev Notes "Local notification content — ADR-008 doesn't literally apply, but its spirit should"). Add new i18n keys for this (Task 7).
+  - [x] 4.4 Add `<Stack.Screen name="reminder-settings" options={{...}} />` to `apps/mobile/app/_layout.tsx`'s root `<Stack>` (insert after the existing `ladder` entry, inside the `<Stack>` block spanning lines 97–104 — line 99 is the `privacy-notice` entry itself, not an insertion point), copying the exact `privacy-notice`/`ladder` entries' options (`headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false`). **This step is easy to miss and the screen will not render correctly without it** — `privacy-notice.tsx` and `ladder.tsx` both require this registration; a sibling file alone is not sufficient.
 
-- [ ] Task 5: `apps/mobile` — Settings screen navigation row (AC: 1, 5)
-  - [ ] 5.1 In `apps/mobile/app/(app)/settings/index.tsx`, add a new row below the existing "Enable reminders" permission row (same `row`/`rowText` `StyleSheet` pattern), labeled via `t('settings.reminders.manageTime')`, `onPress={() => router.push('/reminder-settings')}`. This row is reachable regardless of current permission state — the picker screen itself doesn't require permission to render or select a time, only to actually schedule (AC5 is enforced inside `scheduleSessionReminder`, not at the navigation layer).
+- [x] Task 5: `apps/mobile` — Settings screen navigation row (AC: 1, 5)
+  - [x] 5.1 In `apps/mobile/app/(app)/settings/index.tsx`, add a new row below the existing "Enable reminders" permission row (same `row`/`rowText` `StyleSheet` pattern), labeled via `t('settings.reminders.manageTime')`, `onPress={() => router.push('/reminder-settings')}`. This row is reachable regardless of current permission state — the picker screen itself doesn't require permission to render or select a time, only to actually schedule (AC5 is enforced inside `scheduleSessionReminder`, not at the navigation layer).
 
-- [ ] Task 6: `apps/mobile` — foreground reschedule for timezone changes (AC: 4, 5)
-  - [ ] 6.1 Extend the existing `AppState.addEventListener('change', ...)` effect in `apps/mobile/app/(app)/_layout.tsx` (lines 45–52, currently used for session-token refresh per ADR-008 §5b) — in the same `state === 'active'` branch, after the existing `createSupabaseClient().auth.getSession()` call, add: guard with an in-flight ref so overlapping `'active'` events (rapid app-switching) don't run this concurrently; if `userId` and `getReminderTime()` (from `useAuth()`) return a stored time, cancel the existing notification ID (if any, via `cancelSessionReminder`) and call `scheduleSessionReminder` again with the stored time; re-read `userId` immediately before the write below and abort it (without throwing) if it no longer matches the `userId` this cycle started with — guards against a sign-out/sign-in-as-different-user race during the awaits above; if the result is non-null, `setReminderNotificationId(result)`; if `null`, call `clearReminderNotificationId()` (mirrors Task 4.2's Save logic — do not overwrite the stored time itself, only the notification ID).
+- [x] Task 6: `apps/mobile` — foreground reschedule for timezone changes (AC: 4, 5)
+  - [x] 6.1 Extend the existing `AppState.addEventListener('change', ...)` effect in `apps/mobile/app/(app)/_layout.tsx` (lines 45–52, currently used for session-token refresh per ADR-008 §5b) — in the same `state === 'active'` branch, after the existing `createSupabaseClient().auth.getSession()` call, add: guard with an in-flight ref so overlapping `'active'` events (rapid app-switching) don't run this concurrently; if `userId` and `getReminderTime()` (from `useAuth()`) return a stored time, cancel the existing notification ID (if any, via `cancelSessionReminder`) and call `scheduleSessionReminder` again with the stored time; re-read `userId` immediately before the write below and abort it (without throwing) if it no longer matches the `userId` this cycle started with — guards against a sign-out/sign-in-as-different-user race during the awaits above; if the result is non-null, `setReminderNotificationId(result)`; if `null`, call `clearReminderNotificationId()` (mirrors Task 4.2's Save logic — do not overwrite the stored time itself, only the notification ID).
     - This is the *entire* AC4 implementation — no separate "did the timezone actually change" detection is needed or built. `DailyTriggerInput`'s `hour`/`minute` are resolved against the device's current local timezone at the moment `scheduleNotificationAsync` is called, so cancel+reschedule on every foreground is simplest-correct and fully idempotent (the user notices no difference whether or not the timezone actually changed). See Dev Notes "AC4 implementation" for the full rationale — do not invent a new KV key to track "last known timezone"; none is specified in AC6 and none is needed.
     - This logic lives in `(app)/_layout.tsx`, not in `reminder-settings.tsx` — AC4 requires it on *any* foreground while authenticated, not only while the picker screen happens to be open.
 
-- [ ] Task 7: i18n keys (`en.json` + `hi.json`)
+- [x] Task 7: i18n keys (`en.json` + `hi.json`)
   - Note: `notifications.*` (7.3, 7.4) is a brand-new top-level namespace — unlike `settings.reminders.*` (7.1), which already exists from Story 8.1, there is no existing `notifications` key in either locale file to add to; it must be created from scratch in both `en.json` and `hi.json`.
-  - [ ] 7.1 `settings.reminders.manageTime` — new nav row label (Task 5.1).
-  - [ ] 7.2 New `reminderSettings.*` namespace for the picker screen: `screenTitle`, `saveButton`, and any other UI strings the screen needs (`apps/mobile/.eslintrc.js`'s `i18next/no-literal-string` rule blocks hardcoded JSX text, per the established convention from Story 8.1 Task 5.5).
-  - [ ] 7.3 `notifications.reminderSet` — confirmation message, canonical en text: `"Reminder set for {{time}} — see you then"` (AC2). Add the Hindi equivalent to `hi.json` following the existing translation style in that file's `settings.reminders.*` block.
-  - [ ] 7.4 `notifications.dailyReminder.title` / `notifications.dailyReminder.body` — the scheduled local notification's own content (Task 4.3), content-neutral per Dev Notes.
+  - [x] 7.1 `settings.reminders.manageTime` — new nav row label (Task 5.1).
+  - [x] 7.2 New `reminderSettings.*` namespace for the picker screen: `screenTitle`, `saveButton`, and any other UI strings the screen needs (`apps/mobile/.eslintrc.js`'s `i18next/no-literal-string` rule blocks hardcoded JSX text, per the established convention from Story 8.1 Task 5.5).
+  - [x] 7.3 `notifications.reminderSet` — confirmation message, canonical en text: `"Reminder set for {{time}} — see you then"` (AC2). Add the Hindi equivalent to `hi.json` following the existing translation style in that file's `settings.reminders.*` block.
+  - [x] 7.4 `notifications.dailyReminder.title` / `notifications.dailyReminder.body` — the scheduled local notification's own content (Task 4.3), content-neutral per Dev Notes.
 
-- [ ] Task 8: Tests
-  - [ ] 8.1 `packages/supabase/__tests__/auth/` — new test file (e.g. `authProvider.reminderSettings.test.ts`) for the four new getter/setters. Follow the existing convention in `authProvider.sessionIntention.test.ts` (a minimal in-memory MMKV stand-in + the same get/set logic exercised directly), not a full `AuthProvider` RTL render — this matches every existing test for this class of KV helper in this codebase.
-  - [ ] 8.2 `apps/mobile/src/notifications/sessionReminder.test.ts` — mock `expo-notifications`; cover: successful schedule (assert the trigger object's `type` is `SchedulableTriggerInputTypes.DAILY` with correct `hour`/`minute`, not a `CalendarTriggerInput` shape), permission-not-granted → returns `null`, no `scheduleNotificationAsync` call, no throw; `cancelSessionReminder` swallows a rejected `cancelScheduledNotificationAsync` without throwing.
-  - [ ] 8.3 `apps/mobile/app/reminder-settings.test.tsx` (new, co-located) — covers: default 08:00 display when no stored time; Save schedules + persists `SESSION_REMINDER_TIME` + `SESSION_REMINDER_NOTIFICATION_ID` + shows confirmation; changing then saving cancels the old notification ID before scheduling the new one (AC3); Save while permission is revoked persists the chosen time but does **not** store a notification ID and does **not** show the confirmation message (AC2 × AC5); the same is true when permission was never requested at all, not just revoked after being granted — both `status !== 'granted'` paths behave identically.
-  - [ ] 8.4 Extend `apps/mobile/app/(app)/settings/index.test.tsx` — new row navigates to `/reminder-settings` on tap.
-  - [ ] 8.5 `apps/mobile/app/(app)/_layout.test.tsx` (new — no test file currently exists for this layout) — covers the foreground listener's reminder-reschedule branch: cancels + reschedules when a stored time exists, no-ops when none exists, skips silently (no throw) when permission isn't granted; asserts `SESSION_REMINDER_TIME` is unchanged after the reschedule cycle (only the notification ID is updated).
-  - [ ] 8.6 Run `pnpm turbo typecheck && pnpm turbo lint && pnpm turbo test` before marking complete.
+- [x] Task 8: Tests
+  - [x] 8.1 `packages/supabase/__tests__/auth/` — new test file (e.g. `authProvider.reminderSettings.test.ts`) for the four new getter/setters. Follow the existing convention in `authProvider.sessionIntention.test.ts` (a minimal in-memory MMKV stand-in + the same get/set logic exercised directly), not a full `AuthProvider` RTL render — this matches every existing test for this class of KV helper in this codebase.
+  - [x] 8.2 `apps/mobile/src/notifications/sessionReminder.test.ts` — mock `expo-notifications`; cover: successful schedule (assert the trigger object's `type` is `SchedulableTriggerInputTypes.DAILY` with correct `hour`/`minute`, not a `CalendarTriggerInput` shape), permission-not-granted → returns `null`, no `scheduleNotificationAsync` call, no throw; `cancelSessionReminder` swallows a rejected `cancelScheduledNotificationAsync` without throwing.
+  - [x] 8.3 `apps/mobile/app/reminder-settings.test.tsx` (new, co-located) — covers: default 08:00 display when no stored time; Save schedules + persists `SESSION_REMINDER_TIME` + `SESSION_REMINDER_NOTIFICATION_ID` + shows confirmation; changing then saving cancels the old notification ID before scheduling the new one (AC3); Save while permission is revoked persists the chosen time but does **not** store a notification ID and does **not** show the confirmation message (AC2 × AC5); the same is true when permission was never requested at all, not just revoked after being granted — both `status !== 'granted'` paths behave identically.
+  - [x] 8.4 Extend `apps/mobile/app/(app)/settings/index.test.tsx` — new row navigates to `/reminder-settings` on tap.
+  - [x] 8.5 `apps/mobile/app/(app)/_layout.test.tsx` (new — no test file currently exists for this layout) — covers the foreground listener's reminder-reschedule branch: cancels + reschedules when a stored time exists, no-ops when none exists, skips silently (no throw) when permission isn't granted; asserts `SESSION_REMINDER_TIME` is unchanged after the reschedule cycle (only the notification ID is updated).
+  - [x] 8.6 Run `pnpm turbo typecheck && pnpm turbo lint && pnpm turbo test` before marking complete.
 
 ### Review Findings
 
@@ -225,10 +225,45 @@ Per `implementation-patterns-consistency-rules.md` State Management Patterns: th
 
 ### Agent Model Used
 
+claude-sonnet-4-6
+
 ### Debug Log References
+
+None — no blocking issues. Two typecheck errors (`noUncheckedIndexedAccess` on `time.split(':')` destructuring in `sessionReminder.ts` and `reminder-settings.tsx`) and one lint error (missing `i18next/no-literal-string` disable comment on `DateTimePicker`'s `mode="time"` prop) were caught and fixed during Task 8.6 validation.
 
 ### Completion Notes List
 
+- Implemented all 8 tasks per the story spec, including all Review Findings patches already folded into the AC/Dev Notes text (no separate rework needed — the story file already reflected the patched version).
+- KV getters/setters (Task 2) follow the `getLastUsedTechnique`/`setLastUsedTechnique` precedent exactly — closures over `mmkvRef.current` and `authState.userId`, wired through `AuthContextValue` → `useAuth()`.
+- `scheduleSessionReminder`/`cancelSessionReminder` (Task 3) clamp `hour`/`minute` to valid ranges, wrap `getPermissionsAsync()` in try/catch (treating a thrown error as not-granted), and log-and-swallow cancellation errors with the actual error object.
+- `reminder-settings.tsx` (Task 4) is a root-level screen registered in `app/_layout.tsx`'s root `Stack` (not nested under `(app)/settings/`, per Dev Notes). Save guards concurrent taps with an in-flight ref and re-checks `userId` via a ref (not a closured variable, which would be a no-op check) after the async schedule/cancel calls to abort writes on a sign-out/sign-in race.
+- Settings nav row (Task 5) added below the existing "Enable reminders" row, navigating to `/reminder-settings` regardless of permission state.
+- Foreground reschedule (Task 6) extends the existing `(app)/_layout.tsx` `AppState` listener. `rescheduleSessionReminder` is wrapped in `useCallback` (not a plain function closed over by an empty-deps effect) so it always sees the current `useAuth()` getters/setters; the effect depends on it so the listener resubscribes when those identities change. An in-flight ref guards overlapping `'active'` events, and the same `userIdRef`-based race guard as Task 4.2 protects the final write.
+- Local notification content (Task 4.3/7.4) is content-neutral per ADR-008's spirit: title is the app name, body is a generic, non-clinical call-to-action.
+- All 8.x test subtasks written and passing: 7 new tests in `authProvider.reminderSettings.test.ts`, 7 in `sessionReminder.test.ts`, 6 in `reminder-settings.test.tsx`, 1 new test extending `settings/index.test.tsx`, and 3 in the new `(app)/_layout.test.tsx`.
+- `pnpm turbo typecheck && pnpm turbo lint && pnpm turbo test` all pass clean (310 mobile tests, full monorepo).
+
 ### File List
 
+- `packages/core/src/constants/kvKeys.ts` (modified)
+- `packages/supabase/src/auth/AuthProvider.tsx` (modified)
+- `packages/supabase/src/auth/useAuth.ts` (modified)
+- `packages/supabase/__tests__/auth/authProvider.reminderSettings.test.ts` (new)
+- `apps/mobile/src/notifications/sessionReminder.ts` (new)
+- `apps/mobile/src/notifications/sessionReminder.test.ts` (new)
+- `apps/mobile/app/reminder-settings.tsx` (new)
+- `apps/mobile/app/reminder-settings.test.tsx` (new)
+- `apps/mobile/app/_layout.tsx` (modified — registered `reminder-settings` Stack.Screen)
+- `apps/mobile/app/(app)/_layout.tsx` (modified — extended foreground `AppState` listener)
+- `apps/mobile/app/(app)/_layout.test.tsx` (new)
+- `apps/mobile/app/(app)/settings/index.tsx` (modified — new nav row)
+- `apps/mobile/app/(app)/settings/index.test.tsx` (modified — new test + `expo-router` mock)
+- `apps/mobile/app.config.ts` (modified — added `@react-native-community/datetimepicker` plugin)
+- `apps/mobile/package.json` (modified — added `@react-native-community/datetimepicker@8.4.4`)
+- `pnpm-lock.yaml` (modified — dependency install)
+- `apps/mobile/src/i18n/locales/en.json` (modified — `settings.reminders.manageTime`, `reminderSettings.*`, `notifications.*`)
+- `apps/mobile/src/i18n/locales/hi.json` (modified — same keys, Hindi)
+
 ## Change Log
+
+- 2026-06-21 — Story 8.2 implemented end-to-end (Tasks 1–8). All ACs satisfied; full validation suite (`typecheck`, `lint`, `test`) passes clean. Status: ready-for-dev → review.

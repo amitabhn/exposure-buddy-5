@@ -8,6 +8,12 @@ jest.mock('react-i18next', () => ({
   }),
 }))
 
+const mockRouterPush = jest.fn()
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+}))
+
 const mockSignOut = jest.fn().mockResolvedValue(undefined)
 const mockRequestAccountDeletion = jest.fn().mockResolvedValue(undefined)
 
@@ -194,5 +200,12 @@ describe('SettingsScreen', () => {
       expect(mockRequestPermissionsAsync).not.toHaveBeenCalled()
       expect(Linking.openSettings).not.toHaveBeenCalled()
     })
+  })
+
+  it('pressing the manage reminder time row navigates to /reminder-settings', async () => {
+    const { getByText } = render(<SettingsScreen />)
+    await act(async () => {})
+    fireEvent.press(getByText('settings.reminders.manageTime'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/reminder-settings')
   })
 })

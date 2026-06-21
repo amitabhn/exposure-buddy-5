@@ -19,6 +19,9 @@ export const KV_KEYS = {
   // Two-arg key: preference is per-user per-fear-item (not per-session), so sessionId would be wrong here.
   // Retained across sign-out (parallels SUDS_CALIBRATION policy); subject to DPDPA erasure on account deletion.
   SESSION_LAST_TECHNIQUE:       (userId: string, fearItemId: string) => `session:last_technique:${userId}:${fearItemId}`,
+  // Daily reminder time as an "HH:mm" 24-hour string (e.g. "08:00"), not a Date. (Story 8.2)
+  SESSION_REMINDER_TIME:        (userId: string) => `notifications:reminder_time:${userId}`,
+  SESSION_REMINDER_NOTIFICATION_ID: (userId: string) => `notifications:reminder_id:${userId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.

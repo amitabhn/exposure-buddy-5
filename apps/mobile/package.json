@@ -25,6 +25,7 @@
     "@exposure-buddy/sync": "workspace:*",
     "@exposure-buddy/ui": "workspace:*",
     "@journeyapps/react-native-quick-sqlite": "^2.5.2",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/native": "^7.0.0",
     "@rn-primitives/portal": "1.4.0",
     "@sentry/react-native": "~7.2.0",

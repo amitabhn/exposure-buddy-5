@@ -217,7 +217,19 @@
       "title": "अनुस्मारक",
       "notYetRequested": "अनुस्मारक सक्षम करें",
       "enabled": "अनुस्मारक सक्षम हैं",
-      "disabled": "अनुस्मारक अक्षम हैं — सेटिंग्स खोलने के लिए टैप करें"
+      "disabled": "अनुस्मारक अक्षम हैं — सेटिंग्स खोलने के लिए टैप करें",
+      "manageTime": "अनुस्मारक समय सेट करें"
+    }
+  },
+  "reminderSettings": {
+    "screenTitle": "अनुस्मारक समय",
+    "saveButton": "सहेजें"
+  },
+  "notifications": {
+    "reminderSet": "{{time}} के लिए अनुस्मारक सेट किया गया — तब मिलते हैं",
+    "dailyReminder": {
+      "title": "Exposure Buddy",
+      "body": "आज अपने लिए कुछ मिनट?"
     }
   },
   "calmMe": {
