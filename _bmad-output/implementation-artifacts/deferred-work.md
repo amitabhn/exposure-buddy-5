@@ -643,3 +643,17 @@ _Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run
 - **`mmkvRef.current` going degraded/null mid-flow between screen mount and Save tap.** Deep, low-probability edge case tied to a broader storage-degradation pattern (`isStorageDegraded`) not addressed anywhere else in the codebase either.
 
 [`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder — implementation diff (2026-06-21)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run after Story 8.2 was implemented._
+
+- **Foreground reschedule has no debounce beyond the in-flight mutex**, so rapid app-switching triggers repeated cancel+reschedule churn. Already an explicit, deliberate tradeoff per this story's own Dev Notes ("cancel+reschedule on every foreground is simplest-correct and fully idempotent") — reaffirms the existing design choice. [`apps/mobile/app/(app)/_layout.tsx`]
+- **`cancelSessionReminder`'s swallow-all-errors design can leave a live OS notification orphaned** if the underlying OS cancel silently fails while the KV ID is still cleared. Already explicitly accepted via this story's own applied patch ("Soften AC3's wording to reflect best-effort intent") — reaffirms existing decision. [`apps/mobile/src/notifications/sessionReminder.ts`]
+- **No `requestPermissionsAsync` call and no in-screen messaging when permission status is `undetermined`/revoked.** Explicitly left as a non-decision requiring product input in this story's own Task 4.2 / Dev Notes. [`apps/mobile/app/reminder-settings.tsx`]
+- **`AuthProvider`'s five new reminder methods are not memoized with `useCallback`.** Pre-existing pattern shared by every other AuthProvider helper (e.g. `getLastUsedTechnique`); this story was explicitly instructed to mirror that exact pattern. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **No data-layer invariant enforces `setReminderTime` and `setReminderNotificationId`/`clearReminderNotificationId` are updated atomically.** Pre-existing characteristic of this KV-getter/setter pattern, not unique to this story. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **AC5's "settings row updates to show permission revoked state" relies entirely on the unmodified Story 8.1 "Enable reminders" row**; this diff adds no new test coverage verifying that path still holds. Pre-existing coverage gap, not introduced by this diff. [`apps/mobile/app/(app)/settings/index.tsx`]
+- **`userIdRef`-mirroring race-guard pattern is duplicated verbatim across `(app)/_layout.tsx` and `reminder-settings.tsx`** with no shared hook. Both copies are currently correct; a reuse/maintainability observation, not a bug.
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
