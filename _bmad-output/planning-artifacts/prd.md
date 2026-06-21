@@ -359,7 +359,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Device Permissions
 
-- **Push notifications:** Required for re-engagement notifications (FR-NOTIF-01); permission request is triggered after the user completes their first full ERP session, not at app launch or account creation; if denied, in-app nudges serve as the fallback and no further OS-level permission prompts are shown
+- **Push notifications:** Device push token registration and the permission-request flow are implemented (Story 8.1); FR-NOTIF-01 (the original driver for this permission) is deferred post-MVP — see FR Coverage Map — so no MVP feature currently consumes the registered token. Local notifications (the daily reminder, FR-NOTIF-03 / Story 8.2) use the same OS permission family but do not require server push
 - **Local storage:** Required for offline session data persistence (NFR-OFFLINE-01/02) and on-device crisis resource availability (NFR-OFFLINE-03); no permission prompt is required on Android or iOS for standard app local storage; this access is granted implicitly at install
 
 ### App Store Compliance
@@ -424,9 +424,9 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Re-Engagement Notifications
 
-- **FR-NOTIF-01:** After 2 consecutive days of inactivity, the system sends one re-engagement notification using warm, non-punitive language; if inactivity continues, a second notification is sent on Day 5; no further automated notifications are sent in that inactivity window
 - **FR-NOTIF-02:** Notification content contains no streak counters, missed-day counts, streak-reset warnings, or loss-framing constructs ("you're about to lose", "don't break your streak")
 - **FR-NOTIF-03:** Users control notification delivery timing and can opt out of individual notification types from app settings; opt-out is honoured immediately
+<!-- FR-NOTIF-01 (Day 2/Day 5 re-engagement push notifications) was previously listed here; deferred post-MVP 2026-06-21, scope reduction for closed beta (Story 8.4). See the FR Coverage Map entry for the full decision record. -->
 <!-- FR-NOTIF-04 (window-close push at 3h post-session) was previously listed here; deferred post-MVP 2026-06-15 alongside removal of home States 7 and 8 (Story 5.6 / Issue #36). See the FR Coverage Map entry for the full decision record. -->
 
 

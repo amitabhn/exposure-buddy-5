@@ -1,5 +1,13 @@
 # Deferred Work
 
+## 2026-06-21 — Story 8.4 formally deferred post-MVP (reduce MVP scope)
+
+- **FR-NOTIF-01 — Day 2/Day 5 re-engagement push notifications deferred post-MVP.** Rationale: the cron-driven `notify-re-engagement` Edge Function (two scheduled passes, idempotency tracking columns on `user_onboarding_metadata`, push dispatch/prune handling) adds infrastructure and review surface that isn't essential to validate the core ERP loop for a closed-beta cohort — reduce-scope-to-ship-faster decision. Story 8.4 is marked DEFERRED in `epics.md`; PRD `FR-NOTIF-01` line is struck through with the deferral note; FR Coverage Map carries the full decision record. Logged in post-mvp-backlog.md as item 1.34.
+- **Story 8.1's push token infrastructure is unaffected and remains shipped.** Device push token registration, the `device_push_tokens` RLS policy, and the shared `sendPushNotification` helper (`supabase/functions/_shared/expoPush.ts`) were already implemented and merged in Story 8.1 — they have no consumer until 8.3/8.4 are picked back up, but nothing is reverted by this deferral.
+- **`re_engagement_day2_notified_at` / `re_engagement_day5_notified_at` columns never land.** The migration that Story 8.4 would have added to `user_onboarding_metadata` is not required while this story is deferred.
+
+---
+
 ## Deferred from: code review of 7-5-grounding-screen-full-technique-picker (2026-06-20)
 
 _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..story/7-5-grounding-screen-full-technique-picker` implementation diff. Acceptance Auditor found zero AC violations — all 9 ACs independently verified correct. Original findings: `7-5-grounding-screen-full-technique-picker.md` → "Review Findings"._

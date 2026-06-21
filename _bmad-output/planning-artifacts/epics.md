@@ -189,7 +189,7 @@ FR-SOM-02: Epic 7 (partial MVP) — visual-only pacing covered for box breathing
 FR-CHECKIN-01: POST-MVP — daily SUDS check-in deferred; no MVP story. **Decision record (2026-05-19):** FR-CHECKIN-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the daily check-in depends on a complete somatic + CBT technique suite (FR-SOM-01 remaining, FR-CBT-01–03) to produce clinically meaningful routing; launching a check-in that can only route to box breathing and 5-4-3-2-1 is therapeutically incomplete. Confirmed in post-MVP backlog as item 1.21. FR-ADVERSE-02 (check-in crisis contacts) is blocked by this deferral (backlog item 1.22).
 FR-PROG-01: Epic 8 — SUDS trend graph (weekly + monthly)
 FR-PROG-02: Epic 8 — Chronological exposure history log
-FR-NOTIF-01: Epic 8 — Re-engagement notifications Day 2 + Day 5
+FR-NOTIF-01: POST-MVP — Day 2 + Day 5 re-engagement push notifications deferred; no MVP story. **Decision record (2026-06-21):** FR-NOTIF-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the cron-driven re-engagement Edge Function (two scheduled passes, idempotency tracking columns, push dispatch/prune handling) adds infrastructure and review surface that is not essential to validate the core ERP loop for a closed-beta cohort. Story 8.1's push token registration and shared `sendPushNotification` helper remain in place as the technical prerequisite for whenever this is picked back up. Confirmed in post-MVP backlog as item 1.34. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.4 marked DEFERRED.
 FR-NOTIF-02: Epic 8 — No punitive language or streak mechanics
 FR-NOTIF-03: Epic 8 — User notification controls and opt-out
 FR-NOTIF-04: POST-MVP — Window-close push notification at 3 hours post-session deferred; no MVP story. **Decision record (2026-06-15):** Story 5.6 / Issue #36 removed the home screen post-exposure reflection window (State 7) and the late-debrief gate (State 8). The window-close notification semantically depends on a 6-hour reflection window that the UI no longer presents — the notification copy ("the window is still available") loses its referent and the user-facing context the gate was meant to nudge no longer exists. Reflection is captured entirely on the debrief screen (FR-ERP-03) before the user reaches home. Confirmed in post-MVP backlog. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.3 marked DEFERRED.
@@ -336,10 +336,10 @@ Users access the persistent Calm Me SOS overlay with courage affirmation and tec
 
 ### Epic 8: Progress Tracking & Notifications
 
-Users view SUDS trend graphs (weekly and monthly), a chronological exposure history log with SUDS arcs and debrief outcomes, and receive warm re-engagement notifications (Day 2 and Day 5 inactivity only, no punitive language, no streak mechanics). User controls notification delivery timing and per-type opt-out. Day-1 analytics metrics are documented and the instrumentation schema is ready for Phase 2 activation.
+Users view SUDS trend graphs (weekly and monthly) and a chronological exposure history log with SUDS arcs and debrief outcomes. Push token registration and a daily local session reminder are in place; server-driven re-engagement notifications are deferred. User controls notification delivery timing and per-type opt-out. Day-1 analytics metrics are documented and the instrumentation schema is ready for Phase 2 activation.
 
-**FRs covered:** FR-PROG-01, FR-PROG-02, FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-ANALYTICS-01
-**Post-MVP:** FR-NOTIF-04 (window-close push notification) — deferred 2026-06-15 by Story 5.6 / Issue #36; see PRD FR Coverage Map decision record
+**FRs covered:** FR-PROG-01, FR-PROG-02, FR-NOTIF-02, FR-NOTIF-03, FR-ANALYTICS-01
+**Post-MVP:** FR-NOTIF-01 (Day 2/Day 5 re-engagement notifications) — deferred 2026-06-21, scope reduction for closed beta; see PRD FR Coverage Map decision record. FR-NOTIF-04 (window-close push notification) — deferred 2026-06-15 by Story 5.6 / Issue #36; see PRD FR Coverage Map decision record
 **UX-DR coverage:** UX-DR6 (SudsArcChart)
 **Architecture:** ARC-010 (ADR-NOTIFICATIONS resolved)
 
@@ -1650,7 +1650,7 @@ Surface session completion and re-engagement nudges via Expo push and local noti
 
 As a user who wants to receive session reminders,
 I want the app to register my device for push notifications and store my token securely,
-So that the server can dispatch notifications to me (technical prerequisite for FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04 — no FR is directly implemented here; FR-NOTIF-01 is implemented in Story 8.4).
+So that the server can dispatch notifications to me (technical prerequisite for FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04 — no FR is directly implemented here; FR-NOTIF-01 would have been implemented in Story 8.4, now deferred post-MVP — see FR Coverage Map).
 
 **Acceptance Criteria:**
 
@@ -1812,7 +1812,9 @@ there is no lower-bound time filter — any session that has passed the 3-hour m
 
 ---
 
-### Story 8.4: Re-engagement Notifications — Day 2 & Day 5 (Edge Function)
+### Story 8.4: Re-engagement Notifications — Day 2 & Day 5 (Edge Function) ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-06-21).** See FR-NOTIF-01 decision record in FR Coverage Map. No MVP story.
 
 As a user who has been away from the app,
 I want warm notifications on day 2 and day 5 of inactivity — with no further nudges after that,
