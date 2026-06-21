@@ -176,6 +176,11 @@ This document consolidates every item explicitly deferred during the MVP plannin
 **Source:** FR-NOTIF-01; deferred from Epic 8 (Story 8.4) on 2026-06-21. Decision record in epics.md FR Coverage Map.
 **Notes:** Reduce-MVP-scope deferral — the cron-driven Edge Function (two scheduled passes, idempotency tracking columns on `user_onboarding_metadata`, push dispatch/prune handling) adds infrastructure and review surface not essential to validate the core ERP loop for a closed-beta cohort. Story 8.1 (push token registration, RLS policy, and the shared `sendPushNotification` helper in `supabase/functions/_shared/expoPush.ts`) already shipped and remains the technical prerequisite — no rework needed when this is picked back up. Full ACs (migration DDL, both cron query passes, idempotency logic) are preserved in Story 8.4's section of `epics.md`.
 
+### 1.35 Achievements Tab — SUDS Trend, Session History & Arc (FR-PROG-01, FR-PROG-02)
+**What:** A "Progress" tab in the bottom navigation with three sections: a SUDS trend graph (weekly/monthly filter, plotting pre-exposure SUDS per session), a chronological session history log (completed + abandoned sessions, muted styling for abandoned), and a read-only SUDS arc detail view for the most recent session (and per-row on tap).
+**Source:** FR-PROG-01, FR-PROG-02; deferred from Epic 8 (Story 8.5) on 2026-06-21. Decision record in epics.md FR Coverage Map.
+**Notes:** Reduce-MVP-scope deferral, same rationale as 1.34 — deferred whole rather than split, since the three sections share one screen/empty-state/offline contract. No data is lost: `exposure_sessions` and `suds_readings` are captured normally at MVP (Epic 5/6); only the visualisation is deferred. The `SudsArcChart` component (`packages/ui`, Epic 5) is already built and shipped (consumed by the session debrief screen) — Story 8.5 is its second intended consumer, not a new build. **Known gap for implementation:** the original AC text's `situation_text_snapshot` column (courage ladder item name in the history log) does not exist in the schema — resolve via a live join to `fear_ladder_items.description` with a null-safe fallback for deleted items, or a new migration, before implementing. Full ACs are preserved in Story 8.5's section of `epics.md`.
+
 ---
 
 ## 2. Phase 2 — Content & Therapeutic Tracks

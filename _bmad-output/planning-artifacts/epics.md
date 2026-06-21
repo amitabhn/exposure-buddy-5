@@ -58,8 +58,8 @@ FR-CBT-03: The behavioural experiment tool captures five fields: hypothesis (anx
 FR-SOM-01: Users access six somatic techniques: 4-7-8 breathing, box breathing, Bhramari, Nadi Shodhana, 5-4-3-2-1 grounding, body scan
 FR-SOM-02: Each somatic technique presents an animated visual guide pacing the user through the exercise; completion requires no audio output — the visual guide is sufficient
 FR-CHECKIN-01: The daily check-in captures one SUDS-scale rating (0–10); score ≥7 routes to somatic techniques; score 4–6 routes to grounding; score 1–3 routes to cognitive work or exposure
-FR-PROG-01: Users view a SUDS trend graph aggregating data from all completed ERP sessions; viewable in weekly and monthly time windows
-FR-PROG-02: Users view a chronological exposure history log displaying each completed and partially-completed session, the SUDS arc, and the debrief outcome
+FR-PROG-01: ~~Users view a SUDS trend graph aggregating data from all completed ERP sessions; viewable in weekly and monthly time windows~~ — **DEFERRED post-MVP (2026-06-21)** — see FR Coverage Map decision record
+FR-PROG-02: ~~Users view a chronological exposure history log displaying each completed and partially-completed session, the SUDS arc, and the debrief outcome~~ — **DEFERRED post-MVP (2026-06-21)** — see FR Coverage Map decision record
 FR-NOTIF-01: After 2 consecutive days of inactivity, one re-engagement notification sent using warm non-punitive language; if inactivity continues, a second sent on Day 5; no further automated notifications in that inactivity window
 FR-NOTIF-02: Notification content contains no streak counters, missed-day counts, streak-reset warnings, or loss-framing constructs
 FR-NOTIF-03: Users control notification delivery timing and can opt out of individual notification types from app settings; opt-out honoured immediately
@@ -187,8 +187,8 @@ FR-CBT-03: POST-MVP — 5-field behavioural experiment deferred; no MVP story
 FR-SOM-01: Epic 7 (partial MVP) — box breathing and 5-4-3-2-1 covered; 4-7-8, Bhramari, Nadi Shodhana, body scan POST-MVP. **Decision record (2026-05-19):** FR-SOM-01 is an in-scope PRD feature partially deferred. Rationale: box breathing and 5-4-3-2-1 grounding cover the two highest-prevalence use cases at MVP (pre-exposure grounding and mid-session crisis); the remaining four techniques (4-7-8, Bhramari, Nadi Shodhana, body scan) require distinct animated visual guides and culturally resonant framing for Indian pranayama techniques that increase scope beyond MVP timeline. The 2-technique set is clinically sufficient for the MVP ERP session and Calm Me flows. Deferring the remaining 4 also cascades to FR-CHECKIN-01 deferral — check-in routing to somatic techniques is incomplete until the full set exists. Confirmed in post-MVP backlog as item 1.26.
 FR-SOM-02: Epic 7 (partial MVP) — visual-only pacing covered for box breathing and 5-4-3-2-1; remaining techniques POST-MVP (blocked by FR-SOM-01 remaining; see FR-SOM-01 decision record and backlog item 1.26)
 FR-CHECKIN-01: POST-MVP — daily SUDS check-in deferred; no MVP story. **Decision record (2026-05-19):** FR-CHECKIN-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the daily check-in depends on a complete somatic + CBT technique suite (FR-SOM-01 remaining, FR-CBT-01–03) to produce clinically meaningful routing; launching a check-in that can only route to box breathing and 5-4-3-2-1 is therapeutically incomplete. Confirmed in post-MVP backlog as item 1.21. FR-ADVERSE-02 (check-in crisis contacts) is blocked by this deferral (backlog item 1.22).
-FR-PROG-01: Epic 8 — SUDS trend graph (weekly + monthly)
-FR-PROG-02: Epic 8 — Chronological exposure history log
+FR-PROG-01: POST-MVP — SUDS trend graph (weekly + monthly) deferred; no MVP story. **Decision record (2026-06-21):** FR-PROG-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: Story 8.5 (the Achievements tab — trend graph, session history log, and SUDS arc detail) was deferred in full to reduce MVP scope for the closed-beta cohort, alongside Stories 8.3/8.4. The underlying `suds_readings`/`exposure_sessions` data continues to be captured at MVP (Epic 5/6) — no data is lost, only the in-app visualisation is deferred. Confirmed in post-mvp-backlog.md as item 1.35. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.5 marked DEFERRED.
+FR-PROG-02: POST-MVP — Chronological exposure history log deferred; no MVP story. See FR-PROG-01 decision record (2026-06-21) — same Story 8.5 deferral covers both FRs.
 FR-NOTIF-01: POST-MVP — Day 2 + Day 5 re-engagement push notifications deferred; no MVP story. **Decision record (2026-06-21):** FR-NOTIF-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the cron-driven re-engagement Edge Function (two scheduled passes, idempotency tracking columns, push dispatch/prune handling) adds infrastructure and review surface that is not essential to validate the core ERP loop for a closed-beta cohort. Story 8.1's push token registration and shared `sendPushNotification` helper remain in place as the technical prerequisite for whenever this is picked back up. Confirmed in post-MVP backlog as item 1.34. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.4 marked DEFERRED.
 FR-NOTIF-02: Epic 8 — No punitive language or streak mechanics
 FR-NOTIF-03: Epic 8 — User notification controls and opt-out
@@ -336,11 +336,11 @@ Users access the persistent Calm Me SOS overlay with courage affirmation and tec
 
 ### Epic 8: Progress Tracking & Notifications
 
-Users view SUDS trend graphs (weekly and monthly) and a chronological exposure history log with SUDS arcs and debrief outcomes. Push token registration and a daily local session reminder are in place; server-driven re-engagement notifications are deferred. User controls notification delivery timing and per-type opt-out. Day-1 analytics metrics are documented and the instrumentation schema is ready for Phase 2 activation.
+Push token registration and a daily local session reminder are in place. The Achievements tab (SUDS trend graph and session history log) and server-driven re-engagement/window-close notifications are all deferred post-MVP. User controls notification delivery timing and per-type opt-out for the notification types that did ship. Day-1 analytics metrics are documented and the instrumentation schema is ready for Phase 2 activation.
 
-**FRs covered:** FR-PROG-01, FR-PROG-02, FR-NOTIF-02, FR-NOTIF-03, FR-ANALYTICS-01
-**Post-MVP:** FR-NOTIF-01 (Day 2/Day 5 re-engagement notifications) — deferred 2026-06-21, scope reduction for closed beta; see PRD FR Coverage Map decision record. FR-NOTIF-04 (window-close push notification) — deferred 2026-06-15 by Story 5.6 / Issue #36; see PRD FR Coverage Map decision record
-**UX-DR coverage:** UX-DR6 (SudsArcChart)
+**FRs covered:** FR-NOTIF-02, FR-NOTIF-03, FR-ANALYTICS-01
+**Post-MVP:** FR-PROG-01, FR-PROG-02 (Achievements tab — SUDS trend graph + session history) — deferred 2026-06-21, scope reduction for closed beta (Story 8.5); see PRD FR Coverage Map decision record. FR-NOTIF-01 (Day 2/Day 5 re-engagement notifications) — deferred 2026-06-21, scope reduction for closed beta; see PRD FR Coverage Map decision record. FR-NOTIF-04 (window-close push notification) — deferred 2026-06-15 by Story 5.6 / Issue #36; see PRD FR Coverage Map decision record
+**UX-DR coverage:** UX-DR6 (SudsArcChart) — component shipped in Epic 5 and consumed by Epic 7; its Epic 8 consumer (Achievements tab) is deferred post-MVP
 **Architecture:** ARC-010 (ADR-NOTIFICATIONS resolved)
 
 **Home screen state machine wiring:** Epic 8 wires live progress and notification data into the home screen state machine stubs established in Epic 5.
@@ -1646,6 +1646,8 @@ So that I can calm myself before deciding whether to continue or end the session
 
 Surface session completion and re-engagement nudges via Expo push and local notifications, and deliver an Achievements tab where users can review their SUDS arc and session history.
 
+> **Note (2026-06-21):** The Achievements tab (Story 8.5) is deferred post-MVP, alongside the server-driven notification stories (8.3, 8.4) deferred earlier. Only Story 8.1 (push token registration) and Story 8.2 (daily local reminder) ship at MVP. See each story's status note and the FR-PROG-01/FR-PROG-02 decision record in the FR Coverage Map.
+
 ### Story 8.1: Push Token Registration & Shared Push Helper
 
 As a user who wants to receive session reminders,
@@ -1908,7 +1910,9 @@ on `{ ok: true }` from `sendPushNotification`, `re_engagement_day5_notified_at` 
 
 ---
 
-### Story 8.5: Achievements Tab — SUDS Trend, Session History & Arc
+### Story 8.5: Achievements Tab — SUDS Trend, Session History & Arc ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-06-21).** See FR-PROG-01/FR-PROG-02 decision record in FR Coverage Map. No MVP story. Scope reduction for the closed-beta cohort, alongside Stories 8.3 and 8.4. The underlying `suds_readings`/`exposure_sessions` data is captured regardless (Epic 5/6) — only the in-app visualisation (trend graph, history log, arc detail, and the "Progress" tab itself) is deferred. When this is picked back up: the `SudsArcChart` component (`packages/ui`, Epic 5) is already built and consumed by the debrief screen; no new migration is required for the trend graph or history log, but `situation_text_snapshot` referenced in the original AC text does not exist in the schema (neither Supabase nor PowerSync) — resolve via a live join to `fear_ladder_items.description` with a null-safe fallback, or a new migration, before implementing.
 
 As a user who has completed one or more exposure sessions,
 I want an Achievements tab with a SUDS trend graph across all my sessions and a full session history log,
@@ -2072,7 +2076,7 @@ So that a regression in the core user path is caught before it reaches users (NF
 
 **Given** the critical path flows
 **When** the smoke suite runs
-**Then** the following YAML flow files exist and pass: (1) `onboarding.yaml` — app launch through account creation, SPIN questionnaire, symptom check, safety behaviour checklist, psychoeducation, to hierarchy builder unlock; (2) `ladder-build.yaml` — add at least one fear item with SUDS rating, reach the "Start today's challenge" home state; (3) `exposure-loop.yaml` — start session, select technique, begin exposure, log a SUDS reading, complete exposure, reach debrief screen; (4) `debrief.yaml` — complete debrief, verify session saved, verify Achievements tab shows a completed session entry; (5) `backgrounded-recovery.yaml` — start exposure, send app to background, re-foreground, verify session state is recovered and Calm Me prompt is overlaid
+**Then** the following YAML flow files exist and pass: (1) `onboarding.yaml` — app launch through account creation, SPIN questionnaire, symptom check, safety behaviour checklist, psychoeducation, to hierarchy builder unlock; (2) `ladder-build.yaml` — add at least one fear item with SUDS rating, reach the "Start today's challenge" home state; (3) `exposure-loop.yaml` — start session, select technique, begin exposure, log a SUDS reading, complete exposure, reach debrief screen; (4) `debrief.yaml` — complete debrief, verify session saved and home screen reflects the completed session (Story 8.5's Achievements tab is deferred post-MVP — no longer a valid verification point); (5) `backgrounded-recovery.yaml` — start exposure, send app to background, re-foreground, verify session state is recovered and Calm Me prompt is overlaid
 
 **Given** the backgrounded-recovery flow
 **When** the flow runs
@@ -2105,8 +2109,8 @@ So that I am never alarmed or left confused at a high-anxiety moment (UX-DR-ERRO
 **Then** it is replaced with specific, calm, actionable copy following this pattern: state what happened in plain language, state the user's data status (lost / safe / will sync), state what to do next; canonical replacements:
 - Offline write failure: "We couldn't save your session right now. It's stored on your device and will sync automatically."
 - Auth network error: "Couldn't connect to sign you in. Check your connection and try again."
-- Achievements tab empty state: "Complete your first session to see your progress here."
 - Hierarchy empty state: "Your ladder is empty. Tap 'Build your ladder' to get started."
+- ~~Achievements tab empty state: "Complete your first session to see your progress here."~~ — N/A for MVP; Story 8.5 (Achievements tab) deferred post-MVP 2026-06-21. Retained as reference copy for when the tab ships.
 
 **Given** the SPIN referral screen and any clinical advisory copy
 **When** reviewed in this audit
@@ -2128,7 +2132,7 @@ So that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 
 **Given** the performance budget targets
 **When** this story is implemented
-**Then** the following budgets are defined and documented in `apps/mobile/docs/performance-budget.md`: (1) cold start to interactive: ≤2 seconds on the reference device profile; (2) frame rate during the active exposure screen (SUDS slider interaction, session timer tick): ≥55 fps; (3) Calm Me button tap-to-screen latency: ≤200ms; (4) Achievements tab initial render with 10 sessions of data: ≤1 second
+**Then** the following budgets are defined and documented in `apps/mobile/docs/performance-budget.md`: (1) cold start to interactive: ≤2 seconds on the reference device profile; (2) frame rate during the active exposure screen (SUDS slider interaction, session timer tick): ≥55 fps; (3) Calm Me button tap-to-screen latency: ≤200ms; ~~(4) Achievements tab initial render with 10 sessions of data: ≤1 second~~ — N/A for MVP; Story 8.5 (Achievements tab) deferred post-MVP 2026-06-21
 
 **Given** the reference device profile
 **When** performance is measured

@@ -1,5 +1,16 @@
 # Deferred Work
 
+## 2026-06-21 — Story 8.5 (Achievements Tab) formally deferred post-MVP (reduce MVP scope)
+
+- **FR-PROG-01/FR-PROG-02 — SUDS trend graph, session history log, and SUDS arc detail (the entire Achievements/"Progress" tab) deferred post-MVP.** Deferred whole, not split — the three sections share one screen, one empty-state, and one offline-read contract; partial implementation would leave the screen in an inconsistent half-built state. Story 8.5 is marked DEFERRED in `epics.md`; PRD `FR-PROG-01`/`FR-PROG-02` lines are commented out with the deferral note; FR Coverage Map carries the full decision record. Logged in post-mvp-backlog.md as item 1.35.
+- **No data is lost.** `exposure_sessions` and `suds_readings` continue to be written normally at MVP (Epic 5/6) — only the in-app visualisation and the "Progress" tab itself are deferred. When this is picked back up, historical data from MVP-era sessions will already be present.
+- **`SudsArcChart` (`packages/ui`, Epic 5) is unaffected and remains shipped** — already consumed by the session debrief screen (`apps/mobile/app/session/debrief.tsx`); Story 8.5 would have been its second consumer.
+- **Schema gap discovered during story-creation research, recorded for whenever 8.5 is revived:** the original AC text's `situation_text_snapshot` column (for showing the courage ladder item name in the history log) does not exist in either the Supabase migrations or the PowerSync schema. Resolve via a live join `exposure_sessions.fear_item_id → fear_ladder_items.description` with a null-safe fallback (item may have been deleted, FK is `ON DELETE SET NULL`), or add a new migration — a decision for whenever this story is picked back up, not made here.
+- **Epic 9 cross-references updated:** Story 9.5's `debrief.yaml` Maestro flow no longer asserts an Achievements tab entry; Story 9.6's canonical empty-state copy list and Story 9.7's performance budget table both have their Achievements-tab line struck through with an N/A note, retained as reference for when the tab ships.
+- **Epic 8 status:** with 8.3, 8.4, and now 8.5 all deferred-post-mvp, only Stories 8.1 (push token registration) and 8.2 (daily local reminder) ship at MVP. `sprint-status.yaml` epic-8 marked `done` (same convention as epic-5, which has deferred stories alongside done ones).
+
+---
+
 ## 2026-06-21 — Story 8.4 formally deferred post-MVP (reduce MVP scope)
 
 - **FR-NOTIF-01 — Day 2/Day 5 re-engagement push notifications deferred post-MVP.** Rationale: the cron-driven `notify-re-engagement` Edge Function (two scheduled passes, idempotency tracking columns on `user_onboarding_metadata`, push dispatch/prune handling) adds infrastructure and review surface that isn't essential to validate the core ERP loop for a closed-beta cohort — reduce-scope-to-ship-faster decision. Story 8.4 is marked DEFERRED in `epics.md`; PRD `FR-NOTIF-01` line is struck through with the deferral note; FR Coverage Map carries the full decision record. Logged in post-mvp-backlog.md as item 1.34.

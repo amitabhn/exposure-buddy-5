@@ -419,8 +419,7 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 ### Progress Tracking
 
-- **FR-PROG-01:** Users view a SUDS trend graph aggregating data from all completed ERP sessions; the graph is viewable in weekly and monthly time windows
-- **FR-PROG-02:** Users view a chronological exposure history log displaying each completed and partially-completed session, the SUDS arc, and the debrief outcome for that session
+<!-- FR-PROG-01 (SUDS trend graph, weekly/monthly) and FR-PROG-02 (chronological exposure history log) were previously listed here; deferred post-MVP 2026-06-21, scope reduction for closed beta (Story 8.5, the Achievements tab). See the FR Coverage Map entry in epics.md for the full decision record. The underlying session/SUDS data continues to be captured at MVP — only the in-app visualisation is deferred. -->
 
 ### Re-Engagement Notifications
 
