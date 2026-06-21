@@ -2,7 +2,8 @@
 
 **Status:** Draft — for review  
 **Owner:** Lead designer + Engineering lead  
-**Required before:** Any component spec is signed off for implementation
+**Required before:** Any component spec is signed off for implementation  
+**Finalized by:** Epic 9, Story 9.6 (Error State & Empty State UX Audit) — the audit's findings move this ADR to `Accepted`; Story 9.6 replaces lazy/unclassified uses of the Base Fallback copy below but does not remove the fallback itself
 
 ---
 

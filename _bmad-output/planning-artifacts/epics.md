@@ -1972,7 +1972,7 @@ So that every dev agent knows the authoritative offline behaviour contract befor
 
 **Given** the PowerSync sync configuration file (`apps/mobile/powersync.config.ts` or equivalent)
 **When** this story is implemented
-**Then** every table and column referenced in the PowerSync schema matches the current Supabase migration state; any discrepancy is treated as a blocking defect and resolved before the story closes; a checklist comment in the config file lists the verified tables: `exposure_sessions`, `fear_ladder_items`, `device_push_tokens`, `user_onboarding_metadata`; **`suds_baselines` is excluded** — table is not created at MVP (Story 6.4 deferred)
+**Then** every table and column referenced in the PowerSync schema matches the current Supabase migration state; any discrepancy is treated as a blocking defect and resolved before the story closes; a checklist comment in the config file lists the verified tables: `users`, `user_onboarding_metadata`, `fear_ladder_items`, `exposure_sessions`, `suds_readings`; **`suds_baselines` is excluded** — table is not created at MVP (Story 6.4 deferred); **`device_push_tokens` is excluded** — it is written directly via the `packages/supabase` push-tokens Edge Function client, not synced through PowerSync
 
 **Given** ADR-OFFLINE-DEGRADATION is referenced in architecture documentation but its content is not yet finalized
 **When** this story is implemented
@@ -1988,7 +1988,7 @@ So that every dev agent knows the authoritative offline behaviour contract befor
 
 As a developer verifying the offline-first session loop,
 I want integration tests that prove session writes are preserved and recoverable when the network drops mid-session,
-So that the offline degradation guarantees documented in ADR-OFFLINE-DEGRADATION are machine-verified, not just asserted (NFR-OFFLINE-03).
+So that the offline degradation guarantees documented in ADR-OFFLINE-DEGRADATION are machine-verified, not just asserted (NFR-OFFLINE-01, NFR-REL-02).
 
 **Acceptance Criteria:**
 
@@ -2014,7 +2014,7 @@ So that the offline degradation guarantees documented in ADR-OFFLINE-DEGRADATION
 
 As a user with a visual impairment or who relies on screen reader or large text settings,
 I want every interactive element and content region in the app to be correctly labelled and navigable,
-So that Exposure Buddy is usable regardless of accessibility need (UX-DR-ACCESSIBLE, WCAG 2.1 AA).
+So that Exposure Buddy is usable regardless of accessibility need (NFR-ACCESS-01).
 
 **Acceptance Criteria:**
 
@@ -2040,13 +2040,13 @@ So that Exposure Buddy is usable regardless of accessibility need (UX-DR-ACCESSI
 
 As a developer maintaining client-side storage,
 I want a lint rule that prevents raw MMKV string literals and a verified audit showing all sensitive fields use Expo SecureStore,
-So that key collisions, data corruption, and unencrypted sensitive storage are structurally prevented (ARC-003, NFR-SEC-01).
+So that key collisions, data corruption, and unencrypted sensitive storage are structurally prevented (ARC-004, NFR-SEC-01).
 
 **Acceptance Criteria:**
 
-**Given** the `packages/eslint-config` package
+**Given** there is no shared `packages/eslint-config` package — ESLint rules are defined per-package in each package's own `.eslintrc.js` (`apps/mobile/.eslintrc.js`, `apps/web/.eslintrc.js`, `packages/ui/.eslintrc.js`)
 **When** this story is implemented
-**Then** a custom ESLint rule named `no-raw-mmkv-key` is added that flags any call to MMKV's `.set()`, `.getString()`, `.contains()`, `.delete()` where the key argument is a string literal rather than a reference to a `KV_KEYS.*` factory function output; the rule is enabled as `error` in the workspace ESLint config
+**Then** a custom ESLint rule named `no-raw-mmkv-key` is added and enabled as `error` in the `.eslintrc.js` of every package that calls MMKV's `.set()`, `.getString()`, `.contains()`, `.delete()` — currently `apps/mobile` and `packages/supabase`; `packages/supabase` does not yet have its own `.eslintrc.js` and one is added as part of this story; the rule flags any call where the key argument is a string literal rather than a reference to a `KV_KEYS.*` factory function output
 
 **Given** the lint rule is added
 **When** `pnpm lint` runs against the current codebase
@@ -2096,7 +2096,7 @@ So that a regression in the core user path is caught before it reaches users (NF
 
 As a user experiencing an error or using the app for the first time,
 I want every error message and empty state to be specific, calm, and actionable,
-So that I am never alarmed or left confused at a high-anxiety moment (UX-DR-ERROR-STATES).
+So that I am never alarmed or left confused at a high-anxiety moment (see ADR-ERROR-STATES).
 
 **Acceptance Criteria:**
 
@@ -2104,13 +2104,17 @@ So that I am never alarmed or left confused at a high-anxiety moment (UX-DR-ERRO
 **When** the error state audit is conducted
 **Then** every error surface is catalogued; "error surface" includes: API/network error toasts, failed sync states, auth errors, empty states (no sessions, no ladder items, no progress data), and loading failure states; the catalogue is documented as comments in the relevant components or in `apps/mobile/docs/error-state-inventory.md`
 
-**Given** any existing generic error copy ("Something went wrong", "Error", "Failed", "Try again" without context)
+**Given** any existing generic error copy used in place of a classifiable, specific failure ("Something went wrong", "Error", "Failed", "Try again" without context, used where the underlying cause is known)
 **When** found during the audit
 **Then** it is replaced with specific, calm, actionable copy following this pattern: state what happened in plain language, state the user's data status (lost / safe / will sync), state what to do next; canonical replacements:
 - Offline write failure: "We couldn't save your session right now. It's stored on your device and will sync automatically."
 - Auth network error: "Couldn't connect to sign you in. Check your connection and try again."
 - Hierarchy empty state: "Your ladder is empty. Tap 'Build your ladder' to get started."
 - ~~Achievements tab empty state: "Complete your first session to see your progress here."~~ — N/A for MVP; Story 8.5 (Achievements tab) deferred post-MVP 2026-06-21. Retained as reference copy for when the tab ships.
+
+**Given** `ADR-ERROR-STATES.md`'s defined Base Fallback Error State ("Something went wrong. Please try again." with a single "Try again" retry action)
+**When** the audit encounters this exact copy used as the last-resort fallback for a genuinely unclassified or unexpected failure (per the component's `error` state in the ADR's state-variant matrix) — not as a lazy substitute for a knowable cause
+**Then** it is retained as-is; this story does not contradict or remove the ADR-approved base fallback, it only eliminates uses of generic copy where a more specific cause is determinable; this story's audit findings are used to move `ADR-ERROR-STATES.md` from `Draft — for review` to `Accepted` once the designer/engineering lead sign off
 
 **Given** the SPIN referral screen and any clinical advisory copy
 **When** reviewed in this audit
@@ -2152,7 +2156,7 @@ So that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 
 As a user doing an exposure in a public setting with my phone on silent,
 I want the app's timed and guided experiences to remain fully usable without audio,
-So that I can use the app discreetly without losing any therapeutic feedback (UX-DR-SILENT-MODE).
+So that I can use the app discreetly without losing any therapeutic feedback (FR-SOM-02; UX spec design principle "silent-mode primary" — `ux-design-specification/core-user-experience.md`).
 
 **Acceptance Criteria:**
 
@@ -2192,9 +2196,9 @@ So that every Phase 1 India-specific launch requirement is machine-verified befo
 **When** the i18n coverage audit runs
 **Then** a script (or CI step) confirms no user-facing string is hardcoded — every visible string in `apps/mobile` routes through a `t()` call or is a `tel:` / `mailto:` URI literal in crisis contacts; any violation is a P0 blocker; the audit covers all screens introduced in Epics 2–9
 
-**Given** `packages/core/src/i18n/locales/en.json` and `packages/core/src/i18n/locales/hi.json`
+**Given** `apps/mobile/src/i18n/locales/en.json` and `apps/mobile/src/i18n/locales/hi.json`
 **When** this story is implemented
-**Then** `hi.json` contains a translation for every key present in `en.json`; no key is missing or has an English placeholder value; the existing Jest key-structure test in Story 1.6 is extended to assert key parity between `en.json` and `hi.json`; the Hindi locale is activated in the app's i18n configuration (not just scaffolded as a stub)
+**Then** `hi.json` contains a translation for every key present in `en.json`; no key is missing or has an English placeholder value; the existing Jest key-structure test in `apps/mobile/src/i18n/i18n.test.ts` (Story 1.6) is extended to assert key parity between `en.json` and `hi.json`; the Hindi locale is activated in the app's i18n configuration (not just scaffolded as a stub)
 
 **Given** the app is running with the Hindi locale active
 **When** any screen is rendered
