@@ -234,6 +234,49 @@ describe('ReminderSettingsScreen', () => {
       expect(getByText('reminderSettings.permissionRequired')).toBeTruthy()
     })
 
+    it('treats a rejected requestPermissionsAsync as denied and shows inline guidance (regression)', async () => {
+      mockGetPermissionsAsync.mockResolvedValue({ status: 'undetermined' })
+      mockRequestPermissionsAsync.mockRejectedValue(new Error('native module unavailable'))
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      const { getByLabelText, getByText } = render(<ReminderSettingsScreen />)
+      selectEnable(getByLabelText)
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('reminderSettings.saveButton'))
+      })
+
+      expect(mockScheduleSessionReminder).not.toHaveBeenCalled()
+      expect(mockSetReminderEnabled).not.toHaveBeenCalled()
+      expect(mockRouterBack).not.toHaveBeenCalled()
+      expect(getByText('reminderSettings.permissionRequired')).toBeTruthy()
+      expect(warnSpy).toHaveBeenCalled()
+    })
+
+    it('disables the radio rows while a save is in flight, preventing a selection flip from being silently discarded (regression)', async () => {
+      let resolveSchedule: (id: string | null) => void = () => {}
+      mockScheduleSessionReminder.mockImplementation(
+        () => new Promise<string | null>(resolve => { resolveSchedule = resolve })
+      )
+      const { getByLabelText } = render(<ReminderSettingsScreen />)
+      selectEnable(getByLabelText)
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('reminderSettings.saveButton'))
+        // Flush the permission-check await so isSaving has actually flipped to true
+        // before asserting the radio rows are disabled.
+        await Promise.resolve()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+
+      expect(getByLabelText('reminderSettings.disableOption').props.accessibilityState.disabled).toBe(true)
+      expect(getByLabelText('reminderSettings.enableOption').props.accessibilityState.disabled).toBe(true)
+
+      await act(async () => {
+        resolveSchedule('notif-new')
+      })
+    })
+
     it('tapping Open Settings in the guidance box opens OS settings', async () => {
       mockGetPermissionsAsync.mockResolvedValue({ status: 'denied' })
       mockRequestPermissionsAsync.mockResolvedValue({ status: 'denied' })

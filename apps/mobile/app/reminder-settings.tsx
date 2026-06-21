@@ -112,8 +112,14 @@ export default function ReminderSettingsScreen() {
       }
       // eslint-disable-next-line i18next/no-literal-string
       if (status !== 'granted') {
-        const requested = await Notifications.requestPermissionsAsync()
-        status = requested.status
+        try {
+          const requested = await Notifications.requestPermissionsAsync()
+          status = requested.status
+        } catch (err) {
+          console.warn('[ReminderSettingsScreen] requestPermissionsAsync threw:', err)
+          // eslint-disable-next-line i18next/no-literal-string -- OS permission status identifier, not user-facing text
+          status = 'denied'
+        }
       }
       if (userIdRef.current !== startUserId) return
       // eslint-disable-next-line i18next/no-literal-string
@@ -177,27 +183,31 @@ export default function ReminderSettingsScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>{t('reminderSettings.screenTitle')}</Text>
 
-        <TouchableOpacity
-          style={styles.radioRow}
-          onPress={selectDisable}
-          accessibilityRole="radio"
-          accessibilityState={{ checked: selection === 'disable' }}
-          accessibilityLabel={t('reminderSettings.disableOption')}
-        >
-          <View style={[styles.radioCircle, selection === 'disable' && styles.radioCircleSelected]} />
-          <Text style={styles.radioLabel}>{t('reminderSettings.disableOption')}</Text>
-        </TouchableOpacity>
+        <View accessibilityRole="radiogroup">
+          <TouchableOpacity
+            style={[styles.radioRow, isSaving && styles.radioRowDisabled]}
+            onPress={selectDisable}
+            disabled={isSaving}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selection === 'disable', disabled: isSaving }}
+            accessibilityLabel={t('reminderSettings.disableOption')}
+          >
+            <View style={[styles.radioCircle, selection === 'disable' && styles.radioCircleSelected]} />
+            <Text style={styles.radioLabel}>{t('reminderSettings.disableOption')}</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.radioRow}
-          onPress={selectEnable}
-          accessibilityRole="radio"
-          accessibilityState={{ checked: selection === 'enable' }}
-          accessibilityLabel={t('reminderSettings.enableOption')}
-        >
-          <View style={[styles.radioCircle, selection === 'enable' && styles.radioCircleSelected]} />
-          <Text style={styles.radioLabel}>{t('reminderSettings.enableOption')}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.radioRow, isSaving && styles.radioRowDisabled]}
+            onPress={selectEnable}
+            disabled={isSaving}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selection === 'enable', disabled: isSaving }}
+            accessibilityLabel={t('reminderSettings.enableOption')}
+          >
+            <View style={[styles.radioCircle, selection === 'enable' && styles.radioCircleSelected]} />
+            <Text style={styles.radioLabel}>{t('reminderSettings.enableOption')}</Text>
+          </TouchableOpacity>
+        </View>
 
         {selection === 'enable' && (
           <DateTimePicker
@@ -256,6 +266,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e7eb',
+  },
+  radioRowDisabled: {
+    opacity: 0.5,
   },
   radioCircle: {
     width: 20,
