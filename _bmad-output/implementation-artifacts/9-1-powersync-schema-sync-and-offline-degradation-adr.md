@@ -1,6 +1,6 @@
 # Story 9.1: PowerSync Schema Sync & Offline Degradation ADR
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -58,6 +58,20 @@ so that every dev agent knows the authoritative offline behaviour contract befor
 **Dismissed as noise (5):** AC1/Task1.3 self-certification framing (resolved as a side effect of the SESSION_IN_PROGRESS patch above); ambiguous "matching AC1's wording" phrasing in Task 1.2 (adequately defined elsewhere in the same bullet); AC3 vs. Task 3.4 trigger-condition concern (superset coverage trivially satisfies the AC — Acceptance Auditor confirmed no deviation); "Out of scope... unless" wording in the Decision 2 exclusion (resolved as a side effect of the Decision 2 finding above being settled); approximate `~line` citations in Dev Notes (acceptable for dev-note sourcing).
 
 **All 11 findings resolved: 5 decision-needed → patch (via party-mode roundtable), 6 patch → applied. 0 defer. 5 dismissed.**
+
+### Code Review (2026-06-22) — implementation review (`/bmad-code-review Story 9.1`)
+
+- [x] [Review][Patch][APPLIED] Empty TABLES/AppSchema-table extraction silently produces a false PASS in both new CI gates — added explicit `[[ -z "$TABLES" ]]` guards in both scripts; verified the `AppSchema = new Schema({})` empty-braces case (which bypasses `set -e` since grep still matches) now correctly fails instead of passing [scripts/ci/verify-schema-drift.sh, scripts/ci/verify-sync-bucket-coverage.sh]
+- [x] [Review][Patch][APPLIED] `ADD COLUMN` fallback check in verify-schema-drift.sh is now scoped to `ALTER TABLE ... public.<table>` blocks per-table (mirrors the existing `TABLE_CREATE_BLOCK` pattern) instead of grepping the column name across all migrations unscoped [scripts/ci/verify-schema-drift.sh]
+- [x] [Review][Patch][APPLIED] RENAMES verification in verify-schema-drift.sh now confirms the `RENAME COLUMN` statement occurs within an `ALTER TABLE ... public.<table>` block for the correct table, not just anywhere in the prefix-matched migration file(s) [scripts/ci/verify-schema-drift.sh]
+- [x] [Review][Patch][APPLIED] Missing SCHEMA_FILE/MIGRATIONS_DIR/SYNC_RULES_FILE inputs now produce explicit `FAIL: ... not found` messages and exit 1, instead of raw grep/sed errors [scripts/ci/verify-schema-drift.sh, scripts/ci/verify-sync-bucket-coverage.sh]
+- [x] [Review][Patch][APPLIED] Column-extraction in verify-schema-drift.sh now filters out `//`-prefixed comment lines before the column regex, preventing an in-block comment from being misparsed as a column declaration [scripts/ci/verify-schema-drift.sh]
+- [x] [Review][Defer] No mechanism prevents the original ADR's "Required before F3/F4" gate from being silently unenforced again — Epics 5-7 shipped past it before Story 9.1 closed the gap [_bmad-output/planning-artifacts/adrs/ADR-OFFLINE-DEGRADATION.md] — deferred, pre-existing
+- [x] [Review][Defer] Confirm no DPDPA data-minimization concern before the new sync-rules.yaml bucket entries (`users.email`, `user_onboarding_metadata.suds_calibration_value`) are actually deployed to the live PowerSync service — ties to the deploy blocker the story's own Completion Notes already flag for escalation [supabase/sync-rules.yaml] — deferred, pre-existing
+
+**Dismissed as noise (11):** ADR Decision 2 "laundering a bug into policy" (already settled via 4/4 party-mode consensus); RENAMES/EXCLUDED_* hardcoding as "tribal knowledge" (already settled via party-mode round 3 consensus); regex fragility against schema.ts/AppSchema reformatting or aliasing (accepted v1 exact-match tradeoff per the story's own resolved review finding); exclusion-comment matching fragility — case-sensitivity, same-line-only, substring risk (code path currently unexercised — both real exclusions live at the schema.ts/AppSchema level, never reaching this path); fixture tests not wired into CI (explicit scope decision per Testing Requirements); theoretical parser edge cases with no real instance in current schema.ts/migrations (duplicate table names, multiple CREATE TABLE blocks per table, unterminated CREATE TABLE block, stale RENAMES key for a nonexistent table, bucket coverage via JOIN instead of FROM); sprint-status.yaml's two near-duplicate `last_updated` comment lines (cosmetic, no functional impact); "Engineering lead" as Decision 2's named owner (Acceptance Auditor confirmed this textually satisfies Task 2.6, consistent with project convention); AC1 checklist-comment placement (Acceptance Auditor confirmed compliant); AC3 "runs on every PR touching X" path-filter wording (Acceptance Auditor confirmed compliant — superset coverage); no jq/yq dependency pinning (moot — scripts are deliberately dependency-free per spec).
+
+**This pass: 0 decision-needed, 5 patch, 2 defer, 11 dismissed.**
 
 ## Dev Notes
 
@@ -189,3 +203,4 @@ Claude Sonnet 4.6 (claude-sonnet-4-6)
 | Date | Change |
 |---|---|
 | 2026-06-22 | Story 9.1 implemented: schema/sync-rules verification (Task 1), ADR-OFFLINE-DEGRADATION.md finalized (Task 2), two new CI schema-drift gates added (Task 3). Status moved to review. |
+| 2026-06-22 | Code review (`/bmad-code-review`): 5 patches applied (gate-script robustness — table-scoped ADD COLUMN/RENAME checks, empty-extraction guards, missing-file guards, comment-line filtering), 2 deferred, 11 dismissed as noise. All fixtures and `pnpm --filter @exposure-buddy/sync test` re-verified passing. Status moved to done. |

@@ -11,6 +11,16 @@ set -euo pipefail
 SCHEMA_FILE="${SCHEMA_FILE:-packages/sync/src/schema.ts}"
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-supabase/migrations}"
 
+if [[ ! -f "$SCHEMA_FILE" ]]; then
+  echo "FAIL: schema file not found: $SCHEMA_FILE"
+  exit 1
+fi
+
+if [[ ! -d "$MIGRATIONS_DIR" ]] || ! compgen -G "$MIGRATIONS_DIR/*.sql" > /dev/null; then
+  echo "FAIL: no .sql migration files found in $MIGRATIONS_DIR"
+  exit 1
+fi
+
 # Tables intentionally absent from the PowerSync schema's migration-backed set.
 EXCLUDED_TABLES=("suds_baselines" "device_push_tokens")
 
@@ -37,6 +47,11 @@ FAIL=0
 
 TABLES=$(grep -oE '^const [a-zA-Z_]+ = new Table\(' "$SCHEMA_FILE" | sed -E 's/^const ([a-zA-Z_]+).*/\1/')
 
+if [[ -z "$TABLES" ]]; then
+  echo "FAIL: no tables parsed from $SCHEMA_FILE — regex matched nothing, check schema.ts formatting"
+  exit 1
+fi
+
 for table in $TABLES; do
   if is_in "$table" "${EXCLUDED_TABLES[@]}"; then
     continue
@@ -50,12 +65,16 @@ for table in $TABLES; do
   fi
 
   TABLE_CREATE_BLOCK=""
+  ALTER_TABLE_BLOCK=""
   for f in "$MIGRATIONS_DIR"/*.sql; do
     TABLE_CREATE_BLOCK+=$'\n'
     TABLE_CREATE_BLOCK+=$(sed -n "/CREATE TABLE.*public\.${table}[[:space:](]/,/);/p" "$f")
+    ALTER_TABLE_BLOCK+=$'\n'
+    ALTER_TABLE_BLOCK+=$(sed -n "/ALTER TABLE[[:space:]]\{1,\}public\.${table}/,/;/p" "$f")
   done
 
   COLUMNS=$(sed -n "/^const ${table} = new Table(/,/^})/p" "$SCHEMA_FILE" \
+    | grep -vE '^[[:space:]]*//' \
     | grep -oE '^[[:space:]]*[a-zA-Z_]+:' \
     | sed -E 's/^[[:space:]]*//; s/:$//')
 
@@ -69,10 +88,16 @@ for table in $TABLES; do
     if [[ -n "${RENAMES[$key]:-}" ]]; then
       old_name="${RENAMES[$key]%%:*}"
       mig_prefix="${RENAMES[$key]##*:}"
-      if grep -lqE "RENAME COLUMN ${old_name} TO ${col}" "$MIGRATIONS_DIR/${mig_prefix}"*.sql 2>/dev/null; then
+      RENAME_BLOCK=""
+      for f in "$MIGRATIONS_DIR/${mig_prefix}"*.sql; do
+        [[ -f "$f" ]] || continue
+        RENAME_BLOCK+=$'\n'
+        RENAME_BLOCK+=$(sed -n "/ALTER TABLE[[:space:]]\{1,\}public\.${table}/,/;/p" "$f")
+      done
+      if echo "$RENAME_BLOCK" | grep -qE "RENAME COLUMN ${old_name} TO ${col}"; then
         continue
       fi
-      echo "FAIL: RENAMES entry for '${key}' expects a 'RENAME COLUMN ${old_name} TO ${col}' in migration ${mig_prefix}* — not found"
+      echo "FAIL: RENAMES entry for '${key}' expects a 'RENAME COLUMN ${old_name} TO ${col}' on public.${table} in migration ${mig_prefix}* — not found"
       FAIL=1
       continue
     fi
@@ -81,7 +106,7 @@ for table in $TABLES; do
       continue
     fi
 
-    if grep -qE "ADD COLUMN[[:space:]]+${col}([[:space:]]|\$)" "$MIGRATIONS_DIR"/*.sql 2>/dev/null; then
+    if echo "$ALTER_TABLE_BLOCK" | grep -qE "ADD COLUMN[[:space:]]+${col}([[:space:]]|\$)"; then
       continue
     fi
 

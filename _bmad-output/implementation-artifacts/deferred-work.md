@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 9-1-powersync-schema-sync-and-offline-degradation-adr (2026-06-22)
+
+- No mechanism prevents the original `ADR-OFFLINE-DEGRADATION.md` "Required before F3/F4" gate from being silently unenforced again — Epics 5-7 shipped past it before Story 9.1 finally closed the gap retroactively. No retrospective or process change was made to stop the same gate-skipping from recurring for future ADRs.
+- Confirm no DPDPA 2023 data-minimization concern before the new `supabase/sync-rules.yaml` bucket entries (`users.email`, `user_onboarding_metadata.suds_calibration_value`, both newly synced to the local on-device PowerSync replica) are actually deployed to the live PowerSync service. Ties to the deploy blocker Story 9.1's own Completion Notes already flag as requiring escalation (no documented `sync-rules.yaml` deploy process exists yet).
+
+---
+
 ## 2026-06-21 — Story 9.1: silent enqueue-failure remediation (`4-2-D2`/`4-2-D4`, `5-2-W15`) given owner + trigger condition
 
 - **`ADR-OFFLINE-DEGRADATION.md` Decision 2** (finalized in Story 9.1) documents that offline write failures fail silently in MVP — `console.error` only, no user-visible toast/banner/retry UI — at the two known call sites: `apps/mobile/app/(onboarding)/assessment.tsx:handleNext` (`4-2-D2`/`4-2-D4` below) and `apps/mobile/app/session/grounding.tsx:52-56` (`5-2-W15` below). This is accepted as the MVP state, not a fresh defect.

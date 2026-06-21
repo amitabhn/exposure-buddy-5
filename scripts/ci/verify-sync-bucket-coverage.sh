@@ -9,12 +9,30 @@ set -euo pipefail
 SCHEMA_FILE="${SCHEMA_FILE:-packages/sync/src/schema.ts}"
 SYNC_RULES_FILE="${SYNC_RULES_FILE:-supabase/sync-rules.yaml}"
 
-APP_SCHEMA_LINE=$(grep -E '^export const AppSchema = new Schema\(' "$SCHEMA_FILE")
+if [[ ! -f "$SCHEMA_FILE" ]]; then
+  echo "FAIL: schema file not found: $SCHEMA_FILE"
+  exit 1
+fi
+
+if [[ ! -f "$SYNC_RULES_FILE" ]]; then
+  echo "FAIL: sync-rules file not found: $SYNC_RULES_FILE"
+  exit 1
+fi
+
+APP_SCHEMA_LINE=$(grep -E '^export const AppSchema = new Schema\(' "$SCHEMA_FILE") || {
+  echo "FAIL: could not locate 'export const AppSchema = new Schema(' in $SCHEMA_FILE"
+  exit 1
+}
 TABLES=$(echo "$APP_SCHEMA_LINE" \
   | grep -oE '\{[^}]*\}' \
   | tr -d '{}' \
   | tr ',' '\n' \
   | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+
+if [[ -z "$TABLES" ]]; then
+  echo "FAIL: no tables parsed from AppSchema in $SCHEMA_FILE — check formatting"
+  exit 1
+fi
 
 FAIL=0
 
