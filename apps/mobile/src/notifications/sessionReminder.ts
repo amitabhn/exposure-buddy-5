@@ -1,14 +1,22 @@
 import * as Notifications from 'expo-notifications'
 
-function parseTime(time: string): { hour: number; minute: number } {
-  const [hourStr = '0', minuteStr = '0'] = time.split(':')
-  const hour = Math.min(23, Math.max(0, parseInt(hourStr, 10) || 0))
-  const minute = Math.min(59, Math.max(0, parseInt(minuteStr, 10) || 0))
+// Fallback used when a stored/incoming time string isn't a parseable "HH:mm" pair —
+// distinct from a legitimate "00:00" (midnight), which parses cleanly and is left alone.
+export const DEFAULT_TIME = '08:00'
+const DEFAULT_HOUR = 8
+const DEFAULT_MINUTE = 0
+
+export function parseTime(time: string): { hour: number; minute: number } {
+  const [hourStr, minuteStr] = time.split(':')
+  const parsedHour = hourStr === undefined ? NaN : parseInt(hourStr, 10)
+  const parsedMinute = minuteStr === undefined ? NaN : parseInt(minuteStr, 10)
+  const hour = Number.isNaN(parsedHour) ? DEFAULT_HOUR : Math.min(23, Math.max(0, parsedHour))
+  const minute = Number.isNaN(parsedMinute) ? DEFAULT_MINUTE : Math.min(59, Math.max(0, parsedMinute))
   return { hour, minute }
 }
 
 // Returns the scheduled notification's identifier, or null if permission is not granted
-// (nothing is scheduled in that case).
+// or scheduling otherwise fails (nothing is scheduled in that case).
 export async function scheduleSessionReminder(
   time: string,
   content: { title: string; body: string }
@@ -25,10 +33,15 @@ export async function scheduleSessionReminder(
 
   const { hour, minute } = parseTime(time)
 
-  return Notifications.scheduleNotificationAsync({
-    content,
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
-  })
+  try {
+    return await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+    })
+  } catch (err) {
+    console.warn('[sessionReminder] scheduleNotificationAsync failed:', err)
+    return null
+  }
 }
 
 // Best-effort cancellation — an already-fired or already-cancelled ID is the expected

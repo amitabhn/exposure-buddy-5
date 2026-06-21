@@ -80,7 +80,12 @@ export default function AppLayout() {
       })
 
       // Guards against a sign-out/sign-in-as-different-user race during the awaits above.
-      if (userIdRef.current !== startUserId) return
+      // The new notification was scheduled under the stale user's context, so cancel it
+      // rather than leaving it live with no stored pointer to recover it.
+      if (userIdRef.current !== startUserId) {
+        if (result) await cancelSessionReminder(result)
+        return
+      }
 
       if (result) {
         setReminderNotificationId(result)

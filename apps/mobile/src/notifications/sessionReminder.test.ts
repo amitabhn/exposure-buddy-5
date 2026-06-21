@@ -1,4 +1,4 @@
-import { scheduleSessionReminder, cancelSessionReminder } from './sessionReminder'
+import { scheduleSessionReminder, cancelSessionReminder, parseTime } from './sessionReminder'
 
 const mockGetPermissionsAsync = jest.fn()
 const mockScheduleNotificationAsync = jest.fn()
@@ -66,6 +66,23 @@ describe('scheduleSessionReminder', () => {
       content: { title: 't', body: 'b' },
       trigger: { type: 'daily', hour: 23, minute: 59 },
     })
+  })
+
+  it('returns null without throwing when scheduleNotificationAsync itself rejects', async () => {
+    mockGetPermissionsAsync.mockResolvedValue({ status: 'granted' })
+    mockScheduleNotificationAsync.mockRejectedValue(new Error('native scheduling failed'))
+
+    const result = await scheduleSessionReminder('08:30', { title: 't', body: 'b' })
+
+    expect(result).toBeNull()
+  })
+})
+
+describe('parseTime', () => {
+  it('falls back to the default time (08:00) on a malformed/empty value, distinct from a real 00:00', () => {
+    expect(parseTime('')).toEqual({ hour: 8, minute: 0 })
+    expect(parseTime('not-a-time')).toEqual({ hour: 8, minute: 0 })
+    expect(parseTime('00:00')).toEqual({ hour: 0, minute: 0 })
   })
 })
 

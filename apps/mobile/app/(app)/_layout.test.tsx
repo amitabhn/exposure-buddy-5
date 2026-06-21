@@ -23,6 +23,7 @@ const mockGetReminderNotificationId = jest.fn()
 const mockSetReminderNotificationId = jest.fn()
 const mockClearReminderNotificationId = jest.fn()
 const mockSetReminderTime = jest.fn()
+const layoutAuthState = { userId: 'user-1' }
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
@@ -33,7 +34,7 @@ jest.mock('@exposure-buddy/supabase', () => ({
     sessionRecoveryData: null,
     clearSessionInProgress: jest.fn(),
     clearSessionIntention: jest.fn(),
-    userId: 'user-1',
+    userId: layoutAuthState.userId,
     getReminderTime: mockGetReminderTime,
     getReminderNotificationId: mockGetReminderNotificationId,
     setReminderNotificationId: mockSetReminderNotificationId,
@@ -71,6 +72,7 @@ function emitAppStateChange(state: 'active' | 'background' | 'inactive') {
 describe('AppLayout — foreground session-reminder reschedule (AC4)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    layoutAuthState.userId = 'user-1'
     mockGetSession.mockResolvedValue(undefined)
     mockGetReminderTime.mockReturnValue(null)
     mockGetReminderNotificationId.mockReturnValue(null)
@@ -119,5 +121,33 @@ describe('AppLayout — foreground session-reminder reschedule (AC4)', () => {
     })
     expect(mockSetReminderNotificationId).not.toHaveBeenCalled()
     expect(mockSetReminderTime).not.toHaveBeenCalled()
+  })
+
+  it('cancels the newly scheduled notification when the user changes mid-reschedule (race guard)', async () => {
+    mockGetReminderTime.mockReturnValue('08:00')
+    let resolveSchedule: (id: string | null) => void = () => {}
+    mockScheduleSessionReminder.mockImplementation(
+      () => new Promise<string | null>(resolve => { resolveSchedule = resolve })
+    )
+
+    const { rerender } = render(<AppLayout />)
+    emitAppStateChange('active')
+
+    await waitFor(() => {
+      expect(mockScheduleSessionReminder).toHaveBeenCalled()
+    })
+
+    // Simulate a sign-out/sign-in-as-different-user race while the schedule call is in flight.
+    layoutAuthState.userId = 'user-2'
+    rerender(<AppLayout />)
+
+    await act(async () => {
+      resolveSchedule('notif-leaked')
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(mockCancelSessionReminder).toHaveBeenCalledWith('notif-leaked')
+    expect(mockSetReminderNotificationId).not.toHaveBeenCalled()
   })
 })

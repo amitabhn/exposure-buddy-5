@@ -46,10 +46,11 @@ const mockSetReminderTime = jest.fn()
 const mockGetReminderNotificationId = jest.fn()
 const mockSetReminderNotificationId = jest.fn()
 const mockClearReminderNotificationId = jest.fn()
+const reminderAuthState = { userId: 'user-1' }
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
-    userId: 'user-1',
+    userId: reminderAuthState.userId,
     getReminderTime: mockGetReminderTime,
     setReminderTime: mockSetReminderTime,
     getReminderNotificationId: mockGetReminderNotificationId,
@@ -61,7 +62,15 @@ jest.mock('@exposure-buddy/supabase', () => ({
 const mockScheduleSessionReminder = jest.fn()
 const mockCancelSessionReminder = jest.fn()
 
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(),
+  scheduleNotificationAsync: jest.fn(),
+  cancelScheduledNotificationAsync: jest.fn(),
+  SchedulableTriggerInputTypes: { DAILY: 'daily', CALENDAR: 'calendar' },
+}))
+
 jest.mock('../src/notifications/sessionReminder', () => ({
+  ...jest.requireActual('../src/notifications/sessionReminder'),
   scheduleSessionReminder: (...args: unknown[]) => mockScheduleSessionReminder(...args),
   cancelSessionReminder: (...args: unknown[]) => mockCancelSessionReminder(...args),
 }))
@@ -71,6 +80,7 @@ import ReminderSettingsScreen from './reminder-settings'
 describe('ReminderSettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    reminderAuthState.userId = 'user-1'
     mockGetReminderTime.mockReturnValue(null)
     mockGetReminderNotificationId.mockReturnValue(null)
     mockScheduleSessionReminder.mockResolvedValue('notif-new')
@@ -152,5 +162,29 @@ describe('ReminderSettingsScreen', () => {
     expect(mockSetReminderNotificationId).not.toHaveBeenCalled()
     expect(mockClearReminderNotificationId).toHaveBeenCalled()
     expect(queryByText(/notifications.reminderSet/)).toBeNull()
+  })
+
+  it('cancels the newly scheduled notification when the user changes mid-Save (race guard)', async () => {
+    let resolveSchedule: (id: string | null) => void = () => {}
+    mockScheduleSessionReminder.mockImplementation(
+      () => new Promise<string | null>(resolve => { resolveSchedule = resolve })
+    )
+
+    const { getByLabelText, rerender } = render(<ReminderSettingsScreen />)
+    fireEvent.press(getByLabelText('reminderSettings.saveButton'))
+
+    // Simulate a sign-out/sign-in-as-different-user race while the schedule call is in flight.
+    reminderAuthState.userId = 'user-2'
+    rerender(<ReminderSettingsScreen />)
+
+    await act(async () => {
+      resolveSchedule('notif-leaked')
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(mockCancelSessionReminder).toHaveBeenCalledWith('notif-leaked')
+    expect(mockSetReminderNotificationId).not.toHaveBeenCalled()
+    expect(mockSetReminderTime).not.toHaveBeenCalled()
   })
 })

@@ -5,14 +5,12 @@ import { useTranslation } from 'react-i18next'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useAuth } from '@exposure-buddy/supabase'
 import { BackButton } from '../src/components/navigation/BackButton'
-import { scheduleSessionReminder, cancelSessionReminder } from '../src/notifications/sessionReminder'
-
-const DEFAULT_TIME = '08:00'
+import { scheduleSessionReminder, cancelSessionReminder, parseTime, DEFAULT_TIME } from '../src/notifications/sessionReminder'
 
 function timeStringToDate(time: string | null): Date {
-  const [hourStr = '8', minuteStr = '0'] = (time ?? DEFAULT_TIME).split(':')
+  const { hour, minute } = parseTime(time ?? DEFAULT_TIME)
   const date = new Date()
-  date.setHours(parseInt(hourStr, 10) || 0, parseInt(minuteStr, 10) || 0, 0, 0)
+  date.setHours(hour, minute, 0, 0)
   return date
 }
 
@@ -43,6 +41,12 @@ export default function ReminderSettingsScreen() {
   useEffect(() => {
     userIdRef.current = userId
   }, [userId])
+  // Guards against calling setState after the screen has unmounted (e.g. back
+  // navigation while Save's awaits are still in flight).
+  const isMountedRef = useRef(true)
+  useEffect(() => () => {
+    isMountedRef.current = false
+  }, [])
 
   function handleChange(_event: DateTimePickerEvent, selected?: Date) {
     if (selected) setDraftDate(selected)
@@ -68,19 +72,24 @@ export default function ReminderSettingsScreen() {
       })
 
       // Guards against a sign-out/sign-in-as-different-user race during the awaits above.
-      if (userIdRef.current !== startUserId) return
+      // The new notification was scheduled under the stale user's context, so cancel it
+      // rather than leaving it live with no stored pointer to recover it.
+      if (userIdRef.current !== startUserId) {
+        if (result) await cancelSessionReminder(result)
+        return
+      }
 
       setReminderTime(time)
 
       if (result) {
         setReminderNotificationId(result)
-        setConfirmation(t('notifications.reminderSet', { time }))
+        if (isMountedRef.current) setConfirmation(t('notifications.reminderSet', { time }))
       } else {
         clearReminderNotificationId()
       }
     } finally {
-      setIsSaving(false)
       isHandlingSaveRef.current = false
+      if (isMountedRef.current) setIsSaving(false)
     }
   }
 
