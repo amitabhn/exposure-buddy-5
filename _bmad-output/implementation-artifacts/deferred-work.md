@@ -630,3 +630,52 @@ _Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Accep
 - **`PruneToken` hard-delete has no implemented caller and no guard against deleting a freshly re-registered token.** Flag for whichever of Stories 8.3/8.4 implements the first caller of `sendPushNotification`'s `PruneToken` signal; a delete keyed purely on token string with no `last_seen_at`/timestamp guard could race against a concurrent re-registration. [`supabase/functions/_shared/expoPush.ts`]
 
 [`_bmad-output/implementation-artifacts/8-1-push-token-registration-and-shared-push-helper.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder (2026-06-21)
+
+_Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run before implementation began — no diff existed yet beyond the story doc's own creation; the spec is the artifact reviewed._
+
+- **"Fully idempotent" claim re: OS-level snooze invalidation on every foreground reschedule.** Cancel+reschedule on every foreground swaps the notification ID each time; any OS-level "snooze" or notification-management interaction tied to the old ID is silently invalidated. Speculative engineering tradeoff, already deliberate, low impact.
+- **Permission-revoked UI messaging left as an either/or non-decision in Task 4.2.** The task offers two alternative messaging approaches without picking one — genuinely requires a UX/product decision, not a mechanical patch. — **Resolved 2026-06-21 (UX redesign, Task 9.4):** decision made — Save on "Enable" now calls `requestPermissionsAsync()` and, if still denied, blocks Save entirely and shows inline guidance + an "Open Settings" action.
+- **`apps/mobile/app/(app)/_layout.test.tsx` doesn't exist yet** despite already containing pre-existing AppState session-refresh logic. Pre-existing test debt this story inherits and is now expected to backfill (Task 8.5) as a side effect.
+- **DST-while-asleep gap.** If the device sleeps through a DST transition with no foreground event until days later, behavior between the transition and the next foreground is unverified against actual OS trigger semantics. Explicitly already a deliberate scope decision in Dev Notes ("do not build timezone-diff tracking") — reopening it would contradict that decision.
+- **Existing test convention (`authProvider.sessionIntention.test.ts`) requires re-implementing KV-helper logic inline in the test** rather than importing and testing the real exported functions (which aren't exported from `AuthProvider.tsx`, only exposed via context). Pre-existing pattern in the codebase, not introduced by this story, but inherited since Task 8.1 cites this file as the literal template.
+- **`mmkvRef.current` going degraded/null mid-flow between screen mount and Save tap.** Deep, low-probability edge case tied to a broader storage-degradation pattern (`isStorageDegraded`) not addressed anywhere else in the codebase either.
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder — implementation diff (2026-06-21)
+
+_Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Acceptance Auditor), run after Story 8.2 was implemented._
+
+- **Foreground reschedule has no debounce beyond the in-flight mutex**, so rapid app-switching triggers repeated cancel+reschedule churn. Already an explicit, deliberate tradeoff per this story's own Dev Notes ("cancel+reschedule on every foreground is simplest-correct and fully idempotent") — reaffirms the existing design choice. [`apps/mobile/app/(app)/_layout.tsx`]
+- **`cancelSessionReminder`'s swallow-all-errors design can leave a live OS notification orphaned** if the underlying OS cancel silently fails while the KV ID is still cleared. Already explicitly accepted via this story's own applied patch ("Soften AC3's wording to reflect best-effort intent") — reaffirms existing decision. [`apps/mobile/src/notifications/sessionReminder.ts`]
+- **No `requestPermissionsAsync` call and no in-screen messaging when permission status is `undetermined`/revoked.** Explicitly left as a non-decision requiring product input in this story's own Task 4.2 / Dev Notes. [`apps/mobile/app/reminder-settings.tsx`]
+- **`AuthProvider`'s reminder methods are not memoized with `useCallback`.** Pre-existing pattern shared by every other AuthProvider helper (e.g. `getLastUsedTechnique`); this story was explicitly instructed to mirror that exact pattern. Now seven methods (`getReminderEnabled`/`setReminderEnabled` added 2026-06-21, see below), same gap. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **No data-layer invariant enforces `setReminderTime` and `setReminderNotificationId`/`clearReminderNotificationId` are updated atomically.** Pre-existing characteristic of this KV-getter/setter pattern, not unique to this story. Now also applies to `setReminderEnabled` (added 2026-06-21) — three fields (`time`/`notificationId`/`enabled`) that should logically move together have no enforced consistency. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **AC5's "settings row updates to show permission revoked state" relies entirely on the unmodified Story 8.1 "Enable reminders" row**; this diff adds no new test coverage verifying that path still holds. Pre-existing coverage gap, not introduced by this diff. [`apps/mobile/app/(app)/settings/index.tsx`] — **Resolved 2026-06-21 (UX redesign):** moot — that row no longer exists; Settings now shows a single row driven by the persisted `SESSION_REMINDER_ENABLED` flag rather than live OS permission status. See the new, narrower finding below this is not the same as.
+- **`userIdRef`-mirroring race-guard pattern is duplicated verbatim across `(app)/_layout.tsx` and `reminder-settings.tsx`** with no shared hook. Both copies are currently correct; a reuse/maintainability observation, not a bug.
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: UX redesign of 8-2-daily-local-session-reminder (2026-06-21)
+
+_Post-"done" redesign of the reminder Settings UI, driven by user-supplied mockup screenshots. Reviewed via a BMad party-mode roundtable (Sally/John/Amelia) before commit. Full detail in `8-2-daily-local-session-reminder.md` → Dev Notes / Task 9._
+
+- **Settings "Daily reminder" row no longer re-verifies live OS notification permission.** The original implementation checked `Notifications.getPermissionsAsync()` on every Settings mount/foreground and reflected revocation immediately. The redesigned row reads only the persisted `SESSION_REMINDER_ENABLED`/`SESSION_REMINDER_TIME` and no longer imports `expo-notifications` at all. If permission is revoked externally (OS Settings) after being enabled, the row keeps showing the saved time as active; the next foreground reschedule cycle silently fails to reschedule and clears the notification ID, but the row's displayed value never changes — the user gets no indication the reminder stopped firing. [`apps/mobile/app/(app)/settings/index.tsx`]
+- **An in-progress, unsaved time-picker selection is lost on a permission-denial round trip.** If the user selects "Enable," picks a time, taps Save, and permission is denied (AC6 blocks the save and shows inline guidance), `selection`/`draftDate` are plain component state — not persisted. If the user backs out without resolving the permission prompt, that choice is gone; reopening the screen re-derives state from storage instead of what was last picked. Raised by Sally and John in the party-mode review; not fixed. [`apps/mobile/app/reminder-settings.tsx`]
+- **Retained reminder time is invisible while "Disable" is selected.** Disabling doesn't clear `SESSION_REMINDER_TIME` — selecting "Enable" again restores the last-picked time — but nothing in the UI surfaces that a time is still remembered while "Disable" is selected. Raised by John in the party-mode review; cosmetic, not fixed. [`apps/mobile/app/reminder-settings.tsx`]
+- **Save is silent on both Enable and Disable paths — no confirmation toast/highlight.** Raised by Sally in the party-mode review as a potential trust/reassurance gap for an anxiety-focused app; explicitly confirmed by the user as intentional minimalism, not an oversight. Listed here for visibility, not as open work — revisit only if user feedback indicates otherwise. [`apps/mobile/app/reminder-settings.tsx`]
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder — UX redesign diff (2026-06-21)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `90c13e0..04d7338` diff — the UX-redesign implementation commit. 0 AC violations found. Original findings in the "Review Findings — UX redesign code review (2026-06-21)" section of `8-2-daily-local-session-reminder.md`._
+
+- **`getReminderEnabled`/`setReminderEnabled` MMKV calls lack try/catch.** Mirrors every other existing `AuthProvider` KV getter/setter (`getReminderTime`, `getLastUsedTechnique`, etc.), none of which have try/catch either — pre-existing pattern across the whole helper family, not a new gap introduced by this diff. [`packages/supabase/src/auth/AuthProvider.tsx`]
+- **The userId race-guard early-return in `handleSave`'s "enable" path doesn't resync `selection`/`draftDate`/`permissionError`** to the new (switched-to) user's actual state after a mid-save sign-out/sign-in-as-different-user race. Narrow edge case mirroring the pre-existing, already-accepted race-guard pattern from the original Story 8.2 review. [`apps/mobile/app/reminder-settings.tsx`]
+- **`router.back()` is called unconditionally with no `canGoBack()` guard.** Currently unreachable as a problem — this screen has exactly one entry point (`router.push` from Settings) and no deep-link/notification-action routing exists anywhere in this codebase yet. [`apps/mobile/app/reminder-settings.tsx`]
+- **Hindi locale's `am`/`pm` keys are set to literal "AM"/"PM", identical to English**, rather than a Hindi-specific rendering. Plausibly an intentional, common Indian-app convention rather than an oversight, but unconfirmed — needs translator/product input, consistent with this project's existing "needs translator pass" backlog pattern for partial Hindi coverage. [`apps/mobile/src/i18n/locales/hi.json`]
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]

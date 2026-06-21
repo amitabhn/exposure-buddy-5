@@ -58,10 +58,10 @@
       "deleteAccount": "Delete my account"
     },
     "reminders": {
-      "title": "Reminders",
-      "notYetRequested": "Enable reminders",
-      "enabled": "Reminders enabled",
-      "disabled": "Reminders disabled — tap to open settings"
+      "rowLabel": "Daily reminder",
+      "disabledValue": "Disabled",
+      "am": "AM",
+      "pm": "PM"
     },
     "deletion": {
       "dialogTitle": "Delete your account",
@@ -71,6 +71,20 @@
       "dpoContact": "For questions about your data, contact our Data Protection Officer at {{dpoEmail}}.",
       "confirmButton": "Delete my account",
       "cancelButton": "Cancel"
+    }
+  },
+  "reminderSettings": {
+    "screenTitle": "Daily reminder",
+    "disableOption": "Disable",
+    "enableOption": "Enable",
+    "permissionRequired": "Notification permission is required to enable reminders.",
+    "openSettings": "Open Settings",
+    "saveButton": "Save"
+  },
+  "notifications": {
+    "dailyReminder": {
+      "title": "Exposure Buddy",
+      "body": "A few minutes for yourself today?"
     }
   },
   "onboarding": {

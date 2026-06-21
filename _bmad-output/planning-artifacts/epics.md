@@ -1708,31 +1708,41 @@ requests to the Expo Push API are batched in chunks of ≤100 (the Expo batch li
 
 ### Story 8.2: Daily Local Session Reminder
 
+> **Amended 2026-06-21.** Implemented as drafted below, then redesigned post-"done" around user-supplied mockups: Settings now shows a single "Daily reminder" row (value: "Disabled" or a 12-hour time), and the destination screen is a Disable/Enable radio choice rather than a bare time picker. The trigger type was also corrected from `CalendarTrigger` (iOS-only) to `DailyTriggerInput` (cross-platform) during original implementation. The ACs below have been updated in place to reflect current behavior; full rationale, dev notes, and a "Known gap" list live in `_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`, which remains the authoritative as-built reference.
+
 As a user who sets a preferred reminder time,
 I want the app to send me a daily local notification at that time,
 So that I am prompted to complete my daily exposure session (FR-NOTIF-03).
 
 **Acceptance Criteria:**
 
-**Given** the user has not previously set a reminder time
-**When** the reminder settings screen renders
-**Then** the default reminder time is displayed as 08:00 in the device's local timezone; no notification is scheduled until the user explicitly saves
+**Given** the user has not previously configured a reminder (or has chosen "Disable")
+**When** the Settings screen renders
+**Then** the "Daily reminder" row shows "Disabled"; tapping it opens a screen with "Disable"/"Enable" radio options (the time picker shown only under "Enable") and a Save button; no notification is scheduled until Save is pressed with "Enable" selected
 
-**Given** the user saves a reminder time
+**Given** the user selects "Enable", picks a time, and presses Save, and OS notification permission is granted (already, or after being requested)
 **When** the save action completes
-**Then** `Notifications.scheduleNotificationAsync` is called with a `CalendarTrigger` for the chosen time, repeating daily; the returned notification ID is stored in `KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId)`; the chosen time (HH:mm string) is stored in `KV_KEYS.SESSION_REMINDER_TIME(userId)` using the user-scoped factory functions from `packages/core/src/constants/kvKeys.ts`; a confirmation message is shown: `t('notifications.reminderSet', { time: formattedTime })` (canonical: "Reminder set for {time} — see you then")
+**Then** `Notifications.scheduleNotificationAsync` is called with a `DailyTriggerInput` for the chosen time, repeating daily; the returned notification ID is stored in `KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId)`; the chosen time (HH:mm string) is stored in `KV_KEYS.SESSION_REMINDER_TIME(userId)`; `KV_KEYS.SESSION_REMINDER_ENABLED(userId)` is set to `true`; the screen navigates back to Settings with no confirmation message (silent by design)
 
-**Given** the user changes their reminder time
+**Given** the user re-saves with "Enable" selected and a (possibly unchanged) time
 **When** the save action completes
-**Then** the previously scheduled notification (ID from `KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId)`) is cancelled via `Notifications.cancelScheduledNotificationAsync` before the new one is scheduled; no orphaned notifications remain
+**Then** the previously scheduled notification (ID from `KV_KEYS.SESSION_REMINDER_NOTIFICATION_ID(userId)`) is cancelled via `Notifications.cancelScheduledNotificationAsync` before the new one is scheduled; no orphaned notifications remain (best-effort)
 
-**Given** the device timezone changes (e.g. travel)
-**When** the app is next foregrounded
-**Then** if `KV_KEYS.SESSION_REMINDER_TIME(userId)` contains a saved time, the existing notification is cancelled and rescheduled using the same HH:mm time in the new timezone; this ensures the reminder fires at the correct local time after travel
+**Given** the app is foregrounded (which covers the device timezone changing, e.g. travel) and the reminder is enabled (`KV_KEYS.SESSION_REMINDER_ENABLED(userId)` is `true`)
+**When** `KV_KEYS.SESSION_REMINDER_TIME(userId)` contains a saved time
+**Then** the existing notification is cancelled and rescheduled using the same HH:mm time in the new timezone; if the reminder is not enabled, this no-ops even if a time is still stored
 
-**Given** the user has granted notification permission previously but permission has since been revoked in OS settings
-**When** the app attempts to schedule a reminder
-**Then** `Notifications.getPermissionsAsync()` is checked first; if not granted, the schedule call is skipped and the settings card updates to show permission revoked state; no error is thrown
+**Given** the user selects "Disable" and presses Save
+**When** the save action completes
+**Then** any existing scheduled notification is cancelled, `KV_KEYS.SESSION_REMINDER_ENABLED(userId)` is set to `false`, and the stored notification ID is cleared; the stored time is left untouched (restored if the user re-enables later) but is not displayed anywhere while disabled; Settings then shows "Disabled"
+
+**Given** the user selects "Enable" and presses Save, and notification permission is still not granted after being requested
+**When** the save action completes
+**Then** Save is blocked — nothing is scheduled or persisted, the screen does not navigate back — and inline guidance plus an "Open Settings" action is shown instead; no error is thrown
+
+**Given** the Settings "Daily reminder" row, with the reminder enabled and a time stored
+**When** the row renders
+**Then** the value is shown in 12-hour clock format with AM/PM (e.g. "11:00 PM"), not the raw 24-hour stored string
 
 **Given** `packages/core/src/constants/kvKeys.ts`
 **When** this story is implemented
@@ -1740,6 +1750,7 @@ So that I am prompted to complete my daily exposure session (FR-NOTIF-03).
 ```typescript
 SESSION_REMINDER_TIME: (userId: string) => `notifications:reminder_time:${userId}`,
 SESSION_REMINDER_NOTIFICATION_ID: (userId: string) => `notifications:reminder_id:${userId}`,
+SESSION_REMINDER_ENABLED: (userId: string) => `notifications:reminder_enabled:${userId}`,
 ```
 
 ---

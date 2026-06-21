@@ -23,6 +23,7 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-localization',
     'expo-notifications',
+    '@react-native-community/datetimepicker',
     // @sentry/react-native/expo plugin removed — requires sentry-cli binary which
     // doesn't build on EAS with pnpm. Basic crash capturing via Sentry.init() in
     // src/error-handler.ts works without it. Re-add when sentry-cli issue resolved.

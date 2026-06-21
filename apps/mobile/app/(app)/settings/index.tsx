@@ -1,107 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, AppState, Linking } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import * as Notifications from 'expo-notifications'
 import { useAuth } from '@exposure-buddy/supabase'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
-import { usePushRegistrationContext } from '../../../src/contexts/PushRegistrationContext'
-
-type ReminderPermissionState = 'not-yet-requested' | 'enabled' | 'disabled'
-
-// Internal state-machine identifiers, not user-facing text — the displayed labels are
-// looked up via t() calls below.
-const REMINDER_STATE_I18N_KEY: Record<ReminderPermissionState, string> = {
-  // eslint-disable-next-line i18next/no-literal-string
-  'not-yet-requested': 'notYetRequested',
-  // eslint-disable-next-line i18next/no-literal-string
-  enabled: 'enabled',
-  // eslint-disable-next-line i18next/no-literal-string
-  disabled: 'disabled',
-}
-
-function derivePermissionState(status: string | undefined): ReminderPermissionState {
-  // eslint-disable-next-line i18next/no-literal-string
-  if (status === 'granted') return 'enabled'
-  // eslint-disable-next-line i18next/no-literal-string
-  if (status === 'denied') return 'disabled'
-  // eslint-disable-next-line i18next/no-literal-string
-  if (status === 'undetermined') return 'not-yet-requested'
-  // Unexpected status (or none) — treat as not-yet-requested and surface for diagnosis,
-  // but never crash the Settings screen (AC7).
-  if (status !== undefined) {
-    console.warn('[SettingsScreen] unexpected push permission status:', status)
-  }
-  // eslint-disable-next-line i18next/no-literal-string
-  return 'not-yet-requested'
-}
+import { formatTimeForDisplay } from '../../../src/notifications/sessionReminder'
 
 export default function SettingsScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { signOut, requestAccountDeletion } = useAuth()
-  const { registerNow } = usePushRegistrationContext()
+  const { signOut, requestAccountDeletion, getReminderTime, getReminderEnabled } = useAuth()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  // eslint-disable-next-line i18next/no-literal-string
-  const [reminderState, setReminderState] = useState<ReminderPermissionState>('not-yet-requested')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [reminderTime, setReminderTime] = useState<string | null>(null)
 
-  const refreshReminderState = useCallback(async () => {
-    try {
-      const { status } = await Notifications.getPermissionsAsync()
-      setReminderState(derivePermissionState(status))
-    } catch (err) {
-      console.warn('[SettingsScreen] getPermissionsAsync threw:', err)
-      // eslint-disable-next-line i18next/no-literal-string
-      setReminderState('not-yet-requested')
-    }
-  }, [])
+  // Re-reads the saved reminder state whenever this screen regains focus (e.g. returning
+  // from reminder-settings.tsx after Save) — getReminderEnabled/getReminderTime aren't reactive.
+  useFocusEffect(
+    useCallback(() => {
+      setReminderEnabled(getReminderEnabled())
+      setReminderTime(getReminderTime())
+    }, [getReminderEnabled, getReminderTime]),
+  )
 
+  // useFocusEffect only re-fires on a genuine navigation-focus transition, not when these
+  // getters' identity changes — AuthProvider recreates them on every render and
+  // authState.userId hydrates asynchronously after mount, so the very first focus can
+  // fire before MMKV/userId are ready. This catches that case once AuthProvider settles.
   useEffect(() => {
-    let cancelled = false
-    async function run() {
-      await refreshReminderState()
-      if (cancelled) return
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [refreshReminderState])
-
-  useEffect(() => {
-    // Re-evaluates permission state on foreground — covers both the app-switcher return
-    // path and the Linking.openSettings() deep-link return path (Task 5.4); no separate
-    // handler needed for the latter since both resolve through the same 'active' event.
-    const sub = AppState.addEventListener('change', state => {
-      if (state === 'active') refreshReminderState()
-    })
-    return () => sub.remove()
-  }, [refreshReminderState])
-
-  const isHandlingReminderPressRef = useRef(false)
-
-  async function handleReminderPress() {
-    if (isHandlingReminderPressRef.current) return
-    isHandlingReminderPressRef.current = true
-    try {
-      if (reminderState === 'disabled') {
-        Linking.openSettings()
-        return
-      }
-      if (reminderState === 'not-yet-requested') {
-        const { status } = await Notifications.requestPermissionsAsync()
-        setReminderState(derivePermissionState(status))
-        if (status === 'granted') {
-          await registerNow()
-        }
-      }
-    } finally {
-      isHandlingReminderPressRef.current = false
-    }
-  }
+    setReminderEnabled(getReminderEnabled())
+    setReminderTime(getReminderTime())
+  }, [getReminderEnabled, getReminderTime])
 
   async function handleSignOut() {
     setIsSigningOut(true)
@@ -127,9 +59,26 @@ export default function SettingsScreen() {
     }
   }
 
+  const reminderValue =
+    reminderEnabled && reminderTime
+      ? formatTimeForDisplay(reminderTime, t('settings.reminders.am'), t('settings.reminders.pm'))
+      : t('settings.reminders.disabledValue')
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('settings.title')}</Text>
+
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => router.push('/reminder-settings')}
+        accessibilityRole="link"
+        accessibilityLabel={`${t('settings.reminders.rowLabel')} ${reminderValue}`}
+      >
+        <View style={styles.rowBetween}>
+          <Text style={styles.rowText}>{t('settings.reminders.rowLabel')}</Text>
+          <Text style={styles.rowValueText}>{reminderValue}</Text>
+        </View>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.row, isSigningOut && styles.rowDisabled]}
@@ -142,17 +91,6 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
-
-      <Text style={styles.sectionTitle}>{t('settings.reminders.title')}</Text>
-
-      <TouchableOpacity
-        style={styles.row}
-        onPress={handleReminderPress}
-        accessibilityRole="button"
-        accessibilityLabel={t(`settings.reminders.${REMINDER_STATE_I18N_KEY[reminderState]}`)}
-      >
-        <Text style={styles.rowText}>{t(`settings.reminders.${REMINDER_STATE_I18N_KEY[reminderState]}`)}</Text>
-      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>{t('settings.privacy.title')}</Text>
 
@@ -213,12 +151,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e7eb',
   },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   rowDisabled: {
     opacity: 0.5,
   },
   rowText: {
     fontSize: 16,
     color: '#111827',
+  },
+  rowValueText: {
+    fontSize: 16,
+    color: '#6b7280',
   },
   destructiveText: {
     color: '#ef4444',
