@@ -630,3 +630,16 @@ _Code review of the implementation diff (Blind Hunter + Edge Case Hunter + Accep
 - **`PruneToken` hard-delete has no implemented caller and no guard against deleting a freshly re-registered token.** Flag for whichever of Stories 8.3/8.4 implements the first caller of `sendPushNotification`'s `PruneToken` signal; a delete keyed purely on token string with no `last_seen_at`/timestamp guard could race against a concurrent re-registration. [`supabase/functions/_shared/expoPush.ts`]
 
 [`_bmad-output/implementation-artifacts/8-1-push-token-registration-and-shared-push-helper.md`]
+
+## Deferred from: code review of 8-2-daily-local-session-reminder (2026-06-21)
+
+_Spec review of the story document itself (Blind Hunter + Edge Case Hunter), run before implementation began — no diff existed yet beyond the story doc's own creation; the spec is the artifact reviewed._
+
+- **"Fully idempotent" claim re: OS-level snooze invalidation on every foreground reschedule.** Cancel+reschedule on every foreground swaps the notification ID each time; any OS-level "snooze" or notification-management interaction tied to the old ID is silently invalidated. Speculative engineering tradeoff, already deliberate, low impact.
+- **Permission-revoked UI messaging left as an either/or non-decision in Task 4.2.** The task offers two alternative messaging approaches without picking one — genuinely requires a UX/product decision, not a mechanical patch.
+- **`apps/mobile/app/(app)/_layout.test.tsx` doesn't exist yet** despite already containing pre-existing AppState session-refresh logic. Pre-existing test debt this story inherits and is now expected to backfill (Task 8.5) as a side effect.
+- **DST-while-asleep gap.** If the device sleeps through a DST transition with no foreground event until days later, behavior between the transition and the next foreground is unverified against actual OS trigger semantics. Explicitly already a deliberate scope decision in Dev Notes ("do not build timezone-diff tracking") — reopening it would contradict that decision.
+- **Existing test convention (`authProvider.sessionIntention.test.ts`) requires re-implementing KV-helper logic inline in the test** rather than importing and testing the real exported functions (which aren't exported from `AuthProvider.tsx`, only exposed via context). Pre-existing pattern in the codebase, not introduced by this story, but inherited since Task 8.1 cites this file as the literal template.
+- **`mmkvRef.current` going degraded/null mid-flow between screen mount and Save tap.** Deep, low-probability edge case tied to a broader storage-degradation pattern (`isStorageDegraded`) not addressed anywhere else in the codebase either.
+
+[`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
