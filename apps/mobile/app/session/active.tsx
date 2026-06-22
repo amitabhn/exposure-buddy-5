@@ -25,7 +25,7 @@ export default function ActiveScreen() {
     preSuds: string
   }>()
 
-  const { clearSessionInProgress } = useAuth()
+  const { clearSessionInProgress, setGroundingActive } = useAuth()
 
   // Initialised to 1: the pre-session reading written in intent.tsx already counts.
   const [sudsReadingsCount, setSudsReadingsCount] = useState(1)
@@ -67,6 +67,9 @@ export default function ActiveScreen() {
 
   function handleStopExposure() {
     // active→grounding via exposure.stopped event
+    // Story 9.2: mark grounding active before navigating, so a kill mid-grounding
+    // can be distinguished from a kill mid-exposure on cold-start recovery.
+    setGroundingActive()
     router.push(
       // eslint-disable-next-line i18next/no-literal-string
       `/session/grounding?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description ?? '')}&preSuds=${preSuds}`

@@ -37,6 +37,11 @@ interface AuthContextValue {
   clearSessionIntention: (sessionId: string) => void
   hasSessionIntention: (sessionId: string) => boolean
   getSessionIntention: (sessionId: string) => string | null
+  // Grounding-active signal (Story 9.2): written on entering session/grounding.tsx,
+  // cleared on normal exit (resume or stop). Mirrors setSessionInProgress/
+  // clearSessionInProgress — see KV_KEYS.GROUNDING_ACTIVE for the staleness contract.
+  setGroundingActive: () => void
+  clearGroundingActive: () => void
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
@@ -71,6 +76,8 @@ export const AuthContext = createContext<AuthContextValue>({
   clearSessionIntention: () => {},
   hasSessionIntention: () => false,
   getSessionIntention: () => null,
+  setGroundingActive: () => {},
+  clearGroundingActive: () => {},
   getLastUsedTechnique: () => null,
   setLastUsedTechnique: () => {},
   getReminderTime: () => null,
@@ -325,6 +332,20 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     return store.getString(KV_KEYS.SESSION_INTENTION(sessionId)) ?? null
   }
 
+  function setGroundingActive(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.GROUNDING_ACTIVE(userId), Date.now())
+  }
+
+  function clearGroundingActive(): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.delete(KV_KEYS.GROUNDING_ACTIVE(userId))
+  }
+
   function getLastUsedTechnique(fearItemId: string): TechniqueType | null {
     const store = mmkvRef.current
     const userId = authState.userId
@@ -407,6 +428,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       clearSessionIntention,
       hasSessionIntention,
       getSessionIntention,
+      setGroundingActive,
+      clearGroundingActive,
       getLastUsedTechnique,
       setLastUsedTechnique,
       getReminderTime,

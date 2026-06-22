@@ -16,7 +16,7 @@ export default function GroundingScreen() {
     preSuds: string
   }>()
 
-  const { clearSessionInProgress, clearSessionIntention } = useAuth()
+  const { clearSessionInProgress, clearSessionIntention, clearGroundingActive } = useAuth()
 
   useFocusEffect(
     useCallback(() => {
@@ -59,6 +59,7 @@ export default function GroundingScreen() {
     // Clear MMKV session keys
     clearSessionInProgress()
     if (sessionId) clearSessionIntention(sessionId)
+    clearGroundingActive()
 
     // eslint-disable-next-line i18next/no-literal-string
     router.push('/session/abandoned')
@@ -69,6 +70,9 @@ export default function GroundingScreen() {
     // eslint-disable-next-line i18next/no-literal-string
     const result = transition('grounding', { type: 'grounding.resumed' })
     if (!result.ok) return
+
+    // Story 9.2: normal exit from grounding — clear before navigating back to active.
+    clearGroundingActive()
 
     // router.replace keeps stack flat: back from resumed active goes to pause, not grounding
     router.replace(

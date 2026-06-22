@@ -20,6 +20,13 @@ export type { SessionRecoveryData } from './types/session-recovery-data'
 export type { Result, AppError } from './types/result'
 export type { SessionState, SessionEvent } from './erp/session-state-machine'
 export { transition } from './erp/session-state-machine'
+// Session-state hydration (Story 9.2)
+export type { PersistedSessionStatus } from './erp/session-state-machine'
+export {
+  deriveStateFromSession,
+  isGroundingSignalFresh,
+  GROUNDING_STALENESS_WINDOW_MS,
+} from './erp/session-state-machine'
 export { resolveHomeScreenState } from './erp/home-screen-state'
 export type { HomeScreenContext, HomeScreenState } from './erp/home-screen-state'
 export type { TechniqueType } from './types/technique'

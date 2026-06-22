@@ -36,6 +36,7 @@ jest.mock('../../src/components/session/SudsScale', () => ({
 }))
 
 const mockClearSessionInProgress = jest.fn()
+const mockSetGroundingActive = jest.fn()
 const mockUseAuth = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
@@ -53,6 +54,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockUseAuth.mockReturnValue({
     clearSessionInProgress: mockClearSessionInProgress,
+    setGroundingActive: mockSetGroundingActive,
   })
   useLocalSearchParams.mockReturnValue({
     sessionId: 'session-uuid-1',
@@ -102,6 +104,12 @@ describe('ActiveScreen — existing tests', () => {
     expect(mockRouterPush).toHaveBeenCalledWith(
       expect.stringContaining('fearItemId=item-uuid-1')
     )
+  })
+
+  it('calls setGroundingActive before navigating to /session/grounding on Stop Exposure (Story 9.2)', async () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.stopExposure')) })
+    expect(mockSetGroundingActive).toHaveBeenCalled()
   })
 
 })
