@@ -12,6 +12,11 @@ export const KV_KEYS = {
   SESSION_IN_PROGRESS:          (userId: string) => `session:in_progress:${userId}`,
   // Optional intention text written in intent.tsx; cleared on abandonment and completion.
   SESSION_INTENTION:            (sessionId: string) => `session:intention:${sessionId}`,
+  // Epoch-ms timestamp, written once on entering session/grounding.tsx (active→grounding),
+  // cleared on normal exit (resume or stop). A flag stuck by an abnormal exit (kill mid-grounding,
+  // crash) self-clears via staleness-window expiry on hydration — see isGroundingSignalFresh
+  // in erp/session-state-machine.ts — rather than relying on the clear call being reliable. (Story 9.2)
+  GROUNDING_ACTIVE:             (userId: string) => `session:grounding_active:${userId}`,
   // DEPRECATED 2026-06-15 (Story 5.6) — no longer written. AuthProvider deletes this
   // key on every SIGNED_IN to clean up stale data from the State 7/8 era. Safe to
   // remove from KV_KEYS entirely after one release cycle.

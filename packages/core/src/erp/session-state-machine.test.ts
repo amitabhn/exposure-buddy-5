@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { transition } from './session-state-machine'
+import {
+  transition,
+  deriveStateFromSession,
+  isGroundingSignalFresh,
+  GROUNDING_STALENESS_WINDOW_MS,
+} from './session-state-machine'
 import type { SessionState } from './session-state-machine'
 
 describe('SessionStateMachine', () => {
@@ -149,5 +154,61 @@ describe('SessionStateMachine', () => {
       expect(result.error.message).toContain('idle')
       expect(result.error.message).toContain('grounding.stopped')
     }
+  })
+})
+
+// ── deriveStateFromSession (Story 9.2, Task 2.2) ────────────────────────────────
+
+describe('deriveStateFromSession', () => {
+  it('no row (null dbStatus) → idle', () => {
+    expect(deriveStateFromSession(null, false)).toBe('idle')
+    expect(deriveStateFromSession(null, true)).toBe('idle')
+  })
+
+  it("dbStatus 'started' with no active grounding → active", () => {
+    expect(deriveStateFromSession('started', false)).toBe('active')
+  })
+
+  it("dbStatus 'started' with active grounding → grounding", () => {
+    expect(deriveStateFromSession('started', true)).toBe('grounding')
+  })
+
+  it("dbStatus 'completed' → completed, regardless of grounding flag", () => {
+    expect(deriveStateFromSession('completed', false)).toBe('completed')
+    expect(deriveStateFromSession('completed', true)).toBe('completed')
+  })
+
+  it("dbStatus 'abandoned' → abandoned, regardless of grounding flag", () => {
+    expect(deriveStateFromSession('abandoned', false)).toBe('abandoned')
+    expect(deriveStateFromSession('abandoned', true)).toBe('abandoned')
+  })
+})
+
+// ── isGroundingSignalFresh (Story 9.2, Task 2.4) ─────────────────────────────────
+
+describe('isGroundingSignalFresh', () => {
+  const NOW = 1_750_000_000_000 // arbitrary fixed epoch-ms instant
+
+  it('returns false when groundingActiveAt is null (no signal at all)', () => {
+    expect(isGroundingSignalFresh(null, NOW)).toBe(false)
+  })
+
+  it('returns true for a fresh timestamp (just now)', () => {
+    expect(isGroundingSignalFresh(NOW, NOW)).toBe(true)
+  })
+
+  it('returns true for a timestamp inside the staleness window', () => {
+    const groundingActiveAt = NOW - (GROUNDING_STALENESS_WINDOW_MS - 1)
+    expect(isGroundingSignalFresh(groundingActiveAt, NOW)).toBe(true)
+  })
+
+  it('returns false for a timestamp exactly at the staleness window boundary', () => {
+    const groundingActiveAt = NOW - GROUNDING_STALENESS_WINDOW_MS
+    expect(isGroundingSignalFresh(groundingActiveAt, NOW)).toBe(false)
+  })
+
+  it('returns false for a timestamp past the staleness window (stale)', () => {
+    const groundingActiveAt = NOW - (GROUNDING_STALENESS_WINDOW_MS + 1)
+    expect(isGroundingSignalFresh(groundingActiveAt, NOW)).toBe(false)
   })
 })

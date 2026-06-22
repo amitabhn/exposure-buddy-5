@@ -4,14 +4,14 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CourageLadderEntryCard } from '@exposure-buddy/ui'
-import { resolveLowestPendingItem, resolveHomeScreenState, type HomeScreenContext } from '@exposure-buddy/core'
+import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, type HomeScreenContext } from '@exposure-buddy/core'
 import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSession'
 
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, sessionRecoveryData } = useAuth()
+  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, sessionRecoveryData, getGroundingActiveAt } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
@@ -66,6 +66,13 @@ export default function HomeScreen() {
   const progressingDescription = sessionRecoveryData ? sessionRecoveryData.description : ''
   const progressingPreSuds = sessionRecoveryData ? sessionRecoveryData.preSuds : 0
 
+  // Story 9.2: a session killed mid-grounding must recover to /session/grounding, not
+  // /session/active — routing a just-grounded, still-anxious user back to the exposure
+  // trigger on recovery is the exact regression GROUNDING_ACTIVE exists to prevent.
+  const isRecoveringIntoGrounding = isGroundingSignalFresh(getGroundingActiveAt(), Date.now())
+  // eslint-disable-next-line i18next/no-literal-string
+  const progressingTarget = isRecoveringIntoGrounding ? '/session/grounding' : '/session/active'
+
   return (
     <View style={styles.container}>
       <Text style={styles.greeting}>
@@ -89,7 +96,7 @@ export default function HomeScreen() {
           onPress={() =>
             router.push(
               // eslint-disable-next-line i18next/no-literal-string
-              `/session/active?sessionId=${progressingSessionId}&fearItemId=${progressingFearItemId != null ? encodeURIComponent(progressingFearItemId) : ''}&description=${encodeURIComponent(progressingDescription)}&preSuds=${progressingPreSuds}`
+              `${progressingTarget}?sessionId=${progressingSessionId}&fearItemId=${progressingFearItemId != null ? encodeURIComponent(progressingFearItemId) : ''}&description=${encodeURIComponent(progressingDescription)}&preSuds=${progressingPreSuds}`
             )
           }
           accessibilityRole="button"

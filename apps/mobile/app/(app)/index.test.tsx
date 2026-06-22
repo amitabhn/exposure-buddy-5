@@ -34,10 +34,12 @@ jest.mock('@exposure-buddy/ui', () => {
 })
 
 const mockResolveHomeScreenState = jest.fn()
+const mockIsGroundingSignalFresh = jest.fn()
 
 jest.mock('@exposure-buddy/core', () => ({
   resolveLowestPendingItem: jest.fn(() => null),
   resolveHomeScreenState: (...args: unknown[]) => mockResolveHomeScreenState(...args),
+  isGroundingSignalFresh: (...args: unknown[]) => mockIsGroundingSignalFresh(...args),
 }))
 
 const mockUseFearLadderItems = jest.fn()
@@ -57,6 +59,7 @@ const defaultAuthValue = {
   markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
   authState: { userId: 'user-123' },
   sessionRecoveryData: null,
+  getGroundingActiveAt: () => null,
 }
 
 describe('HomeScreen', () => {
@@ -69,6 +72,7 @@ describe('HomeScreen', () => {
     mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
     mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
     mockResolveHomeScreenState.mockReturnValue('morning')
+    mockIsGroundingSignalFresh.mockReturnValue(false)
   })
 
   afterEach(() => {
@@ -259,6 +263,35 @@ describe('HomeScreen', () => {
       })
       const { queryByText } = render(<HomeScreen />)
       expect(queryByText(/expires/i)).toBeNull()
+    })
+
+    describe('Story 9.2: grounding-aware recovery routing', () => {
+      it('killed mid-grounding (fresh GROUNDING_ACTIVE signal) recovers to /session/grounding, not /session/active', () => {
+        mockIsGroundingSignalFresh.mockReturnValue(true)
+        mockUseAuth.mockReturnValue({
+          ...defaultAuthValue,
+          sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
+          getGroundingActiveAt: () => 1_750_000_000_000,
+        })
+        const { getByRole } = render(<HomeScreen />)
+        fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+        expect(mockPush).toHaveBeenCalledWith(
+          '/session/grounding?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
+        )
+      })
+
+      it('killed mid-exposure (no fresh grounding signal) recovers to /session/active as before', () => {
+        mockIsGroundingSignalFresh.mockReturnValue(false)
+        mockUseAuth.mockReturnValue({
+          ...defaultAuthValue,
+          sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
+        })
+        const { getByRole } = render(<HomeScreen />)
+        fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+        expect(mockPush).toHaveBeenCalledWith(
+          '/session/active?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
+        )
+      })
     })
   })
 

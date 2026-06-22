@@ -23,6 +23,7 @@ const mockAddEventListener = jest.spyOn(BackHandler, 'addEventListener')
 
 const mockClearSessionInProgress = jest.fn()
 const mockClearSessionIntention = jest.fn()
+const mockClearGroundingActive = jest.fn()
 const mockUseAuth = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
@@ -49,6 +50,7 @@ beforeEach(() => {
     authState: { userId: 'user-123' },
     clearSessionInProgress: mockClearSessionInProgress,
     clearSessionIntention: mockClearSessionIntention,
+    clearGroundingActive: mockClearGroundingActive,
   })
   useLocalSearchParams.mockReturnValue({
     sessionId: 'session-uuid-1',
@@ -108,6 +110,12 @@ describe('GroundingScreen', () => {
     )
   })
 
+  it('Keep Going calls clearGroundingActive (Story 9.2 — normal exit)', async () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.keepGoing')) })
+    expect(mockClearGroundingActive).toHaveBeenCalled()
+  })
+
   it('Keep Going bails with no navigation when transition fails', async () => {
     transition.mockReturnValueOnce({ ok: false, error: { code: 'INVALID_TRANSITION', message: 'no' } })
     const { getByLabelText } = render(<GroundingScreen />)
@@ -154,6 +162,14 @@ describe('GroundingScreen', () => {
     await waitFor(() => {
       expect(mockClearSessionInProgress).toHaveBeenCalled()
       expect(mockClearSessionIntention).toHaveBeenCalledWith('session-uuid-1')
+    })
+  })
+
+  it('Stop Session calls clearGroundingActive (Story 9.2 — normal exit)', async () => {
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    await waitFor(() => {
+      expect(mockClearGroundingActive).toHaveBeenCalled()
     })
   })
 

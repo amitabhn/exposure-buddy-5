@@ -2219,3 +2219,37 @@ So that every Phase 1 India-specific launch requirement is machine-verified befo
 **Given** the production backend
 **When** the load test runs
 **Then** a load test simulating 10,000 concurrent active users is executed against the production (or production-equivalent staging) backend; all API endpoints used in the core ERP session loop respond within NFR-PERF-02 targets (SUDS log write ≤500ms P95) under load; no errors exceed 0.1% error rate; results are documented in `apps/mobile/docs/load-test-results.md`; the load test must complete and pass before the India launch date is confirmed
+
+---
+
+### Story 9.10: Silent Enqueue-Failure Remediation — User-Visible Error/Retry UI
+
+As a user whose offline write (a SUDS reading, a session state change, a ladder edit) fails to enqueue,
+I want to be told clearly that something didn't save and given a way to retry,
+So that I never mistake a silent failure for a successful action, especially mid-exposure when trust in the app matters most (NFR-OFFLINE-01, NFR-REL-02).
+
+**Acceptance Criteria:**
+
+**Given** `ADR-OFFLINE-DEGRADATION.md` Decision 2's tracked follow-up ("the next story that touches the sync mutation queue, or before Epic 10 begins, whichever comes first")
+**When** this story is implemented
+**Then** it is treated as satisfying that trigger condition; Story 9.2 (offline recovery integration tests) explicitly declined to implement this remediation and deferred it here
+
+**Given** the full set of `adapter.enqueue()` call sites in `apps/mobile`
+**When** this story's audit runs
+**Then** every silent-failure call site is catalogued, not just the two documented in `ADR-OFFLINE-DEGRADATION.md` Decision 2 — that list (`assessment.tsx:handleNext`, `grounding.tsx`) is known incomplete as of this story's creation; re-run the audit against current source rather than trusting the ADR's list verbatim
+
+**Given** a cataloged silent-failure call site
+**When** the triage is performed
+**Then** each site is classified by clinical stakes per the ADR's existing F3–F6 scope table (e.g. SUDS logging during active exposure and Calm Me abandonment are high-stakes; non-session ladder edits are lower-stakes); remediation is prioritized accordingly, highest-stakes sites first
+
+**Given** a remediated call site
+**When** an `enqueue()` call throws
+**Then** the user sees a clear, calm, actionable message (reusing the canonical copy pattern established in Story 9.6: "We couldn't save your session right now. It's stored on your device and will sync automatically." — adapted per call site) and, where the action is meaningfully retryable, a retry affordance; this story may implement the message-only path ahead of Story 9.6 if 9.6 has not yet landed, using the same canonical copy so the two stories don't diverge
+
+**Given** the existing `Alert.alert()` pattern used for the analogous MMKV-read-failure case in `apps/mobile/app/(onboarding)/welcome.tsx`
+**When** this story selects a UI mechanism for the error message
+**Then** it either reuses that established pattern or documents why a different mechanism (toast/banner) was chosen instead — there is no existing toast/banner component in the codebase today, so introducing one is itself a decision this story must make explicit, not assume
+
+**Given** all remediated call sites
+**When** the story closes
+**Then** `deferred-work.md` entries `4-2-D2`, `4-2-D4`, and `5-2-W15` are updated or closed to reflect what was actually remediated vs. what remains deferred (if anything)
