@@ -42,6 +42,10 @@ interface AuthContextValue {
   // clearSessionInProgress — see KV_KEYS.GROUNDING_ACTIVE for the staleness contract.
   setGroundingActive: () => void
   clearGroundingActive: () => void
+  // Raw epoch-ms timestamp, or null if never set/stale-cleared. Callers resolve
+  // freshness via isGroundingSignalFresh() (packages/core) before using this for
+  // cold-start recovery routing — see (app)/index.tsx.
+  getGroundingActiveAt: () => number | null
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
@@ -78,6 +82,7 @@ export const AuthContext = createContext<AuthContextValue>({
   getSessionIntention: () => null,
   setGroundingActive: () => {},
   clearGroundingActive: () => {},
+  getGroundingActiveAt: () => null,
   getLastUsedTechnique: () => null,
   setLastUsedTechnique: () => {},
   getReminderTime: () => null,
@@ -346,6 +351,14 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     store.delete(KV_KEYS.GROUNDING_ACTIVE(userId))
   }
 
+  function getGroundingActiveAt(): number | null {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return null
+    // Stored as a number type (Date.now()) — must read via getNumber, not getString.
+    return store.getNumber(KV_KEYS.GROUNDING_ACTIVE(userId)) ?? null
+  }
+
   function getLastUsedTechnique(fearItemId: string): TechniqueType | null {
     const store = mmkvRef.current
     const userId = authState.userId
@@ -430,6 +443,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       getSessionIntention,
       setGroundingActive,
       clearGroundingActive,
+      getGroundingActiveAt,
       getLastUsedTechnique,
       setLastUsedTechnique,
       getReminderTime,

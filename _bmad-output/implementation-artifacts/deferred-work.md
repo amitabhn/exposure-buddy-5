@@ -1,5 +1,19 @@
 # Deferred Work
 
+## Deferred from: code review of 9-2-offline-session-recovery-integration-tests (2026-06-22)
+
+_Multi-layer implementation review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of `main..story/9-2-offline-session-recovery-integration-tests` (commit `2a47de7`). Acceptance Auditor found zero AC violations. A decision-needed finding (grounding-state reader never wired into production cold-start routing) and a patch finding (vacuous test assertion) remain open in the story file. Original findings: `9-2-offline-session-recovery-integration-tests.md` → "Review Findings" → "Code Review — Implementation (2026-06-22)"._
+
+- **`isGroundingSignalFresh` has no guard against a future `groundingActiveAt` (clock skew).** A skewed device clock makes `now - groundingActiveAt` negative, which is always `< GROUNDING_STALENESS_WINDOW_MS`, so the flag would read as fresh indefinitely until the clock corrects. Low severity — requires clock skew coinciding with an abnormal exit; `clearGroundingActive()` on every normal exit path remains the primary safety net. [`packages/core/src/erp/session-state-machine.ts:78-81`]
+- **No NaN/non-numeric guard on `isGroundingSignalFresh`'s `groundingActiveAt` input.** Moot until a production reader exists (see the open Decision finding in the story file); whoever implements the reader must validate the parsed MMKV value before calling this function. [`packages/core/src/erp/session-state-machine.ts:78-81`]
+- **`setGroundingActive`/`clearGroundingActive` silently no-op when `store`/`userId` is missing, with no logging.** Pre-existing pattern identical to `setSessionInProgress`/`clearSessionInProgress` in the same file (already accepted as 5-2-W13 below). [`packages/supabase/src/auth/AuthProvider.tsx:335-347`]
+- **`authProvider.groundingSignal.test.ts` tests an inline replica of `AuthProvider.tsx`'s `setGroundingActive`/`clearGroundingActive` rather than the real export.** Pre-existing convention established by `authProvider.sessionIntention.test.ts` (already accepted as CR-5-3-4 below). [`packages/supabase/__tests__/auth/authProvider.groundingSignal.test.ts`]
+- **`parseSessionRecoveryData` replica in the packages/core integration test duplicates `AuthProvider.tsx:199-202`'s parsing logic rather than importing it.** Pre-existing extraction-for-testability convention, self-documented in the test file's own comment. [`packages/core/src/__tests__/integration/offline-recovery.test.ts:36-52`]
+- **`makeMockMmkv()` is now duplicated verbatim across 3 test files instead of a shared test-utility module.** Pre-existing duplication pattern; this story adds a 3rd copy rather than introducing the duplication. [`packages/core/src/__tests__/integration/offline-recovery.test.ts`, `packages/supabase/__tests__/auth/authProvider.groundingSignal.test.ts`, `packages/supabase/__tests__/auth/authProvider.sessionIntention.test.ts`]
+- **No negative/failure-path test for `adapter.enqueue()` rejecting in the Scenario 1 test.** Silent-enqueue-failure handling is already a tracked, accepted gap (ADR-OFFLINE-DEGRADATION Decision 2 → Story 9.10 backlog item). [`packages/sync/__tests__/integration/offline-recovery.test.ts`]
+
+---
+
 ## Deferred from: code review of 9-1-powersync-schema-sync-and-offline-degradation-adr (2026-06-22)
 
 - No mechanism prevents the original `ADR-OFFLINE-DEGRADATION.md` "Required before F3/F4" gate from being silently unenforced again — Epics 5-7 shipped past it before Story 9.1 finally closed the gap retroactively. No retrospective or process change was made to stop the same gate-skipping from recurring for future ADRs.

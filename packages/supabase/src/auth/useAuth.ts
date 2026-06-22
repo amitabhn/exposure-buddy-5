@@ -37,6 +37,7 @@ interface UseAuthResult {
   getSessionIntention: (sessionId: string) => string | null
   setGroundingActive: () => void
   clearGroundingActive: () => void
+  getGroundingActiveAt: () => number | null
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
@@ -84,6 +85,7 @@ export function useAuth(): UseAuthResult {
     getSessionIntention: auth.getSessionIntention,
     setGroundingActive: auth.setGroundingActive,
     clearGroundingActive: auth.clearGroundingActive,
+    getGroundingActiveAt: auth.getGroundingActiveAt,
     // Technique preference (AuthContext)
     getLastUsedTechnique: auth.getLastUsedTechnique,
     setLastUsedTechnique: auth.setLastUsedTechnique,

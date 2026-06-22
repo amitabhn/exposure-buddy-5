@@ -74,22 +74,21 @@ describe('Offline recovery — Scenario 1: network drop during active exposure',
     expect(toPreSession.ok).toBe(true)
     const toActive = transition(toPreSession.ok ? toPreSession.value : 'idle', { type: 'exposure.begun' })
     expect(toActive).toEqual({ ok: true, value: 'active' })
-    const stateBeforeEnqueue = toActive.ok ? toActive.value : 'idle'
-    expect(stateBeforeEnqueue).toBe('active')
 
-    await adapter.enqueue('exposure_sessions', 'UPDATE', {
+    const enqueueResult = await adapter.enqueue('exposure_sessions', 'UPDATE', {
       id: 'session-uuid-1',
       status: 'started',
       updated_at: '2026-06-22T10:00:00.000Z',
     })
 
-    // enqueue() must not itself drive a transition — re-deriving the state via the
-    // state machine (not via any adapter call) confirms it is still 'active', i.e.
-    // calling enqueue() had no side effect on session state.
-    expect(stateBeforeEnqueue).toBe('active')
-    // adapter.enqueue has no return value or side channel that could mutate
-    // SessionState — confirmed by reading both modules: session-state-machine.ts
-    // has zero imports of adapter.ts, and adapter.ts has zero imports of
-    // session-state-machine.ts or transition().
+    // enqueue() returns no value that could represent or mutate a SessionState — its
+    // only observable side effects are on mockDb (asserted in the queue-count test
+    // above). The deeper "enqueue() cannot drive a transition" guarantee is structural,
+    // not something a runtime assertion here can observe: session-state-machine.ts has
+    // zero imports of adapter.ts and vice versa, so no code path exists for one to reach
+    // the other. Re-asserting `toActive.value === 'active'` after the call would only
+    // re-check the same unchanged value computed above it — not prove anything about
+    // the enqueue() call that just happened.
+    expect(enqueueResult).toBeUndefined()
   })
 })
