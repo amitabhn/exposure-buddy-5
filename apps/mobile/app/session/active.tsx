@@ -177,6 +177,7 @@ export default function ActiveScreen() {
             onPress={handleStopExposure}
             accessibilityRole="button"
             accessibilityLabel={t('session.active.stopExposure')}
+            accessibilityHint={t('session.active.stopExposureHint')}
           >
             <Text style={styles.stopButtonText}>{t('session.active.stopExposure')}</Text>
           </TouchableOpacity>
@@ -206,7 +207,12 @@ export default function ActiveScreen() {
             >
               <Text style={styles.logConfirmText}>{t('session.active.logButton')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setSudsModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setSudsModalVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('ladder.cancel')}
+            >
               <Text style={styles.cancelText}>{t('ladder.cancel')}</Text>
             </TouchableOpacity>
           </View>
@@ -247,6 +253,8 @@ export default function ActiveScreen() {
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setCompletionModalVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('ladder.cancel')}
             >
               <Text style={styles.cancelText}>{t('ladder.cancel')}</Text>
             </TouchableOpacity>

@@ -43,11 +43,14 @@ export function CalmMeFab() {
   return (
     // eslint-disable-next-line i18next/no-literal-string
     <View style={styles.container} pointerEvents="box-none">
-      <CalmMeButton onPress={handlePress} accessibilityLabel={t('calmMe.fab')} />
+      <CalmMeButton onPress={handlePress} accessibilityLabel={t('calmMe.fab')} accessibilityHint={t('calmMe.fabHint')} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', right: 24, top: 48 },
+  // zIndex is required now that CalmMeFab mounts before <Stack> in app/_layout.tsx
+  // (Story 9.3 focus-order fix) — without it, the Stack's opaque screen content paints
+  // over the FAB instead of the reverse, since paint order otherwise follows source order.
+  container: { position: 'absolute', right: 24, top: 48, zIndex: 10, elevation: 10 },
 })

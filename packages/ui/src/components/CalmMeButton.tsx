@@ -5,12 +5,13 @@ import { color } from '../tokens/theme'
 export interface CalmMeButtonProps {
   onPress: () => void
   accessibilityLabel: string
+  accessibilityHint?: string
 }
 
 export const CalmMeButton = React.forwardRef<
   React.ElementRef<typeof TouchableOpacity>,
   CalmMeButtonProps
->(function CalmMeButton({ onPress, accessibilityLabel }, ref) {
+>(function CalmMeButton({ onPress, accessibilityLabel, accessibilityHint }, ref) {
   return (
     <TouchableOpacity
       ref={ref}
@@ -18,8 +19,12 @@ export const CalmMeButton = React.forwardRef<
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
-      <Text style={styles.icon}>♡</Text>
+      {/* Decorative pictographic glyph, not reading content — scaling it with system
+          font size breaks out of the FAB's fixed 56x56 circular bounds (Story 9.3,
+          Task 7 max-font-size walkthrough finding). */}
+      <Text style={styles.icon} allowFontScaling={false}>♡</Text>
     </TouchableOpacity>
   )
 })

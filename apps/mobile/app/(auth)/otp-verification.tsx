@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useRef } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
@@ -229,7 +229,7 @@ export default function OtpVerificationScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('common.appName')}</Text>
       <Text style={styles.subtitle}>{t('auth.otp.enterCode', { identifier })}</Text>
 
@@ -280,13 +280,14 @@ export default function OtpVerificationScreen() {
       >
         <Text style={styles.privacyLinkText}>{t('legal.privacyNotice.title')}</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
+  // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

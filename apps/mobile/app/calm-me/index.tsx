@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -90,7 +90,7 @@ export default function CalmMeScreen() {
     <>
       {/* eslint-disable-next-line i18next/no-literal-string */}
       <Stack.Screen options={{ headerShown: false, animation: 'fade' }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
           style={styles.exitButton}
           onPress={handleExit}
@@ -184,13 +184,17 @@ export default function CalmMeScreen() {
             <SudsScale value={null} onChange={handleFreshSudsSelected} />
           </View>
         )}
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32 },
+  // flexGrow (not flex) on a ScrollView's contentContainerStyle — preserves the existing
+  // marginTop:'auto' bottom-pinned footer behaviour for short content (the container still
+  // grows to fill the viewport), while letting tall content (Story 9.3 max-font-size
+  // walkthrough finding) scroll instead of being clipped off-screen.
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32 },
   exitButton: { position: 'absolute', top: 48, right: 24, padding: 8, zIndex: 1 },
   exitIcon: { fontSize: 22, color: '#111827' },
   affirmation: {

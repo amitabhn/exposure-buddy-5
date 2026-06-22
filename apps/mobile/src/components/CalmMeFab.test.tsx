@@ -78,4 +78,11 @@ describe('CalmMeFab', () => {
     fireEvent.press(getByRole('button'))
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me')
   })
+
+  it('passes a translated accessibilityHint through to the underlying CalmMeButton', () => {
+    mockUsePathname.mockReturnValue('/')
+    const { getByRole } = render(<CalmMeFab />)
+    const el = getByRole('button')
+    expect(el.props.accessibilityHint).toBe('calmMe.fabHint')
+  })
 })

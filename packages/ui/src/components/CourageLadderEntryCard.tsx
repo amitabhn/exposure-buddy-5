@@ -6,18 +6,20 @@ export interface CourageLadderEntryCardProps {
   ladderItemCount: number
   lowestPendingItem: FearLadderItemSummary | null
   onPress: () => void
+  accessibilityLabel: string
 }
 
 export const CourageLadderEntryCard = React.forwardRef<
   React.ElementRef<typeof TouchableOpacity>,
   CourageLadderEntryCardProps
->(function CourageLadderEntryCard({ ladderItemCount, lowestPendingItem, onPress }, ref) {
+>(function CourageLadderEntryCard({ ladderItemCount, lowestPendingItem, onPress, accessibilityLabel }, ref) {
   return (
     <TouchableOpacity
       ref={ref}
       style={styles.card}
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
       {lowestPendingItem ? (
         <View>

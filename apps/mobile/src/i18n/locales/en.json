@@ -151,6 +151,11 @@
     },
     "state10": {
       "message": "You've completed every situation on your Courage Ladder. Well done."
+    },
+    "courageCard": {
+      "itemLabel": "{{description}}, anxiety level {{suds}} out of 10",
+      "emptyLabel": "Add your first situation to get started",
+      "noPendingLabel": "No pending items"
     }
   },
   "ladder": {
@@ -206,6 +211,7 @@
       "sudsModalTitle": "How anxious are you right now?",
       "logButton": "Log",
       "stopExposure": "Stop exposure",
+      "stopExposureHint": "Ends this exposure now and takes you to a grounding exercise",
       "completeExposure": "Complete exposure",
       "completionModalTitle": "How are you feeling now?",
       "finishSession": "Finish session"
@@ -250,6 +256,7 @@
   },
   "calmMe": {
     "fab": "Calm Me",
+    "fabHint": "Opens calming techniques and crisis support",
     "exit": "Close",
     "affirmation": {
       "1": "Your nervous system is doing exactly what it's supposed to do"

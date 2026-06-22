@@ -18,9 +18,19 @@ const ANCHOR_KEYS: Record<number, string> = {
 
 export function SudsScale({ value, onChange }: SudsScaleProps): React.ReactElement {
   const { t } = useTranslation()
+  const selectedAnchorKey = value !== null ? ANCHOR_KEYS[value] : undefined
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessibilityRole="radiogroup"
+      accessibilityValue={{
+        min: 0,
+        max: 10,
+        ...(value !== null ? { now: value } : {}),
+        ...(selectedAnchorKey ? { text: t(selectedAnchorKey) } : {}),
+      }}
+    >
       {Array.from({ length: 11 }, (_, i) => i).map((v) => {
         const isSelected = value === v
         const anchorKey = ANCHOR_KEYS[v]
@@ -49,7 +59,7 @@ export function SudsScale({ value, onChange }: SudsScaleProps): React.ReactEleme
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   button: {
-    width: 56,
+    minWidth: 56,
     minHeight: 56,
     borderRadius: 8,
     borderWidth: 1,

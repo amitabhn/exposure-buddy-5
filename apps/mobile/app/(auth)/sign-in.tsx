@@ -1,5 +1,5 @@
 import { useReducer, useEffect } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
@@ -157,7 +157,7 @@ export default function SignInScreen() {
       : t('auth.otp.phoneInputHint')
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('common.appName')}</Text>
       <Text style={styles.subtitle}>{t('auth.otp.sendCode')}</Text>
 
@@ -283,13 +283,14 @@ export default function SignInScreen() {
           <Text style={styles.buttonText}>DEV: Sign in as test user</Text>
         </TouchableOpacity>
       ) : null}
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
+  // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

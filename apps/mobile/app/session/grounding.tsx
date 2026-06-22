@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, BackHandler } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, BackHandler, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -85,7 +85,7 @@ export default function GroundingScreen() {
     <>
       {/* headerShown: false + gestureEnabled: false set in session/_layout.tsx — forward-only */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         {/* TODO post-MVP: consider distinct framing copy for grounding vs. Calm Me contexts */}
         <Text style={styles.affirmation}>{t(CALM_ME_AFFIRMATIONS[0]!)}</Text>
 
@@ -138,13 +138,14 @@ export default function GroundingScreen() {
             <Text style={styles.stopText}>{t('grounding.stopSession')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center' },
+  // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center' },
   affirmation: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', lineHeight: 30, marginBottom: 32 },
   techniquePicker: { gap: 12, marginBottom: 32 },
   techniqueCard: {

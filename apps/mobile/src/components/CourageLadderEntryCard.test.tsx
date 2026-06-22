@@ -13,6 +13,7 @@ describe('CourageLadderEntryCard SUDS clamp', () => {
         ladderItemCount={1}
         lowestPendingItem={{ ...baseItem, predictedSuds: 12 }}
         onPress={() => {}}
+        accessibilityLabel="Elevator ride, anxiety level 10 out of 10"
       />,
     )
     expect(getByText('Anxiety: 10/10')).toBeTruthy()
@@ -24,6 +25,7 @@ describe('CourageLadderEntryCard SUDS clamp', () => {
         ladderItemCount={1}
         lowestPendingItem={{ ...baseItem, predictedSuds: -3 }}
         onPress={() => {}}
+        accessibilityLabel="Elevator ride, anxiety level 0 out of 10"
       />,
     )
     expect(getByText('Anxiety: 0/10')).toBeTruthy()
@@ -35,6 +37,7 @@ describe('CourageLadderEntryCard SUDS clamp', () => {
         ladderItemCount={1}
         lowestPendingItem={{ ...baseItem, predictedSuds: 7.6 }}
         onPress={() => {}}
+        accessibilityLabel="Elevator ride, anxiety level 8 out of 10"
       />,
     )
     expect(getByText('Anxiety: 8/10')).toBeTruthy()
@@ -46,8 +49,21 @@ describe('CourageLadderEntryCard SUDS clamp', () => {
         ladderItemCount={1}
         lowestPendingItem={{ ...baseItem, predictedSuds: 5 }}
         onPress={() => {}}
+        accessibilityLabel="Elevator ride, anxiety level 5 out of 10"
       />,
     )
     expect(getByText('Anxiety: 5/10')).toBeTruthy()
+  })
+
+  it('reflects the accessibilityLabel prop on the rendered button (Story 9.3 P0 fix)', () => {
+    const { getByRole } = render(
+      <CourageLadderEntryCard
+        ladderItemCount={1}
+        lowestPendingItem={{ ...baseItem, predictedSuds: 5 }}
+        onPress={() => {}}
+        accessibilityLabel="Elevator ride, anxiety level 5 out of 10"
+      />,
+    )
+    expect(getByRole('button').props.accessibilityLabel).toBe('Elevator ride, anxiety level 5 out of 10')
   })
 })
