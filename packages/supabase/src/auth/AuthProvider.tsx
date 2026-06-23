@@ -160,16 +160,21 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     // Bootstrap "has authed before" flag (persisted across sign-out)
     setHasAuthedBeforeLocal(getHasAuthedBefore(mmkv))
 
-    // Bootstrap pending deletion state
-    try {
-      // eslint-disable-next-line i18next/no-literal-string
-      const raw = mmkv.getString('pending_deletion_request')
-      if (raw) setPendingDeletion(JSON.parse(raw) as PendingDeletionRecord)
-    } catch {
-      // Corrupt entry — ignore
+    const stored = getAuthState(mmkv)
+
+    // Bootstrap pending deletion state — scoped by userId (Story 9.4) so a stale record
+    // left by a previous account on this device can never surface for a different user.
+    // Only safe to read once stored.userId is known; when absent, leave pendingDeletion
+    // at its existing default (null) — there is no userId to scope the key by.
+    if (stored.userId) {
+      try {
+        const raw = mmkv.getString(KV_KEYS.PENDING_DELETION_REQUEST(stored.userId))
+        if (raw) setPendingDeletion(JSON.parse(raw) as PendingDeletionRecord)
+      } catch {
+        // Corrupt entry — ignore
+      }
     }
 
-    const stored = getAuthState(mmkv)
     if (stored.session) {
       createSupabaseClient()
         .auth.setSession({
@@ -218,6 +223,18 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
           // left over from the State 7/8 era. Safe no-op when the key is absent.
           store.delete(KV_KEYS.SESSION_DEBRIEF_PENDING(session.user.id))
           console.log('[AuthProvider] Option A wipe: cleared stale SESSION_DEBRIEF_PENDING')
+          // Read pending-deletion record scoped to this user (Story 9.4) — covers the warm
+          // in-app account-switch case (a user signs out and a different user signs in
+          // within the same running app session, no app restart). Setting to null when
+          // absent/corrupt is required, not just a default — it clears any stale record
+          // still held in React state from the previous signed-in user.
+          try {
+            const pendingRaw = store.getString(KV_KEYS.PENDING_DELETION_REQUEST(session.user.id))
+            setPendingDeletion(pendingRaw ? (JSON.parse(pendingRaw) as PendingDeletionRecord) : null)
+          } catch {
+            store.delete(KV_KEYS.PENDING_DELETION_REQUEST(session.user.id))
+            setPendingDeletion(null)
+          }
         }
       } else {
         if (store) clearAuthState(store)
@@ -240,23 +257,24 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
 
   async function requestAccountDeletion(): Promise<void> {
     if (!authState.userId) throw new Error('Cannot request erasure: no authenticated user')
-    // Capture once — eliminates redundant guards below and prevents silent-skip if ref races.
+    // Capture once — single source of truth for this call, eliminates redundant
+    // non-null assertions below and prevents silent-skip if ref races.
+    const userId = authState.userId
     const mmkv = mmkvRef.current
     if (!mmkv) throw new Error('Cannot request erasure: storage not initialised')
 
     // Step A — Write 'pending' BEFORE the try-catch, before calling requestErasure()
     // (F2: write evidence of submission regardless of network outcome.
     //  Replaces the write DpoServiceStub previously did — now invariant across all IDpoService implementations.)
-    // eslint-disable-next-line i18next/no-literal-string
-    const pendingRecord: PendingDeletionRecord = { userId: authState.userId!, requestedAt: new Date().toISOString(), status: 'pending' }
-    mmkv.set('pending_deletion_request', JSON.stringify(pendingRecord))
+    const pendingRecord: PendingDeletionRecord = { userId, requestedAt: new Date().toISOString(), status: 'pending' }
+    mmkv.set(KV_KEYS.PENDING_DELETION_REQUEST(userId), JSON.stringify(pendingRecord))
     setPendingDeletion(pendingRecord)
 
     // Model B (DPDPA §13): UserErasureRequestService calls /dpo/request-deletion (user-authenticated)
     // to persist the deletion request server-side. DPO operator processes it via the Story 3.4 panel.
     let erasureSucceeded = false
     try {
-      await dpoServiceRef.current.requestErasure(authState.userId)
+      await dpoServiceRef.current.requestErasure(userId)
       erasureSucceeded = true
     } catch (erasureError) {
       // Log and continue — the session is always cleared regardless (sign-out proceeds below).
@@ -268,11 +286,10 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     // On failure the record stays 'pending' — not falsely marked completed.
     if (erasureSucceeded) {
       try {
-        // eslint-disable-next-line i18next/no-literal-string
-        const raw = mmkv.getString('pending_deletion_request')
+        const raw = mmkv.getString(KV_KEYS.PENDING_DELETION_REQUEST(userId))
         if (raw) {
           const record = JSON.parse(raw) as PendingDeletionRecord
-          mmkv.set('pending_deletion_request', JSON.stringify({ ...record, status: 'completed' }))
+          mmkv.set(KV_KEYS.PENDING_DELETION_REQUEST(userId), JSON.stringify({ ...record, status: 'completed' }))
           setPendingDeletion({ ...record, status: 'completed' })
         }
       } catch {
@@ -286,13 +303,14 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     // Server-side deletion_requested_at is the authoritative state.
     // Leaving the key intact would show a ghost record on next app launch with a different user.
     try {
-      // eslint-disable-next-line i18next/no-literal-string
-      mmkv.delete('pending_deletion_request')
+      mmkv.delete(KV_KEYS.PENDING_DELETION_REQUEST(userId))
       // Mirror MMKV deletion into React state — AuthProvider is not unmounted on sign-out,
       // so without this the context would still expose a stale 'completed' record.
       setPendingDeletion(null)
-    } catch {
-      // Best-effort — if MMKV is unavailable, nothing to clear
+    } catch (error) {
+      // Best-effort — if MMKV is unavailable, nothing to clear, but log so a cleanup
+      // failure is diagnosable instead of fully silent.
+      console.warn('[AuthProvider] Failed to clear pending deletion record:', error)
     }
   }
 

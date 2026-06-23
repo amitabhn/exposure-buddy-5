@@ -71,8 +71,9 @@ module.exports = {
       },
     ],
     // Ban raw MMKV key string literals in apps/mobile — all keys must come from KV_KEYS
-    // in @exposure-buddy/core. (packages/supabase/auth/session.ts is exempt — it is not
-    // in apps/mobile and owns its own MMKV_KEYS constant for auth keys.)
+    // in @exposure-buddy/core. (packages/supabase is the actual MMKV caller — apps/mobile
+    // has zero direct MMKV calls today; this rule here is a forward guard. packages/supabase
+    // is covered by its own copy of this rule in packages/supabase/.eslintrc.js.)
     'no-restricted-syntax': [
       'error',
       {

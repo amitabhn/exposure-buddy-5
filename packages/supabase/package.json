@@ -8,6 +8,7 @@
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run",
+    "lint": "eslint src --ext .ts,.tsx",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -23,6 +24,10 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "@types/react": "^19.1.4",
+    "@typescript-eslint/parser": "^8.59.4",
+    "eslint": "^8.57.0",
+    "react": "19.1.0",
+    "react-test-renderer": "19.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

@@ -194,9 +194,6 @@ importers:
       expo-secure-store:
         specifier: ~14.0.0
         version: 14.0.1(expo@54.0.34)
-      react:
-        specifier: 19.1.0
-        version: 19.1.0
       react-native:
         specifier: 0.81.5
         version: 0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.3(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0)
@@ -210,6 +207,18 @@ importers:
       '@types/react':
         specifier: ~19.1.4
         version: 19.1.17
+      '@typescript-eslint/parser':
+        specifier: ^8.59.4
+        version: 8.59.4(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-test-renderer:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

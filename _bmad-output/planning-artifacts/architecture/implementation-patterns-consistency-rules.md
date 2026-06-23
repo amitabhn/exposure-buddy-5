@@ -249,6 +249,9 @@ Transition: NORMAL → CRISIS_PAUSED (immediate on detection) → CRISIS_WRITE_W
 **MMKV key inventory (5a-i):**
 - `auth.state` — serialized `{ userId, accessToken, expiresAt }`; written by `setAuthState()`, cleared by `clearAuthState()` (sign-out)
 - `auth.hasAuthedBefore` — boolean flag; written by `setAuthState()` on every successful sign-in, **never cleared** by `clearAuthState()` — survives sign-out, persists until reinstall. Read once at cold start into `AuthContext.hasAuthedBefore`; downstream consumers call `useAuth().hasAuthedBefore` — never re-read MMKV directly (same rule as 5a above). Purpose: sign-in screen defaults to "Create account" on first-ever install, "Sign in" on any device that has previously authenticated (FR-AUTH-03).
+- `account:pending_deletion:${userId}` (`KV_KEYS.PENDING_DELETION_REQUEST`) — user-scoped `PendingDeletionRecord`; written/updated by `requestAccountDeletion()`, read on cold-start bootstrap (after `userId` is known) and on the `SIGNED_IN` listener branch, deleted (best-effort) at the end of `requestAccountDeletion()`. Scoped by `userId` to prevent a stale record from one account surfacing for a different account signing in on the same device (Story 9.4).
+
+**Raw MMKV key literals are lint-banned (Story 9.4):** every package that calls MMKV's `.set()`/`.getString()`/`.contains()`/`.delete()`/`.getBoolean()`/`.getNumber()` has a `no-restricted-syntax` ESLint rule banning a literal-string first argument — `apps/mobile/.eslintrc.js` and `packages/supabase/.eslintrc.js` each carry their own copy of the rule (apps/mobile has no current MMKV call sites; packages/supabase is the actual caller). All keys must come from a typed factory (`KV_KEYS` in `@exposure-buddy/core`, or `packages/supabase`'s own device-scoped `MMKV_KEYS` for the two pre-auth keys above).
 
 **Auth recheck during runtime (5b):**
 - `AppState` change to `active` → call `supabase.auth.getSession()` in the root layout's `useEffect`
