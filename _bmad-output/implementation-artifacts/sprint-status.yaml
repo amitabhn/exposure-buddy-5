@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-06-23 # Story 9.4 code review complete, done
+# last_updated: 2026-06-23 # Story 9.5 created via create-story workflow, ready-for-dev
 # project: exposure-buddy
 # project_key: NOKEY
 # tracking_system: file-system
@@ -123,7 +123,7 @@ development_status:
   9-2-offline-session-recovery-integration-tests: done
   9-3-accessibility-audit-and-p0-p1-remediation: in-progress
   9-4-mmkv-key-hygiene-and-storage-audit: done
-  9-5-e2e-smoke-test-suite-maestro: backlog
+  9-5-e2e-smoke-test-suite-maestro: ready-for-dev
   9-6-error-state-and-empty-state-ux-audit: backlog
   9-7-performance-budget-low-end-device-validation: backlog
   9-8-haptic-and-sound-degradation-audit: backlog
