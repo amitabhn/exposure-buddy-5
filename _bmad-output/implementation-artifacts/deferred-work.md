@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 9-4-mmkv-key-hygiene-and-storage-audit spec (2026-06-23)
+
+_Spec-only review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) plus a party-mode roundtable (Winston/Amelia/John) before any implementation, since the story was still `ready-for-dev`. Most decision-needed findings were resolved as fix-now and folded directly into the story's ACs/Tasks (see `9-4-mmkv-key-hygiene-and-storage-audit.md` → "Review Findings"). Only this one item was resolved as defer._
+
+- **No CI/lint guard prevents a future PR from introducing a new misclassified SecureStore/MMKV call site outside the ones audited by this story.** AC3's SecureStore/MMKV classification audit is a one-time grep snapshot, not a structural guard — despite the story's "structurally prevented" framing for the overall key-hygiene goal. Deferred rather than bundled into 9.4 because it's new enforcement infrastructure (rule design, scope decisions for what counts as a "key" needing classification) distinct from a bounded hygiene/bug-fix story. Candidate for its own lint-infrastructure story. [`packages/supabase/src/auth/session.ts`; potential future `.eslintrc.js` rule across packages]
+
+[`_bmad-output/implementation-artifacts/9-4-mmkv-key-hygiene-and-storage-audit.md`]
+
+---
+
 ## Deferred from: code review of 9-2-offline-session-recovery-integration-tests (2026-06-22)
 
 _Multi-layer implementation review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of `main..story/9-2-offline-session-recovery-integration-tests` (commit `2a47de7`). Acceptance Auditor found zero AC violations. A decision-needed finding (grounding-state reader never wired into production cold-start routing) and a patch finding (vacuous test assertion) remain open in the story file. Original findings: `9-2-offline-session-recovery-integration-tests.md` → "Review Findings" → "Code Review — Implementation (2026-06-22)"._
@@ -728,3 +738,15 @@ _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of th
 - **Hindi locale's `am`/`pm` keys are set to literal "AM"/"PM", identical to English**, rather than a Hindi-specific rendering. Plausibly an intentional, common Indian-app convention rather than an oversight, but unconfirmed — needs translator/product input, consistent with this project's existing "needs translator pass" backlog pattern for partial Hindi coverage. [`apps/mobile/src/i18n/locales/hi.json`]
 
 [`_bmad-output/implementation-artifacts/8-2-daily-local-session-reminder.md`]
+
+## Deferred from: code review of 9-4-mmkv-key-hygiene-and-storage-audit (2026-06-23)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of commit `89373c3` — the Story 9.4 implementation. Full detail in the "Review Findings (code review — 2026-06-23, post-implementation, commit 89373c3)" section of `9-4-mmkv-key-hygiene-and-storage-audit.md`._
+
+- **`requestAccountDeletion()` deletes the local pending-deletion record even when server-side erasure failed.** Logic unchanged by this diff (only the literal key was swapped for the `KV_KEYS` factory call); the adjacent "On failure the record stays 'pending'" comment is misleading and predates Story 9.4. [`packages/supabase/src/auth/AuthProvider.tsx:300-314`]
+- **`react-test-renderer` is deprecated upstream.** Substitution for `@testing-library/react-native` is justified for this `environment: 'node'` Vitest package today (avoids pulling in RN's Jest preset); revisit in a future test-infra story. [`packages/supabase/package.json`]
+- **No regression test covers two users each holding a legitimate pending-deletion record simultaneously** — only the "absent/null" isolation case is tested. Coverage enhancement, not required by AC2/Task 4's stated assertions. [`packages/supabase/__tests__/auth/authProvider.pendingDeletion.test.ts`]
+- **`react-native-mmkv` test mock is a bare empty class.** Valid today only because `AuthProvider` never instantiates `MMKV` itself; no active guard against future drift. [`packages/supabase/__tests__/auth/authProvider.pendingDeletion.test.ts`]
+- **Two independently hand-maintained copies of the MMKV-literal ESLint rule with no shared extraction.** Deliberate per this story's own Dev Notes (no `eslint-rules/` precedent in repo); flagged as the root cause of the `.contains()` selector-coverage drift resolved as a decision-needed item in the same review. [`apps/mobile/.eslintrc.js`, `packages/supabase/.eslintrc.js`]
+
+[`_bmad-output/implementation-artifacts/9-4-mmkv-key-hygiene-and-storage-audit.md`]

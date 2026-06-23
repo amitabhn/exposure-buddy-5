@@ -112,9 +112,7 @@ export function clearAuthState(mmkv: MMKV): void {
 export async function signOut(mmkv: MMKV | null): Promise<void> {
   await createSupabaseClient().auth.signOut()
   if (mmkv) clearAuthState(mmkv)
-  // eslint-disable-next-line i18next/no-literal-string
   await SecureStore.deleteItemAsync('supabase_access_token').catch(() => {})
-  // eslint-disable-next-line i18next/no-literal-string
   await SecureStore.deleteItemAsync('supabase_refresh_token').catch(() => {})
 }
 

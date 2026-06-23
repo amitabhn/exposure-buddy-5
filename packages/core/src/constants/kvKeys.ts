@@ -31,6 +31,10 @@ export const KV_KEYS = {
   // notification permission and of the stored time (time is retained when disabled so
   // re-enabling restores the last-picked value). (Story 8.2)
   SESSION_REMINDER_ENABLED:     (userId: string) => `notifications:reminder_enabled:${userId}`,
+  // Pending account-erasure record (PendingDeletionRecord). Scoped by userId so a stale
+  // record left by one account can never surface for a different account signing in on
+  // the same device. (Story 9.4)
+  PENDING_DELETION_REQUEST:     (userId: string) => `account:pending_deletion:${userId}`,
   // ── Device-scoped (constants) ────────────────────────────────────────────
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.
