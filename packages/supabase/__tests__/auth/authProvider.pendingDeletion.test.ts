@@ -52,8 +52,10 @@ import type { MMKV } from 'react-native-mmkv'
 function makeMockMmkv() {
   const store = new Map<string, string | boolean | number>()
   const setCalls: Array<[string, string | boolean | number]> = []
+  const getStringCalls: string[] = []
   return {
     getString: (key: string) => {
+      getStringCalls.push(key)
       const v = store.get(key)
       return typeof v === 'string' ? v : undefined
     },
@@ -72,6 +74,7 @@ function makeMockMmkv() {
     delete: (key: string) => store.delete(key),
     has: (key: string) => store.has(key),
     setCalls,
+    getStringCalls,
   }
 }
 
@@ -169,6 +172,10 @@ describe('AuthProvider pending-deletion userId scoping (Story 9.4)', () => {
       create(React.createElement(Tree))
     })
 
+    // Confirms the bootstrap actually scoped its read to user B's key (not that it merely
+    // skipped the read entirely, e.g. via stored.userId resolving to undefined, which would
+    // also produce a null pendingDeletion for the wrong reason).
+    expect(mmkv.getStringCalls).toContain(KV_KEYS.PENDING_DELETION_REQUEST('user-b'))
     expect(holder.value?.pendingDeletion).toBeNull()
     // The stale record itself is untouched — proves no cross-account read occurred.
     expect(mmkv.has(KV_KEYS.PENDING_DELETION_REQUEST('user-a'))).toBe(true)

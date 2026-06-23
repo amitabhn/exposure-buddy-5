@@ -18,9 +18,9 @@ module.exports = {
       'error',
       {
         selector:
-          "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(getString|set|getBoolean|getNumber|delete)$/] > Literal:first-child",
+          "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(getString|set|getBoolean|getNumber|delete|contains)$/] > Literal:first-child",
         message:
-          "Raw MMKV key string literals are banned in apps/mobile. Import KV_KEYS from '@exposure-buddy/core' and use a typed key constant.",
+          "Raw MMKV key string literals are banned in packages/supabase. Import KV_KEYS from '@exposure-buddy/core' and use a typed key constant.",
       },
     ],
   },

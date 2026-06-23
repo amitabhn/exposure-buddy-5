@@ -231,7 +231,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
           try {
             const pendingRaw = store.getString(KV_KEYS.PENDING_DELETION_REQUEST(session.user.id))
             setPendingDeletion(pendingRaw ? (JSON.parse(pendingRaw) as PendingDeletionRecord) : null)
-          } catch {
+          } catch (error) {
+            console.warn('[AuthProvider] Failed to parse pending deletion record on sign-in:', error)
             store.delete(KV_KEYS.PENDING_DELETION_REQUEST(session.user.id))
             setPendingDeletion(null)
           }
@@ -240,6 +241,7 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         if (store) clearAuthState(store)
         setAuthStateLocal(DEFAULT_AUTH_STATE)
         setSessionRecoveryDataLocal(null)
+        setPendingDeletion(null)
       }
       setIsLoading(false)
     })

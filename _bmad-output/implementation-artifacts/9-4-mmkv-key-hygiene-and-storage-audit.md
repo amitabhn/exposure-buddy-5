@@ -1,6 +1,6 @@
 # Story 9.4: MMKV Key Hygiene & Storage Audit
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -73,6 +73,24 @@ All 6 decision-needed items were resolved and folded directly into the ACs/Tasks
 - [x] [Review][Decision] **Split-the-story question (raised during roundtable, not in original triage):** resolved as **keep as one story**. Once D1 is fixed in full (not deferred), the process objection — shipping a known bypass under inflated claims in a low-scrutiny "lint hygiene" PR — no longer applies; splitting would add story/PR overhead for tightly-coupled fixes touching the same files.
 
 All `[Review][Patch]` line-citation, count, and citation-precision findings (AC2/Task 2.2 line numbers, KV_KEYS entry count, Task 3.1 call-site count, AC1/Task 1.3 citation ranges, References ADR split, Task 1.5 acceptance check, ESLint-rule-fires verification, consistency-rules.md doc update, ESLint version-pin confirmation, MMKV_KEY_ALIAS keystore-option citation, userId-source convergence note) were applied directly to the ACs/Tasks/Dev Notes/References above.
+
+### Review Findings (code review — 2026-06-23, post-implementation, commit 89373c3)
+
+- [x] [Review][Patch] ESLint MMKV-literal rule selector omits `.contains()` [packages/supabase/.eslintrc.js:21; apps/mobile/.eslintrc.js:81] — **Decision (user, 2026-06-23): patch both files now.** Both `no-restricted-syntax` selector regexes lacked `contains`, even though AC1's text and this diff's own new addition to `implementation-patterns-consistency-rules.md` both explicitly list `.contains()` as a banned-literal MMKV method. No current call site uses `.contains()` (latent gap only — confirmed via repo-wide grep). **Fixed:** added `contains` to the regex alternation (`/^(getString|set|getBoolean|getNumber|delete|contains)$/`) in both files.
+
+- [x] [Review][Patch] `packages/supabase/.eslintrc.js` error message says "banned in apps/mobile" [packages/supabase/.eslintrc.js:23] — The `no-restricted-syntax` rule's `message` string was copied verbatim from `apps/mobile/.eslintrc.js` along with the selector, but read "Raw MMKV key string literals are banned in apps/mobile..." inside a config that lives in and governs `packages/supabase`. **Fixed:** message now reads "...banned in packages/supabase...".
+
+- [x] [Review][Patch] `SIGNED_OUT` branch never clears `pendingDeletion` React state [packages/supabase/src/auth/AuthProvider.tsx:239-244] — The `onAuthStateChange` listener's no-session (`SIGNED_OUT`) branch cleared `authState`/`sessionRecoveryData` but never called `setPendingDeletion(null)`. A previously-signed-in user's pending-deletion record could linger in React context state across a plain sign-out, until the next `SIGNED_IN` event reset it. **Fixed:** added `setPendingDeletion(null)` alongside `setAuthStateLocal(DEFAULT_AUTH_STATE)`.
+
+- [x] [Review][Patch] Warm-switch corrupt-entry catch has no diagnostic logging [packages/supabase/src/auth/AuthProvider.tsx:231-238] — The `SIGNED_IN` branch's catch (on a corrupt `pendingDeletion` JSON parse) silently deleted the key and cleared state, with no logging — inconsistent with the `console.warn` hardening Task 2.5 added to `requestAccountDeletion()`'s catch a few lines later in the same diff. **Fixed:** added `console.warn('[AuthProvider] Failed to parse pending deletion record on sign-in:', error)`.
+
+- [x] [Review][Patch] Cold-start regression test doesn't prove which userId scoped the read [packages/supabase/__tests__/auth/authProvider.pendingDeletion.test.ts] — The "bootstrap resolves user B" test asserted `pendingDeletion` is `null` but never proved the bootstrap actually scoped its MMKV read to user B's key — a regression where `stored.userId` silently resolves to `undefined` would also produce `pendingDeletion === null` via the `if (stored.userId)` guard, passing for the wrong reason. **Fixed (revised from the initial finding's suggested approach):** an `authState.userId` assertion was tried first but is invalid — `authState` is only populated by the `onAuthStateChange` listener confirming a session, not by the bootstrap effect's local `stored.userId`, so it stayed `null` in this listener-silent test setup. Instead, extended the mock MMKV with a `getStringCalls` tracker and asserted `mmkv.getStringCalls` contains `KV_KEYS.PENDING_DELETION_REQUEST('user-b')`, directly proving the bootstrap read was scoped to the correct user, not merely skipped.
+
+- [x] [Review][Defer] `requestAccountDeletion()` deletes the local pending-deletion record even when server-side erasure failed [packages/supabase/src/auth/AuthProvider.tsx:300-314] — deferred, pre-existing: logic unchanged by this diff (only the literal key was swapped for the `KV_KEYS` factory call); the adjacent "On failure the record stays 'pending'" comment is misleading and predates Story 9.4.
+- [x] [Review][Defer] `react-test-renderer` is deprecated upstream [packages/supabase/package.json] — deferred: substitution is justified for this `environment: 'node'` Vitest package today (avoids pulling RN's Jest preset); revisit in a future test-infra story.
+- [x] [Review][Defer] No regression test covers two users each holding a legitimate pending-deletion record simultaneously [packages/supabase/__tests__/auth/authProvider.pendingDeletion.test.ts] — deferred: coverage enhancement, not required by AC2/Task 4's stated assertions.
+- [x] [Review][Defer] `react-native-mmkv` test mock is a bare empty class [packages/supabase/__tests__/auth/authProvider.pendingDeletion.test.ts] — deferred: valid today only because `AuthProvider` never instantiates `MMKV` itself; no active guard against future drift.
+- [x] [Review][Defer] Two independently hand-maintained copies of the MMKV-literal ESLint rule with no shared extraction [apps/mobile/.eslintrc.js, packages/supabase/.eslintrc.js] — deferred: deliberate per this story's own Dev Notes (no `eslint-rules/` precedent in repo); flagged as the root cause of the `.contains()` coverage drift above.
 
 ## Dev Notes
 

@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-06-23 # Story 9.4 moved to review
+# last_updated: 2026-06-23 # Story 9.4 code review complete, done
 # project: exposure-buddy
 # project_key: NOKEY
 # tracking_system: file-system
@@ -122,7 +122,7 @@ development_status:
   9-1-powersync-schema-sync-and-offline-degradation-adr: done
   9-2-offline-session-recovery-integration-tests: done
   9-3-accessibility-audit-and-p0-p1-remediation: in-progress
-  9-4-mmkv-key-hygiene-and-storage-audit: review
+  9-4-mmkv-key-hygiene-and-storage-audit: done
   9-5-e2e-smoke-test-suite-maestro: backlog
   9-6-error-state-and-empty-state-ux-audit: backlog
   9-7-performance-budget-low-end-device-validation: backlog
