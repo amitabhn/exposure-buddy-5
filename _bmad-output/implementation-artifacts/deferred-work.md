@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 9-4-mmkv-key-hygiene-and-storage-audit spec (2026-06-23)
+
+_Spec-only review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) plus a party-mode roundtable (Winston/Amelia/John) before any implementation, since the story was still `ready-for-dev`. Most decision-needed findings were resolved as fix-now and folded directly into the story's ACs/Tasks (see `9-4-mmkv-key-hygiene-and-storage-audit.md` → "Review Findings"). Only this one item was resolved as defer._
+
+- **No CI/lint guard prevents a future PR from introducing a new misclassified SecureStore/MMKV call site outside the ones audited by this story.** AC3's SecureStore/MMKV classification audit is a one-time grep snapshot, not a structural guard — despite the story's "structurally prevented" framing for the overall key-hygiene goal. Deferred rather than bundled into 9.4 because it's new enforcement infrastructure (rule design, scope decisions for what counts as a "key" needing classification) distinct from a bounded hygiene/bug-fix story. Candidate for its own lint-infrastructure story. [`packages/supabase/src/auth/session.ts`; potential future `.eslintrc.js` rule across packages]
+
+[`_bmad-output/implementation-artifacts/9-4-mmkv-key-hygiene-and-storage-audit.md`]
+
+---
+
 ## Deferred from: code review of 9-2-offline-session-recovery-integration-tests (2026-06-22)
 
 _Multi-layer implementation review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of `main..story/9-2-offline-session-recovery-integration-tests` (commit `2a47de7`). Acceptance Auditor found zero AC violations. A decision-needed finding (grounding-state reader never wired into production cold-start routing) and a patch finding (vacuous test assertion) remain open in the story file. Original findings: `9-2-offline-session-recovery-integration-tests.md` → "Review Findings" → "Code Review — Implementation (2026-06-22)"._
