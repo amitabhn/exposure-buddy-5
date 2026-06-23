@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -27,7 +27,7 @@ export default function BriefingScreen() {
     <>
       {/* headerShown: false + gestureEnabled: false set in session/_layout.tsx — forward-only, no skip affordance */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{t('session.briefing.title')}</Text>
         <Text style={styles.sessionContext}>{t('session.briefing.sessionContext')}</Text>
 
@@ -47,13 +47,17 @@ export default function BriefingScreen() {
         >
           <Text style={styles.readyText}>{t('session.briefing.readyButton')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48, justifyContent: 'center' },
+  // Story 9.3 max-font-size walkthrough: justifyContent:'center' on a non-scrolling View
+  // centers content even when it's taller than the viewport, clipping the top of the title
+  // off-screen. flexGrow + justifyContent on the ScrollView's content container preserves
+  // the centered look for short content while scrolling once content overflows.
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48, justifyContent: 'center' },
   title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 16, textAlign: 'center' },
   sessionContext: { fontSize: 16, color: '#374151', lineHeight: 26, textAlign: 'center', marginBottom: 32 },
   letterBlock: { marginBottom: 32 },

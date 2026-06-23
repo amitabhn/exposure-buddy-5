@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -49,7 +49,7 @@ export default function TechniqueScreen() {
           headerBackVisible: false,
         }}
       />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>{t('session.technique.title')}</Text>
 
         {TECHNIQUES.map((type) => {
@@ -79,13 +79,15 @@ export default function TechniqueScreen() {
         >
           <Text style={styles.continueText}>{t('session.technique.continue')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
+  // Story 9.3 max-font-size walkthrough: at large accessibility text sizes the 3 technique
+  // cards plus Continue button no longer fit in the viewport — ScrollView keeps them reachable.
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
   heading: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 20 },
   card: {
     borderWidth: 1,

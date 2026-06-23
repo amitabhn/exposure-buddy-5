@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +9,7 @@ export default function AbandonedScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.message}>{t('session.abandoned.message')}</Text>
 
         <TouchableOpacity
@@ -20,13 +20,16 @@ export default function AbandonedScreen() {
         >
           <Text style={styles.returnText}>{t('common.back')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
+  // Story 9.3 max-font-size walkthrough: justifyContent:'center' on a non-scrolling View
+  // clips the top of the message off-screen once it's taller than the viewport — see
+  // session/briefing.tsx for the same fix pattern.
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center', alignItems: 'center' },
   message: { fontSize: 18, color: '#374151', textAlign: 'center', lineHeight: 28, marginBottom: 48 },
   returnButton: { paddingVertical: 12, alignItems: 'center' },
   returnText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },

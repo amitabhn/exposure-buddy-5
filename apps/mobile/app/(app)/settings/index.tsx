@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
       : t('settings.reminders.disabledValue')
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('settings.title')}</Text>
 
       <TouchableOpacity
@@ -120,22 +120,28 @@ export default function SettingsScreen() {
         onCancel={() => setShowDeleteModal(false)}
         isLoading={isDeletingAccount}
       />
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
+  // Story 9.3 max-font-size walkthrough: at large text sizes this screen's rows no longer
+  // fit in the viewport — without scrolling, "Delete my account" became completely
+  // unreachable. flexGrow (not flex) on the ScrollView's content container.
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#ffffff',
     paddingTop: 60,
     paddingHorizontal: 24,
   },
+  // paddingRight reserves space for the Calm Me FAB — see (app)/index.tsx's greeting style
+  // for the same Story 9.3 max-font-size walkthrough finding.
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 32,
+    paddingRight: 88,
   },
   sectionTitle: {
     fontSize: 13,
@@ -153,8 +159,10 @@ const styles = StyleSheet.create({
   },
   rowBetween: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    rowGap: 4,
   },
   rowDisabled: {
     opacity: 0.5,

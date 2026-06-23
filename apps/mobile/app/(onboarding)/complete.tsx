@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -28,7 +28,7 @@ export default function CompleteScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{title}</Text>
 
         {!crisisFlaggedInOnboarding && showCount && (
@@ -58,13 +58,14 @@ export default function CompleteScreen() {
         >
           <Text style={styles.buttonText}>{t('onboarding.complete.cta')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingVertical: 48, backgroundColor: '#ffffff', justifyContent: 'center' },
+  // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 48, backgroundColor: '#ffffff', justifyContent: 'center' },
   title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, textAlign: 'center' },
   count: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 8 },
   encouragement: { fontSize: 15, color: '#6b7280', lineHeight: 22, textAlign: 'center', marginBottom: 24 },

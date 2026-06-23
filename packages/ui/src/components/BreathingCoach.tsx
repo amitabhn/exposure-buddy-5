@@ -115,7 +115,7 @@ export const BreathingCoach = React.forwardRef<
           : promptText}
       </Text>
 
-      <Text style={styles.timer}>{formatMMSS(remainingSeconds)}</Text>
+      <Text style={styles.timer} accessibilityLiveRegion="polite">{formatMMSS(remainingSeconds)}</Text>
 
       {!isGuided && (
         <TouchableOpacity

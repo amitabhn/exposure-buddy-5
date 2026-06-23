@@ -32,8 +32,11 @@ export default function HelplinesScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('calmMe.back')}
         >
+          {/* Decorative glyph, not reading content — scaling it with system font size
+              pushes its bounds into the ScrollView content below (Story 9.3, Task 7
+              max-font-size walkthrough finding). */}
           {/* eslint-disable-next-line i18next/no-literal-string */}
-          <Text style={styles.backIcon}>‹</Text>
+          <Text style={styles.backIcon} allowFontScaling={false}>‹</Text>
         </TouchableOpacity>
 
         <ScrollView contentContainerStyle={styles.content}>

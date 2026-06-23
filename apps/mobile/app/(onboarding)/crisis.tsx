@@ -5,7 +5,7 @@ export default function CrisisScreen() {
   return (
     <View style={styles.container}>
       {/* eslint-disable-next-line i18next/no-literal-string */}
-      <Text>Crisis Resources — Epic 5</Text>
+      <Text accessibilityRole="header">Crisis Resources — Epic 5</Text>
     </View>
   )
 }

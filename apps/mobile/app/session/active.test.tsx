@@ -112,6 +112,42 @@ describe('ActiveScreen — existing tests', () => {
     expect(mockSetGroundingActive).toHaveBeenCalled()
   })
 
+  it('Stop Exposure button has an accessibilityHint (Story 9.3 P1 fix)', () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    const btn = getByLabelText('session.active.stopExposure')
+    expect(btn.props.accessibilityHint).toBe('session.active.stopExposureHint')
+  })
+
+})
+
+describe('ActiveScreen — modal cancel buttons (Story 9.3 P0 fix)', () => {
+  it('SUDS-logging modal Cancel button has accessibilityRole and accessibilityLabel', async () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.logSuds')) })
+    const cancelBtn = getByLabelText('ladder.cancel')
+    expect(cancelBtn.props.accessibilityRole).toBe('button')
+  })
+
+  it('SUDS-logging modal Cancel button dismisses the modal', async () => {
+    const { getByLabelText, queryByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.logSuds')) })
+    await act(async () => { fireEvent.press(getByLabelText('ladder.cancel')) })
+    expect(queryByLabelText('session.active.logButton')).toBeNull()
+  })
+
+  it('completion modal Cancel button has accessibilityRole and accessibilityLabel', async () => {
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    const cancelBtn = getByLabelText('ladder.cancel')
+    expect(cancelBtn.props.accessibilityRole).toBe('button')
+  })
+
+  it('completion modal Cancel button dismisses the modal', async () => {
+    const { getByLabelText, queryByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByLabelText('ladder.cancel')) })
+    expect(queryByLabelText('session.active.finishSession')).toBeNull()
+  })
 })
 
 describe('ActiveScreen — maxSudsLogged initialisation', () => {

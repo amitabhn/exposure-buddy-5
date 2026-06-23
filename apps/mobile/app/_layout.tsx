@@ -94,6 +94,11 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <ReducedMotionProvider>
               <ThemeProvider value={DefaultTheme}>
+                {/* CalmMeFab is mounted before <Stack> so it precedes every screen in
+                    accessibility-tree traversal order (Story 9.3, AC4) — its container is
+                    position: 'absolute' (CalmMeFab.tsx), so this ordering change does not
+                    affect visual position or z-index, only focus/swipe order. */}
+                <CalmMeFab />
                 <Stack screenOptions={{ headerShown: false }}>
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
@@ -104,7 +109,6 @@ export default function RootLayout() {
                   <Stack.Screen name="reminder-settings" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
                   <Stack.Screen name="session" options={{ headerShown: false }} />
                 </Stack>
-                <CalmMeFab />
                 <PortalHost />
               </ThemeProvider>
             </ReducedMotionProvider>

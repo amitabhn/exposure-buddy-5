@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Alert, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -44,7 +44,7 @@ export default function WelcomeScreen() {
   return (
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <OnboardingStepIndicator step={1} />
         <Text style={styles.title}>{t('onboarding.welcome.title')}</Text>
         <Text style={styles.body}>{t('onboarding.welcome.body')}</Text>
@@ -56,14 +56,15 @@ export default function WelcomeScreen() {
         >
           <Text style={styles.buttonText}>{t('onboarding.welcome.cta')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
+  // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

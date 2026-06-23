@@ -54,6 +54,7 @@ export default function HomeScreen() {
     nowMs: Date.now(),
   }
   const homeState = resolveHomeScreenState(ctx)
+  const lowestPendingItemForLabel = resolveLowestPendingItem(items)
 
   // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,
   // already has description/preSuds), fall back to activeSession (PowerSync, cross-device) when
@@ -85,8 +86,18 @@ export default function HomeScreen() {
         <CourageLadderEntryCard
           ref={cardRef}
           ladderItemCount={items.length}
-          lowestPendingItem={resolveLowestPendingItem(items)}
+          lowestPendingItem={lowestPendingItemForLabel}
           onPress={() => router.push('/ladder')}
+          accessibilityLabel={
+            lowestPendingItemForLabel
+              ? t('home.courageCard.itemLabel', {
+                  description: lowestPendingItemForLabel.description,
+                  suds: Math.min(10, Math.max(0, Math.round(lowestPendingItemForLabel.predictedSuds))),
+                })
+              : items.length === 0
+                ? t('home.courageCard.emptyLabel')
+                : t('home.courageCard.noPendingLabel')
+          }
         />
       ) : homeState === 'completed' ? (
         <Text style={styles.placeholder}>{t('home.state10.message')}</Text>
@@ -128,7 +139,10 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 48, backgroundColor: '#ffffff' },
-  greeting: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8 },
+  // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint) — without
+  // it, wrapped text at large accessibility font sizes runs directly behind the FAB (Story
+  // 9.3 max-font-size walkthrough finding).
+  greeting: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, paddingRight: 88 },
   loadingIndicator: { marginVertical: 16 },
   placeholder: { fontSize: 15, color: '#374151', marginVertical: 16 },
   placeholderCard: {

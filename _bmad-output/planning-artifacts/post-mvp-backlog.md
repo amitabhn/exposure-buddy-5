@@ -283,6 +283,10 @@ Structured session history export for clinical handoff or personal record-keepin
 **What:** The grounding screen (reached via mandatory Stop Exposure) and the Calm Me support screen (reached via FAB) share the same technique content but represent different emotional contracts. Post-MVP: give the grounding screen distinct framing copy ("let's pause and regroup so you can finish") vs. Calm Me ("you needed a moment, and that's okay").
 **Source:** Story 7.5 party mode review (Sally); marked with a `// TODO post-MVP` comment in the grounding screen component.
 
+### 6.6 Accessibility Polish — P2 Findings from Story 9.3 Audit
+**What:** Five low-priority accessibility gaps identified during the Story 9.3 accessibility audit, deferred as P2 (nice-to-have, no material screen-reader-usability impact): (1) `apps/mobile/app/(auth)/sign-in.tsx:269-284` — the `__DEV__`/preview-only "Sign in as test user" button has no `accessibilityLabel` (dev/preview builds only, never reaches production users); (2) `apps/mobile/app/(onboarding)/assessment.tsx:69-76` and `apps/mobile/app/(onboarding)/ladder.tsx:221-228` — the "Feeling overwhelmed?" link has a label but no `accessibilityHint` describing that it navigates to crisis support resources; (3) `apps/mobile/app/calm-me/index.tsx:138-153` — the "I can keep going" / "I need to stop" buttons have labels but no hints describing their outcome; (4) `apps/mobile/src/components/onboarding/SudsCalibrationWidget.tsx` — anchor text is only translated for SUDS values 0, 5, and 10, so intermediate values have no descriptive subtext beyond their bare number.
+**Source:** `apps/mobile/docs/accessibility-audit.md`, Story 9.3.
+
 ---
 
 ## 7. Analytics & Instrumentation
