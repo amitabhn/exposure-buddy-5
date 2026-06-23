@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@exposure-buddy/core": "workspace:*",
+    "@expo/vector-icons": "^15.1.1",
     "@rn-primitives/dialog": "1.4.0",
     "@rn-primitives/portal": "1.4.0",
     "@rn-primitives/slot": "1.4.0",

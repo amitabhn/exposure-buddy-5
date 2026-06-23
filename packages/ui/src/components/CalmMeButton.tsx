@@ -1,5 +1,6 @@
 import React from 'react'
-import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { color } from '../tokens/theme'
 
 export interface CalmMeButtonProps {
@@ -21,10 +22,7 @@ export const CalmMeButton = React.forwardRef<
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
     >
-      {/* Decorative pictographic glyph, not reading content — scaling it with system
-          font size breaks out of the FAB's fixed 56x56 circular bounds (Story 9.3,
-          Task 7 max-font-size walkthrough finding). */}
-      <Text style={styles.icon} allowFontScaling={false}>♡</Text>
+      <Ionicons name="leaf-outline" size={26} color="#ffffff" />
     </TouchableOpacity>
   )
 })
@@ -43,5 +41,4 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  icon: { fontSize: 26, color: '#ffffff', lineHeight: 28 },
 })
