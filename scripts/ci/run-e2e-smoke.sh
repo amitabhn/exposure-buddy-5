@@ -45,22 +45,24 @@ echo "    Supabase URL:      $SUPABASE_URL"
 echo "    Mailpit URL:       $MAILPIT_URL"
 echo "    Service role key:  ${SUPABASE_SERVICE_ROLE_KEY:0:16}... (truncated for log safety)"
 
-echo "==> [3/5] Building dev-client APK (eas build --local, e2e profile)..."
-# The e2e profile in apps/mobile/eas.json extends 'development' and points at
-# http://10.0.2.2:54321 (the Android emulator's alias for the host machine's localhost).
-# Fall back to expo prebuild + Gradle if eas build --local is not available on this runner
-# (Task 1.2 pre-authorized fallback).
+echo "==> [3/5] Building dev-client APK (expo prebuild + Gradle)..."
+# eas build --local requires EAS authentication even for local runs. Use expo prebuild +
+# Gradle directly instead, setting the e2e env vars that eas.json would normally supply.
+# EXPO_PUBLIC_SUPABASE_URL uses 10.0.2.2 — the Android emulator's alias for host localhost.
 (
-  cd apps/mobile
-  eas build --profile e2e --platform android --local --non-interactive \
-    --output "$APK_OUTPUT_PATH" || {
-    echo "::warning::eas build --local failed — falling back to expo prebuild + Gradle"
-    cd "$REPO_ROOT"
-    pnpm exec expo prebuild --platform android --clean
-    cd "$REPO_ROOT/apps/mobile/android"
-    ./gradlew assembleDebug
-    cp app/build/outputs/apk/debug/app-debug.apk "$APK_OUTPUT_PATH"
-  }
+  cd "$REPO_ROOT/apps/mobile"
+  APP_VARIANT="development" \
+  EXPO_PUBLIC_APP_VARIANT="development" \
+  EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+  EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+  pnpm exec expo prebuild --platform android --clean
+  cd "$REPO_ROOT/apps/mobile/android"
+  APP_VARIANT="development" \
+  EXPO_PUBLIC_APP_VARIANT="development" \
+  EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+  EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+  ./gradlew assembleDebug
+  cp app/build/outputs/apk/debug/app-debug.apk "$APK_OUTPUT_PATH"
 )
 if [[ ! -f "$APK_OUTPUT_PATH" ]]; then
   echo "ERROR: APK not found at $APK_OUTPUT_PATH — build step failed to produce output"

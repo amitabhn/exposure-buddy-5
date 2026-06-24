@@ -260,10 +260,7 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      # ── EAS CLI + Android SDK + Java ───────────────────────────────────────────────
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-
+      # ── Android SDK + Java ────────────────────────────────────────────────────────
       - name: Set up Java (Android build requirement)
         uses: actions/setup-java@v4
         with:
