@@ -32,11 +32,14 @@ echo "==> [2/5] Reading Supabase service-role key and Mailpit URL from supabase 
 # supabase status -o env exports KEY=VALUE pairs but may also emit "Stopped services: [...]"
 # notices to stdout. Filter to lines matching KEY=VALUE to avoid eval errors.
 eval "$(supabase status -o env 2>/dev/null | grep -E '^[A-Z_][A-Z0-9_]*=')"
+# supabase status -o env uses un-prefixed names (SERVICE_ROLE_KEY, API_URL) in some CLI
+# versions. Map to the SUPABASE_* names the rest of the script expects.
+SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY:-}}"
+SUPABASE_URL="${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}"
 # MAILPIT_URL is also exported by recent Supabase CLI versions.
 # If MAILPIT_URL is not exported, fall back to the default port from supabase/config.toml.
 MAILPIT_URL="${MAILPIT_URL:-http://127.0.0.1:54324}"
-export SUPABASE_SERVICE_ROLE_KEY
-export MAILPIT_URL
+export SUPABASE_SERVICE_ROLE_KEY SUPABASE_URL MAILPIT_URL
 
 echo "    Supabase URL:      $SUPABASE_URL"
 echo "    Mailpit URL:       $MAILPIT_URL"
