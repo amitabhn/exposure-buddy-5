@@ -300,6 +300,9 @@ jobs:
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk /tmp/exposure-buddy-e2e.apk
           echo "APK built: $(du -sh /tmp/exposure-buddy-e2e.apk | cut -f1)"
+          cd ../..
+          rm -rf apps/mobile/android ~/.gradle/caches
+          df -h / | tail -1
 
       # ── Start Supabase before emulator boots (reads keys into GITHUB_ENV) ─────────
       - name: Start Supabase
