@@ -1,5 +1,5 @@
-import { useReducer } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { useReducer, useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -59,6 +59,7 @@ export default function IntentScreen() {
     hasAttemptedSubmit: false,
     isSubmitting: false,
   })
+  const [enqueueError, setEnqueueError] = useState<string | null>(null)
 
   const showRecommendedHint = parseInt(predictedSuds ?? '0', 10) >= 7
 
@@ -68,6 +69,7 @@ export default function IntentScreen() {
     // P14: gate on isAuthenticated explicitly with this comment per architecture MUST rule.
     if (!isAuthenticated || !userId || state.preSuds === null || state.isSubmitting) return
 
+    setEnqueueError(null)
     dispatch({ type: 'SUBMIT' })
     const now = new Date().toISOString()
 
@@ -122,6 +124,7 @@ export default function IntentScreen() {
       )
     } catch (err) {
       console.error('[IntentScreen] enqueue failed:', err)
+      setEnqueueError(t('session.intent.enqueueFailed'))
       dispatch({ type: 'SUBMIT_DONE' })
     }
   }
@@ -161,6 +164,24 @@ export default function IntentScreen() {
           <Text style={styles.hint}>{t('session.intent.intentionRecommended')}</Text>
         )}
 
+        {enqueueError ? (
+          <View>
+            <Text
+              // eslint-disable-next-line i18next/no-literal-string
+              accessibilityLiveRegion="polite"
+              style={styles.enqueueErrorText}
+            >{enqueueError}</Text>
+            <Pressable
+              onPress={handleContinue}
+              accessibilityRole="button"
+              accessibilityLabel={t('session.intent.tryAgain')}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>{t('session.intent.tryAgain')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <TouchableOpacity
           style={[styles.continueButton, (state.preSuds === null || state.isSubmitting) && styles.continueButtonDisabled]}
           onPress={handleContinue}
@@ -183,6 +204,9 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 12, marginTop: 8 },
   textInput: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: '#111827', marginBottom: 12, backgroundColor: '#f9fafb', minHeight: 80 },
   hint: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 16 },
+  enqueueErrorText: { fontSize: 14, color: '#ef4444', marginTop: 16, lineHeight: 20 },
+  retryButton: { marginTop: 8, alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   continueButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
   continueButtonDisabled: { backgroundColor: '#d1d5db' },
   continueText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

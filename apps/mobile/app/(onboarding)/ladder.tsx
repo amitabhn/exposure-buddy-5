@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -33,6 +33,8 @@ export default function LadderScreen() {
   const [crisisDetected, setCrisisDetected] = useState(false)
   const [showForm, setShowForm] = useState(true)
   const [nudgeDismissed, setNudgeDismissed] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [pendingItem, setPendingItem] = useState<{ description: string; predictedSuds: number } | null>(null)
   const crisisFlagWrittenRef = useRef(false)
   const itemsRef = useRef<FearItem[]>([])
   const isAddingRef = useRef(false)
@@ -54,6 +56,7 @@ export default function LadderScreen() {
   async function handleAddItem(description: string, predictedSuds: number) {
     if (!userId || isAddingRef.current) return
     isAddingRef.current = true
+    setSaveError(null)
     const newItem: FearItem = {
       id: generateUUID(),
       description,
@@ -76,7 +79,8 @@ export default function LadderScreen() {
       })
     } catch (err) {
       console.error('[LadderScreen] enqueue failed:', err)
-      // TODO(Epic 6): surface error toast and retry path
+      setPendingItem({ description, predictedSuds })
+      setSaveError(t('onboarding.fearLadder.saveFailed'))
       isAddingRef.current = false
       return
     }
@@ -84,7 +88,14 @@ export default function LadderScreen() {
     itemsRef.current = updatedItems
     setItems(updatedItems)
     setShowForm(false)
+    setSaveError(null)
+    setPendingItem(null)
     isAddingRef.current = false
+  }
+
+  async function handleRetrySave() {
+    if (!pendingItem) return
+    await handleAddItem(pendingItem.description, pendingItem.predictedSuds)
   }
 
   async function swapItems(indexA: number, indexB: number) {
@@ -177,6 +188,23 @@ export default function LadderScreen() {
         {showForm && (
           <FearItemForm onSave={handleAddItem} onCrisisDetected={handleCrisisDetected} />
         )}
+        {saveError ? (
+          <View>
+            <Text
+              // eslint-disable-next-line i18next/no-literal-string
+              accessibilityLiveRegion="polite"
+              style={styles.saveErrorText}
+            >{saveError}</Text>
+            <Pressable
+              onPress={handleRetrySave}
+              accessibilityRole="button"
+              accessibilityLabel={t('onboarding.fearLadder.trySaving')}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>{t('onboarding.fearLadder.trySaving')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {!showForm && (
           <TouchableOpacity
             testID="add-another-button"
@@ -262,6 +290,9 @@ const styles = StyleSheet.create({
   nudge: { backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 1, borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   nudgeText: { fontSize: 13, color: '#166534', lineHeight: 18, flex: 1 },
   nudgeDismiss: { fontSize: 13, color: '#166534', fontWeight: '600', textDecorationLine: 'underline' },
+  saveErrorText: { fontSize: 14, color: '#ef4444', marginTop: 8, lineHeight: 20 },
+  retryButton: { marginTop: 8, alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   button: { alignSelf: 'stretch', backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   buttonDisabled: { backgroundColor: '#d1d5db' },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

@@ -266,3 +266,54 @@ describe('ActiveScreen — handleCompleteSession happy path', () => {
     expect(mockClearSessionInProgress).not.toHaveBeenCalled()
   })
 })
+
+describe('ActiveScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      clearSessionInProgress: mockClearSessionInProgress,
+      setGroundingActive: mockSetGroundingActive,
+    })
+    useLocalSearchParams.mockReturnValue({
+      sessionId: 'session-uuid-1',
+      fearItemId: 'item-uuid-1',
+      description: 'Test situation',
+      preSuds: '6',
+    })
+  })
+
+  it('shows completion-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId, getByText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      const errorText = getByText('session.active.completionFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when completion enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(getByLabelText('session.active.tryAgain')).toBeTruthy()
+    })
+  })
+
+  it('does NOT clear session or navigate on completion failure', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-4')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.active.finishSession')) })
+    await waitFor(() => {
+      expect(mockClearSessionInProgress).not.toHaveBeenCalled()
+    })
+    expect(mockRouterPush).not.toHaveBeenCalledWith(expect.stringContaining('/session/debrief'))
+  })
+})

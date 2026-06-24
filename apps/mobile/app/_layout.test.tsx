@@ -4,6 +4,52 @@ import { Text } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ReducedMotionProvider, useAnimation } from '../src/contexts/AnimationContext'
 
+jest.mock('@sentry/react-native', () => ({
+  captureException: jest.fn(),
+  addBreadcrumb: jest.fn(),
+}))
+jest.mock('../src/error-handler', () => ({ initErrorHandler: jest.fn() }))
+jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: jest.fn().mockResolvedValue(undefined), hideAsync: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('expo-font', () => ({ useFonts: jest.fn(() => [true, null]) }))
+jest.mock('@expo-google-fonts/inter', () => ({}))
+jest.mock('@expo-google-fonts/dm-serif-display', () => ({}))
+jest.mock('expo-router', () => ({
+  Stack: Object.assign(
+    ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    { Screen: () => null }
+  ),
+}))
+jest.mock('@react-navigation/native', () => ({
+  DefaultTheme: {},
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+jest.mock('react-native-gesture-handler', () => ({
+  GestureHandlerRootView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+jest.mock('@rn-primitives/portal', () => ({ PortalHost: () => null }))
+jest.mock('../src/components/navigation/BackButton', () => ({ BackButton: () => null }))
+jest.mock('../src/components/CalmMeFab', () => ({ CalmMeFab: () => null }))
+jest.mock('../src/i18n', () => ({}))
+jest.mock('../src/contexts/AnimationContext', () => ({
+  ReducedMotionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useAnimation: jest.fn(() => ({ reduced: false })),
+}))
+jest.mock('@exposure-buddy/supabase', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  OnboardingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  initSession: jest.fn(() => Promise.resolve({})),
+  useAuth: jest.fn(() => ({})),
+  createSupabaseClient: jest.fn(),
+}))
+jest.mock('@exposure-buddy/sync', () => ({
+  PowerSyncContext: { Provider: ({ children }: { children: React.ReactNode }) => <>{children}</> },
+  getPowerSyncDatabase: jest.fn(() => ({ connect: jest.fn(), disconnectAndClear: jest.fn() })),
+  createPowerSyncDatabase: jest.fn(() => ({ connect: jest.fn(), disconnectAndClear: jest.fn() })),
+  PowerSyncSyncAdapter: jest.fn(),
+  SupabasePowerSyncConnector: jest.fn(),
+  initAdapter: jest.fn(),
+}))
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useSafeAreaInsets: () => ({ top: 0, left: 0, bottom: 0, right: 0 }),
@@ -55,5 +101,33 @@ describe('CalmMeFab accessibility-tree focus order (Story 9.3, AC4)', () => {
     const tree = toJSON() as unknown as { props: { accessibilityLabel?: string } }[]
     expect(Array.isArray(tree)).toBe(true)
     expect(tree[0]!.props.accessibilityLabel).toBe('Calm Me')
+  })
+})
+
+describe('ErrorBoundary — Story 9.6 (AC: 6)', () => {
+  it('renders fallback copy when mounted with an error', async () => {
+    const { ErrorBoundary } = require('./_layout')
+    const error = new Error('test crash')
+    const { getByText } = render(<ErrorBoundary error={error} retry={() => {}} />)
+    await act(async () => {})
+    expect(getByText('The app encountered an error. Please close and reopen it.')).toBeTruthy()
+  })
+
+  it('fallback Text node has accessibilityLiveRegion="polite"', async () => {
+    const { ErrorBoundary } = require('./_layout')
+    const error = new Error('test crash')
+    const { getByText } = render(<ErrorBoundary error={error} retry={() => {}} />)
+    await act(async () => {})
+    const msg = getByText('The app encountered an error. Please close and reopen it.')
+    expect(msg.props.accessibilityLiveRegion).toBe('polite')
+  })
+
+  it('calls Sentry.captureException with the error', async () => {
+    const { ErrorBoundary } = require('./_layout')
+    const Sentry = require('@sentry/react-native')
+    const error = new Error('test crash')
+    render(<ErrorBoundary error={error} retry={() => {}} />)
+    await act(async () => {})
+    expect(Sentry.captureException).toHaveBeenCalledWith(error)
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -20,6 +20,7 @@ export default function AssessmentScreen() {
   const router = useRouter()
   const { userId, setOnboardingProgressStep, setSudsCalibration } = useAuth()
   const [selectedValue, setSelectedValue] = useState<number | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Save progress to MMKV on mount so resume logic routes here if app is closed
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function AssessmentScreen() {
   async function handleNext() {
     if (selectedValue === null) return
     if (!userId) return  // always non-null behind the onboarding auth gate; guard satisfies TypeScript
+    setSaveError(null)
     setSudsCalibration(selectedValue)
     setOnboardingProgressStep(3)  // local state first — intent committed before fallible I/O
     try {
@@ -41,7 +43,7 @@ export default function AssessmentScreen() {
       })
     } catch (err) {
       console.error('[AssessmentScreen] enqueue failed — calibration value persisted locally:', err)
-      // TODO(Epic 6): surface error toast and retry path when real outbox adapter is wired
+      setSaveError(t('onboarding.assessment.saveFailed'))
       return
     }
     router.replace('/(onboarding)/ladder')
@@ -64,6 +66,24 @@ export default function AssessmentScreen() {
         <Text style={styles.sectionTitle}>{t('onboarding.assessment.calibrationTitle')}</Text>
         <Text style={styles.scenario}>{t('onboarding.assessment.practiceScenario')}</Text>
         <SudsCalibrationWidget value={selectedValue} onChange={setSelectedValue} />
+
+        {saveError ? (
+          <View>
+            <Text
+              // eslint-disable-next-line i18next/no-literal-string
+              accessibilityLiveRegion="polite"
+              style={styles.saveErrorText}
+            >{saveError}</Text>
+            <Pressable
+              onPress={handleNext}
+              accessibilityRole="button"
+              accessibilityLabel={t('onboarding.assessment.trySaving')}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>{t('onboarding.assessment.trySaving')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* "Feeling overwhelmed?" — persistent, always visible */}
         <TouchableOpacity
@@ -124,6 +144,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontStyle: 'italic',
   },
+  saveErrorText: { fontSize: 14, color: '#ef4444', marginTop: 16, lineHeight: 20 },
+  retryButton: { marginTop: 8, alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   overwhelmedLink: {
     marginTop: 24,
     alignSelf: 'center',

@@ -181,3 +181,50 @@ describe('GroundingScreen', () => {
     })
   })
 })
+
+describe('GroundingScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      authState: { userId: 'user-123' },
+      clearSessionInProgress: mockClearSessionInProgress,
+      clearSessionIntention: mockClearSessionIntention,
+      clearGroundingActive: mockClearGroundingActive,
+    })
+    useLocalSearchParams.mockReturnValue({
+      sessionId: 'session-uuid-1',
+      fearItemId: 'item-uuid-1',
+      description: 'Test situation',
+      preSuds: '7',
+    })
+  })
+
+  it('shows abandonment-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    await waitFor(() => {
+      const errorText = getByText('grounding.abandonFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when abandonment enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    await waitFor(() => {
+      expect(getByLabelText('grounding.tryAgain')).toBeTruthy()
+    })
+  })
+
+  it('does NOT clear MMKV or navigate on abandonment failure', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<GroundingScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('grounding.stopSession')) })
+    await waitFor(() => {
+      expect(mockClearSessionInProgress).not.toHaveBeenCalled()
+    })
+    expect(mockRouterPush).not.toHaveBeenCalledWith('/session/abandoned')
+  })
+})

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native'
+import { useRef, useState } from 'react'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Modal } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { getAdapter } from '../../src/sync/adapter'
@@ -39,6 +39,8 @@ export default function ActiveScreen() {
   const [completionModalVisible, setCompletionModalVisible] = useState(false)
   const [pendingDebriefSuds, setPendingDebriefSuds] = useState<number | null>(null)
   const [isCompletingSession, setIsCompletingSession] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const lastDebriefSudsRef = useRef<number | null>(null)
 
   async function handleLogSuds() {
     if (pendingSuds === null) return
@@ -79,6 +81,8 @@ export default function ActiveScreen() {
   async function handleCompleteSession(debriefSuds: number) {
     if (isCompletingSession) return  // double-tap guard
     setIsCompletingSession(true)
+    setCompletionError(null)
+    lastDebriefSudsRef.current = debriefSuds
 
     // 1. Fire state machine transition (guard: sudsReadingsCount ≥ 1, always true here)
     // eslint-disable-next-line i18next/no-literal-string
@@ -142,6 +146,7 @@ export default function ActiveScreen() {
     } catch (err) {
       console.error('[ActiveScreen] session completion failed:', err)
       setIsCompletingSession(false)
+      setCompletionError(t('session.active.completionFailed'))
     }
   }
 
@@ -171,6 +176,24 @@ export default function ActiveScreen() {
           >
             <Text style={styles.completeButtonText}>{t('session.active.completeExposure')}</Text>
           </TouchableOpacity>
+
+          {completionError ? (
+            <View>
+              <Text
+                // eslint-disable-next-line i18next/no-literal-string
+                accessibilityLiveRegion="polite"
+                style={styles.completionErrorText}
+              >{completionError}</Text>
+              <Pressable
+                onPress={() => lastDebriefSudsRef.current !== null && handleCompleteSession(lastDebriefSudsRef.current)}
+                accessibilityRole="button"
+                accessibilityLabel={t('session.active.tryAgain')}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryButtonText}>{t('session.active.tryAgain')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={styles.stopButton}
@@ -274,6 +297,9 @@ const styles = StyleSheet.create({
   logButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   completeButton: { backgroundColor: '#0f766e', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   completeButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  completionErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20 },
+  retryButton: { marginTop: 8, alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   stopButtonText: { color: '#374151', fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

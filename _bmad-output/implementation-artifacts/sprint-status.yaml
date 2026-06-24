@@ -124,7 +124,7 @@ development_status:
   9-3-accessibility-audit-and-p0-p1-remediation: in-progress
   9-4-mmkv-key-hygiene-and-storage-audit: done
   9-5-e2e-smoke-test-suite-maestro: backlog
-  9-6-error-state-and-empty-state-ux-audit: backlog
+  9-6-error-state-and-empty-state-ux-audit: review
   9-7-performance-budget-low-end-device-validation: backlog
   9-8-haptic-and-sound-degradation-audit: backlog
   9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification: backlog # Phase 1 gate, added to epics.md 2026-06-09 (#34) but never synced here until now

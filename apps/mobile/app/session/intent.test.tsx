@@ -177,3 +177,53 @@ describe('IntentScreen', () => {
     })
   })
 })
+
+describe('IntentScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      authState: { userId: 'user-123' },
+      isAuthenticated: true,
+      setSessionInProgress: mockSetSessionInProgress,
+      setSessionIntention: mockSetSessionIntention,
+    })
+    useLocalSearchParams.mockReturnValue({
+      fearItemId: 'item-uuid-1',
+      sessionId: 'session-uuid-1',
+      description: 'Test fear situation',
+      predictedSuds: '5',
+      technique: 'somatic',
+    })
+  })
+
+  it('shows enqueue-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId, getByText } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      const errorText = getByText('session.intent.enqueueFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      expect(getByLabelText('session.intent.tryAgain')).toBeTruthy()
+    })
+  })
+
+  it('does NOT navigate to briefing when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+  })
+})
