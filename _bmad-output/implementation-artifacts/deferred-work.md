@@ -1,5 +1,16 @@
 # Deferred Work
 
+## Deferred from: spec review of 9-6-error-state-and-empty-state-ux-audit (2026-06-24)
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 4 decisions resolved via party-mode roundtable; 14 patches applied directly to the spec; 1 defer._
+
+- **ADR component state matrix gate — 6 post-MVP components require error states before their implementation sprints.** Components not yet implemented; inventoried in `apps/mobile/docs/error-state-inventory.md` with "not yet implemented" notation. **Trigger:** any story implementing HomeStateCard, DragRankList, SudsArcChart, LetterToSelfEditor, LetterReveal, or AcknowledgementCard must include full error/empty/loading state spec before sprint sign-off (per ADR-ERROR-STATES.md Required State Variants table).
+- **Error Text render position underspecified ("near the add-item form").** Design-time judgment call for the dev agent implementing Tasks 2.1/2.2; no spec change required. Acceptable positions: below the form field, above the CTA button. Both are "near."
+
+[`_bmad-output/implementation-artifacts/9-6-error-state-and-empty-state-ux-audit.md`]
+
+---
+
 ## Deferred from: code review of 9-4-mmkv-key-hygiene-and-storage-audit spec (2026-06-23)
 
 _Spec-only review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) plus a party-mode roundtable (Winston/Amelia/John) before any implementation, since the story was still `ready-for-dev`. Most decision-needed findings were resolved as fix-now and folded directly into the story's ACs/Tasks (see `9-4-mmkv-key-hygiene-and-storage-audit.md` → "Review Findings"). Only this one item was resolved as defer._
