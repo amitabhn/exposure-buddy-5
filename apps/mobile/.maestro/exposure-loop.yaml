@@ -1,0 +1,19 @@
+# Story 9.5, Task 6 — exposure-loop.yaml (AC 2.3)
+#
+# Independently signs in, seeds a pending ladder item, drives the full exposure loop
+# (technique → intent → briefing → active → SUDS log → complete), and asserts the
+# debrief screen is reached.
+#
+# The setup and session navigation are extracted into setup/reachDebrief.yaml so that
+# debrief.yaml (Task 7) can reuse the same sequence without copy-pasting steps.
+#
+# Required env vars:
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for backend seeding)
+appId: ${APP_PACKAGE}
+---
+# Drive from launch through sign-in → onboarding → seed → session → debrief screen
+- runFlow: setup/reachDebrief.yaml
+
+# ── Assertion: debrief screen is visible ────────────────────────────────────────────────────
+# reachDebrief.yaml already asserts this as its final step, but repeat here for clarity.
+- assertVisible: "What would you like to remember about this?"

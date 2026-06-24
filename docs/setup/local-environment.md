@@ -203,10 +203,78 @@ pnpm turbo typecheck --filter=@exposure-buddy/core
 
 ## OTP email in local dev
 
-When testing the OTP flow locally, Supabase CLI routes emails to **Inbucket** (not a real email server):
+When testing the OTP flow locally, Supabase CLI routes emails to **Mailpit** (not a real email server).
+Despite the `[inbucket]` section name in `supabase/config.toml`, the running service is Mailpit
+(confirmed for CLI v2.107.0):
 
 ```
 http://localhost:54324
 ```
 
-Open that URL in a browser to see OTP codes. No email is sent.
+Open that URL in a browser to see OTP codes. The `onboarding.yaml` Maestro flow retrieves OTP codes
+programmatically via Mailpit's REST API (`GET /api/v1/messages`) — see `apps/mobile/.maestro/setup/fetchOtp.js`.
+
+---
+
+## Running the Maestro E2E smoke suite locally
+
+Story 9.5 adds a Maestro smoke suite covering the 5 critical user paths. To run it locally:
+
+### Prerequisites
+
+| Tool | Install |
+|------|---------|
+| Maestro CLI | `curl -Ls "https://get.maestro.mobile.dev" \| bash` |
+| Android emulator | Via Android Studio or `sdkmanager` |
+| EAS CLI | `npm install -g eas-cli` |
+
+### Steps
+
+```bash
+# 1. Start local Supabase (Docker must be running)
+supabase start
+
+# 2. Build the e2e dev-client APK (targets http://10.0.2.2:54321 — Android emulator host alias)
+cd apps/mobile
+eas build --profile e2e --platform android --local --output /tmp/exposure-buddy-e2e.apk
+
+# 3. Install the APK on a running emulator
+adb install /tmp/exposure-buddy-e2e.apk
+
+# 4. Export Supabase secrets for the seeding scripts
+eval "$(supabase status -o env)"
+export SUPABASE_SERVICE_ROLE_KEY MAILPIT_URL
+
+# 5. Run a single flow to test it
+~/.maestro/bin/maestro test apps/mobile/.maestro/onboarding.yaml \
+  --env SUPABASE_URL=http://10.0.2.2:54321 \
+  --env MAILPIT_URL=$MAILPIT_URL \
+  --env SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY \
+  --env APP_PACKAGE=com.exposurebuddy.app
+
+# 6. Run the full suite (explicit order — each flow is independently self-contained)
+~/.maestro/bin/maestro test \
+  apps/mobile/.maestro/onboarding.yaml \
+  apps/mobile/.maestro/ladder-build.yaml \
+  apps/mobile/.maestro/exposure-loop.yaml \
+  apps/mobile/.maestro/debrief.yaml \
+  apps/mobile/.maestro/backgrounded-recovery.yaml \
+  --output /tmp/maestro-artifacts \
+  --env SUPABASE_URL=http://10.0.2.2:54321 \
+  --env MAILPIT_URL=$MAILPIT_URL \
+  --env SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY \
+  --env APP_PACKAGE=com.exposurebuddy.app
+```
+
+### Notes
+
+- The `e2e` EAS profile in `apps/mobile/eas.json` hard-codes `EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321`
+  (the Android emulator's alias for the host machine's `localhost`). Do **not** run these flows against
+  the real hosted Supabase project.
+- Each flow is independently runnable against a `supabase db reset` state.
+- `onboarding.yaml` uses real OTP signup and retrieves the code from Mailpit — it does **not** use the
+  DEV bypass. All other flows use the DEV bypass (`test1@test.com` / `DevTest123!`).
+- `exposure-loop.yaml` and `debrief.yaml` seed ladder items via PostgREST. This relies on a reachable
+  PowerSync sync stream — see `apps/mobile/.maestro/setup/seedPendingLadderItem.js` for the open
+  question documented in Task 1.5.
+- Story 9.5 requires the suite to pass **at least twice in a row** before being marked done (Task 9.3).

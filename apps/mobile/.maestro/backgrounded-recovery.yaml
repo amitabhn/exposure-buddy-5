@@ -1,0 +1,98 @@
+# Story 9.5, Task 8 — backgrounded-recovery.yaml (AC 2.5)
+#
+# Independently signs in, adds its own pending ladder item via the standalone ladder editor
+# (Task 8.2 — uses UI, not backend seeding), starts a session, backgrounds the app,
+# re-foregrounds it, and verifies: active.tsx is still visible, the Calm Me FAB is present
+# and tappable, and no error toast is shown.
+#
+# Correction to epics' "verify the Calm Me prompt is overlaid": there is no automatic Calm
+# Me overlay/prompt triggered by backgrounding — the FAB is simply still present and
+# functional, as it is on every screen it is mounted on (app/_layout.tsx). The recovery
+# modal is NOT triggered by background/re-foreground (only by a cold kill + relaunch while
+# a session was in-flight). Verify this empirically during Task 1.
+appId: ${APP_PACKAGE}
+---
+# ── Setup ─────────────────────────────────────────────────────────────────────────────────
+# Sign in + complete onboarding idempotently (0 ladder items after skip)
+- runFlow: setup/ensureOnboarded.yaml
+
+# ── Add a ladder item via the standalone editor (Task 8.1/8.2) ─────────────────────────
+# backgrounded-recovery.yaml adds its own item via UI (not backend seed) so it is not
+# dependent on PowerSync sync stream availability (unlike exposure-loop.yaml/debrief.yaml).
+- tapOn:
+    accessibilityLabel: "Add situation"
+- waitForAnimationToEnd
+
+# We're now on /ladder. Add the item via the shared addLadderItem.yaml subflow.
+- runFlow: setup/addLadderItem.yaml
+
+# ── Start a session on the newly-added item ─────────────────────────────────────────────
+# The item "Facing a crowd" was just added via UI (via PowerSync enqueue → local SQLite).
+# Wait for the list to refresh, then tap "Start session".
+- waitForAnimationToEnd
+- tapOn:
+    accessibilityLabel: "Start session, Facing a crowd"
+- waitForAnimationToEnd
+
+# technique.tsx — select "Somatic"
+- tapOn:
+    accessibilityLabel: "Somatic"
+- tapOn:
+    accessibilityLabel: "Continue"
+- waitForAnimationToEnd
+
+# intent.tsx — pick pre-SUDS below 8
+- tapOn:
+    accessibilityLabel: "4 — Mild"
+- tapOn:
+    accessibilityLabel: "Continue"
+- waitForAnimationToEnd
+
+# briefing.tsx
+- tapOn:
+    accessibilityLabel: "I'm ready"
+- waitForAnimationToEnd
+
+# We are now on active.tsx
+
+# ── Background and re-foreground the app (Task 8.3) ──────────────────────────────────────
+# Maestro backgroundApp command (verify exact syntax at implementation time against
+# https://docs.maestro.dev/api-reference/commands — this command's availability was
+# not conclusively confirmed during story creation).
+#
+# Pre-authorized fallback (Task 8.3): if backgroundApp doesn't exist in this Maestro version,
+# use `pressKey: Home` to background, then `launchApp: { appId: ..., stopApp: false }` to
+# re-foreground without restarting the JS context.
+- pressKey: Home
+- waitForAnimationToEnd
+
+# Re-foreground without killing the JS context (stopApp: false keeps the existing session alive)
+- launchApp:
+    appId: ${APP_PACKAGE}
+    stopApp: false
+- waitForAnimationToEnd
+
+# ── Assertions (Task 8.4) ──────────────────────────────────────────────────────────────────
+# 1. active.tsx is still visible (not an error screen, not the home screen)
+- assertVisible: "Log how I'm feeling"
+
+# 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Calm Me")
+- assertVisible:
+    accessibilityLabel: "Calm Me"
+
+# 3. Verify the FAB is tappable (tap it and assert the calm-me screen opens)
+- tapOn:
+    accessibilityLabel: "Calm Me"
+- waitForAnimationToEnd
+# Calm-me screen shows "Calm Me" heading or accessible content — assert we navigated there
+- assertVisible: "I can keep going"
+
+# 4. No error toast (session recovery modal must NOT be visible — it only appears after a
+#    cold kill + relaunch, not a background/re-foreground within the same JS context)
+- assertNotVisible: "You have an unfinished session"
+
+# Navigate back to the exposure session (don't complete it — just confirm recovery worked)
+- tapOn:
+    accessibilityLabel: "I can keep going"
+- waitForAnimationToEnd
+- assertVisible: "Log how I'm feeling"

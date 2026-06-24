@@ -1,0 +1,102 @@
+# Story 9.5, Task 4 — onboarding.yaml (AC 2.1)
+#
+# Exercises the REAL signup/OTP path (not the DEV bypass) — this flow exists specifically
+# to catch regressions in the signup/OTP flow the DEV bypass skips.
+# Uses a per-invocation-unique email (Task 4.2) to avoid OTP rate-limiting under
+# Task 9.3's mandated back-to-back reruns within the same supabase db reset cycle.
+#
+# Required env vars (passed via --env in run-e2e-smoke.sh):
+#   MAILPIT_URL   — Mailpit REST base URL (from `supabase status -o env`)
+appId: ${APP_PACKAGE}
+---
+# Generate a per-invocation-unique email for this run
+- runScript: setup/generateEmail.js
+
+# Launch app — defaults to signup mode on fresh install
+- launchApp
+
+# Ensure we're on the signup tab
+- tapOn:
+    accessibilityLabel: "Create account"
+
+# Select Email address as identifier type
+- tapOn:
+    accessibilityLabel: "Email address"
+
+# Enter the unique test email
+- tapOn:
+    accessibilityLabel: "Email address"
+- clearText
+- inputText: ${output.email}
+
+# Agree to both consent checkboxes (required in signup mode; gates "Send code")
+# (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
+- tapOn:
+    accessibilityLabel: "I confirm I am 18 years of age or older"
+- tapOn:
+    accessibilityLabel: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
+
+# Send OTP
+- tapOn:
+    accessibilityLabel: "Send code"
+- waitForAnimationToEnd
+
+# Retrieve OTP from Mailpit — poll with backoff since email delivery is async.
+# output.email is still set from generateEmail.js above (output persists across runScript calls).
+- runScript:
+    file: setup/fetchOtp.js
+    env:
+      MAILPIT_URL: ${MAILPIT_URL}
+      OTP_TO_EMAIL: ${output.email}
+
+# Enter OTP code on the verification screen (otp-verification.tsx)
+- tapOn:
+    accessibilityLabel: "One-time passcode"
+- inputText: ${output.otpCode}
+
+# Verify
+- tapOn:
+    accessibilityLabel: "Verify"
+- waitForAnimationToEnd
+
+# ── Onboarding flow ──────────────────────────────────────────────────────────────────────
+
+# welcome.tsx
+- tapOn:
+    accessibilityLabel: "Get started"
+- waitForAnimationToEnd
+
+# assessment.tsx — SUDS calibration widget: pick value 5
+# (SudsCalibrationWidget a11y labels: "N out of 10" for N in 0..10)
+# Do not use any value from CRISIS_KEYWORDS in subsequent text fields
+- tapOn: "5 out of 10"
+
+# assessment CTA "Next" (disabled until a SUDS value is picked)
+- tapOn:
+    accessibilityLabel: "Next"
+- waitForAnimationToEnd
+
+# ladder.tsx (onboarding) — add one fear item, then proceed
+# Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
+- tapOn:
+    accessibilityLabel: "Describe the situation"
+- clearText
+- inputText: "Riding the elevator alone"
+- tapOn: "5 out of 10"
+- tapOn:
+    accessibilityLabel: "Add to ladder"
+- waitForAnimationToEnd
+
+# CTA is "Next" when items.length > 0 (canSkip is false)
+- tapOn:
+    accessibilityLabel: "Next"
+- waitForAnimationToEnd
+
+# complete.tsx — marks onboardingComplete in MMKV, routes to home
+- tapOn:
+    accessibilityLabel: "Start your journey"
+- waitForAnimationToEnd
+
+# ── Final assertion ──────────────────────────────────────────────────────────────────────
+# First-time home visit shows "Your Courage Ladder is ready. Let's go!" (home.readyToStart)
+- assertVisible: "Your Courage Ladder is ready. Let's go!"

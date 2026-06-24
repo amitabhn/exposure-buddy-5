@@ -1,0 +1,30 @@
+# Private helper — called by ensureOnboarded.yaml when the welcome screen is visible.
+# Not intended to be run as a standalone top-level flow.
+#
+# Completes onboarding with zero ladder items (Skip path):
+#   welcome → assessment → ladder (Skip) → complete → home
+---
+# welcome.tsx — "Get started"
+- tapOn:
+    accessibilityLabel: "Get started"
+- waitForAnimationToEnd
+
+# assessment.tsx — SUDS calibration widget: pick value 5
+# (SudsCalibrationWidget a11y labels: "0 out of 10" … "10 out of 10")
+- tapOn: "5 out of 10"
+
+# assessment.tsx CTA — "Next" (disabled until a SUDS value is picked)
+- tapOn:
+    accessibilityLabel: "Next"
+- waitForAnimationToEnd
+
+# ladder.tsx (onboarding) — Skip with zero items
+# (canSkip is true when items.length === 0; accessibilityLabel is t('onboarding.fearLadder.skipCta'))
+- tapOn:
+    accessibilityLabel: "Skip"
+- waitForAnimationToEnd
+
+# complete.tsx — "Start your journey" (calls markOnboardingComplete(), writes MMKV)
+- tapOn:
+    accessibilityLabel: "Start your journey"
+- waitForAnimationToEnd
