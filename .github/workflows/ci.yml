@@ -270,6 +270,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      # ── Pre-download system image before Gradle build (avoids boot timeout) ──────
+      # android-emulator-runner downloads system images inside the step, competing with
+      # the 600s boot timeout. Download here while the runner is idle.
+      - name: Download Android system image
+        run: sdkmanager "system-images;android-31;google_apis;x86_64"
+
       # ── Install Maestro CLI ────────────────────────────────────────────────────────
       # Maestro is a standalone binary, not an npm package — does not trip sdk-dep-audit
       - name: Install Maestro CLI
@@ -316,7 +322,7 @@ jobs:
           avd-name: e2e_smoke_emulator
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 900
           script: >-
             export PATH="$PATH:$HOME/.maestro/bin" &&
             adb install -r /tmp/exposure-buddy-e2e.apk &&
