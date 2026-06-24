@@ -223,6 +223,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── Reclaim disk space — android system images + Docker images exhaust the default 14GB ──
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       # ── KVM for hardware-accelerated Android virtualization ─────────────────────
       - name: Enable KVM (udev rules)
         run: |
