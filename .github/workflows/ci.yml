@@ -274,7 +274,7 @@ jobs:
       # android-emulator-runner downloads system images inside the step, competing with
       # the 600s boot timeout. Download here while the runner is idle.
       - name: Download Android system image
-        run: sdkmanager "system-images;android-31;google_apis;x86_64"
+        run: sdkmanager "system-images;android-31;default;x86_64"
 
       # ── Install Maestro CLI ────────────────────────────────────────────────────────
       # Maestro is a standalone binary, not an npm package — does not trip sdk-dep-audit
