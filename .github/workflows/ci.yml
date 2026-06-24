@@ -286,7 +286,6 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           avd-name: e2e_smoke_emulator
-          locale: en_US
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 600
