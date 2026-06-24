@@ -275,7 +275,38 @@ jobs:
       - name: Install Maestro CLI
         run: curl -Ls "https://get.maestro.mobile.dev" | bash
 
-      # ── Boot emulator and run the smoke suite ──────────────────────────────────────
+      # ── Build APK before emulator boots (avoids CPU contention crashing QEMU threads) ──
+      # Sets env vars from eas.json e2e profile explicitly; 10.0.2.2 is the Android
+      # emulator's loopback alias for the CI host's localhost where Supabase will listen.
+      - name: Build E2E APK
+        run: |
+          cd apps/mobile
+          APP_VARIANT="development" \
+          EXPO_PUBLIC_APP_VARIANT="development" \
+          EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+          EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+          pnpm exec expo prebuild --platform android --clean
+          cd android
+          APP_VARIANT="development" \
+          EXPO_PUBLIC_APP_VARIANT="development" \
+          EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+          EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+          ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/exposure-buddy-e2e.apk
+          echo "APK built: $(du -sh /tmp/exposure-buddy-e2e.apk | cut -f1)"
+
+      # ── Start Supabase before emulator boots (reads keys into GITHUB_ENV) ─────────
+      - name: Start Supabase
+        run: |
+          supabase start
+          eval "$(supabase status -o env 2>/dev/null | grep -E '^[A-Z_][A-Z0-9_]*=')"
+          SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY:-}}"
+          SUPABASE_URL="${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_URL=${SUPABASE_URL}" >> "$GITHUB_ENV"
+          echo "MAILPIT_URL=http://127.0.0.1:54324" >> "$GITHUB_ENV"
+
+      # ── Boot emulator and run Maestro flows (APK + Supabase already ready) ───────
       - name: Run E2E smoke suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -286,7 +317,20 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 600
-          script: pnpm ci:e2e
+          script: >-
+            export PATH="$PATH:$HOME/.maestro/bin" &&
+            adb install -r /tmp/exposure-buddy-e2e.apk &&
+            ~/.maestro/bin/maestro test
+            apps/mobile/.maestro/onboarding.yaml
+            apps/mobile/.maestro/ladder-build.yaml
+            apps/mobile/.maestro/exposure-loop.yaml
+            apps/mobile/.maestro/debrief.yaml
+            apps/mobile/.maestro/backgrounded-recovery.yaml
+            --output /tmp/maestro-artifacts
+            --env SUPABASE_URL="${SUPABASE_URL}"
+            --env MAILPIT_URL="${MAILPIT_URL}"
+            --env SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
+            --env APP_PACKAGE="com.exposurebuddy.app"
 
       # ── Upload Maestro failure artifacts ──────────────────────────────────────────
       - name: Upload Maestro artifacts on failure
