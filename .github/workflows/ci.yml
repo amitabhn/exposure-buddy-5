@@ -224,6 +224,9 @@ jobs:
       - uses: actions/checkout@v4
 
       # ── Reclaim disk space — android system images + Docker images exhaust the default 14GB ──
+      # swap-storage: false intentionally keeps the swap partition so QEMU has virtual-memory
+      # headroom when Supabase containers are co-resident; dotnet+haskell+large-packages
+      # already free ~12 GB, which is sufficient without reclaiming swap.
       - name: Free disk space
         uses: jlumbroso/free-disk-space@main
         with:
@@ -233,7 +236,7 @@ jobs:
           haskell: true
           large-packages: true
           docker-images: true
-          swap-storage: true
+          swap-storage: false
 
       # ── KVM for hardware-accelerated Android virtualization ─────────────────────
       - name: Enable KVM (udev rules)
@@ -315,15 +318,28 @@ jobs:
           echo "SUPABASE_URL=${SUPABASE_URL}" >> "$GITHUB_ENV"
           echo "MAILPIT_URL=http://127.0.0.1:54324" >> "$GITHUB_ENV"
 
+      # ── Pre-emulator diagnostics — capture KVM/disk/memory state for debugging ──
+      - name: Pre-emulator diagnostics
+        run: |
+          echo "=== Disk ===" && df -h /
+          echo "=== Memory ===" && free -h
+          echo "=== KVM ===" && ls -la /dev/kvm 2>/dev/null || echo "WARNING: /dev/kvm not found — emulator will use software emulation"
+
       # ── Boot emulator and run Maestro flows (APK + Supabase already ready) ───────
+      # -no-snapshot / -no-snapstorage: prevents QEMU from initializing snapshot storage,
+      # which silently crashes the process in CI (port 5554 never opens).
+      # -gpu off: avoids SwiftShader library issues on the current ubuntu-24.04 image;
+      # Maestro uses the accessibility tree so GPU rendering is not needed.
       - name: Run E2E smoke suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 31
+          target: default
           arch: x86_64
           profile: Nexus 6
           avd-name: e2e_smoke_emulator
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          force-avd-creation: true
+          emulator-options: -no-window -gpu off -noaudio -no-boot-anim -no-snapshot -no-snapstorage
           disable-animations: true
           emulator-boot-timeout: 900
           script: >-
@@ -341,6 +357,16 @@ jobs:
             --env SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
             --env APP_PACKAGE="com.exposurebuddy.app"
 
+      # ── Capture emulator state on failure (for boot-timeout diagnosis) ─────────
+      - name: Dump emulator state on failure
+        if: failure()
+        run: |
+          echo "=== Disk ===" && df -h / || true
+          echo "=== Memory ===" && free -h || true
+          echo "=== KVM ===" && ls -la /dev/kvm 2>/dev/null || echo "KVM absent"
+          echo "=== AVD dir ===" && ls -la ~/.android/avd/ 2>/dev/null || echo "No AVD dir"
+          echo "=== AVD contents ===" && ls -la ~/.android/avd/e2e_smoke_emulator.avd/ 2>/dev/null || true
+
       # ── Upload Maestro failure artifacts ──────────────────────────────────────────
       - name: Upload Maestro artifacts on failure
         if: failure()
@@ -349,3 +375,4 @@ jobs:
           name: maestro-smoke-artifacts
           path: /tmp/maestro-artifacts/
           retention-days: 7
+          if-no-files-found: warn
