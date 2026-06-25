@@ -331,6 +331,9 @@ jobs:
       # -gpu swiftshader_indirect: uses the emulator's own bundled host-side SwiftShader
       # (NOT in-guest rendering). -gpu off mistakenly triggers the in-guest Vulkan/lavapipe
       # path which crashes QEMU because the API-31 default system image has no guest renderer.
+      # -partition-size 4096: the emulator v36 default for API-31 requests 7.2 GB for the
+      # userdata partition. After Supabase Docker images pull (~7.4 GB), only ~6.7 GB remains
+      # on the runner, triggering a FATAL pre-check failure. 4 GB is sufficient for E2E tests.
       - name: Run E2E smoke suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -340,7 +343,7 @@ jobs:
           profile: Nexus 6
           avd-name: e2e_smoke_emulator
           force-avd-creation: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapstorage
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapstorage -partition-size 4096
           disable-animations: true
           emulator-boot-timeout: 900
           script: >-
