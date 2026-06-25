@@ -1,5 +1,22 @@
 # Deferred Work
 
+## Deferred from: code review of 9-6-error-state-and-empty-state-ux-audit (2026-06-25)
+
+_Post-implementation adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 1 decision-needed (presented to author); 10 patches written to story file; 7 items deferred below; 2 dismissed._
+
+- **intent.tsx: atomic batch enqueue for multi-table session writes (Option 3 from D1 party-mode roundtable).** `handleContinue` does two sequential `enqueue()` calls (`exposure_sessions` + `suds_readings`); no PK-idempotency or `ON CONFLICT` on either table; retry Pressable removed (Option 2 applied in Story 9.6 patch); the correct long-term fix is to wrap both writes in a single `writeTransaction` via the PowerSync adapter (already used in `_reorder`); requires adapter API change + new test coverage; scope for a dedicated data-integrity story. [`apps/mobile/app/session/intent.tsx`; `packages/sync/src/adapter.ts`]
+- **assessment.tsx: MMKV advanced before enqueue; retry re-generates UUID.** `setOnboardingProgressStep(3)` and `setSudsCalibration` commit to MMKV before enqueue; writes are idempotent; UUID regeneration on retry produces a second outbox entry with a different id; server ON CONFLICT handling should absorb this; same pre-existing pattern from Story 9.4. [`apps/mobile/app/(onboarding)/assessment.tsx`]
+- **intent.tsx: MMKV intention key written before enqueue; key orphaned on navigation away after failure.** `setSessionIntention(sessionId)` written before the first enqueue; if user navigates away after failure, the key persists until next session lifecycle; Story 9.4 MMKV hygiene territory. [`apps/mobile/app/session/intent.tsx`]
+- **debrief.tsx: dispatch(SET_SUBMITTING:false) called before setSaveError in catch — brief intermediate render.** Creates a short window where `isSubmitting` is false and `saveError` is null; React 18 batching in async handlers typically absorbs this; cosmetic at worst. [`apps/mobile/app/session/debrief.tsx`]
+- **grounding.tsx: transition() uses hardcoded 'grounding' state string — verify retry is safe.** `transition('grounding', { type: 'grounding.stopped' })` uses a hardcoded first arg; if this is the current-state arg and the machine already transitioned, retry would be a no-op (the ok/!ok guard returns early). Verify whether the first arg is the domain key or the current-state value before treating the guard as concurrency protection. [`apps/mobile/app/session/grounding.tsx`]
+- **(app)/_layout.test.tsx: mockSessionRecoveryData mutable at module scope; leaks on test panic.** If `beforeEach` panics before the mock is set, `afterEach` may not run, leaving the mutable value non-null for subsequent describe blocks; normal test runs are unaffected. [`apps/mobile/app/(app)/_layout.test.tsx`]
+- **app/_layout.test.tsx: ErrorBoundary test loads full _layout module with initErrorHandler side-effects.** `initErrorHandler()` runs at module import time; if the `jest.mock('../src/error-handler')` hoist does not cover that call path, the `Sentry.captureException` assertion in the `useEffect` test may be vacuous. Verify mock hoisting covers the side-effect call. [`apps/mobile/app/_layout.test.tsx`]
+- **app/_layout.tsx ErrorBoundary: accessibilityLiveRegion="polite" on freshly-mounted crash view will not fire iOS VoiceOver.** iOS UIAccessibilityTraitUpdatesFrequently only fires when existing content changes; a freshly-mounted tree has no prior content to diff against. Spec specified "polite"; switching to "assertive" has identical behavior on fresh mount. Proper fix requires `AccessibilityInfo.announceForAccessibility()` — out of scope for Story 9.6. [`apps/mobile/app/_layout.tsx`]
+
+[`_bmad-output/implementation-artifacts/9-6-error-state-and-empty-state-ux-audit.md`]
+
+---
+
 ## Deferred from: spec review of 9-6-error-state-and-empty-state-ux-audit (2026-06-24)
 
 _Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 4 decisions resolved via party-mode roundtable; 14 patches applied directly to the spec; 1 defer._

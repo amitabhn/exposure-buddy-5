@@ -82,7 +82,7 @@ export default function LadderScreen() {
       setPendingItem({ description, predictedSuds })
       setSaveError(t('onboarding.fearLadder.saveFailed'))
       isAddingRef.current = false
-      return
+      throw err  // re-throw so FearItemForm knows to keep form content
     }
     const updatedItems = [...itemsRef.current, newItem]
     itemsRef.current = updatedItems
@@ -95,7 +95,11 @@ export default function LadderScreen() {
 
   async function handleRetrySave() {
     if (!pendingItem) return
-    await handleAddItem(pendingItem.description, pendingItem.predictedSuds)
+    try {
+      await handleAddItem(pendingItem.description, pendingItem.predictedSuds)
+    } catch {
+      // Error already handled by handleAddItem (setSaveError)
+    }
   }
 
   async function swapItems(indexA: number, indexB: number) {
@@ -256,10 +260,12 @@ export default function LadderScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, !!saveError && styles.buttonDisabled]}
           onPress={handleNext}
+          disabled={!!saveError}
           accessibilityRole="button"
           accessibilityLabel={canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}
+          accessibilityState={{ disabled: !!saveError }}
         >
           <Text style={styles.buttonText}>{canSkip ? t('onboarding.fearLadder.skipCta') : t('onboarding.fearLadder.nextCta')}</Text>
         </TouchableOpacity>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +21,8 @@ export default function AssessmentScreen() {
   const { userId, setOnboardingProgressStep, setSudsCalibration } = useAuth()
   const [selectedValue, setSelectedValue] = useState<number | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
 
   // Save progress to MMKV on mount so resume logic routes here if app is closed
   useEffect(() => {
@@ -28,8 +30,10 @@ export default function AssessmentScreen() {
   }, [setOnboardingProgressStep])
 
   async function handleNext() {
-    if (selectedValue === null) return
+    if (selectedValue === null || isSubmittingRef.current) return
     if (!userId) return  // always non-null behind the onboarding auth gate; guard satisfies TypeScript
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
     setSaveError(null)
     setSudsCalibration(selectedValue)
     setOnboardingProgressStep(3)  // local state first — intent committed before fallible I/O
@@ -44,8 +48,12 @@ export default function AssessmentScreen() {
     } catch (err) {
       console.error('[AssessmentScreen] enqueue failed — calibration value persisted locally:', err)
       setSaveError(t('onboarding.assessment.saveFailed'))
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
       return
     }
+    isSubmittingRef.current = false
+    setIsSubmitting(false)
     router.replace('/(onboarding)/ladder')
   }
 
@@ -76,8 +84,10 @@ export default function AssessmentScreen() {
             >{saveError}</Text>
             <Pressable
               onPress={handleNext}
+              disabled={isSubmitting}
               accessibilityRole="button"
               accessibilityLabel={t('onboarding.assessment.trySaving')}
+              accessibilityState={{ disabled: isSubmitting }}
               style={styles.retryButton}
             >
               <Text style={styles.retryButtonText}>{t('onboarding.assessment.trySaving')}</Text>
@@ -95,14 +105,14 @@ export default function AssessmentScreen() {
           <Text style={styles.overwhelmedText}>{t('onboarding.overwhelmed.cta')}</Text>
         </TouchableOpacity>
 
-        {/* Next button — disabled until value selected */}
+        {/* Next button — disabled until value selected or while submitting */}
         <TouchableOpacity
-          style={[styles.button, selectedValue === null && styles.buttonDisabled]}
+          style={[styles.button, (selectedValue === null || isSubmitting) && styles.buttonDisabled]}
           onPress={handleNext}
-          disabled={selectedValue === null}
+          disabled={selectedValue === null || isSubmitting}
           accessibilityRole="button"
           accessibilityLabel={t('onboarding.assessment.cta')}
-          accessibilityState={{ disabled: selectedValue === null }}
+          accessibilityState={{ disabled: selectedValue === null || isSubmitting }}
         >
           <Text style={styles.buttonText}>{t('onboarding.assessment.cta')}</Text>
         </TouchableOpacity>

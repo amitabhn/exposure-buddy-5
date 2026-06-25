@@ -32,9 +32,9 @@ jest.mock('../../src/components/onboarding/OnboardingStepIndicator', () => ({
 jest.mock('../../src/components/onboarding/FearItemForm', () => {
   const { TouchableOpacity } = require('react-native')
   return {
-    FearItemForm: ({ onSave, onCrisisDetected }: { onSave: (d: string, s: number) => void; onCrisisDetected: () => void }) => (
+    FearItemForm: ({ onSave, onCrisisDetected }: { onSave: (d: string, s: number) => Promise<void>; onCrisisDetected: () => void }) => (
       <>
-        <TouchableOpacity testID="form-add" onPress={() => onSave('Test situation', 5)} />
+        <TouchableOpacity testID="form-add" onPress={() => { onSave('Test situation', 5).catch(() => {}) }} />
         <TouchableOpacity testID="form-crisis" onPress={() => onCrisisDetected()} />
       </>
     ),

@@ -42,6 +42,8 @@ export default function AppLayout() {
   // Resets automatically when sessionRecoveryData is cleared (abandonment/completion).
   const [recoveryModalDismissed, setRecoveryModalDismissed] = useState(false)
   const [recoveryEndError, setRecoveryEndError] = useState<string | null>(null)
+  const [isEnding, setIsEnding] = useState(false)
+  const isEndingRef = useRef(false)
   useEffect(() => {
     if (!sessionRecoveryData) {
       setRecoveryModalDismissed(false)
@@ -125,7 +127,9 @@ export default function AppLayout() {
   }
 
   async function handleRecoveryEnd() {
-    if (!sessionRecoveryData) return
+    if (!sessionRecoveryData || isEndingRef.current) return
+    isEndingRef.current = true
+    setIsEnding(true)
     const { sessionId, fearItemId } = sessionRecoveryData
     const endedAt = new Date().toISOString()
     setRecoveryEndError(null)
@@ -151,9 +155,13 @@ export default function AppLayout() {
     } catch (err) {
       console.error('[AppLayout] recovery end enqueue failed:', err)
       setRecoveryEndError(t('session.recovery.endFailed'))
+      isEndingRef.current = false
+      setIsEnding(false)
       return
     }
 
+    isEndingRef.current = false
+    setIsEnding(false)
     clearSessionInProgress()
     clearSessionIntention(sessionId)
   }
@@ -208,10 +216,12 @@ export default function AppLayout() {
               <Text style={recoveryStyles.resumeText}>{t('session.recovery.resume')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={recoveryStyles.endButton}
+              style={[recoveryStyles.endButton, isEnding && recoveryStyles.endButtonDisabled]}
               onPress={handleRecoveryEnd}
+              disabled={isEnding}
               accessibilityRole="button"
               accessibilityLabel={t('session.recovery.end')}
+              accessibilityState={{ disabled: isEnding }}
             >
               <Text style={recoveryStyles.endText}>{t('session.recovery.end')}</Text>
             </TouchableOpacity>
@@ -225,8 +235,10 @@ export default function AppLayout() {
                 <TouchableOpacity
                   style={recoveryStyles.retryEndButton}
                   onPress={handleRecoveryEnd}
+                  disabled={isEnding}
                   accessibilityRole="button"
                   accessibilityLabel={t('session.recovery.tryEnding')}
+                  accessibilityState={{ disabled: isEnding }}
                 >
                   <Text style={recoveryStyles.retryEndText}>{t('session.recovery.tryEnding')}</Text>
                 </TouchableOpacity>
@@ -247,6 +259,7 @@ const recoveryStyles = StyleSheet.create({
   resumeButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   resumeText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   endButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
+  endButtonDisabled: { opacity: 0.5 },
   endText: { color: '#374151', fontSize: 15 },
   endErrorText: { fontSize: 13, color: '#ef4444', marginTop: 12, lineHeight: 18 },
   retryEndButton: { marginTop: 8, paddingVertical: 8, alignItems: 'center' },

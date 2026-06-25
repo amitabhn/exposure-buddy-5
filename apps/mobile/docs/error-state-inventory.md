@@ -77,7 +77,7 @@ This document is the durable audit record for the Story 9.6 error state audit. E
 | `app/session/briefing.tsx` | No error surfaces | N/A | OK | Read-only display of session context. No async errors. |
 | `app/session/active.tsx` | SUDS log enqueue failure | silent → `console.error` | P2 | P2 — user sees optimistic local update; local SUDS tracking preserved outside try block. Deferred to Story 9.10. |
 | `app/session/active.tsx` | Session completion enqueue failure | silent → `console.error`; user returned to active screen with no message | P0 | Fixed: surface `session.active.completionFailed` error Text + `session.active.tryAgain` retry on main active screen. |
-| `app/session/grounding.tsx` | Abandonment enqueue failure | silent → `console.error`; MMKV cleared + navigation continues regardless | P1 | Fixed: gate MMKV clear and navigation on enqueue success; show `session.grounding.abandonFailed` error + `session.grounding.tryAgain` retry. |
+| `app/session/grounding.tsx` | Abandonment enqueue failure | silent → `console.error`; MMKV cleared + navigation continues regardless | P1 | Fixed: gate MMKV clear and navigation on enqueue success; show `grounding.abandonFailed` error + `grounding.tryAgain` retry. |
 | `app/session/debrief.tsx` | Reflection submission failure | completely empty `catch {}` — no log, no user message | P1 | Fixed: add error state, surface `session.debrief.saveFailed` Text + `session.debrief.tryAgain` retry. |
 | `app/session/abandoned.tsx` | No error surfaces | N/A | OK | Static completion screen. No async errors. |
 

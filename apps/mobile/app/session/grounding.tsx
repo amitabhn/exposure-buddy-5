@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, BackHandler, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,8 @@ export default function GroundingScreen() {
 
   const { clearSessionInProgress, clearSessionIntention, clearGroundingActive } = useAuth()
   const [abandonError, setAbandonError] = useState<string | null>(null)
+  const [isAbandoning, setIsAbandoning] = useState(false)
+  const isAbandoningRef = useRef(false)
 
   useFocusEffect(
     useCallback(() => {
@@ -27,11 +29,14 @@ export default function GroundingScreen() {
   )
 
   async function handleConfirmStop() {
+    if (isAbandoningRef.current) return
     // grounding.stopped event → grounding→abandoned
     // eslint-disable-next-line i18next/no-literal-string
     const result = transition('grounding', { type: 'grounding.stopped' })
     if (!result.ok) return
 
+    isAbandoningRef.current = true
+    setIsAbandoning(true)
     setAbandonError(null)
     const endedAt = new Date().toISOString()
 
@@ -57,6 +62,8 @@ export default function GroundingScreen() {
     } catch (err) {
       console.error('[GroundingScreen] abandonment enqueue failed:', err)
       setAbandonError(t('grounding.abandonFailed'))
+      isAbandoningRef.current = false
+      setIsAbandoning(false)
       return
     }
 
@@ -132,8 +139,10 @@ export default function GroundingScreen() {
             >{abandonError}</Text>
             <Pressable
               onPress={handleConfirmStop}
+              disabled={isAbandoning}
               accessibilityRole="button"
               accessibilityLabel={t('grounding.tryAgain')}
+              accessibilityState={{ disabled: isAbandoning }}
               style={styles.retryButton}
             >
               <Text style={styles.retryButtonText}>{t('grounding.tryAgain')}</Text>
@@ -152,10 +161,12 @@ export default function GroundingScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.stopButton}
+            style={[styles.stopButton, isAbandoning && styles.stopButtonDisabled]}
             onPress={handleConfirmStop}
+            disabled={isAbandoning}
             accessibilityRole="button"
             accessibilityLabel={t('grounding.stopSession')}
+            accessibilityState={{ disabled: isAbandoning }}
           >
             <Text style={styles.stopText}>{t('grounding.stopSession')}</Text>
           </TouchableOpacity>
@@ -187,5 +198,6 @@ const styles = StyleSheet.create({
   resumeButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   resumeText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  stopButtonDisabled: { opacity: 0.5 },
   stopText: { color: '#374151', fontSize: 16 },
 })

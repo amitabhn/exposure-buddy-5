@@ -1,5 +1,5 @@
-import { useReducer, useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
+import { useReducer, useRef, useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -60,6 +60,7 @@ export default function IntentScreen() {
     isSubmitting: false,
   })
   const [enqueueError, setEnqueueError] = useState<string | null>(null)
+  const isSubmittingRef = useRef(false)
 
   const showRecommendedHint = parseInt(predictedSuds ?? '0', 10) >= 7
 
@@ -67,7 +68,8 @@ export default function IntentScreen() {
     // DPDPA ADR-008: Both exposure_sessions and suds_readings are Health data.
     // Consent established at onboarding (OTP flow); isAuthenticated is the current proxy.
     // P14: gate on isAuthenticated explicitly with this comment per architecture MUST rule.
-    if (!isAuthenticated || !userId || state.preSuds === null || state.isSubmitting) return
+    if (!isAuthenticated || !userId || state.preSuds === null || state.isSubmitting || isSubmittingRef.current) return
+    isSubmittingRef.current = true
 
     setEnqueueError(null)
     dispatch({ type: 'SUBMIT' })
@@ -117,7 +119,9 @@ export default function IntentScreen() {
 
       // (e) session.started event: idle→pre_session (state machine is informational at screen level)
 
-      // (f) Navigate to briefing screen
+      // (f) Navigate to briefing screen — dispatch SUBMIT_DONE first so continue button is re-enabled before navigation
+      dispatch({ type: 'SUBMIT_DONE' })
+      isSubmittingRef.current = false
       router.push(
         // eslint-disable-next-line i18next/no-literal-string
         `/session/briefing?sessionId=${sessionId}&fearItemId=${encodeURIComponent(fearItemId)}&description=${encodeURIComponent(description ?? '')}&preSuds=${state.preSuds}`
@@ -126,6 +130,7 @@ export default function IntentScreen() {
       console.error('[IntentScreen] enqueue failed:', err)
       setEnqueueError(t('session.intent.enqueueFailed'))
       dispatch({ type: 'SUBMIT_DONE' })
+      isSubmittingRef.current = false
     }
   }
 
@@ -165,21 +170,11 @@ export default function IntentScreen() {
         )}
 
         {enqueueError ? (
-          <View>
-            <Text
-              // eslint-disable-next-line i18next/no-literal-string
-              accessibilityLiveRegion="polite"
-              style={styles.enqueueErrorText}
-            >{enqueueError}</Text>
-            <Pressable
-              onPress={handleContinue}
-              accessibilityRole="button"
-              accessibilityLabel={t('session.intent.tryAgain')}
-              style={styles.retryButton}
-            >
-              <Text style={styles.retryButtonText}>{t('session.intent.tryAgain')}</Text>
-            </Pressable>
-          </View>
+          <Text
+            // eslint-disable-next-line i18next/no-literal-string
+            accessibilityLiveRegion="polite"
+            style={styles.enqueueErrorText}
+          >{enqueueError}</Text>
         ) : null}
 
         <TouchableOpacity

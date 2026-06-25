@@ -205,8 +205,10 @@ export default function DebriefScreen() {
                 >{saveError}</Text>
                 <Pressable
                   onPress={handleSubmitReflection}
+                  disabled={state.isSubmitting}
                   accessibilityRole="button"
                   accessibilityLabel={t('session.debrief.tryAgain')}
+                  accessibilityState={{ disabled: state.isSubmitting }}
                   style={styles.retryButton}
                 >
                   <Text style={styles.retryButtonText}>{t('session.debrief.tryAgain')}</Text>

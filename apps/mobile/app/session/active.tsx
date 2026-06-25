@@ -186,8 +186,10 @@ export default function ActiveScreen() {
               >{completionError}</Text>
               <Pressable
                 onPress={() => lastDebriefSudsRef.current !== null && handleCompleteSession(lastDebriefSudsRef.current)}
+                disabled={isCompletingSession || completionModalVisible}
                 accessibilityRole="button"
                 accessibilityLabel={t('session.active.tryAgain')}
+                accessibilityState={{ disabled: isCompletingSession || completionModalVisible }}
                 style={styles.retryButton}
               >
                 <Text style={styles.retryButtonText}>{t('session.active.tryAgain')}</Text>
@@ -250,7 +252,7 @@ export default function ActiveScreen() {
         animationType="slide"
         // eslint-disable-next-line i18next/no-literal-string
         presentationStyle="overFullScreen"
-        onRequestClose={() => setCompletionModalVisible(false)}
+        onRequestClose={() => { setCompletionModalVisible(false); setCompletionError(null) }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>

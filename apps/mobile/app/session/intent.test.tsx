@@ -207,13 +207,15 @@ describe('IntentScreen — Story 9.6 error paths', () => {
     })
   })
 
-  it('shows retry button when enqueue rejects', async () => {
+  it('re-enables continue button (no separate retry Pressable) when enqueue rejects', async () => {
+    // D1 decision: retry Pressable removed from intent.tsx; continue button re-enabled via SUBMIT_DONE
     mockEnqueue.mockRejectedValue(new Error('network'))
     const { getByLabelText, getByTestId } = render(<IntentScreen />)
     await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
     await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
     await waitFor(() => {
-      expect(getByLabelText('session.intent.tryAgain')).toBeTruthy()
+      const continueBtn = getByLabelText('session.intent.continue')
+      expect(continueBtn.props.accessibilityState?.disabled).toBeFalsy()
     })
   })
 
