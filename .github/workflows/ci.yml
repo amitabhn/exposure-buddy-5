@@ -328,8 +328,9 @@ jobs:
       # ── Boot emulator and run Maestro flows (APK + Supabase already ready) ───────
       # -no-snapshot / -no-snapstorage: prevents QEMU from initializing snapshot storage,
       # which silently crashes the process in CI (port 5554 never opens).
-      # -gpu off: avoids SwiftShader library issues on the current ubuntu-24.04 image;
-      # Maestro uses the accessibility tree so GPU rendering is not needed.
+      # -gpu swiftshader_indirect: uses the emulator's own bundled host-side SwiftShader
+      # (NOT in-guest rendering). -gpu off mistakenly triggers the in-guest Vulkan/lavapipe
+      # path which crashes QEMU because the API-31 default system image has no guest renderer.
       - name: Run E2E smoke suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -339,7 +340,7 @@ jobs:
           profile: Nexus 6
           avd-name: e2e_smoke_emulator
           force-avd-creation: true
-          emulator-options: -no-window -gpu off -noaudio -no-boot-anim -no-snapshot -no-snapstorage
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapstorage
           disable-animations: true
           emulator-boot-timeout: 900
           script: >-
