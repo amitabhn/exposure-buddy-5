@@ -1,5 +1,21 @@
 # Deferred Work
 
+## Deferred from: spec review of 9-7-performance-budget-low-end-device-validation (2026-06-29)
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 5 decisions-needed; 11 patches applied directly to the spec; 7 items deferred below._
+
+- **No CI integration for performance checks.** All measurement is manual/local; no automated performance regression gate exists. Deliberate for MVP. Trigger: revisit when EAS CI pipeline is extended in a future DevOps story — at that point, Flashlight or a custom adb-based cold-start measurement can be added as a build step.
+- **iOS performance asserted sufficient but not measured.** AC2 states iOS at this tier is expected to pass without requiring validation. Deliberate out-of-scope decision for MVP. Trigger: revisit at India Phase 2 when iOS market share warrants measurement.
+- **NFR-PERF-01 P90 vs 3-run-median methodology gap.** NFR-PERF-01 specifies <3s at P90; this story measures 3 runs at median (~P50 on one device). Accepted MVP limitation acknowledged in Dev Notes. Trigger: if a dedicated perf regression story is created for India Phase 2, use a proper P90 sampling methodology.
+- **Android emulator GPU not throttled — Modal animation fps measurements in emulator are invalid.** The 2× CPU throttle does not affect GPU; slide/fade animation fps measured in the emulator reflects host GPU performance, not Snapdragon 439 + Mali-G31. Physical device is preferred per spec; emulator is a fallback. Trigger: if fps P0 is declared on emulator and needs verification, confirm on physical hardware before closing.
+- **`_dbByUserId` Map eviction.** Pre-existing issue already tracked under Story 6.2-A. Not introduced by Story 9.7.
+- **Flipper support removed in React Native 0.74+.** Task 3.1 suggests Flipper as an fps option. If the project runs RN ≥0.74, this is inoperative. Trigger: dev agent should verify the RN version before attempting Flipper-based fps measurement.
+- **P1 sign-off authority undefined.** AC4 allows P1 deferrals "with explicit sign-off" but names no approver role or process. Process governance gap beyond this spec's scope. Trigger: establish a review/sign-off role (e.g., product owner or tech lead) when the team grows beyond solo dev.
+
+[`_bmad-output/implementation-artifacts/9-7-performance-budget-low-end-device-validation.md`]
+
+---
+
 ## Deferred from: code review of 9-6-error-state-and-empty-state-ux-audit (2026-06-25)
 
 _Post-implementation adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 1 decision-needed (presented to author); 10 patches written to story file; 7 items deferred below; 2 dismissed._
