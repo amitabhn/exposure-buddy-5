@@ -1,6 +1,6 @@
 # Story 9.7: Performance Budget — Low-End Device Validation
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -22,10 +22,10 @@ so that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Define reference device profile and measurement methodology; create `performance-budget.md` (AC: 1, 2, 3)**
-  - [ ] 1.1 Create `apps/mobile/docs/performance-budget.md`. Include: (a) reference device profile (Android, 2GB RAM, Snapdragon 439 equivalent; Redmi 9A / Samsung Galaxy M02 tier); (b) emulator fallback instructions (2× CPU throttle via Android Studio AVD Manager); (c) the five budget targets from AC1 (1a, 1b, 2a, 2b, 3); (d) the measurement tools to use for each metric and the build type (release APK for all); (e) a results table with columns: Metric / Budget / Result (Profile A) / Result (Profile B) / Tool / Build Type / Pass/Fail; (f) a findings section for any P0/P1 violations.
-  - [ ] 1.2 Install Flashlight CLI (`@perf-tools/flashlight`) if not already present: `npm install -g @perf-tools/flashlight` then verify with `npx @perf-tools/flashlight --version`. Flashlight is **required** for fps measurement — do NOT add it as a project dependency. If Flashlight genuinely cannot run on this machine (ADB device connection issue, OS incompatibility), document the reason in `performance-budget.md` and use the fallback: 60fps screen recording (`adb shell screenrecord` or device recorder) + frame-count analysis with VLC or `ffprobe`.
-  - [ ] 1.3 Confirm `adb` is available on the local machine (`adb version`). Confirm the release APK (`eas build --profile preview`) is available or build one. Document the Android emulator or physical device to be used, including Android version and available RAM configuration.
+- [x] **Task 1 — Define reference device profile and measurement methodology; create `performance-budget.md` (AC: 1, 2, 3)**
+  - [x] 1.1 Create `apps/mobile/docs/performance-budget.md`. Include: (a) reference device profile (Android, 2GB RAM, Snapdragon 439 equivalent; Redmi 9A / Samsung Galaxy M02 tier); (b) emulator fallback instructions (2× CPU throttle via Android Studio AVD Manager); (c) the five budget targets from AC1 (1a, 1b, 2a, 2b, 3); (d) the measurement tools to use for each metric and the build type (release APK for all); (e) a results table with columns: Metric / Budget / Result (Profile A) / Result (Profile B) / Tool / Build Type / Pass/Fail; (f) a findings section for any P0/P1 violations.
+  - [x] 1.2 Install Flashlight CLI (`@perf-tools/flashlight`) if not already present: `npm install -g @perf-tools/flashlight` then verify with `npx @perf-tools/flashlight --version`. Flashlight is **required** for fps measurement — do NOT add it as a project dependency. If Flashlight genuinely cannot run on this machine (ADB device connection issue, OS incompatibility), document the reason in `performance-budget.md` and use the fallback: 60fps screen recording (`adb shell screenrecord` or device recorder) + frame-count analysis with VLC or `ffprobe`. — **RESULT: Both `@perf-tools/flashlight` and `@bamlab/flashlight` returned 404 on npm (package unavailable). `adb` is also not installed on this machine. Documented in `performance-budget.md` §Tooling Availability. Measurement tasks require a machine with Android SDK installed.**
+  - [x] 1.3 Confirm `adb` is available on the local machine (`adb version`). Confirm the release APK (`eas build --profile preview`) is available or build one. Document the Android emulator or physical device to be used, including Android version and available RAM configuration. — **RESULT: `adb` not found on this machine (no Android SDK installed). Documented in `performance-budget.md` §Tooling Availability. Tasks 2, 3, 4 measurements require a machine with `adb` and a connected device/emulator.**
 
 - [ ] **Task 2 — Cold start measurement and remediation (AC: 1, 4)**
   - [ ] 2.1 Set up the reference device/emulator: create or confirm an Android 10+ AVD with 2GB RAM and 2× CPU throttle (Android Studio AVD Manager → Extended Controls → Settings → Throttling). Confirm the release APK is sideloaded: `adb install <path-to-preview.apk>`. Do NOT use Expo Dev Client — it inflates cold-start significantly.
@@ -57,16 +57,16 @@ so that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 - [ ] **Task 4 — Calm Me button tap-to-mount latency (AC: 1, 4)**
   - [ ] 4.1 Measurement: from the home screen `(app)/index.tsx` (canonical reference screen for reproducibility), tap the Calm Me FAB. Measure from `onPress` in `CalmMeFab.handlePress` to the first `onLayout` or `useEffect` mount event firing in `apps/mobile/app/calm-me/index.tsx`. The navigation fade animation runs *after* mount — it is not part of the 200ms budget. Use Flashlight CLI against the release APK, or measure via 60fps screen recording with a frame-counter. Run 3 taps; use median. **Note:** `CalmMeFab.handlePress` guards on `navigatingRef.current` (double-tap prevention) and `isInSession` (session recovery state) — there is no auth check. These guards add negligible overhead.
   - [ ] 4.2 Key files: `apps/mobile/src/components/CalmMeFab.tsx` — the FAB calls `router.push('/calm-me')` via `handlePress` (guards: `navigatingRef.current`, `isInSession` — no auth check); `apps/mobile/app/calm-me/index.tsx` — the Calm Me shell (entry animation disabled per Task 4.3); `packages/ui/src/components/CalmMeButton.tsx` — the button itself (no animation on press per ADR — must never show loading state).
-  - [ ] 4.3 **First remediation (required regardless of latency result): remove the navigation entry animation from `calm-me/index.tsx`.** The `Stack.Screen options={{ animation: 'fade' }}` cross-fade takes ~300–350ms on target hardware (Mali-G31 GPU), exceeding the 200ms budget independently of routing overhead. Change to `animation: 'none'`. Add comment: `// PERF: animation disabled — UX-DR8 requires instant render; cross-fade (~300ms on Mali-G31) violates the 200ms tap-to-mount budget. UX sign-off: UX-DR8 + Story 9.7 spec review.` If latency still exceeds 200ms after removing the animation, check whether the calm-me route can be pre-loaded using `router.prefetch('/calm-me')` from `CalmMeFab` or the root layout.
+  - [x] 4.3 **First remediation (required regardless of latency result): remove the navigation entry animation from `calm-me/index.tsx`.** The `Stack.Screen options={{ animation: 'fade' }}` cross-fade takes ~300–350ms on target hardware (Mali-G31 GPU), exceeding the 200ms budget independently of routing overhead. Change to `animation: 'none'`. Add comment: `// PERF: animation disabled — UX-DR8 requires instant render; cross-fade (~300ms on Mali-G31) violates the 200ms tap-to-mount budget. UX sign-off: UX-DR8 + Story 9.7 spec review.` If latency still exceeds 200ms after removing the animation, check whether the calm-me route can be pre-loaded using `router.prefetch('/calm-me')` from `CalmMeFab` or the root layout. — **DONE: `animation: 'fade'` → `animation: 'none'` applied in `apps/mobile/app/calm-me/index.tsx` line 92–94. `// PERF` comment added above the Stack.Screen line.**
   - [ ] 4.4 Document final tap-to-mount latency measurement (3 taps, median) in `performance-budget.md`. Confirm `animation: 'none'` is in place in `calm-me/index.tsx`.
 
 - [ ] **Task 5 — Validate and close (AC: 1–4)**
-  - [ ] 5.1 Run `pnpm turbo typecheck lint test` repo-wide; confirm all packages green. Any optimisation code change (memoisation, component extraction, lazy init, animation removal) must not introduce TypeScript errors or lint violations.
-  - [ ] 5.2 Confirm `apps/mobile/docs/performance-budget.md` exists and contains: reference device profile; measurement methodology; a completed results table for all five metrics (1a TotalTime, 1b content-visible, 2a Modal fps, 2b tap-to-highlight, 3 Calm Me tap-to-mount) with both Profile A and Profile B columns for cold start; P0/P1 classification for any violation; resolution status for any P0; Known Limitations section covering Profile C (expired token).
-  - [ ] 5.3 Grep for `// PERF` in `apps/mobile` — confirm every workaround or optimisation location has the comment. Also grep for `animation: 'none'` in `apps/mobile/app/calm-me/index.tsx` to confirm the fade removal is in place.
-  - [ ] 5.4 If any P1 deferral was applied (SUDS Modal fps 45–55fps range), document the explicit deferral sign-off in this story's Completion Notes **and** in `_bmad-output/implementation-artifacts/deferred-work.md`.
-  - [ ] 5.5 Verify Story 9.6 regression guards are intact in any modified files: grep `apps/mobile/app/_layout.tsx` for `ErrorBoundary` export and `initErrorHandler()` call; grep all modified screen files for `isSubmittingRef`. If any of these are missing, restore before closing.
-  - [ ] 5.6 Update `_bmad-output/implementation-artifacts/sprint-status.yaml`: set `9-7-performance-budget-low-end-device-validation: done` and update `last_updated`.
+  - [x] 5.1 Run `pnpm turbo typecheck lint test` repo-wide; confirm all packages green. Any optimisation code change (memoisation, component extraction, lazy init, animation removal) must not introduce TypeScript errors or lint violations. — **DONE: 374 tests pass, 19 turbo tasks successful. No regressions.**
+  - [ ] 5.2 Confirm `apps/mobile/docs/performance-budget.md` exists and contains: reference device profile; measurement methodology; a completed results table for all five metrics (1a TotalTime, 1b content-visible, 2a Modal fps, 2b tap-to-highlight, 3 Calm Me tap-to-mount) with both Profile A and Profile B columns for cold start; P0/P1 classification for any violation; resolution status for any P0; Known Limitations section covering Profile C (expired token). — **PARTIAL: file created with template/methodology, but results table rows are blank pending device measurement (Tasks 2, 3, 4).**
+  - [x] 5.3 Grep for `// PERF` in `apps/mobile` — confirm every workaround or optimisation location has the comment. Also grep for `animation: 'none'` in `apps/mobile/app/calm-me/index.tsx` to confirm the fade removal is in place. — **DONE: `// PERF` comment present at `calm-me/index.tsx:92`; `animation: 'none'` confirmed at line 94.**
+  - [ ] 5.4 If any P1 deferral was applied (SUDS Modal fps 45–55fps range), document the explicit deferral sign-off in this story's Completion Notes **and** in `_bmad-output/implementation-artifacts/deferred-work.md`. — **Pending: cannot assess until SUDS fps is measured in Task 3.**
+  - [x] 5.5 Verify Story 9.6 regression guards are intact in any modified files: grep `apps/mobile/app/_layout.tsx` for `ErrorBoundary` export and `initErrorHandler()` call; grep all modified screen files for `isSubmittingRef`. If any of these are missing, restore before closing. — **DONE: `ErrorBoundary` exported at line 37, `initErrorHandler()` called at line 71. `isSubmittingRef` not expected in `calm-me/index.tsx` (not a form-submit flow). All guards intact.**
+  - [ ] 5.6 Update `_bmad-output/implementation-artifacts/sprint-status.yaml`: set `9-7-performance-budget-low-end-device-validation: done` and update `last_updated`. — **Pending: blocked on measurement tasks.**
 
 ### Review Findings
 
@@ -201,16 +201,39 @@ Story 9.6 (Error State & Empty State UX Audit) established the following pattern
 
 ### Agent Model Used
 
-Claude Sonnet 4.6 (claude-sonnet-4-6) — story context generated by create-story workflow; implementation agent model recorded here on dev-story run.
+Claude Sonnet 4.6 (claude-sonnet-4-6) — story context generated by create-story workflow; dev-story implementation run: 2026-06-29.
 
 ### Debug Log References
 
+- Task 1.2: `@perf-tools/flashlight` → npm 404. `@bamlab/flashlight` → npm 404. Package appears deprecated/removed from registry.
+- Task 1.3: `adb version` → not found. Android SDK not installed on this machine (macOS dev environment without Android toolchain).
+- Task 4.3: `animation: 'fade'` → `animation: 'none'` applied. Tests pass (374/374). `// PERF` comment added per spec.
+- Task 5.1: `pnpm turbo typecheck lint test` → 19 tasks successful, 374 tests pass, 0 failures.
+- Task 5.3: `grep -rn "// PERF" apps/mobile/` → found at `calm-me/index.tsx:92`. `animation: 'none'` confirmed at line 94.
+- Task 5.5: `ErrorBoundary` export at `_layout.tsx:37`; `initErrorHandler()` at line 71. Regression guards intact.
+
 ### Completion Notes List
 
+**Completed tasks (2026-06-29):**
+- Task 1.1: Created `apps/mobile/docs/performance-budget.md` — includes reference device profile, emulator fallback, all 5 budget targets, measurement procedure, blank results table (to be filled after device measurement), findings section, tooling availability, known limitations.
+- Task 1.2: Attempted Flashlight install — both `@perf-tools/flashlight` and `@bamlab/flashlight` returned npm 404. Documented in `performance-budget.md §Tooling Availability`. Fallback: 60fps screen recording + frame-count via VLC/ffprobe.
+- Task 1.3: `adb` not installed on this machine. Android SDK not present. Documented in `performance-budget.md §Tooling Availability`. Tasks 2, 3, 4 require a machine with Android SDK + device/emulator.
+- Task 4.3: Required animation removal applied — `animation: 'fade'` → `animation: 'none'` in `apps/mobile/app/calm-me/index.tsx`. `// PERF` comment added per spec. This is a UX-DR8 compliance fix.
+- Task 5.1: `pnpm turbo typecheck lint test` → green (374 tests, 19 turbo tasks).
+- Task 5.3: `// PERF` grep → confirmed at `calm-me/index.tsx:92`; `animation: 'none'` at line 94.
+- Task 5.5: Story 9.6 regression guards verified intact.
+
+**HALT — pending device measurement:**
+Tasks 2 (cold start), 3 (SUDS Modal fps + tap latency), 4.1/4.2/4.4 (Calm Me tap-to-mount measurement), 5.2 (results table completion), 5.4 (P1 deferral assessment), 5.6 (sprint-status done) cannot proceed without `adb` + Android device/emulator + release APK. See `performance-budget.md §Measurement Procedure` for step-by-step instructions.
+
 ### File List
+
+- `apps/mobile/docs/performance-budget.md` — NEW: performance budget document with reference profile, methodology, blank results table, tooling availability section
+- `apps/mobile/app/calm-me/index.tsx` — MODIFIED: `animation: 'fade'` → `animation: 'none'` (Task 4.3, UX-DR8 compliance); `// PERF` comment added
 
 ## Change Log
 
 | Date | Change |
 |---|---|
 | 2026-06-29 | Story 9.7 created via create-story workflow. Pre-audit analysis confirmed: `active.tsx` has no visible session timer (N/A noted in Task 3.2); `CalmMeFab` uses `router.push('/calm-me')` with no loading state; `_dbByUserId` Map eviction is a known deferred issue (6.2-A) not addressed in this story; Achievements tab budget line struck through per 2026-06-21 deferral of Story 8.5. Reference device profile: Android 10+, 2GB RAM, Snapdragon 439-equivalent (emulator with 2× CPU throttle as fallback). |
+| 2026-06-29 | dev-story run: Task 1.1 (performance-budget.md created), Task 1.2 (Flashlight unavailable — documented), Task 1.3 (adb not installed — documented), Task 4.3 (`animation: 'none'` applied in `calm-me/index.tsx`), Task 5.1 (typecheck/lint/test green), Task 5.3 (PERF grep verified), Task 5.5 (9.6 regression guards verified). HALT: Tasks 2, 3, 4.1/4.2/4.4 blocked on device tooling. |
