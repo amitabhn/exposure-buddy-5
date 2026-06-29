@@ -325,6 +325,16 @@ jobs:
           echo "=== Memory ===" && free -h
           echo "=== KVM ===" && ls -la /dev/kvm 2>/dev/null || echo "WARNING: /dev/kvm not found — emulator will use software emulation"
 
+      # ── Virtual framebuffer — free-disk-space large-packages removes xvfb; ────────
+      # swiftshader_indirect needs an X display even in -no-window mode to initialize
+      # its EGL context. Without this Xvfb the emulator process starts but QEMU never
+      # opens port 5554, producing "adb: device emulator-5554 not found" until timeout.
+      - name: Start Xvfb (virtual display for SwiftShader renderer)
+        run: |
+          sudo apt-get install -y xvfb
+          Xvfb :0 -screen 0 1280x720x24 &
+          echo "DISPLAY=:0" >> "$GITHUB_ENV"
+
       # ── Boot emulator and run Maestro flows (APK + Supabase already ready) ───────
       # -no-snapshot / -no-snapstorage: prevents QEMU from initializing snapshot storage,
       # which silently crashes the process in CI (port 5554 never opens).
