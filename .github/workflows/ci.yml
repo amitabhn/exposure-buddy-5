@@ -305,6 +305,9 @@ jobs:
           echo "APK built: $(du -sh /tmp/exposure-buddy-e2e.apk | cut -f1)"
           cd ../..
           rm -rf apps/mobile/android ~/.gradle/caches
+          # node_modules not needed after APK build — Supabase + Maestro are self-contained CLIs.
+          # Emulator v36 pre-check needs 7.4 GB; removing node_modules frees ~1.5 GB headroom.
+          rm -rf node_modules
           df -h / | tail -1
 
       # ── Start Supabase before emulator boots (reads keys into GITHUB_ENV) ─────────
