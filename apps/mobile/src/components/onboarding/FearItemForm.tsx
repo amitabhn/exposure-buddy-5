@@ -5,7 +5,7 @@ import { detectCrisisKeywords } from '@exposure-buddy/core'
 import { SudsCalibrationWidget } from './SudsCalibrationWidget'
 
 interface FearItemFormProps {
-  onSave: (description: string, predictedSuds: number) => void
+  onSave: (description: string, predictedSuds: number) => Promise<void>
   onCrisisDetected: () => void
 }
 
@@ -13,6 +13,7 @@ export function FearItemForm({ onSave, onCrisisDetected }: FearItemFormProps) {
   const { t } = useTranslation()
   const [description, setDescription] = useState('')
   const [predictedSuds, setPredictedSuds] = useState<number | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const crisisCalledRef = useRef(false)
 
   function handleDescriptionChange(text: string) {
@@ -23,15 +24,22 @@ export function FearItemForm({ onSave, onCrisisDetected }: FearItemFormProps) {
     }
   }
 
-  function handleSave() {
-    if (!description.trim() || predictedSuds === null) return
-    onSave(description.trim(), predictedSuds)
-    setDescription('')
-    setPredictedSuds(null)
-    crisisCalledRef.current = false
+  async function handleSave() {
+    if (!description.trim() || predictedSuds === null || isSaving) return
+    setIsSaving(true)
+    try {
+      await onSave(description.trim(), predictedSuds)
+      setDescription('')
+      setPredictedSuds(null)
+      crisisCalledRef.current = false
+    } catch {
+      // Parent shows the error; keep form content so user can see what failed
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const canSave = description.trim().length > 0 && predictedSuds !== null
+  const canSave = description.trim().length > 0 && predictedSuds !== null && !isSaving
 
   return (
     <View style={styles.container}>

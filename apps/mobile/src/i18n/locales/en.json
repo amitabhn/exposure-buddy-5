@@ -111,9 +111,13 @@
       "sudsAnchor0": "No distress",
       "sudsAnchor5": "Moderate",
       "sudsAnchor10": "Extreme distress",
-      "cta": "Next"
+      "cta": "Next",
+      "saveFailed": "We couldn't save your calibration score. It's stored on your device and will sync when you reconnect.",
+      "trySaving": "Try saving again"
     },
     "fearLadder": {
+      "saveFailed": "We couldn't save that situation. It's stored on your device and will sync when you reconnect.",
+      "trySaving": "Try saving again",
       "minimumItems": "Add at least 3 situations to continue.",
       "ladderNudge": "That's a solid ladder — most people find 10–15 situations gives enough range.",
       "ladderNudgeDismiss": "Got it",
@@ -190,7 +194,9 @@
       "title": "You have an unfinished session",
       "body": "You were in the middle of an exposure. Would you like to resume where you left off?",
       "resume": "Resume session",
-      "end": "End session"
+      "end": "End session",
+      "endFailed": "We couldn't end your session. It's stored on your device and will sync automatically.",
+      "tryEnding": "Try ending again"
     },
     "intent": {
       "title": "Before you begin",
@@ -198,7 +204,9 @@
       "intentionPrompt": "Would you like to write yourself a note?",
       "intentionPlaceholder": "What do you expect to feel? What do you want to remember after?",
       "intentionRecommended": "Recommended when anxiety is 7 or above — it helps to have words to come back to.",
-      "continue": "Continue"
+      "continue": "Continue",
+      "enqueueFailed": "We couldn't start your session right now. It's stored on your device and will sync automatically.",
+      "tryAgain": "Try again"
     },
     "pause": {
       "title": "Take a moment",
@@ -214,7 +222,9 @@
       "stopExposureHint": "Ends this exposure now and takes you to a grounding exercise",
       "completeExposure": "Complete exposure",
       "completionModalTitle": "How are you feeling now?",
-      "finishSession": "Finish session"
+      "finishSession": "Finish session",
+      "completionFailed": "We couldn't save your session. It's stored on your device and will sync automatically.",
+      "tryAgain": "Try again"
     },
     "abandoned": {
       "message": "Stopping when you need to is an act of self-awareness. You can try again whenever you feel ready."
@@ -227,7 +237,9 @@
       "letterIntro": "Before you began, you wrote this to yourself:",
       "acknowledgement": "You faced what you were afraid of. That matters.",
       "acknowledgementNoImprovement": "You showed up. That takes real courage, even when it's hard.",
-      "crisisHeading": "If you need support right now:"
+      "crisisHeading": "If you need support right now:",
+      "saveFailed": "We couldn't save your reflection. Your session data is stored on your device and will sync automatically.",
+      "tryAgain": "Try again"
     },
     "suds": {
       "anchor0": "0 — Completely calm",
@@ -301,7 +313,9 @@
   },
   "grounding": {
     "keepGoing": "I can keep going",
-    "stopSession": "I need to stop this session"
+    "stopSession": "I need to stop this session",
+    "abandonFailed": "We couldn't update your session status. It's stored on your device and will sync automatically.",
+    "tryAgain": "Try again"
   },
   "nav": {
     "home": "Home",

@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router'
+import type { ErrorBoundaryProps } from 'expo-router'
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BackButton } from '../src/components/navigation/BackButton'
@@ -21,6 +22,7 @@ import {
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
 import React, { useEffect, useRef, useState } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
 import { AuthProvider, OnboardingProvider, initSession, useAuth, createSupabaseClient, type MMKV } from '@exposure-buddy/supabase'
 import * as Sentry from '@sentry/react-native'
 import {
@@ -31,6 +33,33 @@ import {
   SupabasePowerSyncConnector,
   initAdapter,
 } from '@exposure-buddy/sync'
+
+export function ErrorBoundary({ error }: ErrorBoundaryProps) {
+  useEffect(() => {
+    Sentry.captureException(error)
+  }, [error])
+
+  // Do NOT use useTranslation() here — the i18n provider may not be available if the
+  // crash occurs before the i18n side-effect runs. Hardcoded English is intentional;
+  // this is the last-resort fallback, not a localised UI (ADR-ERROR-STATES.md).
+  return (
+    <View style={errorBoundaryStyles.container}>
+      {/* eslint-disable i18next/no-literal-string */}
+      <Text
+        accessibilityLiveRegion="polite"
+        style={errorBoundaryStyles.message}
+      >
+        The app encountered an error. Please close and reopen it.
+      </Text>
+      {/* eslint-enable i18next/no-literal-string */}
+    </View>
+  )
+}
+
+const errorBoundaryStyles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#ffffff' },
+  message: { fontSize: 16, color: '#111827', textAlign: 'center', lineHeight: 24 },
+})
 
 // Placeholder DB used when no user is signed in — never connected to Supabase.
 // Keeps PowerSyncContext.Provider value non-null so useQuery's conditional hook

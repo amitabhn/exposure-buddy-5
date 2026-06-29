@@ -122,7 +122,11 @@ export default function HomeScreen() {
         // type-level-only states ('avoidance', 'mid-exposure', 'return-after-gap', never
         // returned by resolveHomeScreenState in this story) all render the empty-ladder UI.
         <View>
-          <Text style={styles.placeholder}>{t('ladder.emptyState')}</Text>
+          <Text
+            // eslint-disable-next-line i18next/no-literal-string
+            accessibilityLiveRegion="polite"
+            style={styles.placeholder}
+          >{t('ladder.emptyState')}</Text>
           <TouchableOpacity
             style={styles.placeholderCard}
             onPress={() => router.push('/ladder')}

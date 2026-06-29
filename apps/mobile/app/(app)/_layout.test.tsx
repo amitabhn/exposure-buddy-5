@@ -1,6 +1,6 @@
 import React from 'react'
 import { AppState } from 'react-native'
-import { render, act, waitFor } from '@testing-library/react-native'
+import { render, act, waitFor, fireEvent } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -26,15 +26,19 @@ const mockSetReminderTime = jest.fn()
 const mockGetReminderEnabled = jest.fn()
 const layoutAuthState = { userId: 'user-1' }
 
+const mockClearSessionInProgress = jest.fn()
+const mockClearSessionIntention = jest.fn()
+let mockSessionRecoveryData: { sessionId: string; fearItemId: string | null; description: string; preSuds: number } | null = null
+
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
     isLoading: false,
     isAuthenticated: true,
     isOnboardingComplete: true,
     isStorageDegraded: false,
-    sessionRecoveryData: null,
-    clearSessionInProgress: jest.fn(),
-    clearSessionIntention: jest.fn(),
+    sessionRecoveryData: mockSessionRecoveryData,
+    clearSessionInProgress: mockClearSessionInProgress,
+    clearSessionIntention: mockClearSessionIntention,
     userId: layoutAuthState.userId,
     getReminderTime: mockGetReminderTime,
     getReminderNotificationId: mockGetReminderNotificationId,
@@ -167,5 +171,56 @@ describe('AppLayout — foreground session-reminder reschedule (AC4)', () => {
 
     expect(mockCancelSessionReminder).toHaveBeenCalledWith('notif-leaked')
     expect(mockSetReminderNotificationId).not.toHaveBeenCalled()
+  })
+})
+
+describe('AppLayout — Story 9.6 recovery-end error path', () => {
+  const mockEnqueue = jest.fn()
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockSessionRecoveryData = {
+      sessionId: 'session-uuid-1',
+      fearItemId: 'item-uuid-1',
+      description: 'Test situation',
+      preSuds: 5,
+    }
+    mockGetSession.mockResolvedValue(undefined)
+    mockGetReminderEnabled.mockReturnValue(false)
+    mockGetReminderTime.mockReturnValue(null)
+    const { getAdapter } = require('../../src/sync/adapter')
+    getAdapter.mockReturnValue({ enqueue: mockEnqueue })
+  })
+
+  afterEach(() => {
+    mockSessionRecoveryData = null
+  })
+
+  it('shows recovery-end error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByText } = render(<AppLayout />)
+    await act(async () => { fireEvent.press(getByLabelText('session.recovery.end')) })
+    await waitFor(() => {
+      const errorText = getByText('session.recovery.endFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows "try ending again" button when recovery-end enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<AppLayout />)
+    await act(async () => { fireEvent.press(getByLabelText('session.recovery.end')) })
+    await waitFor(() => {
+      expect(getByLabelText('session.recovery.tryEnding')).toBeTruthy()
+    })
+  })
+
+  it('does NOT clear MMKV when recovery-end enqueue fails', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<AppLayout />)
+    await act(async () => { fireEvent.press(getByLabelText('session.recovery.end')) })
+    await waitFor(() => {
+      expect(mockClearSessionInProgress).not.toHaveBeenCalled()
+    })
   })
 })

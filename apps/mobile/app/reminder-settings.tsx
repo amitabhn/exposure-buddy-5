@@ -222,7 +222,11 @@ export default function ReminderSettingsScreen() {
 
         {permissionError ? (
           <View style={styles.permissionErrorBox}>
-            <Text style={styles.permissionErrorText}>{t('reminderSettings.permissionRequired')}</Text>
+            <Text
+              // eslint-disable-next-line i18next/no-literal-string
+              accessibilityLiveRegion="polite"
+              style={styles.permissionErrorText}
+            >{t('reminderSettings.permissionRequired')}</Text>
             <TouchableOpacity
               onPress={() => Linking.openSettings()}
               accessibilityRole="button"

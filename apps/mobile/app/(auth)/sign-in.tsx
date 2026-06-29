@@ -242,7 +242,13 @@ export default function SignInScreen() {
         />
       )}
 
-      {state.errorKey ? <Text style={styles.errorText}>{t(state.errorKey)}</Text> : null}
+      {state.errorKey ? (
+        <Text
+          // eslint-disable-next-line i18next/no-literal-string
+          accessibilityLiveRegion="polite"
+          style={styles.errorText}
+        >{t(state.errorKey)}</Text>
+      ) : null}
 
       <TouchableOpacity
         style={[styles.button, isSendDisabled && styles.buttonDisabled]}
