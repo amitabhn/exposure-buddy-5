@@ -16,6 +16,17 @@ _Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance A
 
 ---
 
+## Deferred from: code review of 9-7-performance-budget-low-end-device-validation (2026-06-30)
+
+_Implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 3 decisions-needed (1 deferred below, 2 resolved); 5 patches outstanding; 2 items deferred._
+
+- **Cold start TotalTime not validated on spec-required reference device (AC2 gap).** Measurement taken on Xiaomi Redmi K20 Pro (Snapdragon 730G, 6 GB RAM) — 3–4× faster than Snapdragon 439 / 2 GB target. Projected cold start on SD439 class: 3300–3960 ms (would FAIL the ≤2 s P0 budget). No physical SD439-class device available; cloud device farm (Firebase Test Lab) feasibility unverified at time of review. Deferred post-MVP. **Trigger:** validate Profile A and Profile B cold start TotalTime on a Snapdragon 439 / 2 GB class device before Story 9.9 (India Phase 1 launch gate). Fastest unblock: (1) `gcloud firebase test android models list | grep -i "439\|redmi 8"` to check Test Lab catalog, (2) BrowserStack `/devices.json` API with trial credentials, (3) purchase Redmi 10A / similar (≤₹8,000). Acceptable calibrated fallback if cloud farm unavailable: Android emulator at 6× CPU throttle with host machine spec documented. Do not revise the ≤2 s budget upward. [`apps/mobile/docs/performance-budget.md`; AC2]
+- **`ladder.tsx` calls `router.push('/calm-me')` without `inSession=1` param — session-aware footer never renders from ladder.** The "Keep Going" / "Need to Stop" footer in `CalmMeScreen` is gated on `inSession === '1' && sessionRecoveryData !== null`. `CalmMeFab` is the only caller that threads `inSession=1`; `ladder.tsx` does not. Pre-existing pattern; `CalmMeFab` is the intended primary Calm Me entry point. **Trigger:** address when the ladder screen is extended with a Calm Me affordance, or when a UX audit surfaces users missing the session-aware flow. [`apps/mobile/app/ladder.tsx`]
+
+[`_bmad-output/implementation-artifacts/9-7-performance-budget-low-end-device-validation.md`]
+
+---
+
 ## Deferred from: code review of 9-6-error-state-and-empty-state-ux-audit (2026-06-25)
 
 _Post-implementation adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 1 decision-needed (presented to author); 10 patches written to story file; 7 items deferred below; 2 dismissed._

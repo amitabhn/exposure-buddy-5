@@ -89,9 +89,7 @@ export default function CalmMeScreen() {
   return (
     <>
       {/* eslint-disable-next-line i18next/no-literal-string */}
-      {/* PERF: animation disabled — UX-DR8 requires instant render; cross-fade (~300ms on Mali-G31) violates the 200ms tap-to-mount budget. UX sign-off: UX-DR8 + Story 9.7 spec review. */}
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <Stack.Screen options={{ headerShown: false, animation: 'none' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
           style={styles.exitButton}

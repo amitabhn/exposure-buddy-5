@@ -1,6 +1,6 @@
 # Story 9.7: Performance Budget — Low-End Device Validation
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -98,6 +98,18 @@ so that micro-frictions do not compound anxiety during a vulnerable moment (NFR-
 - [x] [Review][Defer] `_dbByUserId` Map eviction — pre-existing deferred issue already tracked under Story 6.2-A in `deferred-work.md`. — deferred, pre-existing
 - [x] [Review][Defer] Flipper support removed in React Native 0.74+ — Task 3.1 suggests Flipper as an fps option; if the project runs RN ≥0.74, this instruction is inoperative. Depends on project RN version; investigate before Task 3. — deferred, pre-existing
 - [x] [Review][Defer] P1 sign-off authority is undefined — AC4 allows P1 deferrals "with explicit sign-off" but names no approver role or process. Process governance gap beyond this spec's scope. — deferred, pre-existing
+
+### Code Review — Implementation (2026-06-30)
+
+- [x] [Review][Decision] `animation: 'none'` in `calm-me/index.tsx` targets the inner nested Stack's initial route (no-op there) — NOT the root Stack's FAB push. **Resolved (party-mode roundtable 2026-06-30):** add `animation: 'none', gestureEnabled: false` to root `_layout.tsx` `<Stack.Screen name="calm-me">` entry; move `// PERF` comment to `_layout.tsx`; remove `animation: 'none'` and `// PERF` from `calm-me/index.tsx` (they annotate a no-op). `gestureEnabled: false` is explicit false — Android default is already false, iOS gesture disabled per UX-DR8 instant-render intent. [`apps/mobile/app/_layout.tsx:134`; `apps/mobile/app/calm-me/index.tsx:94`]
+- [x] [Review][Decision] Cold start measured on Xiaomi Redmi K20 Pro (Snapdragon 730G, 6 GB RAM) — 3–4× faster than spec-required Snapdragon 439 / 2 GB reference. No physical SD439-class device available; cloud device farm (Firebase Test Lab) feasibility unverified. — deferred post-MVP: validate on SD439 / 2 GB class device before Story 9.9 India Phase 1 launch gate. See `deferred-work.md`. [AC2; `apps/mobile/docs/performance-budget.md`]
+- [x] [Review][Decision] Profile B (the P0 gate per the document's own Auth Profiles table) was not measured — the (1a) TotalTime "PASS" rests solely on Profile A. **Resolved (2026-06-30):** accept Profile A proxy for MVP. Profile A (`pm clear`) is the harder cold start by construction (no SQLite file, no MMKV cached auth token, no warm JIT); if it passes, Profile B necessarily passes. Sign-off note added to Completion Notes below. [AC1(1a); `apps/mobile/docs/performance-budget.md` Results table]
+- [x] [Review][Patch] Wrong package name in Auth Profiles table — Profile A `pm clear` uses `com.exposurebuddy` (missing `.app`) and Profile B `force-stop` also uses `com.exposurebuddy` — both commands silently fail on device, leaving state uncleaned before measurement. **Applied 2026-06-30.** [`apps/mobile/docs/performance-budget.md` Auth Profiles table]
+- [x] [Review][Patch] Spurious `eslint-disable-next-line i18next/no-literal-string` at line 91 now suppresses the `// PERF` JSX comment on the next line — not `<Stack.Screen>`. The load-bearing suppress is at line 93; the line-91 suppress is a no-op and creates ambiguous intent. Remove the redundant first suppress comment. **Applied 2026-06-30** (entire `// PERF` block removed from `index.tsx`; comment moved to `_layout.tsx`). [`apps/mobile/app/calm-me/index.tsx:91`]
+- [x] [Review][Patch] `<Stack.Screen animation='none'>` in `calm-me/index.tsx` sets options on the inner calm-me nested Stack's initial route — not the root Stack push from FAB. The 300 ms cross-fade cited in the `// PERF` comment is the root Stack's default animation, which is unchanged. Add `animation: 'none'` to the root `_layout.tsx` `<Stack.Screen name="calm-me">` entry (see Decision D1 for gesture intent). **Applied 2026-06-30:** `animation: 'none', gestureEnabled: false` added to root layout calm-me entry; `// PERF` comment moved there; no-op `animation: 'none'` removed from `calm-me/index.tsx`. [`apps/mobile/app/_layout.tsx:134`]
+- [x] [Review][Patch] `eas.json` is staged but not committed — will be absent from the merged PR and from CI/EAS build configuration history. Commit it before opening the PR. **Pending commit** (staged, will be included in PR commit). [`eas.json`]
+- [x] [Review][Patch] Tooling Availability table states "`adb` — Not installed on dev machine" but Measurement Notes record adb was used to perform the cold start measurement. Clarify the timeline (e.g., "installed during the test session on 2026-06-29; not pre-installed"). **Applied 2026-06-30.** [`apps/mobile/docs/performance-budget.md` Tooling Availability section]
+- [x] [Review][Defer] `ladder.tsx` calls `router.push('/calm-me')` without `inSession=1` param — the session-aware "Keep Going"/"Need to Stop" footer in `CalmMeScreen` never renders for sessions started from the ladder screen. Pre-existing; `CalmMeFab` is the only caller that threads the session param. — deferred, pre-existing [`apps/mobile/app/ladder.tsx`]
 
 ## Dev Notes
 
@@ -233,6 +245,9 @@ Claude Sonnet 4.6 (claude-sonnet-4-6) — story context generated by create-stor
 - Content-visible (1b), SUDS fps (2a), SUDS tap-to-highlight (2b), Calm Me tap-to-mount (3): all blocked by auth failure (can't reach home screen or active session). Flashlight (npm 404) and ffprobe also unavailable. Deferred — documented in `performance-budget.md §Findings` and `§Known Limitations`.
 - Calm Me animation removal (Task 4.3) committed — eliminates the primary ~300 ms risk factor for the 200 ms budget.
 - To re-measure deferred metrics: resolve OTP in preview Supabase (or add user via dashboard), then re-run with `adb` + same APK. All commands pre-written in `performance-budget.md §Measurement Procedure`.
+
+**Profile B proxy sign-off (code review 2026-06-30):**
+Profile B (returning user, valid token) is the AC1(1a) P0 gate per the spec's own Auth Profiles table, but was not measured — OTP failure in the preview Supabase build prevented sign-in during the test session. Profile A (first-install, `pm clear`) is the harder cold start by construction: no existing SQLite file, no MMKV cached auth token, no warm JIT. Profile A median 1320 ms on Redmi K20 Pro accepted as Profile B proxy for MVP. AC1(1a) is partially satisfied. Re-verify Profile B on Snapdragon 439-class device (see `deferred-work.md`) before Story 9.9 India Phase 1 launch gate.
 
 ### File List
 

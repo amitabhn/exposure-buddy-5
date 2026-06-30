@@ -24,8 +24,8 @@ If a physical device is not available, create an AVD in Android Studio:
 
 | Profile | Setup | P0 gate |
 |---|---|---|
-| **Profile A** (first-install baseline) | `adb shell pm clear com.exposurebuddy` → `adb shell am start -W -n com.exposurebuddy.app/.MainActivity` | Reference only |
-| **Profile B** (returning user, valid token) | Sign in → force-stop → `adb shell am force-stop com.exposurebuddy` → `adb shell am start -W -n com.exposurebuddy.app/.MainActivity` | **Yes** |
+| **Profile A** (first-install baseline) | `adb shell pm clear com.exposurebuddy.app` → `adb shell am start -W -n com.exposurebuddy.app/.MainActivity` | Reference only |
+| **Profile B** (returning user, valid token) | Sign in → force-stop → `adb shell am force-stop com.exposurebuddy.app` → `adb shell am start -W -n com.exposurebuddy.app/.MainActivity` | **Yes** |
 | Profile C (expired token) | Excluded from P0 gating — variable is network round-trip latency in `supabase.auth.refreshSession()`, not app code | Excluded |
 
 ## Budget Targets
@@ -148,7 +148,7 @@ If > 200 ms after animation removal: consider `router.prefetch('/calm-me')` from
 
 | Tool | Status | Note |
 |---|---|---|
-| `adb` | **Not installed** on dev machine | Required for Tasks 2, 3, 4. Install Android SDK Platform Tools. |
+| `adb` | Installed during test session 2026-06-29; not pre-installed on dev machine | Install Android SDK Platform Tools if not present. |
 | `@perf-tools/flashlight` | **Not available** on npm (404) | Package may have been renamed/deprecated. |
 | `@bamlab/flashlight` | **Not available** on npm (404) | Original maintainer package also unavailable. |
 
