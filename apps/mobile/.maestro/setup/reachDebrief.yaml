@@ -20,18 +20,18 @@ appId: ${APP_PACKAGE}
 ---
 # ── Setup ──────────────────────────────────────────────────────────────────────────────────
 # Sign in + complete onboarding idempotently
-- runFlow: setup/ensureOnboarded.yaml
+- runFlow: ensureOnboarded.yaml
 
 # Ensure test1@test.com exists (idempotent; seedAuthUser exposes userId in output)
 - runScript:
-    file: setup/seedAuthUser.js
+    file: seedAuthUser.js
     env:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
 
 # Seed a pending ladder item in Postgres (effective only if PowerSync sync stream is reachable)
 - runScript:
-    file: setup/seedPendingLadderItem.js
+    file: seedPendingLadderItem.js
     env:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}

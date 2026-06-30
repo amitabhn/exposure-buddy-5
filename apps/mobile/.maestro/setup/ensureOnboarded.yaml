@@ -26,4 +26,4 @@ appId: ${APP_PACKAGE}
 - runFlow:
     when:
       visible: "Your journey starts here"
-    file: setup/_onboarding-clickthrough.yaml
+    file: _onboarding-clickthrough.yaml
