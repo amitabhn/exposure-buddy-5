@@ -1,6 +1,6 @@
 # Story 9.7: Performance Budget — Low-End Device Validation
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
