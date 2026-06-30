@@ -26,7 +26,7 @@ appId: ${APP_PACKAGE}
 # Enter the unique test email
 - tapOn:
     label: "Email address"
-- clearText
+- eraseText: 50
 - inputText: ${output.email}
 
 # Agree to both consent checkboxes (required in signup mode; gates "Send code")
@@ -80,7 +80,7 @@ appId: ${APP_PACKAGE}
 # Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
 - tapOn:
     label: "Describe the situation"
-- clearText
+- eraseText: 50
 - inputText: "Riding the elevator alone"
 - tapOn: "5 out of 10"
 - tapOn:
