@@ -17,28 +17,28 @@ appId: ${APP_PACKAGE}
 
 # Ensure we're on the signup tab
 - tapOn:
-    accessibilityLabel: "Create account"
+    label: "Create account"
 
 # Select Email address as identifier type
 - tapOn:
-    accessibilityLabel: "Email address"
+    label: "Email address"
 
 # Enter the unique test email
 - tapOn:
-    accessibilityLabel: "Email address"
+    label: "Email address"
 - clearText
 - inputText: ${output.email}
 
 # Agree to both consent checkboxes (required in signup mode; gates "Send code")
 # (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
 - tapOn:
-    accessibilityLabel: "I confirm I am 18 years of age or older"
+    label: "I confirm I am 18 years of age or older"
 - tapOn:
-    accessibilityLabel: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
+    label: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP
 - tapOn:
-    accessibilityLabel: "Send code"
+    label: "Send code"
 - waitForAnimationToEnd
 
 # Retrieve OTP from Mailpit — poll with backoff since email delivery is async.
@@ -51,19 +51,19 @@ appId: ${APP_PACKAGE}
 
 # Enter OTP code on the verification screen (otp-verification.tsx)
 - tapOn:
-    accessibilityLabel: "One-time passcode"
+    label: "One-time passcode"
 - inputText: ${output.otpCode}
 
 # Verify
 - tapOn:
-    accessibilityLabel: "Verify"
+    label: "Verify"
 - waitForAnimationToEnd
 
 # ── Onboarding flow ──────────────────────────────────────────────────────────────────────
 
 # welcome.tsx
 - tapOn:
-    accessibilityLabel: "Get started"
+    label: "Get started"
 - waitForAnimationToEnd
 
 # assessment.tsx — SUDS calibration widget: pick value 5
@@ -73,28 +73,28 @@ appId: ${APP_PACKAGE}
 
 # assessment CTA "Next" (disabled until a SUDS value is picked)
 - tapOn:
-    accessibilityLabel: "Next"
+    label: "Next"
 - waitForAnimationToEnd
 
 # ladder.tsx (onboarding) — add one fear item, then proceed
 # Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
 - tapOn:
-    accessibilityLabel: "Describe the situation"
+    label: "Describe the situation"
 - clearText
 - inputText: "Riding the elevator alone"
 - tapOn: "5 out of 10"
 - tapOn:
-    accessibilityLabel: "Add to ladder"
+    label: "Add to ladder"
 - waitForAnimationToEnd
 
 # CTA is "Next" when items.length > 0 (canSkip is false)
 - tapOn:
-    accessibilityLabel: "Next"
+    label: "Next"
 - waitForAnimationToEnd
 
 # complete.tsx — marks onboardingComplete in MMKV, routes to home
 - tapOn:
-    accessibilityLabel: "Start your journey"
+    label: "Start your journey"
 - waitForAnimationToEnd
 
 # ── Final assertion ──────────────────────────────────────────────────────────────────────

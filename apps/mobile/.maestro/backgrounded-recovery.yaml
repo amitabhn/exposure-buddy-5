@@ -20,7 +20,7 @@ appId: ${APP_PACKAGE}
 # backgrounded-recovery.yaml adds its own item via UI (not backend seed) so it is not
 # dependent on PowerSync sync stream availability (unlike exposure-loop.yaml/debrief.yaml).
 - tapOn:
-    accessibilityLabel: "Add situation"
+    label: "Add situation"
 - waitForAnimationToEnd
 
 # We're now on /ladder. Add the item via the shared addLadderItem.yaml subflow.
@@ -31,26 +31,26 @@ appId: ${APP_PACKAGE}
 # Wait for the list to refresh, then tap "Start session".
 - waitForAnimationToEnd
 - tapOn:
-    accessibilityLabel: "Start session, Facing a crowd"
+    label: "Start session, Facing a crowd"
 - waitForAnimationToEnd
 
 # technique.tsx — select "Somatic"
 - tapOn:
-    accessibilityLabel: "Somatic"
+    label: "Somatic"
 - tapOn:
-    accessibilityLabel: "Continue"
+    label: "Continue"
 - waitForAnimationToEnd
 
 # intent.tsx — pick pre-SUDS below 8
 - tapOn:
-    accessibilityLabel: "4 — Mild"
+    label: "4 — Mild"
 - tapOn:
-    accessibilityLabel: "Continue"
+    label: "Continue"
 - waitForAnimationToEnd
 
 # briefing.tsx
 - tapOn:
-    accessibilityLabel: "I'm ready"
+    label: "I'm ready"
 - waitForAnimationToEnd
 
 # We are now on active.tsx
@@ -78,11 +78,11 @@ appId: ${APP_PACKAGE}
 
 # 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Calm Me")
 - assertVisible:
-    accessibilityLabel: "Calm Me"
+    label: "Calm Me"
 
 # 3. Verify the FAB is tappable (tap it and assert the calm-me screen opens)
 - tapOn:
-    accessibilityLabel: "Calm Me"
+    label: "Calm Me"
 - waitForAnimationToEnd
 # Calm-me screen shows "Calm Me" heading or accessible content — assert we navigated there
 - assertVisible: "I can keep going"
@@ -93,6 +93,6 @@ appId: ${APP_PACKAGE}
 
 # Navigate back to the exposure session (don't complete it — just confirm recovery worked)
 - tapOn:
-    accessibilityLabel: "I can keep going"
+    label: "I can keep going"
 - waitForAnimationToEnd
 - assertVisible: "Log how I'm feeling"

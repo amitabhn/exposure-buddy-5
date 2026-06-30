@@ -45,56 +45,56 @@ appId: ${APP_PACKAGE}
 # accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
 #   = "Riding the elevator alone, anxiety level 5 out of 10"
 - tapOn:
-    accessibilityLabel: "Riding the elevator alone, anxiety level 5 out of 10"
+    label: "Riding the elevator alone, anxiety level 5 out of 10"
 - waitForAnimationToEnd
 
 # Ladder screen: tap "Start session" for the pending item
 # accessibilityLabel: `${t('ladder.startSession')}, ${item.description}`
 - tapOn:
-    accessibilityLabel: "Start session, Riding the elevator alone"
+    label: "Start session, Riding the elevator alone"
 - waitForAnimationToEnd
 
 # ── Exposure session loop ──────────────────────────────────────────────────────────────────
 
 # technique.tsx — select "Somatic" technique card (accessibilityRole: "radio")
 - tapOn:
-    accessibilityLabel: "Somatic"
+    label: "Somatic"
 - tapOn:
-    accessibilityLabel: "Continue"
+    label: "Continue"
 - waitForAnimationToEnd
 
 # intent.tsx — pre-SUDS: pick 4 (below 8 to avoid crisis-contacts block on debrief)
 # SudsScale anchor label: "4 — Mild"
 - tapOn:
-    accessibilityLabel: "4 — Mild"
+    label: "4 — Mild"
 - tapOn:
-    accessibilityLabel: "Continue"
+    label: "Continue"
 - waitForAnimationToEnd
 
 # briefing.tsx — forward-only screen
 - tapOn:
-    accessibilityLabel: "I'm ready"
+    label: "I'm ready"
 - waitForAnimationToEnd
 
 # active.tsx — log one SUDS reading
 - tapOn:
-    accessibilityLabel: "Log how I'm feeling"
+    label: "Log how I'm feeling"
 - waitForAnimationToEnd
 # SUDS log modal: value 5 (non-anchor value, label is the number string "5")
 - tapOn: "5"
 - tapOn:
-    accessibilityLabel: "Log"
+    label: "Log"
 - waitForAnimationToEnd
 
 # Complete the exposure — opens the completion/exit modal
 - tapOn:
-    accessibilityLabel: "Complete exposure"
+    label: "Complete exposure"
 - waitForAnimationToEnd
 # Exit SUDS: pick 4 — Mild (below 8)
 - tapOn:
-    accessibilityLabel: "4 — Mild"
+    label: "4 — Mild"
 - tapOn:
-    accessibilityLabel: "Finish session"
+    label: "Finish session"
 - waitForAnimationToEnd
 
 # Assert debrief screen is visible (reflection prompt text)

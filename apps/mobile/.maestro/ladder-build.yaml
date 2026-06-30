@@ -20,7 +20,7 @@ appId: ${APP_PACKAGE}
 # ── Navigate to standalone ladder editor ──────────────────────────────────────────────────
 # Home screen empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
 - tapOn:
-    accessibilityLabel: "Add situation"
+    label: "Add situation"
 - waitForAnimationToEnd
 
 # ── Add a fear-ladder item via the standalone editor ──────────────────────────────────────
@@ -30,7 +30,7 @@ appId: ${APP_PACKAGE}
 # ── Navigate back to home ──────────────────────────────────────────────────────────────────
 # The BackButton in ladder.tsx navigates back to wherever we came from (home screen)
 - tapOn:
-    accessibilityLabel: "Go back"
+    label: "Go back"
 - waitForAnimationToEnd
 
 # ── Assertion: home screen is in 'morning' state ──────────────────────────────────────────

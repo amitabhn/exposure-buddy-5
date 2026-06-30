@@ -23,7 +23,7 @@ appId: ${APP_PACKAGE}
 # Tap "Done" (a11y: t('session.debrief.done'))
 # debrief.tsx calls router.replace('/') on Done — replaces route with home screen
 - tapOn:
-    accessibilityLabel: "Done"
+    label: "Done"
 - waitForAnimationToEnd
 
 # ── Assertions ────────────────────────────────────────────────────────────────────────────

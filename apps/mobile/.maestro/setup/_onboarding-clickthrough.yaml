@@ -6,7 +6,7 @@
 ---
 # welcome.tsx — "Get started"
 - tapOn:
-    accessibilityLabel: "Get started"
+    label: "Get started"
 - waitForAnimationToEnd
 
 # assessment.tsx — SUDS calibration widget: pick value 5
@@ -15,16 +15,16 @@
 
 # assessment.tsx CTA — "Next" (disabled until a SUDS value is picked)
 - tapOn:
-    accessibilityLabel: "Next"
+    label: "Next"
 - waitForAnimationToEnd
 
 # ladder.tsx (onboarding) — Skip with zero items
 # (canSkip is true when items.length === 0; accessibilityLabel is t('onboarding.fearLadder.skipCta'))
 - tapOn:
-    accessibilityLabel: "Skip"
+    label: "Skip"
 - waitForAnimationToEnd
 
 # complete.tsx — "Start your journey" (calls markOnboardingComplete(), writes MMKV)
 - tapOn:
-    accessibilityLabel: "Start your journey"
+    label: "Start your journey"
 - waitForAnimationToEnd

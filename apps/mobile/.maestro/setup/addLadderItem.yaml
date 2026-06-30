@@ -16,23 +16,23 @@
 ---
 # Open the add-item modal
 - tapOn:
-    accessibilityLabel: "Add situation"
+    label: "Add situation"
 - waitForAnimationToEnd
 
 # Enter description in the "Situation" TextInput (accessibilityLabel: t('ladder.descriptionLabel'))
 - tapOn:
-    accessibilityLabel: "Situation"
+    label: "Situation"
 - clearText
 - inputText: "Facing a crowd"
 
 # Enter SUDS value — the standalone ladder editor uses a TextInput (number-pad keyboard),
 # not a radio group (contrast with SudsCalibrationWidget used during onboarding)
 - tapOn:
-    accessibilityLabel: "Anxiety level (0–10)"
+    label: "Anxiety level (0–10)"
 - clearText
 - inputText: "5"
 
 # Save the item (disabled until both description and SUDS are valid)
 - tapOn:
-    accessibilityLabel: "Save"
+    label: "Save"
 - waitForAnimationToEnd
