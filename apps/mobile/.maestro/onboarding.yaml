@@ -69,7 +69,8 @@ appId: ${APP_PACKAGE}
 # assessment.tsx — SUDS calibration widget: pick value 5
 # (SudsCalibrationWidget a11y labels: "N out of 10" for N in 0..10)
 # Do not use any value from CRISIS_KEYWORDS in subsequent text fields
-- tapOn: "5 out of 10"
+- tapOn:
+    label: "5 out of 10"
 
 # assessment CTA "Next" (disabled until a SUDS value is picked)
 - tapOn:
@@ -82,7 +83,8 @@ appId: ${APP_PACKAGE}
     label: "Describe the situation"
 - eraseText: 50
 - inputText: "Riding the elevator alone"
-- tapOn: "5 out of 10"
+- tapOn:
+    label: "5 out of 10"
 - tapOn:
     label: "Add to ladder"
 - waitForAnimationToEnd

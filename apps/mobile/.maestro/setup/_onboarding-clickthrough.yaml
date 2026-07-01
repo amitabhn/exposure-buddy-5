@@ -12,7 +12,8 @@ appId: ${APP_PACKAGE}
 
 # assessment.tsx — SUDS calibration widget: pick value 5
 # (SudsCalibrationWidget a11y labels: "0 out of 10" … "10 out of 10")
-- tapOn: "5 out of 10"
+- tapOn:
+    label: "5 out of 10"
 
 # assessment.tsx CTA — "Next" (disabled until a SUDS value is picked)
 - tapOn:
