@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent } from '@testing-library/react-native'
+import { render, fireEvent, waitFor } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -66,7 +66,8 @@ describe('FearItemForm', () => {
     expect(button.props.accessibilityState.disabled).toBe(true)
   })
 
-  it('pressing Add with valid inputs calls onSave and clears form', () => {
+  it('pressing Add with valid inputs calls onSave and clears form', async () => {
+    mockOnSave.mockResolvedValueOnce(undefined)
     const { getByRole, getByPlaceholderText, getByTestId } = render(
       <FearItemForm onSave={mockOnSave} onCrisisDetected={mockOnCrisisDetected} />
     )
@@ -74,7 +75,9 @@ describe('FearItemForm', () => {
     fireEvent.press(getByTestId('suds-widget'))
     fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.addCta' }))
     expect(mockOnSave).toHaveBeenCalledWith('test description', 6)
-    expect(getByPlaceholderText('onboarding.fearLadder.descriptionPlaceholder').props.value).toBe('')
+    await waitFor(() => {
+      expect(getByPlaceholderText('onboarding.fearLadder.descriptionPlaceholder').props.value).toBe('')
+    })
   })
 
   it('calls onCrisisDetected when detectCrisisKeywords returns true', () => {

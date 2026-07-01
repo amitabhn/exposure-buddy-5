@@ -214,7 +214,11 @@ export default function LadderScreen() {
 
         {/* Empty state — only shown once loaded and zero items */}
         {!ladderLoading && items.length === 0 && (
-          <Text style={styles.emptyState}>{t('ladder.emptyState')}</Text>
+          <Text
+            // eslint-disable-next-line i18next/no-literal-string
+            accessibilityLiveRegion="polite"
+            style={styles.emptyState}
+          >{t('ladder.emptyState')}</Text>
         )}
 
         {/* Drag-to-reorder list */}

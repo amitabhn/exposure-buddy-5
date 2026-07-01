@@ -90,7 +90,13 @@ export default function SettingsScreen() {
         <Text style={styles.rowText}>{t('settings.signOut')}</Text>
       </TouchableOpacity>
 
-      {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
+      {actionError ? (
+        <Text
+          // eslint-disable-next-line i18next/no-literal-string
+          accessibilityLiveRegion="polite"
+          style={styles.errorText}
+        >{actionError}</Text>
+      ) : null}
 
       <Text style={styles.sectionTitle}>{t('settings.privacy.title')}</Text>
 

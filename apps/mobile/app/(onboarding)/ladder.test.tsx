@@ -32,9 +32,9 @@ jest.mock('../../src/components/onboarding/OnboardingStepIndicator', () => ({
 jest.mock('../../src/components/onboarding/FearItemForm', () => {
   const { TouchableOpacity } = require('react-native')
   return {
-    FearItemForm: ({ onSave, onCrisisDetected }: { onSave: (d: string, s: number) => void; onCrisisDetected: () => void }) => (
+    FearItemForm: ({ onSave, onCrisisDetected }: { onSave: (d: string, s: number) => Promise<void>; onCrisisDetected: () => void }) => (
       <>
-        <TouchableOpacity testID="form-add" onPress={() => onSave('Test situation', 5)} />
+        <TouchableOpacity testID="form-add" onPress={() => { onSave('Test situation', 5).catch(() => {}) }} />
         <TouchableOpacity testID="form-crisis" onPress={() => onCrisisDetected()} />
       </>
     ),
@@ -160,5 +160,54 @@ describe('LadderScreen', () => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
       expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
     })
+  })
+})
+
+describe('LadderScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    let callCount = 0
+    jest.spyOn(Math, 'random').mockImplementation(() => (callCount++ % 32) * 0.03125)
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
+      userId: 'user-123',
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
+      setCrisisFlaggedInOnboarding: mockSetCrisisFlaggedInOnboarding,
+    })
+  })
+
+  it('shows save-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValueOnce(new Error('network'))
+    const { getByTestId, getByText } = render(<LadderScreen />)
+    fireEvent.press(getByTestId('form-add'))
+    await waitFor(() => {
+      const errorText = getByText('onboarding.fearLadder.saveFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValueOnce(new Error('network'))
+    const { getByTestId, getByRole } = render(<LadderScreen />)
+    fireEvent.press(getByTestId('form-add'))
+    await waitFor(() => {
+      expect(getByRole('button', { name: 'onboarding.fearLadder.trySaving' })).toBeTruthy()
+    })
+  })
+
+  it('clears error and re-enqueues when retry button pressed', async () => {
+    mockEnqueue
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(undefined)
+    const { getByTestId, getByRole, queryByText } = render(<LadderScreen />)
+    fireEvent.press(getByTestId('form-add'))
+    await waitFor(() => {
+      expect(getByRole('button', { name: 'onboarding.fearLadder.trySaving' })).toBeTruthy()
+    })
+    fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.trySaving' }))
+    await waitFor(() => {
+      expect(queryByText('onboarding.fearLadder.saveFailed')).toBeNull()
+    })
+    expect(mockEnqueue).toHaveBeenCalledTimes(2)
   })
 })

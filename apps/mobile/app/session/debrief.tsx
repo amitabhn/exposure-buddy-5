@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   TextInput,
   StyleSheet,
   ScrollView,
@@ -70,6 +71,7 @@ export default function DebriefScreen() {
     hasAttemptedSubmit: false,
     isSubmitting: false,
   })
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Read letter text once at mount — useState initializer prevents branch flipping on re-renders
   // after clearSessionIntention() fires inside handleSubmitReflection.
@@ -96,6 +98,7 @@ export default function DebriefScreen() {
   async function handleSubmitReflection() {
     if (isReadOnly) return  // guard: read-only mode has no submit path
 
+    setSaveError(null)
     dispatch({ type: 'SET_SUBMITTING', value: true })
     try {
       // eslint-disable-next-line i18next/no-literal-string
@@ -108,8 +111,10 @@ export default function DebriefScreen() {
       clearSessionIntention(sessionId)
 
       router.replace('/')
-    } catch {
+    } catch (err) {
+      console.error('[DebriefScreen] reflection enqueue failed:', err)
       dispatch({ type: 'SET_SUBMITTING', value: false })
+      setSaveError(t('session.debrief.saveFailed'))
     }
   }
 
@@ -191,6 +196,26 @@ export default function DebriefScreen() {
               maxLength={500}
               accessibilityLabel={t('session.debrief.reflectionPrompt')}
             />
+            {saveError ? (
+              <View>
+                <Text
+                  // eslint-disable-next-line i18next/no-literal-string
+                  accessibilityLiveRegion="polite"
+                  style={styles.saveErrorText}
+                >{saveError}</Text>
+                <Pressable
+                  onPress={handleSubmitReflection}
+                  disabled={state.isSubmitting}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('session.debrief.tryAgain')}
+                  accessibilityState={{ disabled: state.isSubmitting }}
+                  style={styles.retryButton}
+                >
+                  <Text style={styles.retryButtonText}>{t('session.debrief.tryAgain')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             <TouchableOpacity
               style={[styles.doneButton, state.isSubmitting && styles.doneButtonDisabled]}
               onPress={handleSubmitReflection}
@@ -242,6 +267,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 24,
   },
+  saveErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20, marginBottom: 8 },
+  retryButton: { marginBottom: 12, alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   doneButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   doneButtonDisabled: { backgroundColor: '#d1d5db' },
   doneButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

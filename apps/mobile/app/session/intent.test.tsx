@@ -177,3 +177,55 @@ describe('IntentScreen', () => {
     })
   })
 })
+
+describe('IntentScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseAuth.mockReturnValue({
+      authState: { userId: 'user-123' },
+      isAuthenticated: true,
+      setSessionInProgress: mockSetSessionInProgress,
+      setSessionIntention: mockSetSessionIntention,
+    })
+    useLocalSearchParams.mockReturnValue({
+      fearItemId: 'item-uuid-1',
+      sessionId: 'session-uuid-1',
+      description: 'Test fear situation',
+      predictedSuds: '5',
+      technique: 'somatic',
+    })
+  })
+
+  it('shows enqueue-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId, getByText } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      const errorText = getByText('session.intent.enqueueFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('re-enables continue button (no separate retry Pressable) when enqueue rejects', async () => {
+    // D1 decision: retry Pressable removed from intent.tsx; continue button re-enabled via SUBMIT_DONE
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      const continueBtn = getByLabelText('session.intent.continue')
+      expect(continueBtn.props.accessibilityState?.disabled).toBeFalsy()
+    })
+  })
+
+  it('does NOT navigate to briefing when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByTestId } = render(<IntentScreen />)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => {
+      expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+  })
+})

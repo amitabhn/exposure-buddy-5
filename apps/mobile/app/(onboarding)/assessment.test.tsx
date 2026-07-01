@@ -103,3 +103,48 @@ describe('AssessmentScreen', () => {
     })
   })
 })
+
+describe('AssessmentScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.spyOn(Math, 'random').mockReturnValue(0.5)
+    mockUseAuth.mockReturnValue({
+      isLoading: false,
+      userId: 'user-123',
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
+      setSudsCalibration: mockSetSudsCalibration,
+    })
+  })
+
+  it('shows save-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValueOnce(new Error('network'))
+    const { getByTestId, getByRole, getByText } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button', { name: 'onboarding.assessment.cta' }))
+    await waitFor(() => {
+      const errorText = getByText('onboarding.assessment.saveFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValueOnce(new Error('network'))
+    const { getByTestId, getByRole } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button', { name: 'onboarding.assessment.cta' }))
+    await waitFor(() => {
+      expect(getByRole('button', { name: 'onboarding.assessment.trySaving' })).toBeTruthy()
+    })
+  })
+
+  it('does NOT navigate to ladder when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValueOnce(new Error('network'))
+    const { getByTestId, getByRole, getByText } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button', { name: 'onboarding.assessment.cta' }))
+    await waitFor(() => {
+      expect(getByText('onboarding.assessment.saveFailed')).toBeTruthy()
+    })
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+})

@@ -30,6 +30,61 @@ _Spec-only review (Blind Hunter + Edge Case Hunter; no Acceptance Auditor — no
 
 ---
 
+## Deferred from: spec review of 9-7-performance-budget-low-end-device-validation (2026-06-29)
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 5 decisions-needed; 11 patches applied directly to the spec; 7 items deferred below._
+
+- **No CI integration for performance checks.** All measurement is manual/local; no automated performance regression gate exists. Deliberate for MVP. Trigger: revisit when EAS CI pipeline is extended in a future DevOps story — at that point, Flashlight or a custom adb-based cold-start measurement can be added as a build step.
+- **iOS performance asserted sufficient but not measured.** AC2 states iOS at this tier is expected to pass without requiring validation. Deliberate out-of-scope decision for MVP. Trigger: revisit at India Phase 2 when iOS market share warrants measurement.
+- **NFR-PERF-01 P90 vs 3-run-median methodology gap.** NFR-PERF-01 specifies <3s at P90; this story measures 3 runs at median (~P50 on one device). Accepted MVP limitation acknowledged in Dev Notes. Trigger: if a dedicated perf regression story is created for India Phase 2, use a proper P90 sampling methodology.
+- **Android emulator GPU not throttled — Modal animation fps measurements in emulator are invalid.** The 2× CPU throttle does not affect GPU; slide/fade animation fps measured in the emulator reflects host GPU performance, not Snapdragon 439 + Mali-G31. Physical device is preferred per spec; emulator is a fallback. Trigger: if fps P0 is declared on emulator and needs verification, confirm on physical hardware before closing.
+- **`_dbByUserId` Map eviction.** Pre-existing issue already tracked under Story 6.2-A. Not introduced by Story 9.7.
+- **Flipper support removed in React Native 0.74+.** Task 3.1 suggests Flipper as an fps option. If the project runs RN ≥0.74, this is inoperative. Trigger: dev agent should verify the RN version before attempting Flipper-based fps measurement.
+- **P1 sign-off authority undefined.** AC4 allows P1 deferrals "with explicit sign-off" but names no approver role or process. Process governance gap beyond this spec's scope. Trigger: establish a review/sign-off role (e.g., product owner or tech lead) when the team grows beyond solo dev.
+
+[`_bmad-output/implementation-artifacts/9-7-performance-budget-low-end-device-validation.md`]
+
+---
+
+## Deferred from: code review of 9-7-performance-budget-low-end-device-validation (2026-06-30)
+
+_Implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 3 decisions-needed (1 deferred below, 2 resolved); 5 patches outstanding; 2 items deferred._
+
+- **Cold start TotalTime not validated on spec-required reference device (AC2 gap).** Measurement taken on Xiaomi Redmi K20 Pro (Snapdragon 730G, 6 GB RAM) — 3–4× faster than Snapdragon 439 / 2 GB target. Projected cold start on SD439 class: 3300–3960 ms (would FAIL the ≤2 s P0 budget). No physical SD439-class device available; cloud device farm (Firebase Test Lab) feasibility unverified at time of review. Deferred post-MVP. **Trigger:** validate Profile A and Profile B cold start TotalTime on a Snapdragon 439 / 2 GB class device before Story 9.9 (India Phase 1 launch gate). Fastest unblock: (1) `gcloud firebase test android models list | grep -i "439\|redmi 8"` to check Test Lab catalog, (2) BrowserStack `/devices.json` API with trial credentials, (3) purchase Redmi 10A / similar (≤₹8,000). Acceptable calibrated fallback if cloud farm unavailable: Android emulator at 6× CPU throttle with host machine spec documented. Do not revise the ≤2 s budget upward. [`apps/mobile/docs/performance-budget.md`; AC2]
+- **`ladder.tsx` calls `router.push('/calm-me')` without `inSession=1` param — session-aware footer never renders from ladder.** The "Keep Going" / "Need to Stop" footer in `CalmMeScreen` is gated on `inSession === '1' && sessionRecoveryData !== null`. `CalmMeFab` is the only caller that threads `inSession=1`; `ladder.tsx` does not. Pre-existing pattern; `CalmMeFab` is the intended primary Calm Me entry point. **Trigger:** address when the ladder screen is extended with a Calm Me affordance, or when a UX audit surfaces users missing the session-aware flow. [`apps/mobile/app/ladder.tsx`]
+
+[`_bmad-output/implementation-artifacts/9-7-performance-budget-low-end-device-validation.md`]
+
+---
+
+## Deferred from: code review of 9-6-error-state-and-empty-state-ux-audit (2026-06-25)
+
+_Post-implementation adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 1 decision-needed (presented to author); 10 patches written to story file; 7 items deferred below; 2 dismissed._
+
+- **intent.tsx: atomic batch enqueue for multi-table session writes (Option 3 from D1 party-mode roundtable).** `handleContinue` does two sequential `enqueue()` calls (`exposure_sessions` + `suds_readings`); no PK-idempotency or `ON CONFLICT` on either table; retry Pressable removed (Option 2 applied in Story 9.6 patch); the correct long-term fix is to wrap both writes in a single `writeTransaction` via the PowerSync adapter (already used in `_reorder`); requires adapter API change + new test coverage; scope for a dedicated data-integrity story. [`apps/mobile/app/session/intent.tsx`; `packages/sync/src/adapter.ts`]
+- **assessment.tsx: MMKV advanced before enqueue; retry re-generates UUID.** `setOnboardingProgressStep(3)` and `setSudsCalibration` commit to MMKV before enqueue; writes are idempotent; UUID regeneration on retry produces a second outbox entry with a different id; server ON CONFLICT handling should absorb this; same pre-existing pattern from Story 9.4. [`apps/mobile/app/(onboarding)/assessment.tsx`]
+- **intent.tsx: MMKV intention key written before enqueue; key orphaned on navigation away after failure.** `setSessionIntention(sessionId)` written before the first enqueue; if user navigates away after failure, the key persists until next session lifecycle; Story 9.4 MMKV hygiene territory. [`apps/mobile/app/session/intent.tsx`]
+- **debrief.tsx: dispatch(SET_SUBMITTING:false) called before setSaveError in catch — brief intermediate render.** Creates a short window where `isSubmitting` is false and `saveError` is null; React 18 batching in async handlers typically absorbs this; cosmetic at worst. [`apps/mobile/app/session/debrief.tsx`]
+- **grounding.tsx: transition() uses hardcoded 'grounding' state string — verify retry is safe.** `transition('grounding', { type: 'grounding.stopped' })` uses a hardcoded first arg; if this is the current-state arg and the machine already transitioned, retry would be a no-op (the ok/!ok guard returns early). Verify whether the first arg is the domain key or the current-state value before treating the guard as concurrency protection. [`apps/mobile/app/session/grounding.tsx`]
+- **(app)/_layout.test.tsx: mockSessionRecoveryData mutable at module scope; leaks on test panic.** If `beforeEach` panics before the mock is set, `afterEach` may not run, leaving the mutable value non-null for subsequent describe blocks; normal test runs are unaffected. [`apps/mobile/app/(app)/_layout.test.tsx`]
+- **app/_layout.test.tsx: ErrorBoundary test loads full _layout module with initErrorHandler side-effects.** `initErrorHandler()` runs at module import time; if the `jest.mock('../src/error-handler')` hoist does not cover that call path, the `Sentry.captureException` assertion in the `useEffect` test may be vacuous. Verify mock hoisting covers the side-effect call. [`apps/mobile/app/_layout.test.tsx`]
+- **app/_layout.tsx ErrorBoundary: accessibilityLiveRegion="polite" on freshly-mounted crash view will not fire iOS VoiceOver.** iOS UIAccessibilityTraitUpdatesFrequently only fires when existing content changes; a freshly-mounted tree has no prior content to diff against. Spec specified "polite"; switching to "assertive" has identical behavior on fresh mount. Proper fix requires `AccessibilityInfo.announceForAccessibility()` — out of scope for Story 9.6. [`apps/mobile/app/_layout.tsx`]
+
+[`_bmad-output/implementation-artifacts/9-6-error-state-and-empty-state-ux-audit.md`]
+
+---
+
+## Deferred from: spec review of 9-6-error-state-and-empty-state-ux-audit (2026-06-24)
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 4 decisions resolved via party-mode roundtable; 14 patches applied directly to the spec; 1 defer._
+
+- **ADR component state matrix gate — 6 post-MVP components require error states before their implementation sprints.** Components not yet implemented; inventoried in `apps/mobile/docs/error-state-inventory.md` with "not yet implemented" notation. **Trigger:** any story implementing HomeStateCard, DragRankList, SudsArcChart, LetterToSelfEditor, LetterReveal, or AcknowledgementCard must include full error/empty/loading state spec before sprint sign-off (per ADR-ERROR-STATES.md Required State Variants table).
+- **Error Text render position underspecified ("near the add-item form").** Design-time judgment call for the dev agent implementing Tasks 2.1/2.2; no spec change required. Acceptable positions: below the form field, above the CTA button. Both are "near."
+
+[`_bmad-output/implementation-artifacts/9-6-error-state-and-empty-state-ux-audit.md`]
+
+---
+
 ## Deferred from: code review of 9-4-mmkv-key-hygiene-and-storage-audit spec (2026-06-23)
 
 _Spec-only review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) plus a party-mode roundtable (Winston/Amelia/John) before any implementation, since the story was still `ready-for-dev`. Most decision-needed findings were resolved as fix-now and folded directly into the story's ACs/Tasks (see `9-4-mmkv-key-hygiene-and-storage-audit.md` → "Review Findings"). Only this one item was resolved as defer._

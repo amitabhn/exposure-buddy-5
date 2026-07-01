@@ -197,3 +197,43 @@ describe('DebriefScreen — readOnly mode', () => {
     expect(mockEnqueue).not.toHaveBeenCalled()
   })
 })
+
+describe('DebriefScreen — Story 9.6 error paths', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetSessionIntention.mockReturnValue(null)
+    mockUseAuth.mockReturnValue({
+      clearSessionIntention: mockClearSessionIntention,
+      getSessionIntention: mockGetSessionIntention,
+    })
+    useLocalSearchParams.mockReturnValue(baseParams)
+  })
+
+  it('shows save-failure error text with accessibilityLiveRegion="polite" when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByText } = render(<DebriefScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
+    await waitFor(() => {
+      const errorText = getByText('session.debrief.saveFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBe('polite')
+    })
+  })
+
+  it('shows retry button when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<DebriefScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
+    await waitFor(() => {
+      expect(getByLabelText('session.debrief.tryAgain')).toBeTruthy()
+    })
+  })
+
+  it('does NOT navigate home when enqueue rejects', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText } = render(<DebriefScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
+    await waitFor(() => {
+      expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+  })
+})

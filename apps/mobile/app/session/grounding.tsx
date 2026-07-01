@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, BackHandler, ScrollView } from 'react-native'
+import { useCallback, useRef, useState } from 'react'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, BackHandler, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -17,6 +17,9 @@ export default function GroundingScreen() {
   }>()
 
   const { clearSessionInProgress, clearSessionIntention, clearGroundingActive } = useAuth()
+  const [abandonError, setAbandonError] = useState<string | null>(null)
+  const [isAbandoning, setIsAbandoning] = useState(false)
+  const isAbandoningRef = useRef(false)
 
   useFocusEffect(
     useCallback(() => {
@@ -26,11 +29,15 @@ export default function GroundingScreen() {
   )
 
   async function handleConfirmStop() {
+    if (isAbandoningRef.current) return
     // grounding.stopped event → grounding→abandoned
     // eslint-disable-next-line i18next/no-literal-string
     const result = transition('grounding', { type: 'grounding.stopped' })
     if (!result.ok) return
 
+    isAbandoningRef.current = true
+    setIsAbandoning(true)
+    setAbandonError(null)
     const endedAt = new Date().toISOString()
 
     try {
@@ -54,9 +61,13 @@ export default function GroundingScreen() {
       })
     } catch (err) {
       console.error('[GroundingScreen] abandonment enqueue failed:', err)
+      setAbandonError(t('grounding.abandonFailed'))
+      isAbandoningRef.current = false
+      setIsAbandoning(false)
+      return
     }
 
-    // Clear MMKV session keys
+    // Clear MMKV session keys — only on successful enqueue so session can be recovered on retry
     clearSessionInProgress()
     if (sessionId) clearSessionIntention(sessionId)
     clearGroundingActive()
@@ -119,6 +130,26 @@ export default function GroundingScreen() {
           </TouchableOpacity>
         </View>
 
+        {abandonError ? (
+          <View style={styles.abandonErrorContainer}>
+            <Text
+              // eslint-disable-next-line i18next/no-literal-string
+              accessibilityLiveRegion="polite"
+              style={styles.abandonErrorText}
+            >{abandonError}</Text>
+            <Pressable
+              onPress={handleConfirmStop}
+              disabled={isAbandoning}
+              accessibilityRole="button"
+              accessibilityLabel={t('grounding.tryAgain')}
+              accessibilityState={{ disabled: isAbandoning }}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>{t('grounding.tryAgain')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.resumeButton}
@@ -130,10 +161,12 @@ export default function GroundingScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.stopButton}
+            style={[styles.stopButton, isAbandoning && styles.stopButtonDisabled]}
             onPress={handleConfirmStop}
+            disabled={isAbandoning}
             accessibilityRole="button"
             accessibilityLabel={t('grounding.stopSession')}
+            accessibilityState={{ disabled: isAbandoning }}
           >
             <Text style={styles.stopText}>{t('grounding.stopSession')}</Text>
           </TouchableOpacity>
@@ -157,9 +190,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   techniqueLabel: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827' },
+  abandonErrorContainer: { marginBottom: 16 },
+  abandonErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20, marginBottom: 8 },
+  retryButton: { alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
   actions: { gap: 16 },
   resumeButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   resumeText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  stopButtonDisabled: { opacity: 0.5 },
   stopText: { color: '#374151', fontSize: 16 },
 })
