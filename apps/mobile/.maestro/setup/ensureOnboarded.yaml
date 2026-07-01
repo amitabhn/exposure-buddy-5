@@ -17,8 +17,19 @@
 # See Dev Notes § Flow independence and § On-device vs. server-side state.
 appId: ${APP_PACKAGE}
 ---
+# Ensure test1@test.com exists before the DEV sign-in tap (idempotent — 422 = already exists).
+- runScript:
+    file: seedAuthUser.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+
+# clearState wipes auth tokens + MMKV so prior flows' sessions never bleed in.
+# The no-op onboarding path below is a perf optimisation only; correctness holds
+# whether or not MMKV state survived.
 - launchApp:
     stopApp: true
+    clearState: true
 - tapOn: "DEV: Sign in as test user"
 - waitForAnimationToEnd
 
