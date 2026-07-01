@@ -19,13 +19,13 @@ appId: ${APP_PACKAGE}
 - tapOn:
     label: "Create account"
 
-# Select Email address as identifier type
+# Enter the unique test email.
+# The "Email address" identifier-type tab (index 0) and the TextInput (index 1) share the
+# same accessibilityLabel (t('auth.otp.emailLabel')). Email mode is the default on fresh
+# install, so no tab tap is needed — target the TextInput directly with index: 1.
 - tapOn:
     label: "Email address"
-
-# Enter the unique test email
-- tapOn:
-    label: "Email address"
+    index: 1
 - eraseText: 50
 - inputText: ${output.email}
 

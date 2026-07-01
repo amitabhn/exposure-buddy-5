@@ -17,7 +17,8 @@
 # See Dev Notes § Flow independence and § On-device vs. server-side state.
 appId: ${APP_PACKAGE}
 ---
-- launchApp
+- launchApp:
+    stopApp: true
 - tapOn: "DEV: Sign in as test user"
 - waitForAnimationToEnd
 
