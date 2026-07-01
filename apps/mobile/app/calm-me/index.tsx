@@ -89,7 +89,7 @@ export default function CalmMeScreen() {
   return (
     <>
       {/* eslint-disable-next-line i18next/no-literal-string */}
-      <Stack.Screen options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
           style={styles.exitButton}

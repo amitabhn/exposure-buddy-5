@@ -131,7 +131,9 @@ export default function RootLayout() {
                 <Stack screenOptions={{ headerShown: false }}>
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Stack.Screen name="privacy-notice" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
-                  <Stack.Screen name="calm-me" options={{ headerShown: false }} />
+                  {/* PERF: animation disabled — UX-DR8 requires instant render; cross-fade (~300ms on Mali-G31) violates the 200ms tap-to-mount budget. gestureEnabled: false is explicit — Android default is already false, iOS disabled per UX-DR8 instant-render intent. UX sign-off: UX-DR8 + Story 9.7 spec review. */}
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  <Stack.Screen name="calm-me" options={{ headerShown: false, animation: 'none', gestureEnabled: false }} />
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Stack.Screen name="ladder" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
                   {/* eslint-disable-next-line i18next/no-literal-string */}
