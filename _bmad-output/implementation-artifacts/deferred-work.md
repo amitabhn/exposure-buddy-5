@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred: 9-8-haptic-and-sound-degradation-audit (2026-07-01)
+
+_Entire story deferred post-MVP. No haptic or audio features exist in the MVP codebase — `expo-haptics` is not imported anywhere and no audio playback is implemented. The audit would find nothing to verify or fix. The silent-mode-primary design principle (FR-SOM-02) is already met by default since all feedback is visual. Revisit when haptic feedback or audio cues are added post-MVP; at that point, ensure all `Haptics.impactAsync()` calls are wrapped in try/catch (throws on haptic-less devices) and that any audio cues have paired visual fallbacks._
+
+---
+
 ## Deferred from: spec review of 9-7-performance-budget-low-end-device-validation (2026-06-29)
 
 _Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 5 decisions-needed; 11 patches applied directly to the spec; 7 items deferred below._
