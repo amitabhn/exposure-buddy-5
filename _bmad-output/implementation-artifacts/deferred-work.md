@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred: 9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification (2026-07-01)
+
+_Entire story deferred post-MVP. Story 9.9 is a Phase 1 India launch gate, not an MVP gate — the PRD explicitly places Hindi activation (FR-I18N-02 locale content), RTL rendering verification, 2G network fallback testing, India device compatibility matrix, and load testing to 10,000 concurrent users (NFR-SCALE-01) in the Phase 1 scope, not the closed-beta MVP scope. The i18n infrastructure (strings externalised, `t()` hook, CI lint rule blocking hardcoded strings) was completed in Story 1.6 and is continuously enforced — no coverage regression is possible at MVP. Revisit when preparing for India launch: at that point, activate the Hindi locale in `packages/core/src/i18n/locales/`, run RTL layout validation, perform 2G throttle offline testing on Indian device profiles, and execute the NFR-SCALE-01 load test against the production Supabase instance._
+
+---
+
 ## Deferred: 9-8-haptic-and-sound-degradation-audit (2026-07-01)
 
 _Entire story deferred post-MVP. No haptic or audio features exist in the MVP codebase — `expo-haptics` is not imported anywhere and no audio playback is implemented. The audit would find nothing to verify or fix. The silent-mode-primary design principle (FR-SOM-02) is already met by default since all feedback is visual. Revisit when haptic feedback or audio cues are added post-MVP; at that point, ensure all `Haptics.impactAsync()` calls are wrapped in try/catch (throws on haptic-less devices) and that any audio cues have paired visual fallbacks._
