@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-01 # Story 9.9 deferred post-MVP — Phase 1 India gate; i18n infrastructure enforced by CI (Story 1.6); Hindi activation, RTL verification, 2G testing, and load testing to 10k users are India-launch prerequisites, not closed-beta prerequisites
+last_updated: 2026-07-01 # Story 9.10 deferred post-MVP — ADR-OFFLINE-DEGRADATION Decision 2 explicitly accepted silent-failure as the MVP state; Epic 10 (the ADR's named trigger) is post-MVP; PowerSync outbox retries delivery so the gap is user-visible feedback, not data loss
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -128,5 +128,5 @@ development_status:
   9-7-performance-budget-low-end-device-validation: done
   9-8-haptic-and-sound-degradation-audit: deferred-post-mvp # deferred 2026-07-01 — no haptic or audio features exist in MVP codebase; audit has nothing to find; revisit when haptics/audio are added post-MVP
   9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification: deferred-post-mvp # deferred 2026-07-01 — Phase 1 India gate; i18n coverage enforced by CI (Story 1.6); Hindi activation, RTL verification, 2G testing, and NFR-SCALE-01 load testing are India-launch prerequisites not closed-beta prerequisites
-  9-10-silent-enqueue-failure-remediation-error-retry-ui: backlog # follow-up opened from Story 9.2 party-mode review (2026-06-22) — see ADR-OFFLINE-DEGRADATION Decision 2 tracked follow-up
+  9-10-silent-enqueue-failure-remediation-error-retry-ui: deferred-post-mvp # deferred 2026-07-01 — ADR-OFFLINE-DEGRADATION Decision 2 accepted silent-failure as MVP state; Epic 10 (ADR's named trigger) is post-MVP; revisit as first story of Epic 10 or next sync-mutation-queue story
   epic-9-retrospective: optional

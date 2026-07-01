@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred: 9-10-silent-enqueue-failure-remediation-error-retry-ui (2026-07-01)
+
+_Entire story deferred post-MVP. ADR-OFFLINE-DEGRADATION Decision 2 explicitly classified silent enqueue-failure behaviour as the accepted MVP state ("Accepted — deferred remediation"). The ADR's named trigger condition — "before Epic 10 begins" — places remediation at the post-MVP boundary; Epic 10 does not exist in the current planning artifacts. The "next story that touches the sync mutation queue" trigger fired previously (Stories 9.2 and 9.6 both touched the queue) without triggering implementation, confirming the Epic 10 clause as the operative gate. PowerSync's outbox will eventually deliver queued writes, so the gap is user-visible feedback rather than data loss. Revisit as the first story of Epic 10, or as the next story that materially changes the outbox/sync mutation queue — whichever comes first. Known silent-failure call sites documented in ADR-OFFLINE-DEGRADATION Decision 2: `apps/mobile/app/(onboarding)/assessment.tsx:handleNext` and `apps/mobile/app/session/grounding.tsx:52-56`. Deferred items already tracked in `deferred-work.md` under `4-2-D2`, `4-2-D4`, and `5-2-W15` remain as-is._
+
+---
+
 ## Deferred: 9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification (2026-07-01)
 
 _Entire story deferred post-MVP. Story 9.9 is a Phase 1 India launch gate, not an MVP gate — the PRD explicitly places Hindi activation (FR-I18N-02 locale content), RTL rendering verification, 2G network fallback testing, India device compatibility matrix, and load testing to 10,000 concurrent users (NFR-SCALE-01) in the Phase 1 scope, not the closed-beta MVP scope. The i18n infrastructure (strings externalised, `t()` hook, CI lint rule blocking hardcoded strings) was completed in Story 1.6 and is continuously enforced — no coverage regression is possible at MVP. Revisit when preparing for India launch: at that point, activate the Hindi locale in `packages/core/src/i18n/locales/`, run RTL layout validation, perform 2G throttle offline testing on Indian device profiles, and execute the NFR-SCALE-01 load test against the production Supabase instance._
