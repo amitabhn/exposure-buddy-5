@@ -374,6 +374,8 @@ jobs:
           script: >-
             export PATH="$PATH:$HOME/.maestro/bin" &&
             mkdir -p /tmp/maestro-artifacts &&
+            adb logcat -c &&
+            (adb logcat -v time > /tmp/maestro-artifacts/logcat.txt 2>&1 &) &&
             adb install -r /tmp/exposure-buddy-e2e.apk &&
             ~/.maestro/bin/maestro test
             apps/mobile/.maestro/onboarding.yaml

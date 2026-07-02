@@ -25,6 +25,14 @@ if (!toEmail) {
 var maxAttempts = 30
 var otpCode = null
 
+// Maestro's JS runtime exposes no `java` global (referencing `java.lang.Thread.sleep`
+// throws "Cannot read property 'lang' of undefined") and provides no setTimeout/async.
+// Use a pure-JS busy-wait so the poll backoff works in any engine.
+function sleep(ms) {
+  var end = Date.now() + ms
+  while (Date.now() < end) { /* busy-wait */ }
+}
+
 for (var attempt = 0; attempt < maxAttempts; attempt++) {
   // Mailpit REST API: GET /api/v1/messages?query=to:<email>
   // Returns a JSON object with a "messages" array and "total" count.
@@ -34,7 +42,7 @@ for (var attempt = 0; attempt < maxAttempts; attempt++) {
 
   if (!response || !response.body) {
     console.log('fetchOtp attempt ' + (attempt + 1) + ': no response body — retrying...')
-    java.lang.Thread.sleep(1000)
+    sleep(1000)
     continue
   }
 
@@ -43,13 +51,13 @@ for (var attempt = 0; attempt < maxAttempts; attempt++) {
     parsed = JSON.parse(response.body)
   } catch (e) {
     console.log('fetchOtp attempt ' + (attempt + 1) + ': failed to parse JSON — retrying...')
-    java.lang.Thread.sleep(1000)
+    sleep(1000)
     continue
   }
 
   if (!parsed.messages || parsed.messages.length === 0) {
     console.log('fetchOtp attempt ' + (attempt + 1) + ': no messages yet for ' + toEmail + ' — retrying...')
-    java.lang.Thread.sleep(1000)
+    sleep(1000)
     continue
   }
 
@@ -64,7 +72,7 @@ for (var attempt = 0; attempt < maxAttempts; attempt++) {
   var msgResponse = http.get(mailpitUrl + '/api/v1/message/' + latestMessageId)
   if (!msgResponse || !msgResponse.body) {
     console.log('fetchOtp attempt ' + (attempt + 1) + ': could not fetch message body — retrying...')
-    java.lang.Thread.sleep(1000)
+    sleep(1000)
     continue
   }
 
@@ -86,7 +94,7 @@ for (var attempt = 0; attempt < maxAttempts; attempt++) {
   }
 
   console.log('fetchOtp attempt ' + (attempt + 1) + ': message found but no 6-digit code in body — retrying...')
-  java.lang.Thread.sleep(1000)
+  sleep(1000)
 }
 
 if (!otpCode) {

@@ -41,8 +41,9 @@ var response = http.post(adminUrl, {
 
 var statusCode = response.statusCode || response.status
 
-// 201 = created, 422 = user already exists (idempotent)
-if (statusCode === 201) {
+// 200/201 = created (this repo's local GoTrue admin API returns 200, not 201),
+// 422 = user already exists (idempotent)
+if (statusCode === 200 || statusCode === 201) {
   var body = JSON.parse(response.body)
   output.userId = body.id
   console.log('seedAuthUser: created test1@test.com, userId=' + body.id)
