@@ -311,15 +311,20 @@ jobs:
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk /tmp/exposure-buddy-e2e.apk
           echo "APK built: $(du -sh /tmp/exposure-buddy-e2e.apk | cut -f1)"
+          # Stop the Gradle daemon so it releases file handles under ~/.gradle/caches;
+          # otherwise the cleanup rm below races with a live daemon and fails.
+          ./gradlew --stop || true
           cd ../..
-          rm -rf apps/mobile/android ~/.gradle/caches
+          # Disk-reclaim only — never fail the job on cleanup. The APK is already built
+          # and copied to /tmp; anything below is best-effort space recovery.
+          rm -rf apps/mobile/android ~/.gradle/caches || true
           # Android build-tools and platforms are not needed after the APK is built.
           # The emulator only requires emulator/, platform-tools/, and system-images/.
-          rm -rf "$ANDROID_HOME/build-tools" "$ANDROID_HOME/platforms"
+          rm -rf "$ANDROID_HOME/build-tools" "$ANDROID_HOME/platforms" || true
           # pnpm uses hard links: node_modules/.pnpm/ is tiny symlinks; real data is in the store.
           # Remove both to actually reclaim the ~3-5 GB consumed by the pnpm package cache.
           PNPM_STORE=$(pnpm store path 2>/dev/null || echo "")
-          rm -rf node_modules ${PNPM_STORE:+"$PNPM_STORE"}
+          rm -rf node_modules ${PNPM_STORE:+"$PNPM_STORE"} || true
           df -h / | tail -1
 
       # ── Start Supabase before emulator boots (reads keys into GITHUB_ENV) ─────────
