@@ -100,7 +100,17 @@ export default function HomeScreen() {
           }
         />
       ) : homeState === 'completed' ? (
-        <Text style={styles.placeholder}>{t('home.state10.message')}</Text>
+        <View>
+          <Text style={styles.placeholder}>{t('home.state10.message')}</Text>
+          <TouchableOpacity
+            style={styles.placeholderCard}
+            onPress={() => router.push('/ladder')}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.state10.addMore')}
+          >
+            <Text style={styles.addItemText}>{t('home.state10.addMore')}</Text>
+          </TouchableOpacity>
+        </View>
       ) : homeState === 'progressing' ? (
         <TouchableOpacity
           style={styles.placeholderCard}
