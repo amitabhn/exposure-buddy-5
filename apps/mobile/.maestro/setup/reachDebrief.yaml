@@ -1,5 +1,5 @@
-# Story 9.5, Task 6.3 — Self-contained subflow: signs in, ensures onboarding, seeds a
-# pending ladder item, and drives the full exposure loop to the debrief screen.
+# Story 9.5, Task 6.3 — Self-contained subflow: signs in, ensures onboarding, adds a
+# pending ladder item via UI, and drives the full exposure loop to the debrief screen.
 #
 # Used by: exposure-loop.yaml (which also asserts on debrief screen itself)
 #           debrief.yaml (via runFlow: for its own leading setup)
@@ -7,51 +7,43 @@
 # Both pre-SUDS (intent) and exit SUDS (active completion modal) are kept BELOW 8
 # to avoid the crisis-contacts block on debrief.tsx (renders if either value ≥ 8).
 #
-# IMPORTANT — PowerSync dependency (Task 1.5 open question):
-#   seedPendingLadderItem.js writes to Postgres via PostgREST. The app's ladder screen
-#   reads from the on-device PowerSync SQLite replica (packages/sync/src/schema.ts).
-#   If no local PowerSync sync stream is reachable in CI, the seeded row may not appear
-#   in the on-device UI. Resolve this during Task 1.5's spike. If PowerSync is not
-#   reachable, fall back to adding the item via the ladder UI (like backgrounded-recovery.yaml).
-#
-# Required env vars:
-#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for seedPendingLadderItem.js)
+# Task 1.5 resolution: CI has no PowerSync cloud connection, so seeding via PostgREST
+# and waiting for PowerSync sync was unreliable. Replaced with UI-based item addition
+# (same pattern as backgrounded-recovery.yaml): writes go to the on-device PowerSync
+# local queue which is immediately readable without a cloud sync round-trip.
 appId: ${APP_PACKAGE}
 ---
 # ── Setup ──────────────────────────────────────────────────────────────────────────────────
-# Sign in + complete onboarding idempotently
+# Sign in + complete onboarding idempotently; lands on home in empty-ladder state
 - runFlow: ensureOnboarded.yaml
-
-# Ensure test1@test.com exists (idempotent; seedAuthUser exposes userId in output)
-- runScript:
-    file: seedAuthUser.js
-    env:
-      SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-
-# Seed a pending ladder item in Postgres (effective only if PowerSync sync stream is reachable)
-- runScript:
-    file: seedPendingLadderItem.js
-    env:
-      SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-      SEED_USER_ID: ${output.userId}
-
-# Wait for PowerSync sync to propagate the seeded item to the on-device SQLite replica
 - waitForAnimationToEnd
 
-# ── Navigate from home to the seeded item's "Start session" button ─────────────────────────
-# Home screen 'morning' state: CourageLadderEntryCard taps through to /ladder.
-# accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
-#   = "Riding the elevator alone, anxiety level 5 out of 10"
+# ── Add a ladder item via the standalone editor (no PostgREST / PowerSync cloud needed) ───
+# Home empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
 - tapOn:
-    label: "Riding the elevator alone, anxiety level 5 out of 10"
+    label: "Add situation"
+- waitForAnimationToEnd
+
+# We're now on /ladder. Add "Facing a crowd" (SUDS 5) via the shared subflow.
+- runFlow: addLadderItem.yaml
+
+# Navigate back to home
+- tapOn:
+    label: "Go back"
+- waitForAnimationToEnd
+
+# ── Navigate from home to the item's "Start session" button ────────────────────────────────
+# Home screen 'morning' state: CourageLadderEntryCard.
+# accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
+#   = "Facing a crowd, anxiety level 5 out of 10"
+- tapOn:
+    label: "Facing a crowd, anxiety level 5 out of 10"
 - waitForAnimationToEnd
 
 # Ladder screen: tap "Start session" for the pending item
 # accessibilityLabel: `${t('ladder.startSession')}, ${item.description}`
 - tapOn:
-    label: "Start session, Riding the elevator alone"
+    label: "Start session, Facing a crowd"
 - waitForAnimationToEnd
 
 # ── Exposure session loop ──────────────────────────────────────────────────────────────────

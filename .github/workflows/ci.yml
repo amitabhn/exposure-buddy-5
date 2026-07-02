@@ -366,6 +366,7 @@ jobs:
           emulator-boot-timeout: 900
           script: >-
             export PATH="$PATH:$HOME/.maestro/bin" &&
+            mkdir -p /tmp/maestro-artifacts &&
             adb install -r /tmp/exposure-buddy-e2e.apk &&
             ~/.maestro/bin/maestro test
             apps/mobile/.maestro/onboarding.yaml
@@ -396,5 +397,15 @@ jobs:
         with:
           name: maestro-smoke-artifacts
           path: /tmp/maestro-artifacts/
+          retention-days: 7
+          if-no-files-found: warn
+
+      # ── Upload Maestro internal logs (screenshots + step-by-step log) ─────────────
+      - name: Upload Maestro debug logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-logs
+          path: ~/.maestro/logs/
           retention-days: 7
           if-no-files-found: warn

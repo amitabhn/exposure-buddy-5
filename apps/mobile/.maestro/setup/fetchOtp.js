@@ -19,7 +19,7 @@ if (!toEmail) {
   throw new Error('OTP_TO_EMAIL is not set — cannot filter Mailpit messages by recipient')
 }
 
-var maxAttempts = 15
+var maxAttempts = 30
 var otpCode = null
 
 for (var attempt = 0; attempt < maxAttempts; attempt++) {
