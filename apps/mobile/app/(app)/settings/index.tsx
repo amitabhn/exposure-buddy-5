@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
 import { formatTimeForDisplay } from '../../../src/notifications/sessionReminder'
@@ -9,6 +10,7 @@ import { formatTimeForDisplay } from '../../../src/notifications/sessionReminder
 export default function SettingsScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { signOut, requestAccountDeletion, getReminderTime, getReminderEnabled } = useAuth()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -65,7 +67,7 @@ export default function SettingsScreen() {
       : t('settings.reminders.disabledValue')
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>{t('settings.title')}</Text>
 
       <TouchableOpacity
@@ -137,7 +139,6 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: '#ffffff',
-    paddingTop: 60,
     paddingHorizontal: 24,
   },
   // paddingRight reserves space for the Calm Me FAB — see (app)/index.tsx's greeting style

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { usePathname, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CalmMeButton } from '@exposure-buddy/ui'
 
@@ -13,6 +14,7 @@ export function CalmMeFab() {
   const { t } = useTranslation()
   const pathname = usePathname()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { sessionRecoveryData } = useAuth()
   const navigatingRef = useRef(false)
   // eslint-disable-next-line i18next/no-literal-string
@@ -42,7 +44,7 @@ export function CalmMeFab() {
 
   return (
     // eslint-disable-next-line i18next/no-literal-string
-    <View style={styles.container} pointerEvents="box-none">
+    <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">
       <CalmMeButton onPress={handlePress} accessibilityLabel={t('calmMe.fab')} accessibilityHint={t('calmMe.fabHint')} />
     </View>
   )
@@ -52,5 +54,6 @@ const styles = StyleSheet.create({
   // zIndex is required now that CalmMeFab mounts before <Stack> in app/_layout.tsx
   // (Story 9.3 focus-order fix) — without it, the Stack's opaque screen content paints
   // over the FAB instead of the reverse, since paint order otherwise follows source order.
-  container: { position: 'absolute', right: 24, top: 48, zIndex: 10, elevation: 10 },
+  // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
+  container: { position: 'absolute', right: 24, zIndex: 10, elevation: 10 },
 })

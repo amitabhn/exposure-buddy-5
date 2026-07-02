@@ -2,10 +2,12 @@
 import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function PauseScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { sessionId, fearItemId, description, preSuds } = useLocalSearchParams<{
     sessionId: string
     fearItemId: string
@@ -25,7 +27,7 @@ export default function PauseScreen() {
     <>
       {/* headerShown: false + gestureEnabled: false set in session/_layout.tsx — forward-only */}
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>{t('session.pause.title')}</Text>
         <Text style={styles.body}>{t('session.pause.body')}</Text>
         <TouchableOpacity
@@ -43,7 +45,7 @@ export default function PauseScreen() {
 
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center', alignItems: 'center' },
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', marginBottom: 16 },
   body: { fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 26, marginBottom: 48 },
   beginButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, paddingHorizontal: 48, alignItems: 'center', width: '100%' },

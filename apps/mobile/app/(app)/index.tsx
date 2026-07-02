@@ -2,6 +2,7 @@ import { useEffect, useRef, type ElementRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CourageLadderEntryCard } from '@exposure-buddy/ui'
 import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, type HomeScreenContext } from '@exposure-buddy/core'
@@ -11,6 +12,7 @@ import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSessi
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, sessionRecoveryData, getGroundingActiveAt } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
@@ -75,7 +77,7 @@ export default function HomeScreen() {
   const progressingTarget = isRecoveringIntoGrounding ? '/session/grounding' : '/session/active'
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.greeting}>
         {seenOnMount.current ? t('home.welcomeBack') : t('home.readyToStart')}
       </Text>
@@ -152,7 +154,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 48, backgroundColor: '#ffffff' },
+  container: { flex: 1, paddingHorizontal: 24, backgroundColor: '#ffffff' },
   // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint) — without
   // it, wrapped text at large accessibility font sizes runs directly behind the FAB (Story
   // 9.3 max-font-size walkthrough finding).

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, Modal } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -18,6 +19,7 @@ function generateUUID(): string {
 export default function ActiveScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { sessionId, fearItemId, description, preSuds } = useLocalSearchParams<{
     sessionId: string
     fearItemId: string
@@ -154,7 +156,7 @@ export default function ActiveScreen() {
     <>
       {/* headerShown: false + gestureEnabled: false set in session/_layout.tsx */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>{t('session.active.title')}</Text>
         {description ? <Text style={styles.description}>{description}</Text> : null}
 
@@ -291,8 +293,9 @@ export default function ActiveScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, paddingBottom: 32 },
-  title: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingBottom: 32 },
+  // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint)
+  title: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 12, paddingRight: 88 },
   description: { fontSize: 16, color: '#374151', lineHeight: 24, marginBottom: 32 },
   actions: { flex: 1, justifyContent: 'center', gap: 16 },
   logButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
