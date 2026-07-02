@@ -12,8 +12,11 @@
 // Output:
 //   output.otpCode — the 6-digit OTP string, ready for inputText in the Maestro flow
 
-var mailpitUrl = process.env.MAILPIT_URL || 'http://127.0.0.1:54324'
-var toEmail = process.env.OTP_TO_EMAIL
+// Maestro's JS runtime (GraalJS) has no Node `process` global — env vars passed via
+// `--env` / a flow's `env:` block are injected as bare top-level globals. Referencing an
+// undefined identifier throws a ReferenceError, so guard each read with `typeof`.
+var mailpitUrl = typeof MAILPIT_URL !== 'undefined' ? MAILPIT_URL : 'http://127.0.0.1:54324'
+var toEmail = typeof OTP_TO_EMAIL !== 'undefined' ? OTP_TO_EMAIL : null
 
 if (!toEmail) {
   throw new Error('OTP_TO_EMAIL is not set — cannot filter Mailpit messages by recipient')

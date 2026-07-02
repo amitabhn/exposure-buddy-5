@@ -17,9 +17,12 @@
 //   SUPABASE_SERVICE_ROLE_KEY — bypasses RLS for the insert
 //   SEED_USER_ID              — UUID of test1@test.com (set by seedAuthUser output or passed in)
 
-var supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321'
-var serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-var userId = process.env.SEED_USER_ID
+// Maestro's JS runtime (GraalJS) has no Node `process` global — env vars passed via
+// `--env` / a flow's `env:` block are injected as bare top-level globals. Referencing an
+// undefined identifier throws a ReferenceError, so guard each read with `typeof`.
+var supabaseUrl = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'http://127.0.0.1:54321'
+var serviceRoleKey = typeof SUPABASE_SERVICE_ROLE_KEY !== 'undefined' ? SUPABASE_SERVICE_ROLE_KEY : null
+var userId = typeof SEED_USER_ID !== 'undefined' ? SEED_USER_ID : null
 
 if (!serviceRoleKey) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
