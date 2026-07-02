@@ -19,19 +19,22 @@ if (!serviceRoleKey) {
 
 var adminUrl = supabaseUrl + '/auth/v1/admin/users'
 
-var response = http.post(
-  adminUrl,
-  JSON.stringify({
+// Maestro's http.post signature is http.post(url, { headers, body }) — a single params
+// object, NOT (url, body, headers) positional args. Passing body/headers positionally
+// sends an empty body with no auth headers, which the Admin API rejects with 401,
+// throwing below and failing the flow within ~1s.
+var response = http.post(adminUrl, {
+  headers: {
+    'apikey': serviceRoleKey,
+    'Authorization': 'Bearer ' + serviceRoleKey,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
     email: 'test1@test.com',
     password: 'DevTest123!',
     email_confirm: true,
   }),
-  {
-    'apikey': serviceRoleKey,
-    'Authorization': 'Bearer ' + serviceRoleKey,
-    'Content-Type': 'application/json',
-  }
-)
+})
 
 var statusCode = response.statusCode || response.status
 
@@ -43,13 +46,12 @@ if (statusCode === 201) {
 } else if (statusCode === 422) {
   // User already exists from a prior run within the same supabase db reset cycle.
   // Fetch the existing user to return their ID.
-  var listResponse = http.get(
-    supabaseUrl + '/auth/v1/admin/users?email=test1@test.com',
-    {
+  var listResponse = http.get(supabaseUrl + '/auth/v1/admin/users?email=test1@test.com', {
+    headers: {
       'apikey': serviceRoleKey,
       'Authorization': 'Bearer ' + serviceRoleKey,
-    }
-  )
+    },
+  })
   var listBody = JSON.parse(listResponse.body)
   var existingUser = Array.isArray(listBody) ? listBody[0] : (listBody.users && listBody.users[0])
   if (existingUser) {

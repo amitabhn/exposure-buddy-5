@@ -296,6 +296,13 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
           EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
           pnpm exec expo prebuild --platform android --clean
+          # E2E APK only: allow cleartext HTTP so the app can reach the local Supabase at
+          # http://10.0.2.2:54321. assembleRelease targets SDK >= 28, where cleartext traffic
+          # defaults to disabled; without this the app's Supabase auth/OTP calls fail silently.
+          # This build is never shipped — production EAS builds use HTTPS and a separate path.
+          # Force the value to "true": replace an existing attribute if present, otherwise add it.
+          perl -0pi -e 's/android:usesCleartextTraffic="[^"]*"/android:usesCleartextTraffic="true"/ or s/<application /<application android:usesCleartextTraffic="true" /' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="true"' android/app/src/main/AndroidManifest.xml || (echo "ERROR: cleartext patch did not apply" && exit 1)
           cd android
           APP_VARIANT="preview" \
           EXPO_PUBLIC_APP_VARIANT="preview" \
@@ -374,7 +381,8 @@ jobs:
             apps/mobile/.maestro/exposure-loop.yaml
             apps/mobile/.maestro/debrief.yaml
             apps/mobile/.maestro/backgrounded-recovery.yaml
-            --output /tmp/maestro-artifacts
+            --format junit
+            --output /tmp/maestro-artifacts/report.xml
             --env SUPABASE_URL="${SUPABASE_URL}"
             --env MAILPIT_URL="${MAILPIT_URL}"
             --env SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
@@ -400,12 +408,17 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      # ── Upload Maestro internal logs (screenshots + step-by-step log) ─────────────
+      # ── Upload Maestro per-run debug output (screenshots + step-by-step command log) ──
+      # Maestro writes a per-flow debug bundle (maestro.log, commands-*.json, and
+      # failure/last-view screenshots) under ~/.maestro/tests/<timestamp>/ on every run.
+      # The compact CI console output only shows the pass/fail summary, so these files are
+      # the only way to see *which command* failed and *why*. (~/.maestro/logs/ is the
+      # daemon log dir and does not contain per-flow screenshots.)
       - name: Upload Maestro debug logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: maestro-debug-logs
-          path: ~/.maestro/logs/
+          path: ~/.maestro/tests/
           retention-days: 7
           if-no-files-found: warn

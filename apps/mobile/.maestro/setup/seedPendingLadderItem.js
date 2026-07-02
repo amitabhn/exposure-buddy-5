@@ -30,12 +30,15 @@ if (!userId || userId === 'null') {
 
 // Compute MAX(position)+1 to avoid the uq_user_position DEFERRABLE constraint violation
 // (migration 0021 adds UNIQUE (user_id, position) DEFERRABLE INITIALLY DEFERRED).
+// Maestro's http.get/http.post take a single params object: http.get(url, { headers }).
 var maxPosResponse = http.get(
   supabaseUrl + '/rest/v1/fear_ladder_items?user_id=eq.' + userId + '&select=position&order=position.desc&limit=1',
   {
-    'apikey': serviceRoleKey,
-    'Authorization': 'Bearer ' + serviceRoleKey,
-    'Content-Type': 'application/json',
+    headers: {
+      'apikey': serviceRoleKey,
+      'Authorization': 'Bearer ' + serviceRoleKey,
+      'Content-Type': 'application/json',
+    },
   }
 )
 
@@ -45,9 +48,14 @@ if (Array.isArray(existingItems) && existingItems.length > 0 && existingItems[0]
   nextPosition = existingItems[0].position + 1
 }
 
-var insertResponse = http.post(
-  supabaseUrl + '/rest/v1/fear_ladder_items',
-  JSON.stringify({
+var insertResponse = http.post(supabaseUrl + '/rest/v1/fear_ladder_items', {
+  headers: {
+    'apikey': serviceRoleKey,
+    'Authorization': 'Bearer ' + serviceRoleKey,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  },
+  body: JSON.stringify({
     user_id: userId,
     description: 'Riding the elevator alone',
     predicted_suds: 5,
@@ -55,13 +63,7 @@ var insertResponse = http.post(
     position: nextPosition,
     status: 'pending',
   }),
-  {
-    'apikey': serviceRoleKey,
-    'Authorization': 'Bearer ' + serviceRoleKey,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation',
-  }
-)
+})
 
 var statusCode = insertResponse.statusCode || insertResponse.status
 
