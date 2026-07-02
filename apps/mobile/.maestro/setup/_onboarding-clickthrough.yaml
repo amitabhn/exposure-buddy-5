@@ -3,7 +3,7 @@
 #
 # Completes onboarding with zero ladder items (Skip path):
 #   welcome → assessment → ladder (Skip) → complete → home
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # welcome.tsx — "Get started"
 - tapOn:

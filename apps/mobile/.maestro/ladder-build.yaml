@@ -7,7 +7,7 @@
 # This flow uses the DEV bypass (not real OTP), so it tests the standalone ladder editor
 # independently from the onboarding flow. Running both gives broader coverage of the fear
 # item add path.
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # ── Setup ─────────────────────────────────────────────────────────────────────────────────
 # Sign in + complete onboarding if needed (idempotent — see ensureOnboarded.yaml)

@@ -10,7 +10,7 @@
 # functional, as it is on every screen it is mounted on (app/_layout.tsx). The recovery
 # modal is NOT triggered by background/re-foreground (only by a cold kill + relaunch while
 # a session was in-flight). Verify this empirically during Task 1.
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # ── Setup ─────────────────────────────────────────────────────────────────────────────────
 # Sign in + complete onboarding idempotently (0 ladder items after skip)
@@ -68,7 +68,7 @@ appId: ${APP_PACKAGE}
 
 # Re-foreground without killing the JS context (stopApp: false keeps the existing session alive)
 - launchApp:
-    appId: ${APP_PACKAGE}
+    appId: com.exposurebuddy.app
     stopApp: false
 - waitForAnimationToEnd
 

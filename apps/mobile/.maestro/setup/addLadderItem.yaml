@@ -13,7 +13,7 @@
 # Postcondition: one new pending item with description "Facing a crowd" and predictedSuds=5
 # is enqueued for sync (via getAdapter().enqueue — the write goes to the local PowerSync
 # queue, not directly to Postgres).
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # Open the add-item modal
 - tapOn:

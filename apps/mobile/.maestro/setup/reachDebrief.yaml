@@ -11,7 +11,7 @@
 # and waiting for PowerSync sync was unreliable. Replaced with UI-based item addition
 # (same pattern as backgrounded-recovery.yaml): writes go to the on-device PowerSync
 # local queue which is immediately readable without a cloud sync round-trip.
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # ── Setup ──────────────────────────────────────────────────────────────────────────────────
 # Sign in + complete onboarding idempotently; lands on home in empty-ladder state

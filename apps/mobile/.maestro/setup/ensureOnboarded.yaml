@@ -15,7 +15,7 @@
 # The no-op path is a PERFORMANCE OPTIMIZATION only. Each consuming flow's call to
 # this subflow is independently correct and idempotent regardless of execution order.
 # See Dev Notes § Flow independence and § On-device vs. server-side state.
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # Ensure test1@test.com exists before the DEV sign-in tap (idempotent — 422 = already exists).
 - runScript:

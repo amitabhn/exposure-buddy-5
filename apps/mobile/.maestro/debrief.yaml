@@ -9,7 +9,7 @@
 #
 # Required env vars:
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for backend seeding via reachDebrief.yaml)
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # Drive from launch to the debrief screen (self-contained — does not depend on
 # exposure-loop.yaml having run first)

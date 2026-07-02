@@ -7,7 +7,7 @@
 #
 # Required env vars (passed via --env in run-e2e-smoke.sh):
 #   MAILPIT_URL   — Mailpit REST base URL (from `supabase status -o env`)
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # Generate a per-invocation-unique email for this run
 - runScript: setup/generateEmail.js

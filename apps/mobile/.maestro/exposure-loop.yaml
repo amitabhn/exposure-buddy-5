@@ -9,7 +9,7 @@
 #
 # Required env vars:
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for backend seeding)
-appId: ${APP_PACKAGE}
+appId: com.exposurebuddy.app
 ---
 # Drive from launch through sign-in → onboarding → seed → session → debrief screen
 - runFlow: setup/reachDebrief.yaml
