@@ -1,13 +1,5 @@
 # Deferred Work
 
-## Deferred post-MVP: Calm Me FAB margin/safe-spacing audit (2026-07-01)
-
-_Demoted from MUST-HAVE before MVP launch. Accepted MVP state: the FAB may visually overlap screen headings on some screens; the core Calm Me flow is functional. Revisit before the first post-closed-beta release or when a UX polish story is scoped._
-
-- **Add margin/safe spacing around the Calm Me FAB so it doesn't overlap screen headings.** Repositioning the FAB to top-right (2026-06-18, post-review) caused it to visually overlap the Home screen's "Welcome back. Keep going." heading — confirmed via simulator screenshot. Screens with native headers (`ladder.tsx`, `privacy-notice.tsx`) are also suspect — the FAB's `top: 48` may overlap the native header bar itself, not just heading text, but this hasn't been visually confirmed yet. Needs a full audit across every screen the FAB renders on (home, settings, ladder, session flow, onboarding). [`apps/mobile/src/components/CalmMeFab.tsx`]
-
----
-
 ## Deferred: 9-10-silent-enqueue-failure-remediation-error-retry-ui (2026-07-01)
 
 _Entire story deferred post-MVP. ADR-OFFLINE-DEGRADATION Decision 2 explicitly classified silent enqueue-failure behaviour as the accepted MVP state ("Accepted — deferred remediation"). The ADR's named trigger condition — "before Epic 10 begins" — places remediation at the post-MVP boundary; Epic 10 does not exist in the current planning artifacts. The "next story that touches the sync mutation queue" trigger fired previously (Stories 9.2 and 9.6 both touched the queue) without triggering implementation, confirming the Epic 10 clause as the operative gate. PowerSync's outbox will eventually deliver queued writes, so the gap is user-visible feedback rather than data loss. Revisit as the first story of Epic 10, or as the next story that materially changes the outbox/sync mutation queue — whichever comes first. Known silent-failure call sites documented in ADR-OFFLINE-DEGRADATION Decision 2: `apps/mobile/app/(onboarding)/assessment.tsx:handleNext` and `apps/mobile/app/session/grounding.tsx:52-56`. Deferred items already tracked in `deferred-work.md` under `4-2-D2`, `4-2-D4`, and `5-2-W15` remain as-is._
