@@ -157,7 +157,7 @@ _Not pre-existing — both introduced by this story's `CalmMeButton`/`CalmMeFab`
 
 - **Decide the Calm Me button's final icon.** Currently a Text-glyph `♡` (heart outline) — a placeholder choice, not a deliberate design decision. Candidates discussed: stay with a Unicode glyph (🍃 leaf, ⚓ anchor, ☁ cloud, 🕊 dove — no new dependency) vs. switch to `@expo/vector-icons` (already a dependency of `apps/mobile`, not yet of `packages/ui`) for a crisper render (`heart-outline`, `leaf-outline`, `pulse-outline`, `shield-checkmark-outline`). [`packages/ui/src/components/CalmMeButton.tsx`]
 - ~~**Decide the final courage affirmation copy.**~~ **RESOLVED 2026-07-02.** Copy updated to: "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time." [`calmMe.affirmation.1` in `apps/mobile/src/i18n/locales/en.json`]
-- **Implement password-based login.** Current auth is OTP-only (Magic Link / SMS OTP via Supabase). Password-based login (email + password sign-in and sign-up) must be implemented before MVP ships to ensure users can reliably access the app without depending on OTP delivery. Added 2026-07-01.
+- **Implement password-based login.** Current auth is OTP-only (Magic Link / SMS OTP via Supabase). Password-based login (email + password sign-in and sign-up) must be implemented before MVP ships to ensure users can reliably access the app without depending on OTP delivery. Added 2026-07-01. **Blocker as of 2026-07-02: Supabase outage preventing remote environment setup required to test and complete this feature.**
 
 ---
 
