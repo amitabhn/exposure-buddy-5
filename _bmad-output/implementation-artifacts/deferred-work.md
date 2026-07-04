@@ -150,6 +150,7 @@ _Not pre-existing — both introduced by this story's `CalmMeButton`/`CalmMeFab`
 - ~~**Decide the Calm Me button's final icon.**~~ **RESOLVED 2026-07-02** (commit `bd09b58`). The placeholder glyph was replaced with a custom `IconCalmMe.png` asset; the button now renders white background with a green `#2D6A5A` outline border. [`packages/ui/src/components/CalmMeButton.tsx`; see `resolved-work.md`]
 - ~~**Decide the final courage affirmation copy.**~~ **RESOLVED 2026-07-02.** Copy updated to: "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time." [`calmMe.affirmation.1` in `apps/mobile/src/i18n/locales/en.json`]
 - **Implement password-based login.** Current auth is OTP-only (Magic Link / SMS OTP via Supabase). Password-based login (email + password sign-in and sign-up) must be implemented before MVP ships to ensure users can reliably access the app without depending on OTP delivery. Added 2026-07-01. **Blocker as of 2026-07-02: Supabase outage preventing remote environment setup required to test and complete this feature.**
+- **Add copyright and version number to the Settings page.** The Settings screen must display the app version number (and build number) and a copyright notice before MVP ships. Source the version from the Expo config (`expo-application` / `Constants.expoConfig.version`) rather than hardcoding. Added 2026-07-04. [`apps/mobile/app/(app)/settings/index.tsx`]
 
 ---
 
