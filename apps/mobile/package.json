@@ -14,7 +14,10 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "resolver": "react-native-worklets/jest/resolver.js"
+    "resolver": "react-native-worklets/jest/resolver.js",
+    "moduleNameMapper": {
+      "^react-native-safe-area-context$": "<rootDir>/__mocks__/react-native-safe-area-context.ts"
+    }
   },
   "dependencies": {
     "@expo-google-fonts/dm-serif-display": "^0.4.2",

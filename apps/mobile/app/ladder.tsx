@@ -250,32 +250,31 @@ export default function LadderScreen() {
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Text style={styles.dragHandle}>⠿</Text>
                 </TouchableOpacity>
-                {/* T7.1: "Start session" button — only for pending items */}
+                {/* T7.1: "Start session" button — all items (pending and completed). Completed items
+                    can be repeated; active.tsx will update peak_suds on the re-run. */}
                 {/* T7.2: Guard against starting while another session is in progress */}
-                {item.status === 'pending' && (
-                  <TouchableOpacity
-                    style={styles.startSessionButton}
-                    onPress={() => {
-                      // T7.2: If a session is already in progress, navigate to (app) home where
-                      // the recovery modal renders, rather than starting a second session which
-                      // would orphan the in-progress fear_ladder_items row.
-                      if (sessionRecoveryData) {
-                        // eslint-disable-next-line i18next/no-literal-string
-                        router.replace('/')
-                        return
-                      }
-                      const sessionId = generateUUID()
-                      router.push(
-                        // eslint-disable-next-line i18next/no-literal-string
-                        `/session/technique?fearItemId=${item.id}&sessionId=${sessionId}&description=${encodeURIComponent(item.description)}&predictedSuds=${item.predictedSuds}`
-                      )
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t('ladder.startSession')}, ${item.description}`}
-                  >
-                    <Text style={styles.startSessionText}>{t('ladder.startSession')}</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={styles.startSessionButton}
+                  onPress={() => {
+                    // T7.2: If a session is already in progress, navigate to (app) home where
+                    // the recovery modal renders, rather than starting a second session which
+                    // would orphan the in-progress fear_ladder_items row.
+                    if (sessionRecoveryData) {
+                      // eslint-disable-next-line i18next/no-literal-string
+                      router.replace('/')
+                      return
+                    }
+                    const sessionId = generateUUID()
+                    router.push(
+                      // eslint-disable-next-line i18next/no-literal-string
+                      `/session/technique?fearItemId=${item.id}&sessionId=${sessionId}&description=${encodeURIComponent(item.description)}&predictedSuds=${item.predictedSuds}`
+                    )
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('ladder.startSession')}, ${item.description}`}
+                >
+                  <Text style={styles.startSessionText}>{t('ladder.startSession')}</Text>
+                </TouchableOpacity>
               </ScaleDecorator>
             )
           }}

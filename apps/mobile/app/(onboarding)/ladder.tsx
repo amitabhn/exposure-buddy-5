@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { FearItemForm } from '../../src/components/onboarding/FearItemForm'
@@ -28,6 +29,7 @@ function generateUUID(): string {
 export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { userId, setOnboardingProgressStep, setCrisisFlaggedInOnboarding } = useAuth()
   const [items, setItems] = useState<FearItem[]>([])
   const [crisisDetected, setCrisisDetected] = useState(false)
@@ -151,7 +153,7 @@ export default function LadderScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
         <OnboardingStepIndicator step={3} />
         <Text style={styles.title}>{t('onboarding.fearLadder.title')}</Text>
         <Text style={styles.subtitle}>{t('onboarding.fearLadder.subtitle')}</Text>
@@ -276,7 +278,7 @@ export default function LadderScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 24, paddingVertical: 32, backgroundColor: '#ffffff' },
-  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8 },
+  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, paddingRight: 88 },
   subtitle: { fontSize: 15, color: '#6b7280', lineHeight: 22, marginBottom: 24 },
   itemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#e5e7eb' },
   itemContent: { flex: 1 },

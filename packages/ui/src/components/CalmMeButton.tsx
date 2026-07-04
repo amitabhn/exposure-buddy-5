@@ -1,6 +1,5 @@
 import React from 'react'
-import { TouchableOpacity, StyleSheet } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { TouchableOpacity, Image, StyleSheet } from 'react-native'
 import { color } from '../tokens/theme'
 
 export interface CalmMeButtonProps {
@@ -22,17 +21,20 @@ export const CalmMeButton = React.forwardRef<
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
     >
-      <Ionicons name="leaf-outline" size={26} color="#ffffff" />
+      <Image source={require('../assets/IconCalmMe.png')} style={styles.icon} />
     </TouchableOpacity>
   )
 })
 
 const styles = StyleSheet.create({
+  icon: { width: 32, height: 32 },
   button: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: color.accent.courage,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: color.accent.courage,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',

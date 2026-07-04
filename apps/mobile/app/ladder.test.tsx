@@ -27,12 +27,13 @@ jest.mock('react-i18next', () => ({
 }))
 
 const mockRouterPush = jest.fn()
+const mockRouterReplace = jest.fn()
 
 jest.mock('expo-router', () => ({
   Stack: {
     Screen: () => null,
   },
-  useRouter: () => ({ push: mockRouterPush }),
+  useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
 }))
 
 const mockUseAuth = jest.fn()
@@ -86,7 +87,7 @@ describe('LadderScreen', () => {
     jest.useFakeTimers()
     jest.spyOn(AccessibilityInfo, 'setAccessibilityFocus').mockImplementation(() => {})
     jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(42)
-    mockUseAuth.mockReturnValue({ userId: 'user-123' })
+    mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: null })
     mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
     mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
     mockDetectCrisisKeywords.mockReturnValue(false)
@@ -341,6 +342,39 @@ describe('LadderScreen', () => {
       const removeButton = getByRole('button', { name: 'ladder.removeItem' })
       expect(removeButton.props.accessibilityState.disabled).toBe(true)
       expect(getByText('ladder.delete.guardMessage')).toBeTruthy()
+    })
+  })
+
+  describe('Start session button (T7.1 / T7.2)', () => {
+    it('shows Start session button for a pending item', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getByRole } = render(<LadderScreen />)
+      expect(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` })).toBeTruthy()
+    })
+
+    it('shows Start session button for a completed item', () => {
+      const completedItem = { ...baseItem, status: 'completed' }
+      mockUseFearLadderItems.mockReturnValue({ items: [completedItem], isLoading: false })
+      const { getByRole } = render(<LadderScreen />)
+      expect(getByRole('button', { name: `ladder.startSession, ${completedItem.description}` })).toBeTruthy()
+    })
+
+    it('pressing Start session navigates to /session/technique', () => {
+      mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: null })
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getByRole } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
+      expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/session/technique'))
+      expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining(`fearItemId=${baseItem.id}`))
+    })
+
+    it('pressing Start session redirects to home when a session is already in progress (T7.2)', () => {
+      mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: { sessionId: 's1', fearItemId: 'item-1', preSuds: 5, description: 'test' } })
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getByRole } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
+      expect(mockRouterReplace).toHaveBeenCalledWith('/')
+      expect(mockRouterPush).not.toHaveBeenCalled()
     })
   })
 })

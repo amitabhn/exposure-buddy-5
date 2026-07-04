@@ -201,7 +201,8 @@
       "cta": "Continue"
     },
     "state10": {
-      "message": "You've completed every situation on your Courage Ladder. Well done."
+      "message": "You've completed every situation on your Courage Ladder. Well done.",
+      "addMore": "और स्थितियाँ जोड़ें"
     }
   },
   "auth": {

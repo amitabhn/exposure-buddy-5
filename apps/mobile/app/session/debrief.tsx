@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { SudsArcChart, typography } from '@exposure-buddy/ui'
 import type { DmSerifSurface } from '@exposure-buddy/ui'
@@ -42,6 +43,7 @@ function debriefReducer(state: DebriefState, action: DebriefAction): DebriefStat
 export default function DebriefScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const {
     clearSessionIntention,
     getSessionIntention,
@@ -121,7 +123,7 @@ export default function DebriefScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
 
         {/* Branch A — intention letter present (DM Serif prediction-reality-reveal surface, UX-DR21) */}
         {branch === 'A' && (
@@ -246,7 +248,7 @@ export default function DebriefScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
-  content: { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 48 },
+  content: { paddingHorizontal: 24, paddingBottom: 48 },
   letterSection: { marginBottom: 24 },
   letterIntroText: { ...typography.display, color: '#6b7280', marginBottom: 16 },
   letterText: { ...typography.narrative, color: '#111827' },

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, BackHandler, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition, CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
@@ -9,6 +10,7 @@ import { getAdapter } from '../../src/sync/adapter'
 export default function GroundingScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { sessionId, fearItemId, description, preSuds } = useLocalSearchParams<{
     sessionId: string
     fearItemId: string
@@ -96,7 +98,7 @@ export default function GroundingScreen() {
     <>
       {/* headerShown: false + gestureEnabled: false set in session/_layout.tsx — forward-only */}
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
         {/* TODO post-MVP: consider distinct framing copy for grounding vs. Calm Me contexts */}
         <Text style={styles.affirmation}>{t(CALM_ME_AFFIRMATIONS[0]!)}</Text>
 
@@ -178,7 +180,7 @@ export default function GroundingScreen() {
 
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 48, justifyContent: 'center' },
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center' },
   affirmation: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', lineHeight: 30, marginBottom: 32 },
   techniquePicker: { gap: 12, marginBottom: 32 },
   techniqueCard: {
