@@ -4,6 +4,18 @@ Log of deferred items that have been fully closed. Entries are ordered most-rece
 
 ---
 
+## Calm Me button final icon — RESOLVED 2026-07-02
+
+_Originally a MUST-HAVE-before-MVP UX decision from the 2026-06-18 manual smoke test of Story 7.1. Closed by commit `bd09b58` on branch `pre-mvp-fixes`._
+
+**What was done:**
+- Replaced the placeholder Text-glyph icon (`♡` heart outline, later an Ionicons `leaf-outline`) with a custom `IconCalmMe.png` asset.
+- Button restyled to a white background with a green (`#2D6A5A`) outline border.
+
+[`packages/ui/src/components/CalmMeButton.tsx`, `packages/ui/src/assets/IconCalmMe.png`]
+
+---
+
 ## Calm Me FAB margin/safe-spacing audit — RESOLVED 2026-07-02
 
 _Originally deferred post-MVP on 2026-07-01. Closed by commits `c29c94f` and `3323450` on branch `pre-mvp-fixes`._
