@@ -23,7 +23,7 @@ appId: com.exposurebuddy.app
 # Tap "Done" (a11y: t('session.debrief.done'))
 # debrief.tsx calls router.replace('/') on Done — replaces route with home screen
 - tapOn:
-    label: "Done"
+    text: "Done"
 - waitForAnimationToEnd
 
 # ── Assertions ────────────────────────────────────────────────────────────────────────────

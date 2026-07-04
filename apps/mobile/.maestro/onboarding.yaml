@@ -17,14 +17,14 @@ appId: com.exposurebuddy.app
 
 # Ensure we're on the signup tab
 - tapOn:
-    label: "Create account"
+    text: "Create account"
 
 # Enter the unique test email.
 # The "Email address" identifier-type tab (index 0) and the TextInput (index 1) share the
 # same accessibilityLabel (t('auth.otp.emailLabel')). Email mode is the default on fresh
 # install, so no tab tap is needed — target the TextInput directly with index: 1.
 - tapOn:
-    label: "Email address"
+    text: "Email address"
     index: 1
 - eraseText: 50
 - inputText: ${output.email}
@@ -32,13 +32,13 @@ appId: com.exposurebuddy.app
 # Agree to both consent checkboxes (required in signup mode; gates "Send code")
 # (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
 - tapOn:
-    label: "I confirm I am 18 years of age or older"
+    text: "I confirm I am 18 years of age or older"
 - tapOn:
-    label: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
+    text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP
 - tapOn:
-    label: "Send code"
+    text: "Send code"
 - waitForAnimationToEnd
 
 # Retrieve OTP from Mailpit — poll with backoff since email delivery is async.
@@ -51,52 +51,52 @@ appId: com.exposurebuddy.app
 
 # Enter OTP code on the verification screen (otp-verification.tsx)
 - tapOn:
-    label: "One-time passcode"
+    text: "One-time passcode"
 - inputText: ${output.otpCode}
 
 # Verify
 - tapOn:
-    label: "Verify"
+    text: "Verify"
 - waitForAnimationToEnd
 
 # ── Onboarding flow ──────────────────────────────────────────────────────────────────────
 
 # welcome.tsx
 - tapOn:
-    label: "Get started"
+    text: "Get started"
 - waitForAnimationToEnd
 
 # assessment.tsx — SUDS calibration widget: pick value 5
 # (SudsCalibrationWidget a11y labels: "N out of 10" for N in 0..10)
 # Do not use any value from CRISIS_KEYWORDS in subsequent text fields
 - tapOn:
-    label: "5 out of 10"
+    text: "5 out of 10"
 
 # assessment CTA "Next" (disabled until a SUDS value is picked)
 - tapOn:
-    label: "Next"
+    text: "Next"
 - waitForAnimationToEnd
 
 # ladder.tsx (onboarding) — add one fear item, then proceed
 # Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
 - tapOn:
-    label: "Describe the situation"
+    text: "Describe the situation"
 - eraseText: 50
 - inputText: "Riding the elevator alone"
 - tapOn:
-    label: "5 out of 10"
+    text: "5 out of 10"
 - tapOn:
-    label: "Add to ladder"
+    text: "Add to ladder"
 - waitForAnimationToEnd
 
 # CTA is "Next" when items.length > 0 (canSkip is false)
 - tapOn:
-    label: "Next"
+    text: "Next"
 - waitForAnimationToEnd
 
 # complete.tsx — marks onboardingComplete in MMKV, routes to home
 - tapOn:
-    label: "Start your journey"
+    text: "Start your journey"
 - waitForAnimationToEnd
 
 # ── Final assertion ──────────────────────────────────────────────────────────────────────

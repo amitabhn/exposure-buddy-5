@@ -21,7 +21,7 @@ appId: com.exposurebuddy.app
 # ── Add a ladder item via the standalone editor (no PostgREST / PowerSync cloud needed) ───
 # Home empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
 - tapOn:
-    label: "Add situation"
+    text: "Add situation"
 - waitForAnimationToEnd
 
 # We're now on /ladder. Add "Facing a crowd" (SUDS 5) via the shared subflow.
@@ -29,7 +29,7 @@ appId: com.exposurebuddy.app
 
 # Navigate back to home
 - tapOn:
-    label: "Go back"
+    text: "Go back"
 - waitForAnimationToEnd
 
 # ── Navigate from home to the item's "Start session" button ────────────────────────────────
@@ -37,56 +37,56 @@ appId: com.exposurebuddy.app
 # accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
 #   = "Facing a crowd, anxiety level 5 out of 10"
 - tapOn:
-    label: "Facing a crowd, anxiety level 5 out of 10"
+    text: "Facing a crowd, anxiety level 5 out of 10"
 - waitForAnimationToEnd
 
 # Ladder screen: tap "Start session" for the pending item
 # accessibilityLabel: `${t('ladder.startSession')}, ${item.description}`
 - tapOn:
-    label: "Start session, Facing a crowd"
+    text: "Start session, Facing a crowd"
 - waitForAnimationToEnd
 
 # ── Exposure session loop ──────────────────────────────────────────────────────────────────
 
 # technique.tsx — select "Somatic" technique card (accessibilityRole: "radio")
 - tapOn:
-    label: "Somatic"
+    text: "Somatic"
 - tapOn:
-    label: "Continue"
+    text: "Continue"
 - waitForAnimationToEnd
 
 # intent.tsx — pre-SUDS: pick 4 (below 8 to avoid crisis-contacts block on debrief)
 # SudsScale anchor label: "4 — Mild"
 - tapOn:
-    label: "4 — Mild"
+    text: "4 — Mild"
 - tapOn:
-    label: "Continue"
+    text: "Continue"
 - waitForAnimationToEnd
 
 # briefing.tsx — forward-only screen
 - tapOn:
-    label: "I'm ready"
+    text: "I'm ready"
 - waitForAnimationToEnd
 
 # active.tsx — log one SUDS reading
 - tapOn:
-    label: "Log how I'm feeling"
+    text: "Log how I'm feeling"
 - waitForAnimationToEnd
 # SUDS log modal: value 5 (non-anchor value, label is the number string "5")
 - tapOn: "5"
 - tapOn:
-    label: "Log"
+    text: "Log"
 - waitForAnimationToEnd
 
 # Complete the exposure — opens the completion/exit modal
 - tapOn:
-    label: "Complete exposure"
+    text: "Complete exposure"
 - waitForAnimationToEnd
 # Exit SUDS: pick 4 — Mild (below 8)
 - tapOn:
-    label: "4 — Mild"
+    text: "4 — Mild"
 - tapOn:
-    label: "Finish session"
+    text: "Finish session"
 - waitForAnimationToEnd
 
 # Assert debrief screen is visible (reflection prompt text)
