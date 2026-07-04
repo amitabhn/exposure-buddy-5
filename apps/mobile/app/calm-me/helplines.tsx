@@ -1,6 +1,7 @@
 import { Linking, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { HelplineCard, color } from '@exposure-buddy/ui'
 import { HELPLINES } from '@exposure-buddy/core'
 
@@ -20,6 +21,7 @@ function handleCall(number: string) {
 export default function HelplinesScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const callLabel = t('helplines.call')
 
   return (
@@ -27,7 +29,7 @@ export default function HelplinesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { top: insets.top + 8 }]}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel={t('calmMe.back')}
@@ -39,7 +41,7 @@ export default function HelplinesScreen() {
           <Text style={styles.backIcon} allowFontScaling={false}>‹</Text>
         </TouchableOpacity>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 56 }]}>
           <Text style={styles.intro}>{t('helplines.intro')}</Text>
 
           {HELPLINES.length === 0 ? (
@@ -63,9 +65,10 @@ export default function HelplinesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.surface.primary, width: '100%' },
-  backButton: { position: 'absolute', top: 48, left: 24, padding: 8, zIndex: 1 },
+  // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
+  backButton: { position: 'absolute', left: 24, padding: 8, zIndex: 1 },
   backIcon: { fontSize: 28, color: '#111827' },
-  content: { paddingTop: 96, paddingHorizontal: 24, paddingBottom: 32 },
+  content: { paddingHorizontal: 24, paddingBottom: 32 },
   intro: { fontSize: 16, color: color.content.primary, textAlign: 'center', marginBottom: 16 },
   unavailable: { fontSize: 15, color: color.content.secondary, textAlign: 'center', marginTop: 16 },
 })

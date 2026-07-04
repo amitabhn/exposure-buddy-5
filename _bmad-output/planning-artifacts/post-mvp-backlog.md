@@ -220,6 +220,11 @@ Structured session history export for clinical handoff or personal record-keepin
 **Source:** UX spec F4 ("flagged for post-MVP copy review").
 **Notes:** The copy must be warm and clinically grounded, not generic. Review alongside the broader copy audit for the re-entry state.
 
+### 3.3 Mid-Session Exposure Encouragement Quotes
+**What:** A clinician-sourced list of quotes to encourage users during active mid-session exposure.
+**Source:** Product decision 2026-07-01.
+**Notes:** Quotes must be clinically appropriate — not dismissive of anxiety, not minimising, and phrased to sustain engagement without breaking exposure intent. Required before any in-session coaching nudge feature is implemented.
+
 ---
 
 ## 4. Security & Infrastructure

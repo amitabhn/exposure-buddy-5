@@ -154,7 +154,8 @@
       "cta": "Continue"
     },
     "state10": {
-      "message": "You've completed every situation on your Courage Ladder. Well done."
+      "message": "You've completed every situation on your Courage Ladder. Well done.",
+      "addMore": "Add more situations"
     },
     "courageCard": {
       "itemLabel": "{{description}}, anxiety level {{suds}} out of 10",
@@ -271,7 +272,7 @@
     "fabHint": "Opens calming techniques and crisis support",
     "exit": "Close",
     "affirmation": {
-      "1": "Your nervous system is doing exactly what it's supposed to do"
+      "1": "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time."
     },
     "keepGoing": "I can keep going",
     "needToStop": "I need to stop",

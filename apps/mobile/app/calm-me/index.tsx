@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
@@ -10,6 +11,7 @@ import { SudsScale } from '../../src/components/session/SudsScale'
 export default function CalmMeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const { sessionRecoveryData, clearSessionInProgress, clearSessionIntention } = useAuth()
   // inSession is set by the FAB (root layout) at tap-time, where usePathname() can still
   // distinguish '/session/active' from elsewhere — by the time this screen mounts, the
@@ -90,9 +92,9 @@ export default function CalmMeScreen() {
     <>
       {/* eslint-disable-next-line i18next/no-literal-string */}
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 48 }]}>
         <TouchableOpacity
-          style={styles.exitButton}
+          style={[styles.exitButton, { top: insets.top + 8 }]}
           onPress={handleExit}
           accessibilityRole="button"
           accessibilityLabel={t('calmMe.exit')}
@@ -194,8 +196,9 @@ const styles = StyleSheet.create({
   // marginTop:'auto' bottom-pinned footer behaviour for short content (the container still
   // grows to fill the viewport), while letting tall content (Story 9.3 max-font-size
   // walkthrough finding) scroll instead of being clipped off-screen.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32 },
-  exitButton: { position: 'absolute', top: 48, right: 24, padding: 8, zIndex: 1 },
+  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingBottom: 32 },
+  // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
+  exitButton: { position: 'absolute', right: 24, padding: 8, zIndex: 1 },
   exitIcon: { fontSize: 22, color: '#111827' },
   affirmation: {
     fontSize: 20,

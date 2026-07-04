@@ -3,6 +3,10 @@ module.exports = {
   extends: ['eslint:recommended'],
   parser: '@typescript-eslint/parser',
   parserOptions: { ecmaVersion: 2020, sourceType: 'module', ecmaFeatures: { jsx: true } },
+  // React Native resolves static assets via Metro's require() (e.g. an Image
+  // source: require('../assets/x.png')). Declare it so eslint:recommended's
+  // no-undef rule allows it in this RN abstraction package.
+  globals: { require: 'readonly' },
   rules: {
     'no-restricted-imports': [
       'error',
