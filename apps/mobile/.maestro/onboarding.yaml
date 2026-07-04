@@ -29,6 +29,11 @@ appId: com.exposurebuddy.app
 - eraseText: 50
 - inputText: ${output.email}
 
+# Dismiss the keyboard before tapping the consent checkboxes below the input. With the
+# keyboard up, the tap on the age checkbox landed off-target and left it unchecked, which
+# keeps "Send code" disabled (isSendDisabled) so the OTP is never sent and fetchOtp fails.
+- hideKeyboard
+
 # Agree to both consent checkboxes (required in signup mode; gates "Send code")
 # (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
 - tapOn:
@@ -72,29 +77,51 @@ appId: com.exposurebuddy.app
 - tapOn:
     text: "5 out of 10"
 
-# assessment CTA "Next" (disabled until a SUDS value is picked)
+# assessment CTA "Next" (disabled until a SUDS value is picked). The CTA sits below the SUDS
+# widget in a ScrollView — on the emulator it's below the fold, so scroll it into view first.
+- scrollUntilVisible:
+    element:
+      text: "Next"
+    direction: DOWN
 - tapOn:
     text: "Next"
 - waitForAnimationToEnd
 
 # ladder.tsx (onboarding) — add one fear item, then proceed
 # Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
+- scrollUntilVisible:
+    element:
+      text: "Describe the situation"
+    direction: DOWN
 - tapOn:
     text: "Describe the situation"
 - eraseText: 50
 - inputText: "Riding the elevator alone"
+- hideKeyboard
 - tapOn:
     text: "5 out of 10"
+- scrollUntilVisible:
+    element:
+      text: "Add to ladder"
+    direction: DOWN
 - tapOn:
     text: "Add to ladder"
 - waitForAnimationToEnd
 
 # CTA is "Next" when items.length > 0 (canSkip is false)
+- scrollUntilVisible:
+    element:
+      text: "Next"
+    direction: DOWN
 - tapOn:
     text: "Next"
 - waitForAnimationToEnd
 
 # complete.tsx — marks onboardingComplete in MMKV, routes to home
+- scrollUntilVisible:
+    element:
+      text: "Start your journey"
+    direction: DOWN
 - tapOn:
     text: "Start your journey"
 - waitForAnimationToEnd

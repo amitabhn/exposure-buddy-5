@@ -15,18 +15,31 @@ appId: com.exposurebuddy.app
 - tapOn:
     text: "5 out of 10"
 
-# assessment.tsx CTA — "Next" (disabled until a SUDS value is picked)
+# assessment.tsx CTA — "Next" (disabled until a SUDS value is picked). The CTA sits below the
+# SUDS widget in a ScrollView — on the emulator it's below the fold, so scroll it into view first.
+- scrollUntilVisible:
+    element:
+      text: "Next"
+    direction: DOWN
 - tapOn:
     text: "Next"
 - waitForAnimationToEnd
 
 # ladder.tsx (onboarding) — Skip with zero items
 # (canSkip is true when items.length === 0; accessibilityLabel is t('onboarding.fearLadder.skipCta'))
+- scrollUntilVisible:
+    element:
+      text: "Skip"
+    direction: DOWN
 - tapOn:
     text: "Skip"
 - waitForAnimationToEnd
 
 # complete.tsx — "Start your journey" (calls markOnboardingComplete(), writes MMKV)
+- scrollUntilVisible:
+    element:
+      text: "Start your journey"
+    direction: DOWN
 - tapOn:
     text: "Start your journey"
 - waitForAnimationToEnd
