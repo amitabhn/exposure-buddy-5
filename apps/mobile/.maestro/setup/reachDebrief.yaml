@@ -63,10 +63,27 @@ appId: com.exposurebuddy.app
     text: "Continue"
 - waitForAnimationToEnd
 
-# briefing.tsx — forward-only screen
-- tapOn:
-    text: "I'm ready"
-- waitForAnimationToEnd
+# intent.tsx's "Continue" writes status='started'; the home screen underneath then detects the
+# active session (useActiveExposureSession) and — on the slow CI emulator — surfaces the
+# "unfinished session" recovery modal over the briefing screen. If it appears, resume into the
+# session. "Resume session" routes to /session/active (past briefing), so the briefing "I'm ready"
+# tap below is made conditional to cover both paths.
+- runFlow:
+    when:
+      visible: "You have an unfinished session"
+    commands:
+      - tapOn:
+          text: "Resume session"
+      - waitForAnimationToEnd
+
+# briefing.tsx — forward-only screen. Skipped if we resumed straight into /session/active above.
+- runFlow:
+    when:
+      visible: "I'm ready"
+    commands:
+      - tapOn:
+          text: "I'm ready"
+      - waitForAnimationToEnd
 
 # active.tsx — log one SUDS reading
 - tapOn:

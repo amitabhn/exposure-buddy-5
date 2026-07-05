@@ -405,6 +405,20 @@ jobs:
           echo "=== AVD dir ===" && ls -la ~/.android/avd/ 2>/dev/null || echo "No AVD dir"
           echo "=== AVD contents ===" && ls -la ~/.android/avd/e2e_smoke_emulator.avd/ 2>/dev/null || true
 
+      # ── Capture Supabase container logs on failure (auth/SMTP diagnosis) ──────────
+      # The E2E APK is a release build (JS console stripped), so the onboarding OTP path
+      # gives no app-side error. GoTrue (auth) + the mail container logs are the only way
+      # to see why signInWithOtp / the OTP email fails server-side (e.g. SMTP send errors).
+      - name: Dump Supabase container logs on failure
+        if: failure()
+        run: |
+          echo "=== Supabase containers ==="
+          docker ps -a --format '{{.Names}} -> {{.Status}}' | grep -i supabase || true
+          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'supabase.*(auth|inbucket|mailpit)' || true); do
+            echo "===== docker logs $c (last 300) ====="
+            docker logs --tail 300 "$c" 2>&1 || true
+          done
+
       # ── Upload Maestro failure artifacts ──────────────────────────────────────────
       - name: Upload Maestro artifacts on failure
         if: failure()
