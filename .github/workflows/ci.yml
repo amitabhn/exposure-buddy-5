@@ -373,7 +373,11 @@ jobs:
           profile: Nexus 6
           avd-name: e2e_smoke_emulator
           force-avd-creation: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapstorage -partition-size 4096
+          # -memory 4096 / -cores 2: the suite runs 5 heavy full-onboarding+session flows back to
+          # back (~14 min). With the AVD default RAM the guest ran out of headroom late in the run
+          # and killed the Maestro instrumentation (adb driver went UNAVAILABLE / clearState failed
+          # on the last flows). More guest RAM + cores keeps it alive through all 5.
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-snapstorage -partition-size 4096 -memory 4096 -cores 2
           disable-animations: true
           emulator-boot-timeout: 900
           script: >-
@@ -382,6 +386,7 @@ jobs:
             adb logcat -c &&
             (adb logcat -v time > /tmp/maestro-artifacts/logcat.txt 2>&1 &) &&
             adb install -r /tmp/exposure-buddy-e2e.apk &&
+            (for i in 1 2 3 4 5; do adb shell "curl -sf -o /dev/null http://10.0.2.2:54321/auth/v1/health" && break || sleep 2; done) &&
             ~/.maestro/bin/maestro test
             apps/mobile/.maestro/onboarding.yaml
             apps/mobile/.maestro/ladder-build.yaml
