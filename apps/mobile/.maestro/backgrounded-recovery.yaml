@@ -49,9 +49,26 @@ appId: com.exposurebuddy.app
 - waitForAnimationToEnd
 
 # briefing.tsx
-- tapOn:
-    text: "I'm ready"
-- waitForAnimationToEnd
+# intent's "Continue" writes status='started'; the home screen underneath can surface the
+# "unfinished session" recovery modal over the briefing screen on the CI emulator. If it
+# appears, resume into the session ("Resume session" routes to /session/active, past briefing),
+# so the "I'm ready" tap below is made conditional. (This is the PRE-background modal; the
+# post-re-foreground assertNotVisible at the end still validates it stays gone after a warm
+# background/re-foreground within the same JS context.)
+- runFlow:
+    when:
+      visible: "You have an unfinished session"
+    commands:
+      - tapOn:
+          text: "Resume session"
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "I'm ready"
+    commands:
+      - tapOn:
+          text: "I'm ready"
+      - waitForAnimationToEnd
 
 # We are now on active.tsx
 

@@ -19,6 +19,9 @@ appId: com.exposurebuddy.app
 # Optionally fill the reflection TextInput (field label = t('session.debrief.reflectionPrompt'))
 - tapOn: "What would you like to remember about this?"
 - inputText: "I handled it better than expected."
+# Dismiss the keyboard — it covers the "Done" button below the reflection field, so tapping
+# "Done" with the keyboard up misses and the app stays on the debrief screen.
+- hideKeyboard
 
 # Tap "Done" (a11y: t('session.debrief.done'))
 # debrief.tsx calls router.replace('/') on Done — replaces route with home screen
