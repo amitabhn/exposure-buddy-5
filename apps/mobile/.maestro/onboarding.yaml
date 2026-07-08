@@ -42,11 +42,10 @@ appId: com.exposurebuddy.app
     text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP.
-# onboarding is the FIRST flow, so the emulator↔host (10.0.2.2) route can still be cold —
-# the very first signInWithOtp HTTP request has been observed to never leave the device (no
-# POST /otp reaches GoTrue, so no email is sent and the app stays on the send-code screen).
-# On success the app navigates to otp-verification (shows "One-time passcode"). If that didn't
-# happen, we're still on the send-code screen — re-tap "Send code" to retry the send.
+# The app reaches Supabase through `adb reverse` to 127.0.0.1 (see ci.yml), so the send is
+# reliable. On success the app navigates to otp-verification (shows "One-time passcode").
+# The retries below are belt-and-suspenders: if we're still on the send-code screen (e.g. a
+# transient slow send), re-tap "Send code".
 - tapOn:
     text: "Send code"
 - waitForAnimationToEnd
