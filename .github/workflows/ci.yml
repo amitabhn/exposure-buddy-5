@@ -240,22 +240,24 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # ── Build APK. The app targets 127.0.0.1:54321; each shard sets up
-      # `adb reverse tcp:54321 tcp:54321` so the emulator's localhost forwards to the host's
-      # localhost where its local Supabase listens. adb reverse is used instead of the
-      # 10.0.2.2 host-alias because that alias drops the emulator's very first outbound
-      # request after boot (the app has no fetch timeout, so signInWithOtp hung forever and
-      # onboarding failed); the reverse tunnel has no such cold-start behavior. ────────────
+      # ── Build APK. The app targets 10.0.2.2:54321 — the Android emulator's loopback alias
+      # for the host's 127.0.0.1, where each shard's local Supabase listens. This QEMU-native
+      # route needs no adb port-forwarding. Its one quirk is that the emulator's very first
+      # post-boot packet through the NAT can be dropped; the shard's device-side warm-up
+      # (adb shell curl …) consumes that, and EXPO_PUBLIC_FETCH_TIMEOUT_MS bounds any request
+      # that still stalls so the flow's "Send code" retries can recover (rather than the app
+      # hanging forever on a request with no timeout). ─────────────────────────────────────
       - name: Build E2E APK
         run: |
           cd apps/mobile
           APP_VARIANT="preview" \
           EXPO_PUBLIC_APP_VARIANT="preview" \
-          EXPO_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321" \
+          EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+          EXPO_PUBLIC_FETCH_TIMEOUT_MS="10000" \
           EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
           pnpm exec expo prebuild --platform android --clean
           # E2E APK only: allow cleartext HTTP so the app can reach the local Supabase at
-          # http://127.0.0.1:54321. assembleRelease targets SDK >= 28, where cleartext traffic
+          # http://10.0.2.2:54321. assembleRelease targets SDK >= 28, where cleartext traffic
           # defaults to disabled; without this the app's Supabase auth/OTP calls fail silently.
           # This build is never shipped — production EAS builds use HTTPS and a separate path.
           perl -0pi -e 's/android:usesCleartextTraffic="[^"]*"/android:usesCleartextTraffic="true"/ or s/<application /<application android:usesCleartextTraffic="true" /' android/app/src/main/AndroidManifest.xml
@@ -263,7 +265,8 @@ jobs:
           cd android
           APP_VARIANT="preview" \
           EXPO_PUBLIC_APP_VARIANT="preview" \
-          EXPO_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321" \
+          EXPO_PUBLIC_SUPABASE_URL="http://10.0.2.2:54321" \
+          EXPO_PUBLIC_FETCH_TIMEOUT_MS="10000" \
           EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk /tmp/exposure-buddy-e2e.apk
@@ -285,12 +288,14 @@ jobs:
   # flows keeps every emulator well within its healthy window. The APK is built once by
   # e2e-build-apk and downloaded here (no per-shard Gradle build).
   #
-  # `onboarding` exercises the REAL signInWithOtp path. It previously failed because (a) the
-  # emulator reached Supabase via the 10.0.2.2 host-alias, whose first post-boot request was
-  # dropped (signInWithOtp hung, no fetch timeout), and (b) GoTrue's default magic-link email
-  # carried no 6-digit code for fetchOtp to scrape. Fixed by routing the app through
-  # `adb reverse` to 127.0.0.1 and by the custom magic_link template (supabase/templates/)
-  # that renders {{ .Token }}. Now gating like the other shards.
+  # `onboarding` exercises the REAL signInWithOtp path, so it depends on device→host
+  # networking + email delivery that the other shards (which seed sessions host-side) skip.
+  # Three things make it reliable: (a) the app reaches Supabase via 10.0.2.2 and the shard
+  # does a device-side warm-up (adb shell curl) that both gates on reachability and absorbs
+  # the emulator's dropped first-packet; (b) EXPO_PUBLIC_FETCH_TIMEOUT_MS bounds a stalled
+  # signInWithOtp so the flow's "Send code" retries can recover instead of hanging forever;
+  # (c) the custom magic_link template (supabase/templates/) renders {{ .Token }} so the
+  # 6-digit OTP is present in the email for fetchOtp to scrape.
   e2e-smoke:
     name: "E2E Smoke (${{ matrix.name }})"
     runs-on: ubuntu-latest
@@ -414,8 +419,8 @@ jobs:
             adb logcat -c &&
             (adb logcat -v time > /tmp/maestro-artifacts/logcat.txt 2>&1 &) &&
             adb install -r /tmp/exposure-buddy-e2e.apk &&
-            adb reverse tcp:54321 tcp:54321 &&
-            (for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:54321/auth/v1/health && break || sleep 2; done) &&
+            (for i in $(seq 1 45); do adb shell "curl -sf -o /dev/null http://10.0.2.2:54321/auth/v1/health" && echo "device→host Supabase reachable" && break || sleep 2; done) &&
+            adb shell "curl -sf -o /dev/null http://10.0.2.2:54321/auth/v1/health" &&
             ~/.maestro/bin/maestro test
             ${{ matrix.flows }}
             --format junit
@@ -440,7 +445,7 @@ jobs:
         run: |
           echo "=== Supabase containers ==="
           docker ps -a --format '{{.Names}} -> {{.Status}}' | grep -i supabase || true
-          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'supabase.*(auth|inbucket|mailpit)' || true); do
+          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'supabase.*(auth|inbucket|mailpit|kong|rest)' || true); do
             echo "===== docker logs $c (last 300) ====="
             docker logs --tail 300 "$c" 2>&1 || true
           done
