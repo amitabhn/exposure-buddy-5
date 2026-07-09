@@ -31,6 +31,22 @@
       "createAccount": "Create account",
       "signIn": "Sign in"
     },
+    "authMethod": {
+      "otp": "OTP",
+      "password": "Password"
+    },
+    "password": {
+      "label": "Password",
+      "hint": "Enter a password with at least 8 characters",
+      "screenSubtitle": "Sign up or sign in with a password",
+      "submitSignUp": "Sign up",
+      "submitSignIn": "Sign in",
+      "submitHint": "Submits your email or phone number and password",
+      "invalidCredentials": "Incorrect email/phone or password.",
+      "signInError": "Failed to sign in. Please try again.",
+      "signUpError": "Failed to create your account. Please try again.",
+      "signUpUnavailable": "We couldn't create your account with these details. Please try signing in instead, or use a different email or phone number."
+    },
     "safety": {
       "consentIntro": "We need your confirmation on two things before we create your account.",
       "ageConfirmation": "I confirm I am 18 years of age or older",
@@ -41,7 +57,9 @@
       "emailRequired": "Please enter your email address",
       "phoneRequired": "Please enter your phone number",
       "invalidEmail": "Please enter a valid email address",
-      "invalidPhone": "Phone number must be in international format (e.g. +91...)"
+      "invalidPhone": "Phone number must be in international format (e.g. +91...)",
+      "passwordRequired": "Please enter your password",
+      "passwordTooShort": "Password must be at least 8 characters"
     },
     "deletion": {
       "accountPendingDeletion": "Your account is scheduled for deletion and cannot be accessed. If you believe this is an error, contact us at {{dpoEmail}}."

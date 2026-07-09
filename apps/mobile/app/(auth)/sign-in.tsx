@@ -1,28 +1,42 @@
-import { useReducer, useEffect } from 'react'
+import { useReducer, useEffect, useRef } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
+import { createSupabaseClient, useAuth, ConsentRecordService } from '@exposure-buddy/supabase'
+import { emitAccountCreated, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
 import { SafetyCheckboxes } from '../../src/components/auth/SafetyCheckboxes'
+import { DPO_EMAIL } from '../../src/constants/legal'
 
 type IdentifierType = 'email' | 'phone'
 // eslint-disable-next-line i18next/no-literal-string
 type Mode = 'signin' | 'signup'
+// eslint-disable-next-line i18next/no-literal-string
+type AuthMethod = 'otp' | 'password'
 
 type State = {
   identifier: string
   identifierType: IdentifierType
+  password: string
   isLoading: boolean
   errorKey: string | null
   hasAttemptedSubmit: boolean
   mode: Mode
+  authMethod: AuthMethod
   ageConfirmed: boolean
   medicoLegalConfirmed: boolean
+  // True from the moment a password signup's signUp() call is dispatched until its
+  // consent write completes (or the flow is abandoned via a mode/method switch).
+  // Distinct from authMethod, which stays 'password' for both signup and signin —
+  // this is the only way the isAuthenticated effect can tell them apart.
+  isPasswordSignupPending: boolean
+  consentError: string | null
 }
 
 type Action =
   | { type: 'SET_IDENTIFIER'; payload: string }
   | { type: 'SET_IDENTIFIER_TYPE'; payload: IdentifierType }
+  | { type: 'SET_PASSWORD'; payload: string }
+  | { type: 'SET_AUTH_METHOD'; payload: AuthMethod }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_ERROR'; payload: string }
   | { type: 'SUBMIT_SUCCESS' }
@@ -30,6 +44,12 @@ type Action =
   | { type: 'SET_MODE'; payload: Mode }
   | { type: 'TOGGLE_AGE' }
   | { type: 'TOGGLE_MEDICO_LEGAL' }
+  | { type: 'PASSWORD_SIGNUP_PENDING' }
+  | { type: 'PASSWORD_SIGNUP_CONSUMED' }
+  | { type: 'SET_CONSENT_ERROR'; payload: string }
+  | { type: 'CLEAR_CONSENT_ERROR' }
+  | { type: 'CONSENT_START' }
+  | { type: 'CONSENT_DONE' }
 
 function validateIdentifier(identifier: string, identifierType: IdentifierType): string | null {
   // eslint-disable-next-line i18next/no-literal-string
@@ -39,6 +59,31 @@ function validateIdentifier(identifier: string, identifierType: IdentifierType):
   // eslint-disable-next-line i18next/no-literal-string
   if (identifierType === 'phone' && !identifier.startsWith('+')) return 'auth.validation.invalidPhone'
   return null
+}
+
+function validatePassword(password: string, mode: Mode): string | null {
+  // eslint-disable-next-line i18next/no-literal-string
+  if (!password) return 'auth.validation.passwordRequired'
+  // 8-char minimum is a signup-only rule; existing accounts may pre-date it.
+  // eslint-disable-next-line i18next/no-literal-string
+  if (mode === 'signup' && password.length < 8) return 'auth.validation.passwordTooShort'
+  return null
+}
+
+function classifyPasswordSignInError(message: string): string {
+  const lower = message.toLowerCase()
+  // eslint-disable-next-line i18next/no-literal-string
+  if (lower.includes('invalid login credentials')) return 'auth.password.invalidCredentials'
+  // eslint-disable-next-line i18next/no-literal-string
+  return 'auth.password.signInError'
+}
+
+function classifyPasswordSignUpError(message: string): string {
+  const lower = message.toLowerCase()
+  // eslint-disable-next-line i18next/no-literal-string
+  if (lower.includes('already registered') || lower.includes('already exists')) return 'auth.password.signUpUnavailable'
+  // eslint-disable-next-line i18next/no-literal-string
+  return 'auth.password.signUpError'
 }
 
 function reducer(state: State, action: Action): State {
@@ -53,20 +98,59 @@ function reducer(state: State, action: Action): State {
       }
     case 'SET_IDENTIFIER_TYPE':
       return { ...state, identifierType: action.payload, identifier: '', errorKey: null }
+    case 'SET_PASSWORD':
+      return {
+        ...state,
+        password: action.payload,
+        errorKey: state.hasAttemptedSubmit ? validatePassword(action.payload, state.mode) : null,
+      }
+    case 'SET_AUTH_METHOD':
+      return {
+        ...state,
+        authMethod: action.payload,
+        password: '',
+        errorKey: null,
+        hasAttemptedSubmit: false,
+        isPasswordSignupPending: false,
+        consentError: null,
+      }
     case 'SUBMIT_START':
       return { ...state, isLoading: true, errorKey: null, hasAttemptedSubmit: true }
     case 'SUBMIT_ERROR':
-      return { ...state, isLoading: false, errorKey: action.payload }
+      // No session was (or ever will be) established on this path, so any pending
+      // password-signup consent tracking from an earlier attempt is stale — clear it.
+      return { ...state, isLoading: false, errorKey: action.payload, isPasswordSignupPending: false }
     case 'SUBMIT_SUCCESS':
       return { ...state, isLoading: false }
     case 'CLEAR_ERROR':
       return { ...state, errorKey: null }
     case 'SET_MODE':
-      return { ...state, mode: action.payload, ageConfirmed: false, medicoLegalConfirmed: false, hasAttemptedSubmit: false, errorKey: null }
+      return {
+        ...state,
+        mode: action.payload,
+        ageConfirmed: false,
+        medicoLegalConfirmed: false,
+        hasAttemptedSubmit: false,
+        errorKey: null,
+        isPasswordSignupPending: false,
+        consentError: null,
+      }
     case 'TOGGLE_AGE':
       return { ...state, ageConfirmed: !state.ageConfirmed }
     case 'TOGGLE_MEDICO_LEGAL':
       return { ...state, medicoLegalConfirmed: !state.medicoLegalConfirmed }
+    case 'PASSWORD_SIGNUP_PENDING':
+      return { ...state, isPasswordSignupPending: true }
+    case 'PASSWORD_SIGNUP_CONSUMED':
+      return { ...state, isPasswordSignupPending: false }
+    case 'SET_CONSENT_ERROR':
+      return { ...state, consentError: action.payload }
+    case 'CLEAR_CONSENT_ERROR':
+      return { ...state, consentError: null }
+    case 'CONSENT_START':
+      return { ...state, isLoading: true }
+    case 'CONSENT_DONE':
+      return { ...state, isLoading: false }
     default:
       return state
   }
@@ -75,18 +159,22 @@ function reducer(state: State, action: Action): State {
 const INITIAL_STATE: State = {
   identifier: '',
   identifierType: 'email',
+  password: '',
   isLoading: false,
   errorKey: null,
   hasAttemptedSubmit: false,
   mode: 'signup',
+  authMethod: 'otp',
   ageConfirmed: false,
   medicoLegalConfirmed: false,
+  isPasswordSignupPending: false,
+  consentError: null,
 }
 
 export default function SignInScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { isAuthenticated, hasAuthedBefore } = useAuth()
+  const { isAuthenticated, hasAuthedBefore, authState, pendingDeletion, signOut } = useAuth()
   // Returning user (has signed in on this device before): default to "Sign in".
   // Fresh install: default to "Create account". Lazy initializer reads the flag
   // once on mount — AuthProvider has resolved it by the time the auth gate
@@ -97,17 +185,66 @@ export default function SignInScreen() {
     mode: hasAuthedBefore ? 'signin' : 'signup',
   }))
 
-  // If we land on sign-in while already authenticated (e.g. dev password sign-in
-  // or returning user), redirect to home. Mirrors the redirect in otp-verification.
+  // Guards the isAuthenticated transition below from re-entering on every render
+  // (reducer/state updates are not synchronous enough to block a second effect
+  // invocation before the update commits — a ref read/write can). Mirrors
+  // otp-verification.tsx's prevIsAuthenticated pattern.
+  const prevIsAuthenticated = useRef(false)
+
+  // Fires once when isAuthenticated flips true — covers a returning user's password
+  // sign-in, the dev test-user button, and (critically) a just-completed password
+  // signup, for which the DPDPA consent record must be written and emitAccountCreated
+  // fired BEFORE redirecting — see Story 10.1 Dev Notes: Consent Recording Race.
   useEffect(() => {
-    if (isAuthenticated) router.replace('/(app)/')
-  }, [isAuthenticated, router])
+    if (isAuthenticated && !prevIsAuthenticated.current) {
+      if (pendingDeletion?.userId === authState.userId) {
+        prevIsAuthenticated.current = false
+        dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.deletion.accountPendingDeletion' })
+        ;(async () => {
+          try {
+            await signOut()
+          } catch {
+            // Sign-out failure: session may persist until network recovers;
+            // the deletion guard re-engages on next isAuthenticated transition.
+          }
+        })()
+        return
+      }
+
+      prevIsAuthenticated.current = true
+
+      if (state.isPasswordSignupPending && authState.userId) {
+        dispatch({ type: 'CONSENT_START' })
+        const consentService = new ConsentRecordService()
+        consentService
+          .recordConsent({
+            timestampUtc: new Date().toISOString(),
+            purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
+            consentVersion: CONSENT_VERSION_CURRENT,
+            withdrawalStatus: false,
+          })
+          .then(() => {
+            emitAccountCreated(authState.userId!)
+            dispatch({ type: 'PASSWORD_SIGNUP_CONSUMED' })
+            router.replace('/(app)/')
+          })
+          .catch(() => {
+            dispatch({ type: 'CONSENT_DONE' })
+            dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
+            // prevIsAuthenticated stays true; isPasswordSignupPending stays true —
+            // user retries via handlePasswordSubmit, which detects this combination.
+          })
+      } else {
+        router.replace('/(app)/')
+      }
+    }
+  }, [isAuthenticated, authState.userId, pendingDeletion, signOut, router, state.isPasswordSignupPending])
 
   const checkboxesIncomplete = state.mode === 'signup' && (!state.ageConfirmed || !state.medicoLegalConfirmed)
-  const isSendDisabled = state.isLoading || checkboxesIncomplete
+  const isActionDisabled = state.isLoading || checkboxesIncomplete
 
   async function handleSendCode() {
-    if (isSendDisabled) return
+    if (isActionDisabled) return
     const validationErrorKey = validateIdentifier(state.identifier, state.identifierType)
     if (validationErrorKey) {
       dispatch({ type: 'SUBMIT_ERROR', payload: validationErrorKey })
@@ -144,9 +281,102 @@ export default function SignInScreen() {
     }
   }
 
+  async function handlePasswordSubmit() {
+    // Retry consent write after a prior failure, instead of re-attempting signUp
+    // against an account that already has an active session.
+    if (isAuthenticated && state.consentError && state.isPasswordSignupPending) {
+      dispatch({ type: 'CLEAR_CONSENT_ERROR' })
+      dispatch({ type: 'CONSENT_START' })
+      const consentService = new ConsentRecordService()
+      consentService
+        .recordConsent({
+          timestampUtc: new Date().toISOString(),
+          purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
+          consentVersion: CONSENT_VERSION_CURRENT,
+          withdrawalStatus: false,
+        })
+        .then(() => {
+          if (authState.userId) emitAccountCreated(authState.userId)
+          dispatch({ type: 'PASSWORD_SIGNUP_CONSUMED' })
+          router.replace('/(app)/')
+        })
+        .catch(() => {
+          dispatch({ type: 'CONSENT_DONE' })
+          dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
+        })
+      return
+    }
+
+    if (isActionDisabled) return
+
+    const identifierErrorKey = validateIdentifier(state.identifier, state.identifierType)
+    const passwordErrorKey = validatePassword(state.password, state.mode)
+    const validationErrorKey = identifierErrorKey ?? passwordErrorKey
+    if (validationErrorKey) {
+      dispatch({ type: 'SUBMIT_ERROR', payload: validationErrorKey })
+      return
+    }
+
+    dispatch({ type: 'SUBMIT_START' })
+
+    try {
+      const supabase = createSupabaseClient()
+      const credentials =
+        state.identifierType === 'email'
+          ? { email: state.identifier.trim(), password: state.password }
+          : { phone: state.identifier.trim(), password: state.password }
+
+      if (state.mode === 'signup') {
+        // Must be set BEFORE calling signUp(): AuthProvider's onAuthStateChange
+        // listener can fire (flipping isAuthenticated) before this await returns,
+        // and the isAuthenticated effect above needs this flag committed first.
+        dispatch({ type: 'PASSWORD_SIGNUP_PENDING' })
+        const { data, error } = await supabase.auth.signUp(credentials)
+
+        if (error) {
+          dispatch({ type: 'SUBMIT_ERROR', payload: classifyPasswordSignUpError(error.message) })
+          return
+        }
+
+        // Supabase's email-enumeration protection: signUp() for an already-registered,
+        // confirmed identifier resolves with no error and no session. Surface an error
+        // instead of leaving the submit button stuck in a loading state indefinitely.
+        if (!data.session) {
+          dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.password.signUpUnavailable' })
+          return
+        }
+
+        dispatch({ type: 'SUBMIT_SUCCESS' })
+        // Consent write + redirect handled reactively via the isAuthenticated effect above.
+      } else {
+        const { error } = await supabase.auth.signInWithPassword(credentials)
+
+        if (error) {
+          dispatch({ type: 'SUBMIT_ERROR', payload: classifyPasswordSignInError(error.message) })
+          return
+        }
+
+        dispatch({ type: 'SUBMIT_SUCCESS' })
+        // Navigation (incl. pendingDeletion guard) handled reactively via the effect above.
+      }
+    } catch {
+      dispatch({
+        type: 'SUBMIT_ERROR',
+        payload: state.mode === 'signup' ? 'auth.password.signUpError' : 'auth.password.signInError',
+      })
+    }
+  }
+
   function handleBlur() {
     if (state.hasAttemptedSubmit) {
       const errorKey = validateIdentifier(state.identifier, state.identifierType)
+      if (errorKey) dispatch({ type: 'SUBMIT_ERROR', payload: errorKey })
+    }
+  }
+
+  function handlePasswordBlur() {
+    if (state.hasAttemptedSubmit) {
+      const errorKey = validatePassword(state.password, state.mode)
       if (errorKey) dispatch({ type: 'SUBMIT_ERROR', payload: errorKey })
     }
   }
@@ -159,7 +389,9 @@ export default function SignInScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{t('common.appName')}</Text>
-      <Text style={styles.subtitle}>{t('auth.otp.sendCode')}</Text>
+      <Text style={styles.subtitle}>
+        {state.authMethod === 'otp' ? t('auth.otp.sendCode') : t('auth.password.screenSubtitle')}
+      </Text>
 
       <View style={styles.tabRow}>
         <TouchableOpacity
@@ -182,6 +414,31 @@ export default function SignInScreen() {
         >
           <Text style={[styles.tabText, state.mode === 'signin' && styles.tabTextActive]}>
             {t('auth.mode.signIn')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tab, state.authMethod === 'otp' && styles.tabActive]}
+          onPress={() => dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' })}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.authMethod.otp')}
+          accessibilityState={{ selected: state.authMethod === 'otp' }}
+        >
+          <Text style={[styles.tabText, state.authMethod === 'otp' && styles.tabTextActive]}>
+            {t('auth.authMethod.otp')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, state.authMethod === 'password' && styles.tabActive]}
+          onPress={() => dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' })}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.authMethod.password')}
+          accessibilityState={{ selected: state.authMethod === 'password' }}
+        >
+          <Text style={[styles.tabText, state.authMethod === 'password' && styles.tabTextActive]}>
+            {t('auth.authMethod.password')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -233,6 +490,22 @@ export default function SignInScreen() {
         accessibilityHint={inputHint}
       />
 
+      {state.authMethod === 'password' && (
+        <TextInput
+          style={[styles.input, state.errorKey ? styles.inputError : null]}
+          value={state.password}
+          onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
+          onBlur={handlePasswordBlur}
+          placeholder={t('auth.password.label')}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!state.isLoading}
+          accessibilityLabel={t('auth.password.label')}
+          accessibilityHint={t('auth.password.hint')}
+        />
+      )}
+
       {state.mode === 'signup' && (
         <SafetyCheckboxes
           ageConfirmed={state.ageConfirmed}
@@ -247,18 +520,39 @@ export default function SignInScreen() {
           // eslint-disable-next-line i18next/no-literal-string
           accessibilityLiveRegion="polite"
           style={styles.errorText}
-        >{t(state.errorKey)}</Text>
+        >{t(
+          state.errorKey,
+          state.errorKey === 'auth.deletion.accountPendingDeletion' ? { dpoEmail: DPO_EMAIL } : undefined
+        )}</Text>
+      ) : null}
+
+      {state.consentError ? (
+        <Text
+          // eslint-disable-next-line i18next/no-literal-string
+          accessibilityLiveRegion="polite"
+          style={styles.errorText}
+        >{t(state.consentError)}</Text>
       ) : null}
 
       <TouchableOpacity
-        style={[styles.button, isSendDisabled && styles.buttonDisabled]}
-        onPress={handleSendCode}
-        disabled={isSendDisabled}
-        accessibilityLabel={t('auth.otp.sendCode')}
-        accessibilityHint={t('auth.otp.sendCodeHint')}
+        style={[styles.button, isActionDisabled && styles.buttonDisabled]}
+        onPress={state.authMethod === 'otp' ? handleSendCode : handlePasswordSubmit}
+        disabled={isActionDisabled}
+        accessibilityLabel={
+          state.authMethod === 'otp'
+            ? t('auth.otp.sendCode')
+            : t(state.mode === 'signup' ? 'auth.password.submitSignUp' : 'auth.password.submitSignIn')
+        }
+        accessibilityHint={
+          state.authMethod === 'otp' ? t('auth.otp.sendCodeHint') : t('auth.password.submitHint')
+        }
         accessibilityRole="button"
       >
-        <Text style={styles.buttonText}>{t('auth.otp.sendCode')}</Text>
+        <Text style={styles.buttonText}>
+          {state.authMethod === 'otp'
+            ? t('auth.otp.sendCode')
+            : t(state.mode === 'signup' ? 'auth.password.submitSignUp' : 'auth.password.submitSignIn')}
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -275,13 +569,18 @@ export default function SignInScreen() {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: '#6b7280', marginTop: 8 }]}
           onPress={async () => {
+            // Fixed one-tap test credentials — kept alongside the general password form
+            // above as a faster dev/preview shortcut (Story 10.1 Task 5). Always signs
+            // in to a pre-existing, already-consented account, so it must never set
+            // isPasswordSignupPending, and is subject to the same pendingDeletion guard
+            // as any other isAuthenticated transition above (not bypassed).
             const { error } = await createSupabaseClient().auth.signInWithPassword({
               // eslint-disable-next-line i18next/no-literal-string
               email: 'test1@test.com',
               // eslint-disable-next-line i18next/no-literal-string
               password: 'DevTest123!',
             })
-            if (error) dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.otp.sendError' })
+            if (error) dispatch({ type: 'SUBMIT_ERROR', payload: 'auth.password.signInError' })
           }}
           accessibilityRole="button"
         >
