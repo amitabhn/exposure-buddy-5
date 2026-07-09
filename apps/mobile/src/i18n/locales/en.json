@@ -33,7 +33,8 @@
     },
     "authMethod": {
       "otp": "OTP",
-      "password": "Password"
+      "password": "Password",
+      "passwordAccessibilityLabel": "Password sign-in method"
     },
     "password": {
       "label": "Password",
@@ -45,7 +46,8 @@
       "invalidCredentials": "Incorrect email/phone or password.",
       "signInError": "Failed to sign in. Please try again.",
       "signUpError": "Failed to create your account. Please try again.",
-      "signUpUnavailable": "We couldn't create your account with these details. Please try signing in instead, or use a different email or phone number."
+      "signUpUnavailable": "We couldn't create your account with these details. Please try signing in instead, or use a different email or phone number.",
+      "rateLimited": "Too many attempts. Please wait a moment and try again."
     },
     "safety": {
       "consentIntro": "We need your confirmation on two things before we create your account.",

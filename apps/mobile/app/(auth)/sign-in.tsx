@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef } from 'react'
+import { useReducer, useEffect, useRef, useCallback } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -70,7 +70,29 @@ function validatePassword(password: string, mode: Mode): string | null {
   return null
 }
 
+// eslint-disable-next-line i18next/no-literal-string
+const IDENTIFIER_VALIDATION_ERROR_KEYS = new Set([
+  'auth.validation.emailRequired',
+  'auth.validation.phoneRequired',
+  'auth.validation.invalidEmail',
+  'auth.validation.invalidPhone',
+])
+
+// eslint-disable-next-line i18next/no-literal-string
+const PASSWORD_VALIDATION_ERROR_KEYS = new Set([
+  'auth.validation.passwordRequired',
+  'auth.validation.passwordTooShort',
+])
+
+function isRateLimitedError(message: string): boolean {
+  const lower = message.toLowerCase()
+  // eslint-disable-next-line i18next/no-literal-string
+  return lower.includes('rate limit') || lower.includes('security purposes')
+}
+
 function classifyPasswordSignInError(message: string): string {
+  // eslint-disable-next-line i18next/no-literal-string
+  if (isRateLimitedError(message)) return 'auth.password.rateLimited'
   const lower = message.toLowerCase()
   // eslint-disable-next-line i18next/no-literal-string
   if (lower.includes('invalid login credentials')) return 'auth.password.invalidCredentials'
@@ -79,9 +101,12 @@ function classifyPasswordSignInError(message: string): string {
 }
 
 function classifyPasswordSignUpError(message: string): string {
-  const lower = message.toLowerCase()
   // eslint-disable-next-line i18next/no-literal-string
-  if (lower.includes('already registered') || lower.includes('already exists')) return 'auth.password.signUpUnavailable'
+  if (isRateLimitedError(message)) return 'auth.password.rateLimited'
+  // Supabase's email-enumeration protection means signUp() never throws for a
+  // duplicate, confirmed identifier — it resolves with no error and no session
+  // instead (handled separately via the !data.session check below). Any error
+  // thrown here is a genuine failure (network, rate-limit, etc.), not a duplicate.
   // eslint-disable-next-line i18next/no-literal-string
   return 'auth.password.signUpError'
 }
@@ -97,7 +122,15 @@ function reducer(state: State, action: Action): State {
           : null,
       }
     case 'SET_IDENTIFIER_TYPE':
-      return { ...state, identifierType: action.payload, identifier: '', errorKey: null }
+      return {
+        ...state,
+        identifierType: action.payload,
+        identifier: '',
+        errorKey: null,
+        password: '',
+        isPasswordSignupPending: false,
+        consentError: null,
+      }
     case 'SET_PASSWORD':
       return {
         ...state,
@@ -191,6 +224,32 @@ export default function SignInScreen() {
   // otp-verification.tsx's prevIsAuthenticated pattern.
   const prevIsAuthenticated = useRef(false)
 
+  // Shared by the isAuthenticated effect below and handlePasswordSubmit's retry
+  // branch — a single consent-write implementation avoids the two copies drifting
+  // (e.g. one asserting authState.userId non-null, the other checking it).
+  const writePasswordSignupConsent = useCallback(() => {
+    dispatch({ type: 'CONSENT_START' })
+    const consentService = new ConsentRecordService()
+    consentService
+      .recordConsent({
+        timestampUtc: new Date().toISOString(),
+        purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
+        consentVersion: CONSENT_VERSION_CURRENT,
+        withdrawalStatus: false,
+      })
+      .then(() => {
+        if (authState.userId) emitAccountCreated(authState.userId)
+        dispatch({ type: 'PASSWORD_SIGNUP_CONSUMED' })
+        router.replace('/(app)/')
+      })
+      .catch(() => {
+        dispatch({ type: 'CONSENT_DONE' })
+        dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
+        // prevIsAuthenticated stays true; isPasswordSignupPending stays true —
+        // user retries via handlePasswordSubmit, which detects this combination.
+      })
+  }, [authState.userId, router])
+
   // Fires once when isAuthenticated flips true — covers a returning user's password
   // sign-in, the dev test-user button, and (critically) a just-completed password
   // signup, for which the DPDPA consent record must be written and emitAccountCreated
@@ -214,34 +273,30 @@ export default function SignInScreen() {
       prevIsAuthenticated.current = true
 
       if (state.isPasswordSignupPending && authState.userId) {
-        dispatch({ type: 'CONSENT_START' })
-        const consentService = new ConsentRecordService()
-        consentService
-          .recordConsent({
-            timestampUtc: new Date().toISOString(),
-            purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
-            consentVersion: CONSENT_VERSION_CURRENT,
-            withdrawalStatus: false,
-          })
-          .then(() => {
-            emitAccountCreated(authState.userId!)
-            dispatch({ type: 'PASSWORD_SIGNUP_CONSUMED' })
-            router.replace('/(app)/')
-          })
-          .catch(() => {
-            dispatch({ type: 'CONSENT_DONE' })
-            dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
-            // prevIsAuthenticated stays true; isPasswordSignupPending stays true —
-            // user retries via handlePasswordSubmit, which detects this combination.
-          })
+        writePasswordSignupConsent()
       } else {
         router.replace('/(app)/')
       }
     }
-  }, [isAuthenticated, authState.userId, pendingDeletion, signOut, router, state.isPasswordSignupPending])
+  }, [isAuthenticated, authState.userId, pendingDeletion, signOut, router, state.isPasswordSignupPending, writePasswordSignupConsent])
 
   const checkboxesIncomplete = state.mode === 'signup' && (!state.ageConfirmed || !state.medicoLegalConfirmed)
   const isActionDisabled = state.isLoading || checkboxesIncomplete
+
+  // Blocks tab/mode switching while a password-signup submit or consent-write is
+  // in flight or awaiting retry — abandoning mid-flight is how the DPDPA consent
+  // write gets silently skipped (Story 10.1 code review, Decision 1). The full
+  // fix (server-verified consent status at app entry) is a separate follow-up
+  // story; this closes the two paths reachable from this screen.
+  const isAuthMethodOrModeLocked = state.isLoading || state.isPasswordSignupPending
+
+  // Once signup already succeeded and only the consent write needs retrying, the
+  // safety checkboxes are no longer meaningful — don't let them block the retry.
+  const isConsentRetryPending = isAuthenticated && !!state.consentError && state.isPasswordSignupPending
+  const isSubmitDisabled = isConsentRetryPending ? state.isLoading : isActionDisabled
+
+  const isIdentifierFieldError = state.errorKey !== null && IDENTIFIER_VALIDATION_ERROR_KEYS.has(state.errorKey)
+  const isPasswordFieldError = state.errorKey !== null && PASSWORD_VALIDATION_ERROR_KEYS.has(state.errorKey)
 
   async function handleSendCode() {
     if (isActionDisabled) return
@@ -286,24 +341,7 @@ export default function SignInScreen() {
     // against an account that already has an active session.
     if (isAuthenticated && state.consentError && state.isPasswordSignupPending) {
       dispatch({ type: 'CLEAR_CONSENT_ERROR' })
-      dispatch({ type: 'CONSENT_START' })
-      const consentService = new ConsentRecordService()
-      consentService
-        .recordConsent({
-          timestampUtc: new Date().toISOString(),
-          purposeId: CONSENT_PURPOSE_ACCOUNT_CREATION,
-          consentVersion: CONSENT_VERSION_CURRENT,
-          withdrawalStatus: false,
-        })
-        .then(() => {
-          if (authState.userId) emitAccountCreated(authState.userId)
-          dispatch({ type: 'PASSWORD_SIGNUP_CONSUMED' })
-          router.replace('/(app)/')
-        })
-        .catch(() => {
-          dispatch({ type: 'CONSENT_DONE' })
-          dispatch({ type: 'SET_CONSENT_ERROR', payload: 'auth.safety.consentWriteFailed' })
-        })
+      writePasswordSignupConsent()
       return
     }
 
@@ -396,10 +434,10 @@ export default function SignInScreen() {
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, state.mode === 'signup' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_MODE', payload: 'signup' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_MODE', payload: 'signup' }) }}
           accessibilityRole="tab"
           accessibilityLabel={t('auth.mode.createAccount')}
-          accessibilityState={{ selected: state.mode === 'signup' }}
+          accessibilityState={{ selected: state.mode === 'signup', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.mode === 'signup' && styles.tabTextActive]}>
             {t('auth.mode.createAccount')}
@@ -407,10 +445,10 @@ export default function SignInScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, state.mode === 'signin' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_MODE', payload: 'signin' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_MODE', payload: 'signin' }) }}
           accessibilityRole="tab"
           accessibilityLabel={t('auth.mode.signIn')}
-          accessibilityState={{ selected: state.mode === 'signin' }}
+          accessibilityState={{ selected: state.mode === 'signin', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.mode === 'signin' && styles.tabTextActive]}>
             {t('auth.mode.signIn')}
@@ -421,10 +459,10 @@ export default function SignInScreen() {
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, state.authMethod === 'otp' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
           accessibilityRole="tab"
           accessibilityLabel={t('auth.authMethod.otp')}
-          accessibilityState={{ selected: state.authMethod === 'otp' }}
+          accessibilityState={{ selected: state.authMethod === 'otp', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.authMethod === 'otp' && styles.tabTextActive]}>
             {t('auth.authMethod.otp')}
@@ -432,10 +470,10 @@ export default function SignInScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, state.authMethod === 'password' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' }) }}
           accessibilityRole="tab"
-          accessibilityLabel={t('auth.authMethod.password')}
-          accessibilityState={{ selected: state.authMethod === 'password' }}
+          accessibilityLabel={t('auth.authMethod.passwordAccessibilityLabel')}
+          accessibilityState={{ selected: state.authMethod === 'password', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.authMethod === 'password' && styles.tabTextActive]}>
             {t('auth.authMethod.password')}
@@ -446,10 +484,10 @@ export default function SignInScreen() {
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, state.identifierType === 'email' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'email' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'email' }) }}
           accessibilityLabel={t('auth.otp.emailLabel')}
           accessibilityRole="tab"
-          accessibilityState={{ selected: state.identifierType === 'email' }}
+          accessibilityState={{ selected: state.identifierType === 'email', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.identifierType === 'email' && styles.tabTextActive]}>
             {t('auth.otp.emailLabel')}
@@ -457,10 +495,10 @@ export default function SignInScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, state.identifierType === 'phone' && styles.tabActive]}
-          onPress={() => dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'phone' })}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'phone' }) }}
           accessibilityLabel={t('auth.otp.phoneLabel')}
           accessibilityRole="tab"
-          accessibilityState={{ selected: state.identifierType === 'phone' }}
+          accessibilityState={{ selected: state.identifierType === 'phone', disabled: isAuthMethodOrModeLocked }}
         >
           <Text style={[styles.tabText, state.identifierType === 'phone' && styles.tabTextActive]}>
             {t('auth.otp.phoneLabel')}
@@ -469,7 +507,7 @@ export default function SignInScreen() {
       </View>
 
       <TextInput
-        style={[styles.input, state.errorKey ? styles.inputError : null]}
+        style={[styles.input, isIdentifierFieldError ? styles.inputError : null]}
         value={state.identifier}
         onChangeText={text => dispatch({ type: 'SET_IDENTIFIER', payload: text })}
         onBlur={handleBlur}
@@ -492,7 +530,7 @@ export default function SignInScreen() {
 
       {state.authMethod === 'password' && (
         <TextInput
-          style={[styles.input, state.errorKey ? styles.inputError : null]}
+          style={[styles.input, isPasswordFieldError ? styles.inputError : null]}
           value={state.password}
           onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
           onBlur={handlePasswordBlur}
@@ -535,9 +573,9 @@ export default function SignInScreen() {
       ) : null}
 
       <TouchableOpacity
-        style={[styles.button, isActionDisabled && styles.buttonDisabled]}
+        style={[styles.button, isSubmitDisabled && styles.buttonDisabled]}
         onPress={state.authMethod === 'otp' ? handleSendCode : handlePasswordSubmit}
-        disabled={isActionDisabled}
+        disabled={isSubmitDisabled}
         accessibilityLabel={
           state.authMethod === 'otp'
             ? t('auth.otp.sendCode')
@@ -567,13 +605,19 @@ export default function SignInScreen() {
 
       {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') ? (
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#6b7280', marginTop: 8 }]}
+          style={[
+            styles.button,
+            { backgroundColor: '#6b7280', marginTop: 8 },
+            state.isLoading && styles.buttonDisabled,
+          ]}
+          disabled={state.isLoading}
           onPress={async () => {
             // Fixed one-tap test credentials — kept alongside the general password form
             // above as a faster dev/preview shortcut (Story 10.1 Task 5). Always signs
             // in to a pre-existing, already-consented account, so it must never set
             // isPasswordSignupPending, and is subject to the same pendingDeletion guard
             // as any other isAuthenticated transition above (not bypassed).
+            dispatch({ type: 'SUBMIT_START' })
             const { error } = await createSupabaseClient().auth.signInWithPassword({
               // eslint-disable-next-line i18next/no-literal-string
               email: 'test1@test.com',
