@@ -29,12 +29,12 @@ appId: com.exposurebuddy.app
 - eraseText: 50
 - inputText: ${output.email}
 
-# Guard against Android's first-keystroke race: inputText can start typing before the
-# field has focus, silently dropping the leading character(s) — a CI run typed
-# "2e-onboarding-…" for "e2e-onboarding-…", so the OTP email went to an address fetchOtp
-# never polls. If the field doesn't show the exact email, erase and retype once, then
-# hard-assert so a repeat failure stops HERE with a clear screenshot instead of 60s later
-# in fetchOtp.
+# Verify the exact email landed in the field; retype once if not, then hard-assert so a
+# typing failure stops HERE with a clear screenshot instead of 60s later in fetchOtp.
+# (Note when reading failure screenshots: the field scrolls horizontally with the cursor
+# at the end, so the leading character(s) can be out of view — e.g. it renders
+# "2e-onboarding-…" while the full "e2e-onboarding-…" is present. This assert checks the
+# accessibility text, which carries the full value.)
 - runFlow:
     when:
       notVisible: ${output.email}
@@ -59,15 +59,18 @@ appId: com.exposurebuddy.app
     text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP.
-# The app reaches Supabase through `adb reverse` to 127.0.0.1 (see ci.yml). On success the
-# app navigates to otp-verification (shows "One-time passcode"). If the request stalls, the
-# app's EXPO_PUBLIC_FETCH_TIMEOUT_MS (10s in the E2E APK) aborts it, re-enabling the Send
-# button — so each retry below waits 15s (past that timeout) before re-tapping. Re-tapping
-# sooner is a no-op: while the request is in flight the button is disabled (isLoading).
-# The waits are `optional: true` so a not-yet-visible OTP screen falls through to the next
-# retry instead of failing the flow; the final wait is a hard assertion.
+# index: 1 is CRITICAL: the screen's subtitle renders the same t('auth.otp.sendCode')
+# string ("Send code") as the button, and it comes first in the hierarchy — a bare
+# `tapOn: "Send code"` taps the subtitle (a no-op; CI runs showed 3 taps at the subtitle's
+# bounds and zero requests ever reaching kong). index: 1 targets the actual button.
+# On success the app navigates to otp-verification (shows "One-time passcode"). If the
+# request stalls, the app's EXPO_PUBLIC_FETCH_TIMEOUT_MS (10s in the E2E APK) aborts it,
+# re-enabling the Send button — so each retry below waits 15s (past that timeout) before
+# re-tapping. The waits are `optional: true` so a not-yet-visible OTP screen falls through
+# to the next retry instead of failing the flow; the final wait is a hard assertion.
 - tapOn:
     text: "Send code"
+    index: 1
 - extendedWaitUntil:
     visible: "One-time passcode"
     timeout: 15000
@@ -78,6 +81,7 @@ appId: com.exposurebuddy.app
     commands:
       - tapOn:
           text: "Send code"
+          index: 1
       - extendedWaitUntil:
           visible: "One-time passcode"
           timeout: 15000
@@ -88,6 +92,7 @@ appId: com.exposurebuddy.app
     commands:
       - tapOn:
           text: "Send code"
+          index: 1
 - extendedWaitUntil:
     visible: "One-time passcode"
     timeout: 15000
