@@ -29,6 +29,23 @@ appId: com.exposurebuddy.app
 - eraseText: 50
 - inputText: ${output.email}
 
+# Guard against Android's first-keystroke race: inputText can start typing before the
+# field has focus, silently dropping the leading character(s) — a CI run typed
+# "2e-onboarding-…" for "e2e-onboarding-…", so the OTP email went to an address fetchOtp
+# never polls. If the field doesn't show the exact email, erase and retype once, then
+# hard-assert so a repeat failure stops HERE with a clear screenshot instead of 60s later
+# in fetchOtp.
+- runFlow:
+    when:
+      notVisible: ${output.email}
+    commands:
+      - tapOn:
+          text: "Email address"
+          index: 1
+      - eraseText: 50
+      - inputText: ${output.email}
+- assertVisible: ${output.email}
+
 # Dismiss the keyboard before tapping the consent checkboxes below the input. With the
 # keyboard up, the tap on the age checkbox landed off-target and left it unchecked, which
 # keeps "Send code" disabled (isSendDisabled) so the OTP is never sent and fetchOtp fails.
@@ -42,27 +59,38 @@ appId: com.exposurebuddy.app
     text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP.
-# The app reaches Supabase through `adb reverse` to 127.0.0.1 (see ci.yml), so the send is
-# reliable. On success the app navigates to otp-verification (shows "One-time passcode").
-# The retries below are belt-and-suspenders: if we're still on the send-code screen (e.g. a
-# transient slow send), re-tap "Send code".
+# The app reaches Supabase through `adb reverse` to 127.0.0.1 (see ci.yml). On success the
+# app navigates to otp-verification (shows "One-time passcode"). If the request stalls, the
+# app's EXPO_PUBLIC_FETCH_TIMEOUT_MS (10s in the E2E APK) aborts it, re-enabling the Send
+# button — so each retry below waits 15s (past that timeout) before re-tapping. Re-tapping
+# sooner is a no-op: while the request is in flight the button is disabled (isLoading).
+# The waits are `optional: true` so a not-yet-visible OTP screen falls through to the next
+# retry instead of failing the flow; the final wait is a hard assertion.
 - tapOn:
     text: "Send code"
-- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "One-time passcode"
+    timeout: 15000
+    optional: true
 - runFlow:
     when:
       notVisible: "One-time passcode"
     commands:
       - tapOn:
           text: "Send code"
-      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          visible: "One-time passcode"
+          timeout: 15000
+          optional: true
 - runFlow:
     when:
       notVisible: "One-time passcode"
     commands:
       - tapOn:
           text: "Send code"
-      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "One-time passcode"
+    timeout: 15000
 
 # Retrieve OTP from Mailpit — poll with backoff since email delivery is async.
 # output.email is still set from generateEmail.js above (output persists across runScript calls).

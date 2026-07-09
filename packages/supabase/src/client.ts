@@ -9,9 +9,10 @@ let _client: TypedSupabaseClient | null = null
 declare const process: { env: Record<string, string | undefined> }
 
 // Default upper bound for any single Supabase request. Without a timeout a stalled
-// connection (e.g. a flaky mobile network, or the emulator's dropped first packet in E2E)
-// leaves callers like signInWithOtp hanging forever. Override via EXPO_PUBLIC_FETCH_TIMEOUT_MS
-// (the E2E APK sets a short value so the onboarding flow's "Send code" retries can recover).
+// connection (e.g. a flaky mobile network, or a hung device→host request in E2E) leaves
+// callers like signInWithOtp hanging forever — and while it hangs, isLoading keeps the UI
+// disabled, so the user (or Maestro) can't even retry. Override via
+// EXPO_PUBLIC_FETCH_TIMEOUT_MS (the E2E APK sets 10s so "Send code" retries can recover).
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000
 
 // Wraps fetch with an AbortController so requests reject rather than hang past the timeout,
