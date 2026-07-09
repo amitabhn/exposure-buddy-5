@@ -374,6 +374,8 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 - **FR-AUTH-01:** Users authenticate using email address or phone number; both paths use OTP verification
 - **FR-AUTH-02:** Logged-out users access all 3 preview challenges without authentication; progress from preview challenges is not persisted unless the user creates an account
 - **FR-AUTH-03:** The sign-in screen defaults to the **Create account** tab on a device that has never had a successful sign-in, and to the **Sign in** tab on any device where at least one successful sign-in has previously occurred. The "device has authed before" state is persisted in encrypted MMKV under key `auth.hasAuthedBefore`; it survives Sign out (so a returning user lands on Sign in after signing out) and is cleared only on app reinstall (which rotates the MMKV encryption key)
+- **FR-AUTH-04:** Users authenticate using email address or phone number with a password, as an alternative to OTP verification; account creation via the password path is gated by the same mandatory safety checkboxes (FR-SAFE-01) as the OTP path
+- **FR-AUTH-05:** Users with an email-identifier password account can request a password-reset email and set a new password via a deep link, without needing account recovery support. *(Gated behind `EXPO_PUBLIC_ENABLE_PASSWORD_RESET`, default off, until custom SMTP is provisioned — see FR Coverage Map decision record. Phone-identifier password accounts have no reset path at MVP — documented gap.)*
 
 ### Sign-Up Safeguards
 
