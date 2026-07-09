@@ -128,5 +128,15 @@ development_status:
   9-7-performance-budget-low-end-device-validation: done
   9-8-haptic-and-sound-degradation-audit: deferred-post-mvp # deferred 2026-07-01 — no haptic or audio features exist in MVP codebase; audit has nothing to find; revisit when haptics/audio are added post-MVP
   9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification: deferred-post-mvp # deferred 2026-07-01 — Phase 1 India gate; i18n coverage enforced by CI (Story 1.6); Hindi activation, RTL verification, 2G testing, and NFR-SCALE-01 load testing are India-launch prerequisites not closed-beta prerequisites
-  9-10-silent-enqueue-failure-remediation-error-retry-ui: deferred-post-mvp # deferred 2026-07-01 — ADR-OFFLINE-DEGRADATION Decision 2 accepted silent-failure as MVP state; Epic 10 (ADR's named trigger) is post-MVP; revisit as first story of Epic 10 or next sync-mutation-queue story
+  9-10-silent-enqueue-failure-remediation-error-retry-ui: deferred-post-mvp # deferred 2026-07-01 — ADR-OFFLINE-DEGRADATION Decision 2 accepted silent-failure as MVP state; the ADR's named trigger (the reserved remediation epic, currently Epic 12 as of 2026-07-09 — see epics.md Epic List for its current number) is post-MVP; revisit as first story of that epic or next sync-mutation-queue story
   epic-9-retrospective: optional
+
+  # ─── Epic 10: Password-Based Login (Alternative Authentication Method) ────
+  # Numbered 10 — pre-beta must-have; the ADR-OFFLINE-DEGRADATION Decision 2
+  # remediation trigger that previously reserved 10 has moved to Epic 12
+  # (post-MVP), see deferred-work.md.
+  epic-10: in-progress # code implemented on feature/password-based-login (commit ccc4d4d), not yet merged to main
+  10-1-password-based-sign-up-and-sign-in-email-and-phone: done # implemented, tested, unmerged
+  10-2-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
+  10-3-hosted-supabase-provisioning-and-auth-hardening: done # implemented, unmerged
+  epic-10-retrospective: optional
