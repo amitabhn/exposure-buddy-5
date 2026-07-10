@@ -374,6 +374,8 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 - **FR-AUTH-01:** Users authenticate using email address or phone number; both paths use OTP verification
 - **FR-AUTH-02:** Logged-out users access all 3 preview challenges without authentication; progress from preview challenges is not persisted unless the user creates an account
 - **FR-AUTH-03:** The sign-in screen defaults to the **Create account** tab on a device that has never had a successful sign-in, and to the **Sign in** tab on any device where at least one successful sign-in has previously occurred. The "device has authed before" state is persisted in encrypted MMKV under key `auth.hasAuthedBefore`; it survives Sign out (so a returning user lands on Sign in after signing out) and is cleared only on app reinstall (which rotates the MMKV encryption key)
+- **FR-AUTH-04:** Users authenticate using email address or phone number with a password, as an alternative to OTP verification; account creation via the password path is gated by the same mandatory safety checkboxes (FR-SAFE-01) as the OTP path
+- **FR-AUTH-05:** Users with an email-identifier password account can request a password-reset email and set a new password via a deep link, without needing account recovery support. *(Gated behind `EXPO_PUBLIC_ENABLE_PASSWORD_RESET`, default off, until custom SMTP is provisioned — see FR Coverage Map decision record. Phone-identifier password accounts have no reset path at MVP — documented gap.)*
 
 ### Sign-Up Safeguards
 
@@ -444,6 +446,11 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 
 - **FR-ANALYTICS-01:** First-party analytics capture two Day 1 primary metrics: (1) core loop retention — percentage of Day 1 users who complete at least one ERP session within their first 24 hours; (2) SUDS cadence — percentage of active ERP sessions containing ≥2 SUDS log entries
 - **FR-ANALYTICS-02:** No user health data, session content, SUDS records, or personally identifiable information is transmitted to any third-party analytics, advertising, or data-broker service
+
+### Beta Feedback
+
+- **FR-BETA-01:** Authenticated users can submit free-text feedback tagged to the screen they were viewing from any screen in the app, including during an active ERP session, without losing their place or navigating away from their current context
+- **FR-BETA-02:** Feedback submissions (including optional screenshots) are stored exclusively in first-party Supabase infrastructure; no third-party feedback, survey, or form service is used, consistent with the no-third-party-transmission principle in FR-ANALYTICS-02
 
 ## Non-Functional Requirements
 

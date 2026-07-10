@@ -167,6 +167,8 @@ UX-DR27: Soft nudge at item 8 on fear ladder ("That's a solid ladder — most pe
 
 FR-AUTH-01: Epic 2 — OTP registration and login
 FR-AUTH-02: POST-MVP — Preview challenges (unauthenticated taste experience) deferred; no MVP story. **Decision record (2026-05-23):** FR-AUTH-02 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the preview challenge flow requires significant cross-cutting complexity — MMKV local storage per device, idempotency-keyed re-assignment on account creation, and full isolation gates from Epic 6 ERP session components. For a closed-beta or soft-launch cohort (invited users), acquisition via unauthenticated preview adds risk without proportionate clinical value. Unauthenticated users land directly on Sign In / Sign Up at MVP. Confirmed in post-MVP backlog. Logged in post-mvp-backlog.md.
+FR-AUTH-04: Epic 10 — Password-based sign-up/sign-in as an alternative to OTP, email or phone identifier
+FR-AUTH-05: Epic 10 — Forgot/reset-password deep-link flow, email-identifier only. **Decision record (2026-07-08):** Code-complete and tested, but gated behind `EXPO_PUBLIC_ENABLE_PASSWORD_RESET` (default off) for closed beta. Rationale: custom SMTP is not yet provisioned on the hosted Supabase project — a live "Forgot password?" tap would otherwise dead-end on a reset email that never arrives, which is worse than not offering the entry point at all. Trigger to flip on: custom SMTP + a verified sending domain (see `deferred-work.md`, "2026-07-04 — Password-based login"). Phone-identifier password accounts have no reset path — `resetPasswordForEmail` is email-only; deferred decision on whether to add an OTP-based reset for phone accounts.
 FR-SAFE-01: Epic 2 — Two mandatory safety checkboxes at account creation
 FR-ONBOARD-01: Epic 4 — mini-SPIN questionnaire with three-tier clinical routing
 FR-ONBOARD-02: Epic 4 — Symptom check + 15-item safety behaviour checklist
@@ -358,6 +360,39 @@ Push token registration and a daily local session reminder are in place. The Ach
 **FRs covered:** FR-I18N-01, FR-I18N-02 *(Phase 1 gate — Story 9.9)*
 **NFR verification:** NFR-PERF-01 (<3s cold start P90), NFR-OFFLINE-01–03 (edge cases), NFR-REL-01 (99.5% uptime), NFR-REL-02 (crash recovery), NFR-SEC-01–06 (audit), NFR-DEVICE-01–02, NFR-ACCESS-01 (full audit), NFR-SCALE-01 (load test) *(NFR-SCALE-01, NFR-DEVICE-01 India profile, and 2G offline testing are Phase 1 gate — Story 9.9)*
 **Architecture:** ARC-004 (MMKV storage hardening), ARC-005 (PowerSync adapter full validation), ARC-012 (analytics boundary confirmation)
+
+---
+
+### Epic 10: Password-Based Login (Alternative Authentication Method)
+
+*(Numbered 10 — the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger, previously reserving 10, has moved to Epic 12; see `deferred-work.md`. Password-based login and Epic 11 (Beta Feedback Collection) are both pre-beta must-haves and take the lower numbers ahead of that post-MVP placeholder. Implemented on branch `feature/password-based-login`, not yet merged to `main` as of this planning entry.)*
+
+Users can create an account and sign in with an email or phone number **plus password**, as an alternative to the OTP-only flow shipped in Epic 2. A full forgot/reset-password flow (deep-link recovery, pure parser, new-password form) is code-complete and tested, but held behind a feature flag for closed beta until custom SMTP is provisioned. The hosted Supabase project is provisioned and migration-current in support of this epic, with a cross-user PII-erasure hole (found in migration 0007) closed along the way.
+
+**FRs covered:** FR-AUTH-04, FR-AUTH-05 (flag-gated — see FR Coverage Map decision record)
+**FRs deferred:** phone-identifier password reset (email-only `resetPasswordForEmail` limitation) — see FR Coverage Map / `deferred-work.md`
+**Planning note:** FR-AUTH-05 ships code-complete but flag-gated OFF by default (`EXPO_PUBLIC_ENABLE_PASSWORD_RESET`); flip it only after custom SMTP + a verified sending domain are provisioned. Email confirmation on sign-up also remains OFF for the same SMTP reason — sign-up yields an immediate unverified session, an accepted closed-beta risk logged in `deferred-work.md`.
+
+---
+
+### Epic 11: Beta Feedback Collection
+
+*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12; see `deferred-work.md`.)*
+
+Beta testers get a low-friction, first-party way to report bugs and impressions tagged to the exact screen they were on — replacing ad hoc channels (WhatsApp, email, third-party forms) with structured feedback that writes directly to Supabase infrastructure already provisioned for the project. The entry point is available on every screen, including mid-exposure-session, and is gated behind an env flag so it never ships to production/GA builds.
+
+**FRs covered:** FR-BETA-01, FR-BETA-02
+**Planning note:** Closed-beta scope only. Unlike the Calm Me SOS overlay, the feedback entry point is deliberately NOT suppressed during an active ERP session — product decision, since testers need to report issues in the moment they occur.
+
+---
+
+### Epic 12 [Reserved, not yet planned]: ADR-OFFLINE-DEGRADATION Remediation (Post-MVP)
+
+*(Not a planned epic — a reservation. This is the trigger condition named in ADR-OFFLINE-DEGRADATION Decision 2's "Accepted — deferred remediation" sub-status: the silent enqueue-failure remediation ships either at the next story that touches the sync mutation queue, or when this epic begins, whichever comes first. Story 9.1's review required this trigger be concrete, not "someday" — the reservation satisfies that by being a specific, named epic slot, without needing to hardcode a number everywhere it's referenced.)*
+
+**This entry is the single source of truth for this reservation's current number.** Other documents (`deferred-work.md`, `ADR-OFFLINE-DEGRADATION.md`, Story 9.10's AC in this file, `sprint-status.yaml`) refer to it by name — "the ADR-OFFLINE-DEGRADATION remediation epic (see epics.md Epic List for its current number)" — rather than repeating a hardcoded number, so a future renumbering only requires editing this heading, not five scattered files.
+
+**Numbering history:** reserved at Epic 10 pre-2026-07-09; moved to Epic 12 on 2026-07-09 when Epic 10 and Epic 11 were claimed by Password-Based Login and Beta Feedback Collection (both pre-beta must-haves, taking priority over a post-MVP placeholder).
 
 ---
 
@@ -2230,7 +2265,7 @@ So that I never mistake a silent failure for a successful action, especially mid
 
 **Acceptance Criteria:**
 
-**Given** `ADR-OFFLINE-DEGRADATION.md` Decision 2's tracked follow-up ("the next story that touches the sync mutation queue, or before Epic 10 begins, whichever comes first")
+**Given** `ADR-OFFLINE-DEGRADATION.md` Decision 2's tracked follow-up ("the next story that touches the sync mutation queue, or before the ADR-OFFLINE-DEGRADATION remediation epic begins, whichever comes first" — see the Epic List reservation above for its current number)
 **When** this story is implemented
 **Then** it is treated as satisfying that trigger condition; Story 9.2 (offline recovery integration tests) explicitly declined to implement this remediation and deferred it here
 
@@ -2253,3 +2288,141 @@ So that I never mistake a silent failure for a successful action, especially mid
 **Given** all remediated call sites
 **When** the story closes
 **Then** `deferred-work.md` entries `4-2-D2`, `4-2-D4`, and `5-2-W15` are updated or closed to reflect what was actually remediated vs. what remains deferred (if anything)
+
+---
+
+## Epic 10: Password-Based Login (Alternative Authentication Method)
+
+Give users a password-based alternative to the OTP-only sign-up/sign-in shipped in Epic 2, plus a self-serve forgot/reset-password flow — built to be complete and tested, but held behind a feature flag for closed beta until custom SMTP is live.
+
+### Story 10.1: Password-Based Sign-Up & Sign-In (Email + Phone)
+
+As a user who doesn't want to wait for an OTP every time,
+I want to create an account and sign in using an email or phone number plus a password,
+So that I have a faster alternative to OTP verification (FR-AUTH-04).
+
+**Acceptance Criteria:**
+
+**Given** the existing OTP-only sign-in screen (`apps/mobile/app/(auth)/sign-in.tsx`)
+**When** this story is implemented
+**Then** the screen gains OTP / Password tabs for both the email and phone identifier paths; password sign-up enforces an 8-character client-side minimum length; Supabase Auth's built-in password grant handles verification server-side
+
+**Given** a user signs up with password auth
+**When** the account is created
+**Then** the same two mandatory safety checkboxes (FR-SAFE-01) gate the creation action, identical to the OTP sign-up path — no safety-check bypass exists for the password path
+
+**Given** password sign-in for an existing account
+**When** the user submits valid credentials
+**Then** a session is established identically to the OTP path (same session storage, same `auth.hasAuthedBefore` MMKV flag per FR-AUTH-03)
+
+---
+
+### Story 10.2: Forgot / Reset Password Flow (Flag-Gated)
+
+As a user who has forgotten their password,
+I want to request a reset link and set a new password from a deep link,
+So that I'm not permanently locked out of a password-based account (FR-AUTH-05).
+
+**Acceptance Criteria:**
+
+**Given** a user on the sign-in screen's password tab
+**When** the "Forgot password?" link is tapped
+**Then** it navigates to `(auth)/forgot-password.tsx`, which accepts an email identifier only (phone-identifier password accounts have no reset path — documented gap, not a bug; see `deferred-work.md`) and calls `resetPasswordForEmail`
+
+**Given** a recovery email is delivered
+**When** the user taps the deep link
+**Then** `exposure-buddy://reset-password` is parsed by the pure function `packages/core/src/auth/recovery-url.ts` (unit-tested, handles both the implicit `#access_token` and PKCE `?code` redirect shapes) and routes to `(auth)/reset-password.tsx`, where `updateUser` sets the new password
+
+**Given** custom SMTP is not yet provisioned on the hosted Supabase project
+**When** the app is built for closed beta
+**Then** the "Forgot password?" link and the flow it leads to are gated behind `EXPO_PUBLIC_ENABLE_PASSWORD_RESET === 'true'` (default off in `global.d.ts`); the screens, parser, and tests remain in the codebase, unhidden from source, ready to flip on once SMTP is live
+
+**Given** the flag is later flipped on
+**When** an on-device build is tested
+**Then** one manual E2E pass verifies both redirect shapes against the live hosted project before the flag ships to any real beta tester — not yet performed as of this planning entry; tracked in `deferred-work.md`
+
+---
+
+### Story 10.3: Hosted Supabase Provisioning & Auth Hardening
+
+As a developer preparing the password-auth epic for a real beta,
+I want the hosted Supabase project fully migration-current and hardened against the cross-user PII-erasure hole found in migration 0007,
+So that password-based accounts run on production-shaped infrastructure with no known auth-adjacent security gaps (NFR-SEC-01, NFR-SEC-06).
+
+**Acceptance Criteria:**
+
+**Given** the hosted Supabase project "Exposure Buddy" (`jhbtzsvlgglyfbrgmpsb`, ap-northeast-1)
+**When** this story is implemented
+**Then** it is linked in `supabase/config.toml`, migrations are backfilled to match local (0004–0030), and the `exposure-buddy://reset-password` redirect URL is registered in the dashboard
+
+**Given** `perform_user_erasure` and `fear_ladder_items_delete_audit` were found to have public EXECUTE grants (a cross-user PII-erasure hole introduced in migration 0007)
+**When** this story is implemented
+**Then** migration `0030_revoke_definer_function_execute.sql` revokes public EXECUTE on both functions
+
+**Given** leaked-password protection (HaveIBeenPwned check) requires a Supabase Pro-plan feature
+**When** this story is implemented on the Free-plan hosted project
+**Then** the feature is deferred, not silently skipped — tracked in `deferred-work.md` with the trigger "enable when upgraded to Pro"; client-side 8-character minimum length remains the only password-strength check at MVP
+
+---
+
+## Epic 11: Beta Feedback Collection
+
+Give beta testers a low-friction, first-party way to report bugs and impressions tied to the exact screen they were on. Feedback writes directly to Supabase — no third-party form or feedback SaaS is introduced, avoiding an additional DPDPA data-processor disclosure during closed beta.
+
+### Story 11.1: Feedback Table, RLS & Storage Bucket
+
+As a developer building the beta feedback pipeline,
+I want a Supabase table and storage bucket dedicated to feedback submissions with RLS policies that only allow authenticated users to insert their own rows,
+So that feedback data is captured securely in first-party infrastructure with no read/write access beyond what's needed (FR-BETA-02).
+
+**Acceptance Criteria:**
+
+**Given** no `feedback` table exists yet
+**When** this story is implemented
+**Then** a migration under `supabase/migrations/` creates a `feedback` table with columns: `id` (uuid, pk, default `gen_random_uuid()`), `user_id` (uuid, fk to `users`, not null), `screen_route` (text, not null), `category` (text, constrained via check to `bug` | `confusing` | `suggestion` | `praise`), `message` (text, not null), `screenshot_path` (text, nullable), `app_version` (text, not null), `created_at` (timestamptz, not null, default `now()`)
+
+**Given** the `feedback` table
+**When** RLS policies are written
+**Then** authenticated users can `INSERT` a row only where `user_id = auth.uid()`; no `SELECT`, `UPDATE`, or `DELETE` policy is granted to the `authenticated` role — feedback is write-only from the client, matching the audit-log pattern established in migration `0027_fear_ladder_items_delete_audit.sql`
+
+**Given** the optional screenshot attachment
+**When** this story is implemented
+**Then** a private Supabase Storage bucket `feedback-screenshots` is created with a storage RLS policy scoping uploads to objects whose path is prefixed with the uploading user's `auth.uid()`; no public read access is granted; no `SELECT` policy is granted to the `authenticated` role beyond the uploader's own prefix
+
+**Given** `database.types.ts` is regenerated after the migration
+**When** `packages/supabase` is updated
+**Then** the `feedback` table and its generated types are available to `packages/supabase` consumers per ARC-011 boundary rules; `database.types.ts` continues to be imported only from within `packages/supabase`, unchanged by this story
+
+---
+
+### Story 11.2: In-App Feedback Capture — Entry Point, Screen Auto-Capture & Submission
+
+As a beta tester,
+I want a persistent feedback button available on every screen — including mid-exposure-session — that opens a lightweight form pre-tagged with the screen I'm on,
+So that I can report an issue or impression in the moment without losing my place or routing through an external form (FR-BETA-01).
+
+**Acceptance Criteria:**
+
+**Given** the app is built with `EXPO_PUBLIC_ENABLE_BETA_FEEDBACK=true`
+**When** any screen renders, including `app/session/active.tsx` and the other session-flow screens
+**Then** a persistent `FeedbackFab` is mounted in `app/_layout.tsx` before `<Stack>`, following the same ordering pattern as `CalmMeFab`, so it is not suppressed on any route and remains visible and tappable throughout an active ERP session — the feedback entry point is deliberately NOT hidden during sessions, unlike the Calm Me suppression logic considered during planning
+
+**Given** the flag is unset or `false`
+**When** the app builds for production/GA
+**Then** `FeedbackFab` does not render and no feedback-related code path is reachable from the UI — this is a beta-only feature with no production surface area
+
+**Given** the tester taps the feedback button
+**When** the feedback modal opens, reusing the existing RN `Modal` pattern from `DeleteAccountModal.tsx` rather than introducing a new bottom-sheet dependency
+**Then** the current route is auto-captured via `usePathname()` and displayed read-only in the form; category chips (Bug / Confusing / Suggestion / Praise) and a free-text message field are shown; the submit action is disabled until a category is selected and the message is non-empty
+
+**Given** the free-text message field
+**When** the tester types their feedback
+**Then** the existing crisis keyword pre-filter (`detectCrisisKeywords` in `packages/core/src/crisis/keywordDetector.ts`) runs on the text before submission, consistent with FR-CRISIS-01's requirement that the pre-filter cover all user-entered text fields; a detected keyword surfaces the standard crisis resources display without blocking the tester from also submitting their feedback
+
+**Given** the optional screenshot toggle is enabled
+**When** the tester attaches a screenshot
+**Then** the current screen is captured via `react-native-view-shot`, uploaded to the `feedback-screenshots` bucket under a path prefixed with the tester's `auth.uid()`, and the returned storage path is included in the feedback row's `screenshot_path`
+
+**Given** a completed form
+**When** the tester submits
+**Then** a row is inserted into the `feedback` table via the `packages/supabase` client with `screen_route`, `category`, `message`, `app_version` (read from Expo config, not hardcoded), and `screenshot_path` (if attached); a confirmation toast/alert dismisses the modal; no navigation occurs and the tester's prior screen state is preserved
