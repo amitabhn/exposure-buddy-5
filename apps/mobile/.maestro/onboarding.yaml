@@ -154,6 +154,14 @@ appId: com.exposurebuddy.app
 - eraseText: 50
 - inputText: "Riding the elevator alone"
 - hideKeyboard
+
+# The SUDS row sits below the description input — unlike its neighbours ("Describe the
+# situation", "Add to ladder", "Next") this tap had no scroll guard, and this section is
+# onboarding-only (the validated clickthrough takes the Skip path), so guard it too.
+- scrollUntilVisible:
+    element:
+      text: "5 out of 10"
+    direction: DOWN
 - tapOn:
     text: "5 out of 10"
 - scrollUntilVisible:
