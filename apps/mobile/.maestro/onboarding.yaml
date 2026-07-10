@@ -110,6 +110,11 @@ appId: com.exposurebuddy.app
     text: "One-time passcode"
 - inputText: ${output.otpCode}
 
+# Dismiss the numeric keyboard — it covers the bottom half of the screen where the Verify
+# button renders (same failure mode as the email field above; CI screenshot showed the code
+# entered but "Verify" hidden behind the keyboard).
+- hideKeyboard
+
 # Verify
 - tapOn:
     text: "Verify"
