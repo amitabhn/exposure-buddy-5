@@ -30,6 +30,12 @@ appId: com.exposurebuddy.app
 - launchApp:
     stopApp: true
     clearState: true
+# Story 10.1 made the sign-in screen taller (third tab row + password field render by
+# default), so the DEV button — the ScrollView's LAST element — can sit below the fold
+# on the CI emulator. tapOn does not auto-scroll; bring it into view first.
+- scrollUntilVisible:
+    element:
+      text: "DEV: Sign in as test user"
 - tapOn: "DEV: Sign in as test user"
 - waitForAnimationToEnd
 

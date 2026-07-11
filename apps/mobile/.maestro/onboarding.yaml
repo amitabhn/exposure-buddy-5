@@ -57,10 +57,18 @@ appId: com.exposurebuddy.app
 # keeps "Send code" disabled (isSendDisabled) so the OTP is never sent and fetchOtp fails.
 - hideKeyboard
 
-# Agree to both consent checkboxes (required in signup mode; gates "Send code")
+# Agree to both consent checkboxes (required in signup mode; gates "Send code").
 # (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
+# Scroll guards: Story 10.1's third tab row pushed everything below the email input
+# further down; tapOn does not auto-scroll.
+- scrollUntilVisible:
+    element:
+      text: "I confirm I am 18 years of age or older"
 - tapOn:
     text: "I confirm I am 18 years of age or older"
+- scrollUntilVisible:
+    element:
+      text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 - tapOn:
     text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
@@ -74,6 +82,12 @@ appId: com.exposurebuddy.app
 # re-enabling the Send button — so each retry below waits 15s (past that timeout) before
 # re-tapping. The waits are `optional: true` so a not-yet-visible OTP screen falls through
 # to the next retry instead of failing the flow; the final wait is a hard assertion.
+# Scroll guard targets "Privacy Notice" (the link just BELOW the button) rather than
+# "Send code" itself — the subtitle at the top of the screen renders the same string, so
+# a scrollUntilVisible on "Send code" would be satisfied without scrolling at all.
+- scrollUntilVisible:
+    element:
+      text: "Privacy Notice"
 - tapOn:
     text: "Send code"
     index: 1
