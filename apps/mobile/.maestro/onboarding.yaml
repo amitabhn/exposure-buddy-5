@@ -19,6 +19,12 @@ appId: com.exposurebuddy.app
 - tapOn:
     text: "Create account"
 
+# Story 10.1 defaulted the auth method to Password; this flow exercises the OTP path
+# (the whole point of this shard), so switch to the OTP method tab. Without this the
+# "Send code" button never renders (password mode shows a submit button instead).
+- tapOn:
+    text: "OTP"
+
 # Enter the unique test email.
 # The "Email address" identifier-type tab (index 0) and the TextInput (index 1) share the
 # same accessibilityLabel (t('auth.otp.emailLabel')). Email mode is the default on fresh
