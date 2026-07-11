@@ -197,7 +197,7 @@ const INITIAL_STATE: State = {
   errorKey: null,
   hasAttemptedSubmit: false,
   mode: 'signup',
-  authMethod: 'otp',
+  authMethod: 'password',
   ageConfirmed: false,
   medicoLegalConfirmed: false,
   isPasswordSignupPending: false,
@@ -458,31 +458,6 @@ export default function SignInScreen() {
 
       <View style={styles.tabRow}>
         <TouchableOpacity
-          style={[styles.tab, state.authMethod === 'otp' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.authMethod.otp')}
-          accessibilityState={{ selected: state.authMethod === 'otp', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.authMethod === 'otp' && styles.tabTextActive]}>
-            {t('auth.authMethod.otp')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, state.authMethod === 'password' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.authMethod.passwordAccessibilityLabel')}
-          accessibilityState={{ selected: state.authMethod === 'password', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.authMethod === 'password' && styles.tabTextActive]}>
-            {t('auth.authMethod.password')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabRow}>
-        <TouchableOpacity
           style={[styles.tab, state.identifierType === 'email' && styles.tabActive]}
           onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'email' }) }}
           accessibilityLabel={t('auth.otp.emailLabel')}
@@ -502,6 +477,31 @@ export default function SignInScreen() {
         >
           <Text style={[styles.tabText, state.identifierType === 'phone' && styles.tabTextActive]}>
             {t('auth.otp.phoneLabel')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tab, state.authMethod === 'password' && styles.tabActive]}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' }) }}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.authMethod.passwordAccessibilityLabel')}
+          accessibilityState={{ selected: state.authMethod === 'password', disabled: isAuthMethodOrModeLocked }}
+        >
+          <Text style={[styles.tabText, state.authMethod === 'password' && styles.tabTextActive]}>
+            {t('auth.authMethod.password')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, state.authMethod === 'otp' && styles.tabActive]}
+          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
+          accessibilityRole="tab"
+          accessibilityLabel={t('auth.authMethod.otp')}
+          accessibilityState={{ selected: state.authMethod === 'otp', disabled: isAuthMethodOrModeLocked }}
+        >
+          <Text style={[styles.tabText, state.authMethod === 'otp' && styles.tabTextActive]}>
+            {t('auth.authMethod.otp')}
           </Text>
         </TouchableOpacity>
       </View>
