@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-09 # Epic 10 (Password-Based Login) and Epic 11 (Beta Feedback Collection) added — planning only, no stories created yet
+last_updated: 2026-07-09 # Story 10.1 implementation code review complete (done)
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -136,7 +136,7 @@ development_status:
   # remediation trigger that previously reserved 10 has moved to Epic 12
   # (post-MVP), see deferred-work.md.
   epic-10: in-progress # code implemented on feature/password-based-login (commit ccc4d4d), not yet merged to main
-  10-1-password-based-sign-up-and-sign-in-email-and-phone: done # implemented, tested, unmerged
+  10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md)
   10-2-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
   10-3-hosted-supabase-provisioning-and-auth-hardening: done # implemented, unmerged
   epic-10-retrospective: optional
