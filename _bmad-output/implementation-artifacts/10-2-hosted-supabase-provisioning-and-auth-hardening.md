@@ -16,6 +16,10 @@ so that password-based accounts run on production-shaped infrastructure with no 
    **When** this story is implemented
    **Then** it is linked in `supabase/config.toml` (`project_id` set to the real ref, replacing the `"exposure-buddy"` placeholder), migrations through 0030 are confirmed applied on the hosted project, and the `exposure-buddy://reset-password` redirect URL is confirmed present under Auth → URL Configuration → Redirect URLs on the hosted project dashboard.
 
+4. **Given** two loose ends found by cross-checking this story against the unmerged `feature/password-based-login` branch (not in epics.md's original AC text, added here so the dev agent doesn't have to rediscover them)
+   **When** this story is implemented
+   **Then** (a) `.gitignore` also excludes `.env.production` alongside the already-present `.env.remote` (hosted-project env-file hygiene, same class of file), and (b) `supabase/config.toml`'s `[auth.sms]` section sets `enable_signup = true` so phone+password sign-up (shipped in Story 10.1, already merged to `main`) actually works against a local `supabase start` stack — currently it's `false`, which would reject local phone signup attempts even though the app code supports it.
+
 2. **Given** `perform_user_erasure` and `fear_ladder_items_delete_audit` were found to have public EXECUTE grants (a cross-user PII-erasure hole introduced in migration 0007)
    **When** this story is implemented
    **Then** a new migration `supabase/migrations/0030_revoke_definer_function_execute.sql` exists in the repo, revoking public EXECUTE on both functions and re-granting EXECUTE on `perform_user_erasure` to `service_role` only, and this is confirmed applied on the hosted project.
@@ -60,10 +64,14 @@ so that password-based accounts run on production-shaped infrastructure with no 
 - [ ] Task 3 — Document the leaked-password-protection deferral (AC: #3)
   - [ ] Add a new dated section to `_bmad-output/implementation-artifacts/deferred-work.md`, following the file's existing per-story convention (see the `## Deferred from: code review of 10-1-...` section for the exact format: `##` heading + italic context line + bullet(s) + a source-file citation line), stating: hosted project is on the Free plan; the HaveIBeenPwned leaked-password check requires Pro; not an MVP blocker since the client-side 8-character minimum (Story 10.1) already ships; trigger = "enable the toggle (Auth → Providers → Email → Password Security) when the project is upgraded to Pro."
   - [ ] **Scope this entry narrowly** — do not reintroduce the broader "Hosted/remote Supabase — mostly provisioned" or "Reset + email-confirmation deep-link flow not E2E-verified" entries that existed on the old `feature/password-based-login` branch's `deferred-work.md`. Those belong to Story 10.3 (forgot/reset-password flow), which has not been created yet and is out of this story's scope.
-- [ ] Task 4 — Verification (AC: #1, #2, #3)
-  - [ ] No application code changes in this story (infra config + one SQL migration + one docs entry) — there is no new unit-test surface. Run `pnpm turbo typecheck lint test` to confirm nothing regresses (in particular the RLS/pgTAP harness per ADR-006, which enumerates migrations).
+- [ ] Task 4 — Close the two cross-check gaps (AC: #4)
+  - [ ] Add `.env.production` to `.gitignore` alongside the existing `.env.remote` line (same section, one new line) — protects a future hosted-project env file from being committed, matching the intent already established for `.env.remote`.
+  - [ ] In `supabase/config.toml`'s `[auth.sms]` section, change `enable_signup = false` to `enable_signup = true` (mirrors `[auth.email] enable_signup = true`, already set). This is a **local-dev-only** config fix — it does not touch the hosted project's own SMS provider settings (those are dashboard-level, separate from this file) — it only makes local `supabase start` accept phone-based `signUp()` calls without a real SMS provider, consistent with how `[auth.email] enable_confirmations = false` already lets email password-signup auto-confirm locally.
+- [ ] Task 5 — Verification (AC: #1, #2, #3, #4)
+  - [ ] No application code changes in this story (infra config + one SQL migration + two docs/config one-liners) — there is no new unit-test surface. Run `pnpm turbo typecheck lint test` to confirm nothing regresses (in particular the RLS/pgTAP harness per ADR-006, which enumerates migrations).
   - [ ] Confirm via the Supabase MCP (`list_migrations`, `get_advisors`) that the hosted project's applied-migration list includes `0030_revoke_definer_function_execute` and the security advisor no longer flags the two definer functions.
   - [ ] Confirm `supabase link --project-ref jhbtzsvlgglyfbrgmpsb` (or MCP equivalent) succeeds locally using the updated `config.toml`.
+  - [ ] Manually verify local phone+password sign-up (Story 10.1's flow) no longer gets rejected by GoTrue after the `[auth.sms] enable_signup` change, against a local `supabase start` stack.
 
 ## Dev Notes
 
@@ -77,6 +85,22 @@ The hosted Supabase project ("Exposure Buddy", `jhbtzsvlgglyfbrgmpsb`, ap-northe
 **None of this is reflected in the repo on `main`**: `supabase/config.toml` still has the placeholder `project_id = "exposure-buddy"`, and `supabase/migrations/0030_revoke_definer_function_execute.sql` does not exist locally (local `migrations/` currently only goes 0001–0029). This story's real job is to bring the **repo** in line with what is already true on the **hosted infrastructure** — not to re-derive or re-run the provisioning from scratch. Do not be alarmed that the remote's applied-migration names for 0004–0029 don't match the local per-story filenames 1:1; that's a byproduct of how they were bootstrapped (batched SQL application) in the prior session, not drift to reconcile.
 
 A previous attempt at this work exists on the unmerged `feature/password-based-login` branch (commit `13ba0f5`) with byte-identical `config.toml`/migration-0030 content to what's specified above — it was independently re-verified against the live remote project for this story rather than blindly trusted.
+
+### Cross-Check Against `feature/password-based-login` (2026-07-11)
+
+Every commit on that branch was individually diffed against `main` to confirm this story's scope is complete except for Story 10.3 (forgot/reset flow). Full breakdown:
+
+| Commit | What it does | Disposition |
+|---|---|---|
+| `f2463d1`, `767a12b` | Password sign-up/sign-in, email + phone | Story 10.1 (already merged, reimplemented fresh) |
+| `13ba0f5` | config.toml link + migration 0030 | **This story**, Task 1/2 |
+| `d7adb0c` | deferred-work.md: leaked-password deferral | **This story**, Task 3 |
+| `d3811b9` | .gitignore: `.env.remote` + `.env.production` | `.env.remote` already on `main`; `.env.production` was missing — **this story**, Task 4 |
+| `73c0caa` | forgot/reset screens, `recovery-url.ts`, local `config.toml` redirect-URL entry | Story 10.3 (not yet created) — correctly excluded |
+| `cf9e9ae` | deferred-work.md: email-confirmation/SMTP details | Story 10.3 — correctly excluded |
+| `ccc4d4d` | `EXPO_PUBLIC_ENABLE_PASSWORD_RESET` flag gating | Story 10.3 — correctly excluded |
+
+One additional gap surfaced that is **not** from this branch's diff but from checking whether Story 10.1's merged code actually works locally: `767a12b` also set `[auth.sms] enable_signup = true` in local `config.toml`, and that flag is missing on `main` even though `main`'s `sign-in.tsx` (Story 10.1) calls `signUp({ phone, password })`. Folded into Task 4/AC #4 per user decision (2026-07-11) rather than filed as a separate Story 10.1 follow-up, since `config.toml` is already being touched here.
 
 ### NFR Citation Discrepancy
 
