@@ -135,10 +135,10 @@ development_status:
   # Numbered 10 — pre-beta must-have; the ADR-OFFLINE-DEGRADATION Decision 2
   # remediation trigger that previously reserved 10 has moved to Epic 12
   # (post-MVP), see deferred-work.md.
-  epic-10: in-progress # code implemented on feature/password-based-login (commit ccc4d4d), not yet merged to main
-  10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md)
-  10-2-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
-  10-3-hosted-supabase-provisioning-and-auth-hardening: done # implemented, unmerged
+  epic-10: in-progress # 10.1 merged to main 2026-07-11 (PR #63, 2a77036); 10.2/10.3 remain on feature/password-based-login, not yet merged
+  10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md). Merged to main 2026-07-11 via PR #63 (2a77036), built on its own story/10-1-... branch separate from feature/password-based-login.
+  10-2-hosted-supabase-provisioning-and-auth-hardening: done # implemented, unmerged
+  10-3-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
   epic-10-retrospective: optional
 
   # ─── Epic 11: Beta Feedback Collection ────────────────────────────────────
