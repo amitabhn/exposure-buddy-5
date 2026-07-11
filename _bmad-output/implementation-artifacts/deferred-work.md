@@ -1,5 +1,18 @@
 # Deferred Work
 
+## Deferred from: spec review of 10-2-hosted-supabase-provisioning-and-auth-hardening (2026-07-11)
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter). `no-spec` mode — the story document was the review target itself. 9 patches applied to the spec; 4 items deferred below._
+
+- **Trigger-function (`fear_ladder_items_delete_audit`) EXECUTE-revocation reasoning is technically sound but never actually exercised.** No task performs a DELETE on `fear_ladder_items` post-migration to confirm the AFTER DELETE trigger still fires once public EXECUTE is revoked. Low risk — Postgres trigger functions fire as the table owner regardless of invoker EXECUTE privilege, so this is a belt-and-suspenders check, not a suspected break. Trigger: revisit if a future migration changes trigger-function ownership or ADR-006's pgTAP harness is extended to cover audit-log write paths.
+- **NFR citation error in `epics.md`'s Story 10.2 section (cites NFR-SEC-01, NFR-SEC-06 instead of the applicable NFR-SEC-02) is deliberately left uncorrected at the source**, per this story's own Dev Notes. Trigger: small standalone doc fix to `epics.md` whenever it's next touched, or before Epic 10 retro.
+- **Task 5's `pnpm turbo typecheck lint test` could fail on unrelated pre-existing issues with no triage guidance for the dev agent** on whether to block or note-and-proceed. General operational judgment call, not specific to this story. Trigger: revisit if CI gating conventions are formalized in a future DevOps story.
+- **Task 4's `[auth.sms] enable_signup = true` doesn't address the future interaction with `[auth.sms] enable_confirmations` once a real SMS provider is configured for local dev** — the email case already documents this pattern (`[auth.email] enable_confirmations = false` comment), the SMS case doesn't. Speculative/future — no real SMS provider is configured today. Trigger: revisit when a local SMS provider is wired up for dev/test.
+
+[`_bmad-output/implementation-artifacts/10-2-hosted-supabase-provisioning-and-auth-hardening.md`]
+
+---
+
 ## Deferred from: code review of 10-1-password-based-sign-up-and-sign-in-email-and-phone (2026-07-09)
 
 _Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). 2 decisions-needed, resolved via party-mode roundtable (Winston, Amelia, John, Sally) into an immediate patch + a deferred item each; 10 patches total; 3 items deferred below._

@@ -73,6 +73,24 @@ so that password-based accounts run on production-shaped infrastructure with no 
   - [ ] Confirm `supabase link --project-ref jhbtzsvlgglyfbrgmpsb` (or MCP equivalent) succeeds locally using the updated `config.toml`.
   - [ ] Manually verify local phone+password sign-up (Story 10.1's flow) no longer gets rejected by GoTrue after the `[auth.sms] enable_signup` change, against a local `supabase start` stack.
 
+### Review Findings
+
+_Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter). `no-spec` mode — the story document was the review target itself. 9 patches, 4 deferred, 4 dismissed as noise below._
+
+- [ ] [Review][Patch] AC list is out of order (1, 4, 2, 3) and never renumbered — reads as bolted-on. Renumber sequentially.
+- [ ] [Review][Patch] AC #1's "migrations through 0030 are confirmed applied" contradicts Task 1's own "do not attempt to reconcile or reapply 0004–0029" instruction, and silently diverges from `epics.md`'s actual Story 10.2 AC text ("migrations are backfilled to match local (0004–0030)") without flagging the deviation the way the NFR citation is flagged. Reword AC #1 to distinguish "0030 confirmed applied" from "0001–0029 confirmed via batched-name equivalence, not reconciled," and note the epics.md wording deviation alongside the existing NFR Citation Discrepancy note.
+- [ ] [Review][Patch] Several "confirm rather than assume" verification steps have no defined fallback if the expected state doesn't hold: Task 1's migration-drift check, Task 1's redirect-URL presence check, Task 1's relink (no guard against relinking over a different previously-linked project), Task 2's post-apply advisor re-check. Add an explicit instruction: if any of these checks find drift/absence/an unexpected flag, halt and report to the user rather than proceeding.
+- [ ] [Review][Patch] Story statement's "no known auth-adjacent security gaps" is directly contradicted by AC #3's explicit deferral of leaked-password protection. Soften to "no known auth-adjacent security gaps beyond the explicitly deferred Free-plan leaked-password check."
+- [ ] [Review][Patch] Task 5 is labeled "(AC: #1, #2, #3, #4)" but its sub-bullets aren't individually mapped to which AC each verifies. Map each sub-bullet to its AC number.
+- [ ] [Review][Patch] `supabase link` requires `SUPABASE_ACCESS_TOKEN` or interactive browser auth — neither is guaranteed present in a dev/CI environment (confirmed absent in this worktree). Task 1 and Task 5 assume it "succeeds." Add a fallback note: ensure `SUPABASE_ACCESS_TOKEN` is set (see `docs/setup/local-environment.md`), or use the MCP tools exclusively, which don't require it.
+- [ ] [Review][Patch] Local `supabase/config.toml` pins Postgres `major_version = 15` while the hosted project runs Postgres 17 — the same mismatch class that caused a prior local incident in this repo (PG17-vs-PG15 docker volume issue). Never checked or mentioned in this story. Add a caution note to Task 1/Task 2 referencing this known issue class.
+- [ ] [Review][Patch] Task 5 claims `pnpm turbo test` (RLS/pgTAP per ADR-006) verifies "nothing regresses," but no task applies migration 0030 to the *local* Supabase stack — the local pgTAP suite runs against pre-migration grant state and will silently pass without exercising the new REVOKE/GRANT. Add a Task 5 step to apply 0030 locally (`supabase db reset` or `supabase migration up`) before running tests, or explicitly note the local suite doesn't cover this and that's acceptable.
+- [ ] [Review][Patch] No step confirms MCP `apply_migration` registers migration 0030 in the CLI-tracked `supabase_migrations.schema_migrations` history the same way `supabase db push` would — risk of a later `supabase db push --linked` attempting to reapply/diverge. Add a step to run `supabase migration list --linked` after applying via MCP to confirm 0030 is registered.
+- [x] [Review][Defer] Trigger-function (`fear_ladder_items_delete_audit`) EXECUTE-revocation reasoning is technically sound but never actually exercised — no task performs a DELETE on `fear_ladder_items` post-migration to confirm the trigger still fires. — deferred, low risk/optional
+- [x] [Review][Defer] NFR citation error in `epics.md` (cites NFR-SEC-01/06 instead of NFR-SEC-02) is deliberately left uncorrected at the source. — deferred, doc-only follow-up
+- [x] [Review][Defer] Task 5's `pnpm turbo typecheck lint test` could fail on unrelated pre-existing issues with no triage guidance for the dev agent. — deferred, general operational judgment
+- [x] [Review][Defer] Task 4's `[auth.sms] enable_signup = true` doesn't address future interaction with `enable_confirmations` once a real SMS provider is configured for local dev (the email case already documents this pattern; the SMS case doesn't). — deferred, speculative/future
+
 ## Dev Notes
 
 ### Remote State Is Already Correct (read this first)
