@@ -2317,7 +2317,29 @@ So that I have a faster alternative to OTP verification (FR-AUTH-04).
 
 ---
 
-### Story 10.2: Forgot / Reset Password Flow (Flag-Gated)
+### Story 10.2: Hosted Supabase Provisioning & Auth Hardening
+
+As a developer preparing the password-auth epic for a real beta,
+I want the hosted Supabase project fully migration-current and hardened against the cross-user PII-erasure hole found in migration 0007,
+So that password-based accounts run on production-shaped infrastructure with no known auth-adjacent security gaps (NFR-SEC-01, NFR-SEC-06).
+
+**Acceptance Criteria:**
+
+**Given** the hosted Supabase project "Exposure Buddy" (`jhbtzsvlgglyfbrgmpsb`, ap-northeast-1)
+**When** this story is implemented
+**Then** it is linked in `supabase/config.toml`, migrations are backfilled to match local (0004–0030), and the `exposure-buddy://reset-password` redirect URL is registered in the dashboard
+
+**Given** `perform_user_erasure` and `fear_ladder_items_delete_audit` were found to have public EXECUTE grants (a cross-user PII-erasure hole introduced in migration 0007)
+**When** this story is implemented
+**Then** migration `0030_revoke_definer_function_execute.sql` revokes public EXECUTE on both functions
+
+**Given** leaked-password protection (HaveIBeenPwned check) requires a Supabase Pro-plan feature
+**When** this story is implemented on the Free-plan hosted project
+**Then** the feature is deferred, not silently skipped — tracked in `deferred-work.md` with the trigger "enable when upgraded to Pro"; client-side 8-character minimum length remains the only password-strength check at MVP
+
+---
+
+### Story 10.3: Forgot / Reset Password Flow (Flag-Gated)
 
 As a user who has forgotten their password,
 I want to request a reset link and set a new password from a deep link,
@@ -2340,28 +2362,6 @@ So that I'm not permanently locked out of a password-based account (FR-AUTH-05).
 **Given** the flag is later flipped on
 **When** an on-device build is tested
 **Then** one manual E2E pass verifies both redirect shapes against the live hosted project before the flag ships to any real beta tester — not yet performed as of this planning entry; tracked in `deferred-work.md`
-
----
-
-### Story 10.3: Hosted Supabase Provisioning & Auth Hardening
-
-As a developer preparing the password-auth epic for a real beta,
-I want the hosted Supabase project fully migration-current and hardened against the cross-user PII-erasure hole found in migration 0007,
-So that password-based accounts run on production-shaped infrastructure with no known auth-adjacent security gaps (NFR-SEC-01, NFR-SEC-06).
-
-**Acceptance Criteria:**
-
-**Given** the hosted Supabase project "Exposure Buddy" (`jhbtzsvlgglyfbrgmpsb`, ap-northeast-1)
-**When** this story is implemented
-**Then** it is linked in `supabase/config.toml`, migrations are backfilled to match local (0004–0030), and the `exposure-buddy://reset-password` redirect URL is registered in the dashboard
-
-**Given** `perform_user_erasure` and `fear_ladder_items_delete_audit` were found to have public EXECUTE grants (a cross-user PII-erasure hole introduced in migration 0007)
-**When** this story is implemented
-**Then** migration `0030_revoke_definer_function_execute.sql` revokes public EXECUTE on both functions
-
-**Given** leaked-password protection (HaveIBeenPwned check) requires a Supabase Pro-plan feature
-**When** this story is implemented on the Free-plan hosted project
-**Then** the feature is deferred, not silently skipped — tracked in `deferred-work.md` with the trigger "enable when upgraded to Pro"; client-side 8-character minimum length remains the only password-strength check at MVP
 
 ---
 
