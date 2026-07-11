@@ -39,6 +39,14 @@ refresh_token_reuse_interval = 10
 enable_signup = true
 enable_anonymous_sign_ins = false
 
+[auth.email]
+enable_signup = true
+# Password sign-up (sign-in.tsx) assumes no session == "identifier already
+# registered". That's only true while confirmations stay off — if this is
+# ever flipped on, a legitimate new signup would be misdiagnosed as a
+# duplicate (see Story 10.1 code review, Decision 2).
+enable_confirmations = false
+
 # The app's OTP flow verifies a 6-digit code (verifyOtp type: 'email'). GoTrue's default
 # magic_link email renders only the link, not {{ .Token }}, so the code never reaches the
 # email — the Maestro onboarding E2E (fetchOtp.js) can't scrape it. This custom template
