@@ -1,0 +1,42 @@
+# Story 9.5, Task 7 — debrief.yaml (AC 2.4)
+#
+# Independently reaches the debrief screen (via setup/reachDebrief.yaml), fills the
+# optional reflection field, taps "Done", and verifies the home screen no longer shows
+# the 'progressing' state for the just-completed item.
+#
+# Per AC2.4 deferral note: this flow does NOT check an Achievements tab — Story 8.5
+# is deferred post-MVP.
+#
+# Required env vars:
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for backend seeding via reachDebrief.yaml)
+appId: com.exposurebuddy.app
+---
+# Drive from launch to the debrief screen (self-contained — does not depend on
+# exposure-loop.yaml having run first)
+- runFlow: setup/reachDebrief.yaml
+
+# ── Debrief ──────────────────────────────────────────────────────────────────────────────
+# Optionally fill the reflection TextInput (field label = t('session.debrief.reflectionPrompt'))
+- tapOn: "What would you like to remember about this?"
+- inputText: "I handled it better than expected."
+# Dismiss the keyboard — it covers the "Done" button below the reflection field, so tapping
+# "Done" with the keyboard up misses and the app stays on the debrief screen.
+- hideKeyboard
+
+# Tap "Done" (a11y: t('session.debrief.done'))
+# debrief.tsx calls router.replace('/') on Done — replaces route with home screen
+- tapOn:
+    text: "Done"
+- waitForAnimationToEnd
+
+# ── Assertions ────────────────────────────────────────────────────────────────────────────
+# After completing the session, the item transitions to 'completed' in the local
+# PowerSync queue. The home state is:
+#   - 'morning'   if other pending items remain (e.g. added by ladder-build.yaml earlier)
+#   - 'completed' if this was the last pending item
+# We assert the 'progressing' state CTA is NOT visible (not which of the two it settled into),
+# and that we're back on the home screen (not the debrief screen or any other screen).
+- assertNotVisible:
+    text: "Continue"
+# Confirm we navigated away from the debrief screen (robust regardless of firstHomeVisitSeen state)
+- assertNotVisible: "What would you like to remember about this?"

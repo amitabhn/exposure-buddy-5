@@ -12,6 +12,44 @@ _Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance A
 
 ---
 
+## Deferred from: code review of 9-5-e2e-smoke-test-suite-maestro (2026-06-24)
+
+_Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of uncommitted changes on `story/9-5-e2e-smoke-test-suite-maestro`. 8 patch findings, 10 defer, 7 dismissed. Patches are open action items in the story file._
+
+- **`eval "$(supabase status -o env)"` executes arbitrary Supabase CLI stdout.** Standard documented pattern for extracting local-stack env; Supabase CLI is first-party trusted binary. Low practical risk. [`scripts/ci/run-e2e-smoke.sh:30`]
+- **OTP regex `/\b(\d{6})\b/` matches the first 6-digit sequence in the full email body.** Acknowledged per spec (Task 4.1) as needing runtime verification of the exact Supabase OTP template format; tighten after first live CI run. [`apps/mobile/.maestro/setup/fetchOtp.js:78`]
+- **`seedPendingLadderItem.js` accumulates rows across back-to-back reruns within the same `supabase start` session.** Mitigated by fresh Docker state per CI job; only relevant for Task 9.3 in-session reruns. [`apps/mobile/.maestro/setup/seedPendingLadderItem.js`]
+- **DEV bypass button conditional on `__DEV__ || EXPO_PUBLIC_APP_VARIANT === 'preview'`.** Safe in primary EAS dev-client build path (`developmentClient: true` → `__DEV__` true); only at risk in the pre-authorized Gradle fallback path. [`apps/mobile/.maestro/setup/ensureOnboarded.yaml`, `apps/mobile/app/(auth)/sign-in.tsx`]
+- **`SUPABASE_SERVICE_ROLE_KEY` passed as `--env` CLI flag (visible in `/proc/<pid>/cmdline` on Linux).** Local demo stack key only, not a production credential; GitHub Actions process isolation limits practical exposure. [`scripts/ci/run-e2e-smoke.sh:69-79`]
+- **No job-level `timeout-minutes` on the `e2e-smoke` CI job.** Emulator hang after the 600s boot phase would consume the 6h GitHub Actions default. [`.github/workflows/ci.yml` `e2e-smoke` job]
+- **Failed flow name not explicitly echoed to CI job summary beyond Maestro's own CLI stdout.** Maestro prints the failing flow name natively; spec explicitly says "no special parsing required unless output is too noisy." [`.github/workflows/ci.yml`]
+- **Local Supabase anon key committed plaintext in `eas.json` `e2e` profile.** The well-known `supabase-demo` JWT (public, non-secret by design); intentional per spec (matches the key already in `e2e-spike.yml`). [`apps/mobile/eas.json`]
+- **Stale `exposure_sessions` row from a prior flow run flips home to `'progressing'` state, breaking `reachDebrief.yaml`'s tap.** Only affects Task 9.3 back-to-back reruns without a `supabase db reset` between them; accepted known risk documented in the story. [`apps/mobile/.maestro/setup/reachDebrief.yaml`]
+- **Single `waitForAnimationToEnd` is insufficient as a PowerSync sync wait after PostgREST seeding.** Resolution depends on Task 1.5's open question about PowerSync reachability in CI; if sync is unavailable, the seeding approach is moot regardless. [`apps/mobile/.maestro/setup/reachDebrief.yaml:41`]
+
+[`_bmad-output/implementation-artifacts/9-5-e2e-smoke-test-suite-maestro.md`]
+
+---
+
+## Deferred from: code review of 9-5-e2e-smoke-test-suite-maestro spec (2026-06-23)
+
+_Spec-only review (Blind Hunter + Edge Case Hunter; no Acceptance Auditor — no separate spec to audit this against) before any implementation, since the story was still `ready-for-dev`. 14 patch findings were resolved as fix-now and folded directly into the story's ACs/Tasks/Dev Notes (see `9-5-e2e-smoke-test-suite-maestro.md` → "Review Findings"), including two live-verified blocking issues (Mailpit vs. Inbucket API mismatch; `fear_ladder_items` being PowerSync-synced rather than directly Postgres-readable). Only these two items were resolved as defer._
+
+- **Story bundles 4 new infrastructure pieces (Android-emulator CI, local EAS build, local-Supabase-in-CI, OTP-mailbox scraping) under a single "smoke test suite" framing.** The Dev Notes already explicitly justify bundling them ("must be stood up together"). Whether to split this into multiple stories is a sequencing/scope decision for the user, not a defect blocking dev start.
+- **No teardown/trap for partial `supabase start` failure mid-CI-job.** Primarily relevant to the self-hosted-runner fallback path (Task 1.4b) where the runner isn't guaranteed fresh per job; GitHub-hosted runners largely mitigate this by being fresh per job. Low-priority hardening, addressable post-implementation.
+
+[`_bmad-output/implementation-artifacts/9-5-e2e-smoke-test-suite-maestro.md`]
+
+---
+
+## Deferred post-MVP: Calm Me FAB margin/safe-spacing audit (2026-07-01)
+
+_Demoted from MUST-HAVE before MVP launch. Accepted MVP state: the FAB may visually overlap screen headings on some screens; the core Calm Me flow is functional. Revisit before the first post-closed-beta release or when a UX polish story is scoped._
+
+- **Add margin/safe spacing around the Calm Me FAB so it doesn't overlap screen headings.** Repositioning the FAB to top-right (2026-06-18, post-review) caused it to visually overlap the Home screen's "Welcome back. Keep going." heading — confirmed via simulator screenshot. Screens with native headers (`ladder.tsx`, `privacy-notice.tsx`) are also suspect — the FAB's `top: 48` may overlap the native header bar itself, not just heading text, but this hasn't been visually confirmed yet. Needs a full audit across every screen the FAB renders on (home, settings, ladder, session flow, onboarding). [`apps/mobile/src/components/CalmMeFab.tsx`]
+
+---
+
 ## Deferred: 9-10-silent-enqueue-failure-remediation-error-retry-ui (2026-07-01)
 
 _Entire story deferred post-MVP. ADR-OFFLINE-DEGRADATION Decision 2 explicitly classified silent enqueue-failure behaviour as the accepted MVP state ("Accepted — deferred remediation"). The ADR's named trigger condition — originally "before Epic 10 begins" — now points to **the ADR-OFFLINE-DEGRADATION remediation epic** (a reserved slot, currently numbered Epic 12 as of 2026-07-09: Epic 10 was reassigned to Password-Based Login, a pre-beta must-have; the reserved post-MVP placeholder moved to keep it after both new pre-beta epics; see `epics.md` Epic List for its current number — deliberately not hardcoded here so future renumbers don't require editing this file). The "next story that touches the sync mutation queue" trigger fired previously (Stories 9.2 and 9.6 both touched the queue) without triggering implementation, confirming the epic-reservation clause as the operative gate. PowerSync's outbox will eventually deliver queued writes, so the gap is user-visible feedback rather than data loss. Revisit as the first story of that reserved epic, or as the next story that materially changes the outbox/sync mutation queue — whichever comes first. Known silent-failure call sites documented in ADR-OFFLINE-DEGRADATION Decision 2: `apps/mobile/app/(onboarding)/assessment.tsx:handleNext` and `apps/mobile/app/session/grounding.tsx:52-56`. Deferred items already tracked in `deferred-work.md` under `4-2-D2`, `4-2-D4`, and `5-2-W15` remain as-is._

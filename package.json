@@ -15,7 +15,8 @@
     "dev": "turbo dev",
     "ios": "bash scripts/ios-sim-start.sh",
     "ios:stop": "bash scripts/ios-sim-stop.sh",
-    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + 2>/dev/null; true"
+    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + 2>/dev/null; true",
+    "ci:e2e": "bash scripts/ci/run-e2e-smoke.sh"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

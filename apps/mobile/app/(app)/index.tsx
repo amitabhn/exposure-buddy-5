@@ -13,7 +13,7 @@ export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { firstHomeVisitSeen, markFirstHomeVisitSeen, authState, sessionRecoveryData, getGroundingActiveAt } = useAuth()
+  const { firstHomeVisitSeen, markFirstHomeVisitSeen, isOnboardingComplete, authState, sessionRecoveryData, getGroundingActiveAt } = useAuth()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
@@ -26,10 +26,14 @@ export default function HomeScreen() {
     // Guard on userId: the home screen can mount before onAuthStateChange populates
     // authState.userId, which would cause markFirstHomeVisitSeen to fail silently.
     // Re-running when userId arrives ensures the flag is written on first visit.
-    if (!firstHomeVisitSeen && authState.userId) {
+    // Guard on isOnboardingComplete: right after sign-in the router lands on '/' and home
+    // mounts transiently before the (app) layout's effect redirects to onboarding (child
+    // effects run before parent effects). Marking the visit on that pre-onboarding mount
+    // burns the first-visit greeting before the user ever sees home.
+    if (!firstHomeVisitSeen && authState.userId && isOnboardingComplete) {
       markFirstHomeVisitSeen()
     }
-  }, [authState.userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authState.userId, isOnboardingComplete]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timeout = setTimeout(() => {

@@ -123,7 +123,7 @@ development_status:
   9-2-offline-session-recovery-integration-tests: done
   9-3-accessibility-audit-and-p0-p1-remediation: done
   9-4-mmkv-key-hygiene-and-storage-audit: done
-  9-5-e2e-smoke-test-suite-maestro: backlog
+  9-5-e2e-smoke-test-suite-maestro: done
   9-6-error-state-and-empty-state-ux-audit: done
   9-7-performance-budget-low-end-device-validation: done
   9-8-haptic-and-sound-degradation-audit: deferred-post-mvp # deferred 2026-07-01 — no haptic or audio features exist in MVP codebase; audit has nothing to find; revisit when haptics/audio are added post-MVP

@@ -47,6 +47,14 @@ enable_signup = true
 # duplicate (see Story 10.1 code review, Decision 2).
 enable_confirmations = false
 
+# The app's OTP flow verifies a 6-digit code (verifyOtp type: 'email'). GoTrue's default
+# magic_link email renders only the link, not {{ .Token }}, so the code never reaches the
+# email — the Maestro onboarding E2E (fetchOtp.js) can't scrape it. This custom template
+# puts the 6-digit code in the body. Local/CI only; hosted uses dashboard templates.
+[auth.email.template.magic_link]
+subject = "Your Exposure Buddy sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = false

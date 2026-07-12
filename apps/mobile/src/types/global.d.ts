@@ -8,6 +8,7 @@ declare namespace NodeJS {
     EXPO_PUBLIC_SUPABASE_ANON_KEY?: string
     EXPO_PUBLIC_APP_VARIANT?: string
     EXPO_PUBLIC_POWERSYNC_URL?: string
+    EXPO_PUBLIC_FETCH_TIMEOUT_MS?: string
   }
 }
 

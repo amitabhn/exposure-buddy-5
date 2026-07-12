@@ -1,0 +1,18 @@
+<!--
+  Local/CI magic-link + OTP email template.
+
+  The app's OTP flow (sign-in.tsx → otp-verification.tsx) verifies a 6-digit code via
+  supabase.auth.verifyOtp({ token, type: 'email' }). GoTrue's DEFAULT magic_link template
+  only renders {{ .ConfirmationURL }} (a link) and NOT {{ .Token }}, so the 6-digit code
+  never appears in the email. The Maestro onboarding E2E (apps/mobile/.maestro/setup/fetchOtp.js)
+  scrapes the 6-digit code from this email, so the code MUST be present in the body.
+
+  This template only affects the local Supabase stack (dev + CI). Hosted/production uses the
+  templates configured in the Supabase dashboard, not this file.
+-->
+<h2>Your sign-in code</h2>
+<p>Enter this one-time passcode to sign in:</p>
+<p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">{{ .Token }}</p>
+<p>Or follow this link to sign in:</p>
+<p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
+<p>This code expires shortly and can only be used once.</p>

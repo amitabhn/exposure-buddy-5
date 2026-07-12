@@ -1,0 +1,215 @@
+# Story 9.5, Task 4 — onboarding.yaml (AC 2.1)
+#
+# Exercises the REAL signup/OTP path (not the DEV bypass) — this flow exists specifically
+# to catch regressions in the signup/OTP flow the DEV bypass skips.
+# Uses a per-invocation-unique email (Task 4.2) to avoid OTP rate-limiting under
+# Task 9.3's mandated back-to-back reruns within the same supabase db reset cycle.
+#
+# Required env vars (passed via --env in run-e2e-smoke.sh):
+#   MAILPIT_URL   — Mailpit REST base URL (from `supabase status -o env`)
+appId: com.exposurebuddy.app
+---
+# Generate a per-invocation-unique email for this run
+- runScript: setup/generateEmail.js
+
+# Launch app — defaults to signup mode on fresh install
+- launchApp
+
+# Ensure we're on the signup tab
+- tapOn:
+    text: "Create account"
+
+# Story 10.1 defaulted the auth method to Password; this flow exercises the OTP path
+# (the whole point of this shard), so switch to the OTP method tab. Without this the
+# "Send code" button never renders (password mode shows a submit button instead).
+- tapOn:
+    text: "OTP"
+
+# Enter the unique test email.
+# The "Email address" identifier-type tab (index 0) and the TextInput (index 1) share the
+# same accessibilityLabel (t('auth.otp.emailLabel')). Email mode is the default on fresh
+# install, so no tab tap is needed — target the TextInput directly with index: 1.
+- tapOn:
+    text: "Email address"
+    index: 1
+- eraseText: 50
+- inputText: ${output.email}
+
+# Verify the exact email landed in the field; retype once if not, then hard-assert so a
+# typing failure stops HERE with a clear screenshot instead of 60s later in fetchOtp.
+# (Note when reading failure screenshots: the field scrolls horizontally with the cursor
+# at the end, so the leading character(s) can be out of view — e.g. it renders
+# "2e-onboarding-…" while the full "e2e-onboarding-…" is present. This assert checks the
+# accessibility text, which carries the full value.)
+- runFlow:
+    when:
+      notVisible: ${output.email}
+    commands:
+      - tapOn:
+          text: "Email address"
+          index: 1
+      - eraseText: 50
+      - inputText: ${output.email}
+- assertVisible: ${output.email}
+
+# Dismiss the keyboard before tapping the consent checkboxes below the input. With the
+# keyboard up, the tap on the age checkbox landed off-target and left it unchecked, which
+# keeps "Send code" disabled (isSendDisabled) so the OTP is never sent and fetchOtp fails.
+- hideKeyboard
+
+# Agree to both consent checkboxes (required in signup mode; gates "Send code").
+# (a11y labels: t('auth.safety.ageConfirmation') and t('auth.safety.medicoLegalDisclaimer'))
+# Scroll guards: Story 10.1's third tab row pushed everything below the email input
+# further down; tapOn does not auto-scroll.
+- scrollUntilVisible:
+    element:
+      text: "I confirm I am 18 years of age or older"
+- tapOn:
+    text: "I confirm I am 18 years of age or older"
+- scrollUntilVisible:
+    element:
+      text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
+- tapOn:
+    text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
+
+# Send OTP.
+# index: 1 is CRITICAL: the screen's subtitle renders the same t('auth.otp.sendCode')
+# string ("Send code") as the button, and it comes first in the hierarchy — a bare
+# `tapOn: "Send code"` taps the subtitle (a no-op; CI runs showed 3 taps at the subtitle's
+# bounds and zero requests ever reaching kong). index: 1 targets the actual button.
+# On success the app navigates to otp-verification (shows "One-time passcode"). If the
+# request stalls, the app's EXPO_PUBLIC_FETCH_TIMEOUT_MS (10s in the E2E APK) aborts it,
+# re-enabling the Send button — so each retry below waits 15s (past that timeout) before
+# re-tapping. The waits are `optional: true` so a not-yet-visible OTP screen falls through
+# to the next retry instead of failing the flow; the final wait is a hard assertion.
+# Scroll guard targets "Privacy Notice" (the link just BELOW the button) rather than
+# "Send code" itself — the subtitle at the top of the screen renders the same string, so
+# a scrollUntilVisible on "Send code" would be satisfied without scrolling at all.
+- scrollUntilVisible:
+    element:
+      text: "Privacy Notice"
+- tapOn:
+    text: "Send code"
+    index: 1
+- extendedWaitUntil:
+    visible: "One-time passcode"
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "One-time passcode"
+    commands:
+      - tapOn:
+          text: "Send code"
+          index: 1
+      - extendedWaitUntil:
+          visible: "One-time passcode"
+          timeout: 15000
+          optional: true
+- runFlow:
+    when:
+      notVisible: "One-time passcode"
+    commands:
+      - tapOn:
+          text: "Send code"
+          index: 1
+- extendedWaitUntil:
+    visible: "One-time passcode"
+    timeout: 15000
+
+# Retrieve OTP from Mailpit — poll with backoff since email delivery is async.
+# output.email is still set from generateEmail.js above (output persists across runScript calls).
+- runScript:
+    file: setup/fetchOtp.js
+    env:
+      MAILPIT_URL: ${MAILPIT_URL}
+      OTP_TO_EMAIL: ${output.email}
+
+# Enter OTP code on the verification screen (otp-verification.tsx)
+- tapOn:
+    text: "One-time passcode"
+- inputText: ${output.otpCode}
+
+# Dismiss the numeric keyboard — it covers the bottom half of the screen where the Verify
+# button renders (same failure mode as the email field above; CI screenshot showed the code
+# entered but "Verify" hidden behind the keyboard).
+- hideKeyboard
+
+# Verify
+- tapOn:
+    text: "Verify"
+- waitForAnimationToEnd
+
+# ── Onboarding flow ──────────────────────────────────────────────────────────────────────
+
+# welcome.tsx
+- tapOn:
+    text: "Get started"
+- waitForAnimationToEnd
+
+# assessment.tsx — SUDS calibration widget: pick value 5
+# (SudsCalibrationWidget a11y labels: "N out of 10" for N in 0..10)
+# Do not use any value from CRISIS_KEYWORDS in subsequent text fields
+- tapOn:
+    text: "5 out of 10"
+
+# assessment CTA "Next" (disabled until a SUDS value is picked). The CTA sits below the SUDS
+# widget in a ScrollView — on the emulator it's below the fold, so scroll it into view first.
+- scrollUntilVisible:
+    element:
+      text: "Next"
+    direction: DOWN
+- tapOn:
+    text: "Next"
+- waitForAnimationToEnd
+
+# ladder.tsx (onboarding) — add one fear item, then proceed
+# Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
+- scrollUntilVisible:
+    element:
+      text: "Describe the situation"
+    direction: DOWN
+- tapOn:
+    text: "Describe the situation"
+- eraseText: 50
+- inputText: "Riding the elevator alone"
+- hideKeyboard
+
+# The SUDS row sits below the description input — unlike its neighbours ("Describe the
+# situation", "Add to ladder", "Next") this tap had no scroll guard, and this section is
+# onboarding-only (the validated clickthrough takes the Skip path), so guard it too.
+- scrollUntilVisible:
+    element:
+      text: "5 out of 10"
+    direction: DOWN
+- tapOn:
+    text: "5 out of 10"
+- scrollUntilVisible:
+    element:
+      text: "Add to ladder"
+    direction: DOWN
+- tapOn:
+    text: "Add to ladder"
+- waitForAnimationToEnd
+
+# CTA is "Next" when items.length > 0 (canSkip is false)
+- scrollUntilVisible:
+    element:
+      text: "Next"
+    direction: DOWN
+- tapOn:
+    text: "Next"
+- waitForAnimationToEnd
+
+# complete.tsx — marks onboardingComplete in MMKV, routes to home
+- scrollUntilVisible:
+    element:
+      text: "Start your journey"
+    direction: DOWN
+- tapOn:
+    text: "Start your journey"
+- waitForAnimationToEnd
+
+# ── Final assertion ──────────────────────────────────────────────────────────────────────
+# First-time home visit shows "Your Courage Ladder is ready. Let's go!" (home.readyToStart)
+- assertVisible: "Your Courage Ladder is ready. Let's go!"

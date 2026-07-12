@@ -1,0 +1,41 @@
+# Story 9.5, Task 5.3 / Task 8.2 — Reusable subflow: add one item via the standalone
+# ladder editor (apps/mobile/app/ladder.tsx).
+#
+# Precondition: the standalone ladder screen (/ladder) must be visible.
+# The caller is responsible for navigating to /ladder before invoking this subflow.
+#
+# What it does:
+#   1. Tap "Add situation" to open the add-item modal
+#   2. Enter a safe description (not in CRISIS_KEYWORDS)
+#   3. Enter SUDS value 5 (well below the crisis threshold in the debrief screen (≥8))
+#   4. Tap "Save"
+#
+# Postcondition: one new pending item with description "Facing a crowd" and predictedSuds=5
+# is enqueued for sync (via getAdapter().enqueue — the write goes to the local PowerSync
+# queue, not directly to Postgres).
+appId: com.exposurebuddy.app
+---
+# Open the add-item modal
+- tapOn:
+    text: "Add situation"
+- waitForAnimationToEnd
+
+# Enter description in the "Situation" TextInput (accessibilityLabel: t('ladder.descriptionLabel'))
+- tapOn:
+    text: "Situation"
+- eraseText: 50
+- inputText: "Facing a crowd"
+
+# Enter SUDS value — the standalone ladder editor uses a TextInput (number-pad keyboard),
+# not a radio group (contrast with SudsCalibrationWidget used during onboarding)
+# Maestro's `text` selector is a regex — escape the literal parens in the a11y label
+# ("Anxiety level (0–10)") so they aren't parsed as a regex group.
+- tapOn:
+    text: 'Anxiety level \(0–10\)'
+- eraseText: 50
+- inputText: "5"
+
+# Save the item (disabled until both description and SUDS are valid)
+- tapOn:
+    text: "Save"
+- waitForAnimationToEnd

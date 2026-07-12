@@ -57,6 +57,7 @@ import HomeScreen from './'
 const defaultAuthValue = {
   firstHomeVisitSeen: false,
   markFirstHomeVisitSeen: mockMarkFirstHomeVisitSeen,
+  isOnboardingComplete: true,
   authState: { userId: 'user-123' },
   sessionRecoveryData: null,
   getGroundingActiveAt: () => null,
@@ -104,6 +105,12 @@ describe('HomeScreen', () => {
 
   it('does NOT call markFirstHomeVisitSeen when userId is not yet available', () => {
     mockUseAuth.mockReturnValue({ ...defaultAuthValue, authState: { userId: null } })
+    render(<HomeScreen />)
+    expect(mockMarkFirstHomeVisitSeen).not.toHaveBeenCalled()
+  })
+
+  it('does NOT call markFirstHomeVisitSeen on the transient pre-onboarding mount', () => {
+    mockUseAuth.mockReturnValue({ ...defaultAuthValue, isOnboardingComplete: false })
     render(<HomeScreen />)
     expect(mockMarkFirstHomeVisitSeen).not.toHaveBeenCalled()
   })

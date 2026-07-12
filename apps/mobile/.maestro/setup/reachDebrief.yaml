@@ -1,0 +1,110 @@
+# Story 9.5, Task 6.3 — Self-contained subflow: signs in, ensures onboarding, adds a
+# pending ladder item via UI, and drives the full exposure loop to the debrief screen.
+#
+# Used by: exposure-loop.yaml (which also asserts on debrief screen itself)
+#           debrief.yaml (via runFlow: for its own leading setup)
+#
+# Both pre-SUDS (intent) and exit SUDS (active completion modal) are kept BELOW 8
+# to avoid the crisis-contacts block on debrief.tsx (renders if either value ≥ 8).
+#
+# Task 1.5 resolution: CI has no PowerSync cloud connection, so seeding via PostgREST
+# and waiting for PowerSync sync was unreliable. Replaced with UI-based item addition
+# (same pattern as backgrounded-recovery.yaml): writes go to the on-device PowerSync
+# local queue which is immediately readable without a cloud sync round-trip.
+appId: com.exposurebuddy.app
+---
+# ── Setup ──────────────────────────────────────────────────────────────────────────────────
+# Sign in + complete onboarding idempotently; lands on home in empty-ladder state
+- runFlow: ensureOnboarded.yaml
+- waitForAnimationToEnd
+
+# ── Add a ladder item via the standalone editor (no PostgREST / PowerSync cloud needed) ───
+# Home empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
+- tapOn:
+    text: "Add situation"
+- waitForAnimationToEnd
+
+# We're now on /ladder. Add "Facing a crowd" (SUDS 5) via the shared subflow.
+- runFlow: addLadderItem.yaml
+
+# Navigate back to home
+- tapOn:
+    text: "Go back"
+- waitForAnimationToEnd
+
+# ── Navigate from home to the item's "Start session" button ────────────────────────────────
+# Home screen 'morning' state: CourageLadderEntryCard.
+# accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
+#   = "Facing a crowd, anxiety level 5 out of 10"
+- tapOn:
+    text: "Facing a crowd, anxiety level 5 out of 10"
+- waitForAnimationToEnd
+
+# Ladder screen: tap "Start session" for the pending item
+# accessibilityLabel: `${t('ladder.startSession')}, ${item.description}`
+- tapOn:
+    text: "Start session, Facing a crowd"
+- waitForAnimationToEnd
+
+# ── Exposure session loop ──────────────────────────────────────────────────────────────────
+
+# technique.tsx — select "Somatic" technique card (accessibilityRole: "radio")
+- tapOn:
+    text: "Somatic"
+- tapOn:
+    text: "Continue"
+- waitForAnimationToEnd
+
+# intent.tsx — pre-SUDS: pick 4 (below 8 to avoid crisis-contacts block on debrief)
+# SudsScale anchor label: "4 — Mild"
+- tapOn:
+    text: "4 — Mild"
+- tapOn:
+    text: "Continue"
+- waitForAnimationToEnd
+
+# intent.tsx's "Continue" writes status='started'; the home screen underneath then detects the
+# active session (useActiveExposureSession) and — on the slow CI emulator — surfaces the
+# "unfinished session" recovery modal over the briefing screen. If it appears, resume into the
+# session. "Resume session" routes to /session/active (past briefing), so the briefing "I'm ready"
+# tap below is made conditional to cover both paths.
+- runFlow:
+    when:
+      visible: "You have an unfinished session"
+    commands:
+      - tapOn:
+          text: "Resume session"
+      - waitForAnimationToEnd
+
+# briefing.tsx — forward-only screen. Skipped if we resumed straight into /session/active above.
+- runFlow:
+    when:
+      visible: "I'm ready"
+    commands:
+      - tapOn:
+          text: "I'm ready"
+      - waitForAnimationToEnd
+
+# active.tsx — log one SUDS reading
+- tapOn:
+    text: "Log how I'm feeling"
+- waitForAnimationToEnd
+# SUDS log modal: value 5 (non-anchor value, label is the number string "5")
+- tapOn: "5"
+- tapOn:
+    text: "Log"
+- waitForAnimationToEnd
+
+# Complete the exposure — opens the completion/exit modal
+- tapOn:
+    text: "Complete exposure"
+- waitForAnimationToEnd
+# Exit SUDS: pick 4 — Mild (below 8)
+- tapOn:
+    text: "4 — Mild"
+- tapOn:
+    text: "Finish session"
+- waitForAnimationToEnd
+
+# Assert debrief screen is visible (reflection prompt text)
+- assertVisible: "What would you like to remember about this?"

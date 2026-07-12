@@ -1,0 +1,47 @@
+# Story 9.5, Task 5 — ladder-build.yaml (AC 2.2)
+#
+# Independently signs in, adds a fear-ladder item via the STANDALONE ladder editor
+# (apps/mobile/app/ladder.tsx — distinct from the onboarding ladder covered by flow 1),
+# and asserts the home screen reaches the 'morning' state (CourageLadderEntryCard visible).
+#
+# This flow uses the DEV bypass (not real OTP), so it tests the standalone ladder editor
+# independently from the onboarding flow. Running both gives broader coverage of the fear
+# item add path.
+appId: com.exposurebuddy.app
+---
+# ── Setup ─────────────────────────────────────────────────────────────────────────────────
+# Sign in + complete onboarding if needed (idempotent — see ensureOnboarded.yaml)
+- runFlow: setup/ensureOnboarded.yaml
+
+# After ensureOnboarded: we're on the home screen.
+# ensureOnboarded skips the ladder step (0 items), so home shows the empty-ladder state.
+- waitForAnimationToEnd
+
+# ── Navigate to standalone ladder editor ──────────────────────────────────────────────────
+# Home screen empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
+- tapOn:
+    text: "Add situation"
+- waitForAnimationToEnd
+
+# ── Add a fear-ladder item via the standalone editor ──────────────────────────────────────
+# (reusable subflow extracted for Task 8.2)
+- runFlow: setup/addLadderItem.yaml
+
+# ── Navigate back to home ──────────────────────────────────────────────────────────────────
+# The BackButton in ladder.tsx navigates back to wherever we came from (home screen)
+- tapOn:
+    text: "Go back"
+- waitForAnimationToEnd
+
+# ── Assertion: home screen is in 'morning' state ──────────────────────────────────────────
+# 'morning' state shows the CourageLadderEntryCard with the lowest pending item's description
+# and SUDS value (from useFearLadderItems via PowerSync).
+# accessibilityLabel: t('home.courageCard.itemLabel', {description, suds}) = "Facing a crowd, anxiety level 5 out of 10"
+#
+# NOTE: this assertion depends on the PowerSync sync completing (seeded via getAdapter().enqueue
+# in ladder.tsx — the write goes to the local PowerSync queue and syncs to the on-device SQLite
+# replica). If the item doesn't appear yet, add a short wait before asserting.
+- waitForAnimationToEnd
+# Assert the full CourageLadderEntryCard a11y label (home-screen-specific — unambiguous even if /ladder
+# also shows the same description text)
+- assertVisible: "Facing a crowd, anxiety level 5 out of 10"
