@@ -1,6 +1,11 @@
 # Supabase CLI configuration — https://supabase.com/docs/guides/cli/config
-# project_id is a placeholder; replace with real project ref from Supabase dashboard (Story 1.7 → Epic 2)
-project_id = "exposure-buddy"
+# project_id is the real ref for the hosted "Exposure Buddy" project (ap-northeast-1)
+#
+# WARNING: never run `supabase config push` against this project_id. This file's [auth]
+# settings are local-dev-only (site_url points at 127.0.0.1, [auth.sms.twilio] holds fake
+# credentials, enable_signup/enable_confirmations are permissive for local autoconfirm) and
+# would overwrite the hosted project's real production auth configuration if pushed wholesale.
+project_id = "jhbtzsvlgglyfbrgmpsb"
 
 [api]
 enabled = true
@@ -56,8 +61,20 @@ subject = "Your Exposure Buddy sign-in code"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.sms]
-enable_signup = false
+enable_signup = true
 enable_confirmations = false
+
+# enable_signup alone does not flip GoTrue's phone channel on locally — the
+# Supabase CLI forces GOTRUE_EXTERNAL_PHONE_ENABLED=false ("no SMS provider is
+# enabled. Disabling phone login") unless a provider block below is present
+# with enabled = true. These are fake/unused credentials: enable_confirmations
+# = false above means signup autoconfirms, so no SMS ever actually needs to
+# send. This provider is never contacted in local dev.
+[auth.sms.twilio]
+enabled = true
+account_sid = "test_sid"
+auth_token = "test_token"
+message_service_sid = "test_service_sid"
 
 [analytics]
 enabled = false

@@ -17,6 +17,7 @@ out/
 .env.local
 .env.*.local
 .env.remote
+.env.production
 
 # EAS build artifacts
 eas-build-*
