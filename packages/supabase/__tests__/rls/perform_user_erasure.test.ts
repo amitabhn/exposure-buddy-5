@@ -35,6 +35,7 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
     userId = data.user.id
 
     await serviceClient.from('users').insert({ id: userId, email: TEST_USER_EMAIL })
+    await serviceClient.from('profiles').insert({ id: userId, display_name: 'Erasure Test Display Name' })
   })
 
   afterAll(async () => {
@@ -68,8 +69,21 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
     const { error } = await serviceClient.rpc('perform_user_erasure', { p_target_user_id: userId! })
     expect(error).toBeNull()
 
-    const { data: row } = await serviceClient.from('users').select('email, deleted_at').eq('id', userId!).single()
+    const { data: row, error: rowError } = await serviceClient
+      .from('users')
+      .select('email, deleted_at')
+      .eq('id', userId!)
+      .single()
+    expect(rowError).toBeNull()
     expect(row?.email).toBeNull()
     expect(row?.deleted_at).not.toBeNull()
+
+    const { data: profileRow, error: profileError } = await serviceClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', userId!)
+      .single()
+    expect(profileError).toBeNull()
+    expect(profileRow?.display_name).toBeNull()
   })
 })

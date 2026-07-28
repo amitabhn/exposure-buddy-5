@@ -87,6 +87,18 @@ describe.skipIf(skipIfNoSupabase)('users table RLS', () => {
     expect(data).toHaveLength(0)
   })
 
+  it('[-] authenticated user cannot null their own email (migration 0032)', async () => {
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    const { error } = await clientA.from('users').update({ email: null }).eq('id', userAId!)
+    expect(error).not.toBeNull()
+    expect(error!.code).toBe('42501') // RLS WITH CHECK violation
+
+    const { data } = await serviceClient.from('users').select('email').eq('id', userAId!).single()
+    expect(data?.email).toBe(TEST_USER_A_EMAIL)
+  })
+
   it('[stub] clinician path returns empty (ARC-007)', async () => {
     // Clinician access via therapist_patient table is deferred to Epic 5 (ARC-007).
     // Stub: verify that no cross-user read is granted via current policies.

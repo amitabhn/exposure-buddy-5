@@ -1,5 +1,17 @@
 # Deferred Work
 
+## Deferred from: code review of 10-4-fix-perform-user-erasure-not-null-bug (2026-07-28)
+
+_Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against commit `922c88f`. 3 patches applied, 3 deferred below, 6 dismissed as noise._
+
+- **Re-erasure of an already-erased user now silently "succeeds"** — re-stamps `deleted_at`, and `dpo-erase-user` writes a second, indistinguishable `outcome: 'success'` audit-log entry. Previously masked because every erasure call failed regardless of state (the NOT NULL bug this story fixed); now that erasure can succeed, the pre-existing lack of an idempotency guard in `perform_user_erasure()` (migration 0007's function body, unchanged by Story 10.4) is reachable for the first time. Fixing requires touching either that SECURITY DEFINER function body or `supabase/functions/dpo-erase-user/index.ts` — both outside Story 10.4's stated scope. Deferred for the same reason Story 10.4 itself was spun off from Story 10.2: found mid-review, deferred as its own fast-follow rather than expanding scope. Trigger: create a bug-fix story adding an idempotency guard — likely a `deleted_at IS NOT NULL` check in `dpo-erase-user/index.ts` before calling the RPC, returning an "already erased" response instead of re-erasing.
+- **AC #2's Edge-Function-level erasure path (`dpo-erase-user`, not just the raw RPC) was never actually exercised** for Story 10.4 — blocked by the local `edge-runtime` boot failure documented below. Trigger: re-verify once that boot failure is fixed.
+- **AC #4's "no new TypeScript errors in any Edge Function" was confirmed by manually re-reading the three cited files, not by an actual Deno compile check** — mitigated since none of the three Edge Functions (`dpo-export-user`, `dpo-pending-requests`, `dpo-panel`) import `database.types.ts` (confirmed via `grep`), so the coupling this AC worried about is architecturally absent. Trigger: tighten verification rigor (run an actual `deno check`) next time a story touches shared types that Edge Functions might plausibly consume.
+
+[`_bmad-output/implementation-artifacts/10-4-fix-perform-user-erasure-not-null-bug.md`]
+
+---
+
 ## Local edge-runtime fails to boot any Edge Function (discovered 2026-07-28)
 
 _Discovered while verifying Story 10.4's fix at the `dpo-erase-user` Edge Function level (Task 6). Local-dev-environment issue, not a code bug — no Edge Function source was changed to trigger this._
