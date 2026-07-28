@@ -361,21 +361,21 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deletion_requested_at: string | null
-          email: string
+          email: string | null
           id: string
         }
         Insert: {
           created_at?: string
           deleted_at?: string | null
           deletion_requested_at?: string | null
-          email: string
+          email?: string | null
           id: string
         }
         Update: {
           created_at?: string
           deleted_at?: string | null
           deletion_requested_at?: string | null
-          email?: string
+          email?: string | null
           id?: string
         }
         Relationships: []

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-28 # Story 10.2 code review complete, 3 patches applied, done
+last_updated: 2026-07-28 # Story 10.4 implementation complete, status review
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -139,6 +139,7 @@ development_status:
   10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md). Merged to main 2026-07-11 via PR #63 (2a77036), built on its own story/10-1-... branch separate from feature/password-based-login.
   10-2-hosted-supabase-provisioning-and-auth-hardening: done # 2026-07-28: code review complete (Blind Hunter + Edge Case Hunter + Acceptance Auditor), 3 patches applied (stale docker stack, config push warning, EXECUTE-privilege regression test), 5 deferred, 5 dismissed; also surfaced an unrelated pre-existing bug (perform_user_erasure non-functional, migration 0007 vs 0001 schema conflict) filed as URGENT in deferred-work.md for a fast-follow story
   10-3-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
+  10-4-fix-perform-user-erasure-not-null-bug: review # 2026-07-28: dev-story complete, all tasks/ACs done, verification suite green; awaiting code review
   epic-10-retrospective: optional
 
   # ─── Epic 11: Beta Feedback Collection ────────────────────────────────────

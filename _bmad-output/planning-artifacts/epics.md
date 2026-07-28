@@ -2365,6 +2365,34 @@ So that I'm not permanently locked out of a password-based account (FR-AUTH-05).
 
 ---
 
+### Story 10.4: Fix Non-Functional `perform_user_erasure()` (NOT NULL Constraint Bug)
+
+As a DPO fulfilling a DPDPA erasure request,
+I want `perform_user_erasure()` to actually succeed when called,
+So that the "right to erasure" feature works end-to-end instead of failing on every invocation (DPDPA 2023 §5 completeness requirement).
+
+**Acceptance Criteria:**
+
+**Given** `public.users.email` has been `TEXT NOT NULL` since migration `0001_users.sql`, and `perform_user_erasure()` (migration `0007`) unconditionally sets `email = NULL`
+**When** this story is implemented
+**Then** a new migration relaxes the `NOT NULL` constraint on `public.users.email` (matching migration `0005`'s documented intent — "email and auth identity are nulled alongside `deleted_at` being set") so the erasure `UPDATE` no longer violates a constraint
+
+**Given** `supabase/functions/dpo-erase-user/index.ts` calls `perform_user_erasure` via `service_role` RPC as the real DPO-panel erasure path
+**When** the fix is applied
+**Then** a real erasure call against a seeded test user succeeds end-to-end — `email` is `NULL` and `deleted_at` is set — confirmed with an automated test, not ad hoc verification
+
+**Given** Story 10.2's EXECUTE-privilege regression test (`packages/supabase/__tests__/rls/perform_user_erasure.test.ts`) only asserts grant-level correctness, not functional success (deliberately scoped that way while this bug was open)
+**When** this story is implemented
+**Then** that test file is extended with an assertion that the `service_role` erasure call fully succeeds, closing the coverage gap that let this bug go undetected since migration 0007
+
+**Given** the hosted "Exposure Buddy" project (`jhbtzsvlgglyfbrgmpsb`) runs the same schema (migrations 0001–0030 applied)
+**When** this story is implemented
+**Then** the fix is applied and confirmed working on the hosted project too, not just locally
+
+**Source:** `_bmad-output/implementation-artifacts/deferred-work.md` — "URGENT — perform_user_erasure() is currently non-functional (discovered 2026-07-28)", found during Story 10.2's code review.
+
+---
+
 ## Epic 11: Beta Feedback Collection
 
 Give beta testers a low-friction, first-party way to report bugs and impressions tied to the exact screen they were on. Feedback writes directly to Supabase — no third-party form or feedback SaaS is introduced, avoiding an additional DPDPA data-processor disclosure during closed beta.
