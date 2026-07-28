@@ -1,5 +1,33 @@
 # Deferred Work
 
+## URGENT — perform_user_erasure() is currently non-functional (discovered 2026-07-28)
+
+_Discovered as a side effect of writing an EXECUTE-privilege regression test for Story 10.2's code review (patch 3). Unrelated to and predates that story — not caused by anything in this story's diff — but is a live DPDPA compliance gap and should be triaged as a fast-follow bug-fix story, not left buried in this file._
+
+- **`public.users.email` has been `TEXT NOT NULL` since migration `0001_users.sql`. No later migration relaxes it** (confirmed live on the local stack: `\d public.users` shows `email | text | not null`).
+- **`perform_user_erasure()` (migration `0007_perform_user_erasure_fn.sql`) unconditionally runs `UPDATE public.users SET email = NULL, deleted_at = now() ...`** — every real invocation violates the NOT NULL constraint and the whole function call fails with Postgres error `23502`. Reproduced directly against the local stack with a valid target user via `service_role`.
+- **`supabase/functions/dpo-erase-user/index.ts:93` calls this RPC as part of the DPO panel's "erase user" action** and has an error-handling path for exactly this failure (`console.error('dpo-erase-user: perform_user_erasure RPC failed:', rpcError)`) — meaning the DPDPA "right to erasure" feature has likely never succeeded end-to-end since migration 0007 shipped.
+- The function's own transaction wraps both `UPDATE` statements atomically (per its Finding-4 comment), so the failure mode is a clean rollback, not partial/corrupted erasure — but the erasure itself does not happen.
+- **Trigger:** create a bug-fix story to either drop the `NOT NULL` constraint on `public.users.email` (matching the column's documented soft-delete intent — "email and auth identity are nulled alongside `deleted_at` being set", per migration `0005`'s comment) or change `perform_user_erasure()` to use a placeholder/anonymized value instead of `NULL`. Needs its own regression test asserting erasure actually completes (the current test added in Story 10.2's code review only proves EXECUTE-privilege correctness, not functional correctness — see `packages/supabase/__tests__/rls/perform_user_erasure.test.ts`).
+
+[`packages/supabase/__tests__/rls/perform_user_erasure.test.ts`, `supabase/migrations/0001_users.sql`, `supabase/migrations/0007_perform_user_erasure_fn.sql`, `supabase/functions/dpo-erase-user/index.ts`]
+
+---
+
+## Deferred from: code review of 10-2-hosted-supabase-provisioning-and-auth-hardening (2026-07-28)
+
+_Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against commit `346142d`. 3 patches, 5 deferred, 5 dismissed as noise._
+
+- **The second `REVOKE` in migration 0030 (on `fear_ladder_items_delete_audit`) is a functional no-op.** The function `RETURNS trigger`, and Postgres structurally rejects direct/RPC invocation of trigger-return functions regardless of EXECUTE grants — so the migration's claim that this revoke "removes the ability to forge audit rows via direct RPC" overclaims; that path was never open. Harmless, but migration 0030 is already applied remotely byte-identical, so editing its SQL/comment now risks a checksum mismatch against the applied migration. Trigger: correct via a doc note or a future migration, not by editing 0030 directly.
+- **No audit of whether the pre-existing public-EXECUTE hole on `perform_user_erasure` (open since migration 0007) was ever actually exploited** against the hosted project before this story closed it. Trigger: a dedicated security/incident-review pass if there's ever reason to suspect historical misuse.
+- **AC #1's redirect-URL and remote-migration-state claims are unverifiable from the diff/repo alone** — they reference an out-of-band dashboard action, already self-disclosed in the story's own Dev Agent Record. Trigger: optional live spot-check via the Supabase MCP (`list_migrations`) for extra confidence, not required.
+- **`project_id` in `supabase/config.toml` now points at the live hosted project — any unqualified `supabase` CLI command run from this repo could act on production.** Real architectural gap (no environment-separation mechanism), but explicitly anticipated and procedurally mitigated in this story's own Task 1 ("do not run a blind `supabase db push`"). Trigger: a future environment-separation story (e.g. distinct local/staging/prod config profiles).
+- **`.env.production` was added to `.gitignore` but no `.env.production.example`/template accompanies it.** Trigger: add a template when `.env.production` is actually created/used for the first time.
+
+[`_bmad-output/implementation-artifacts/10-2-hosted-supabase-provisioning-and-auth-hardening.md`]
+
+---
+
 ## Deferred from: implementation of 10-2-hosted-supabase-provisioning-and-auth-hardening (2026-07-11)
 
 _Leaked-password protection (HaveIBeenPwned check) requires a Supabase Pro-plan feature; the hosted "Exposure Buddy" project (`jhbtzsvlgglyfbrgmpsb`) is on the Free plan. Not an MVP blocker — the client-side 8-character minimum password length (shipped in Story 10.1) remains the only password-strength check at MVP. Trigger: enable when upgraded to Pro plan (Auth → Providers → Email → Password Security)._

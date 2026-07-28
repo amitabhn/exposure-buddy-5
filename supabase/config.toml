@@ -1,5 +1,10 @@
 # Supabase CLI configuration — https://supabase.com/docs/guides/cli/config
 # project_id is the real ref for the hosted "Exposure Buddy" project (ap-northeast-1)
+#
+# WARNING: never run `supabase config push` against this project_id. This file's [auth]
+# settings are local-dev-only (site_url points at 127.0.0.1, [auth.sms.twilio] holds fake
+# credentials, enable_signup/enable_confirmations are permissive for local autoconfirm) and
+# would overwrite the hosted project's real production auth configuration if pushed wholesale.
 project_id = "jhbtzsvlgglyfbrgmpsb"
 
 [api]
