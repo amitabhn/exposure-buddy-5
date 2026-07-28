@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-11 # Story 10.2 story file created (ready-for-dev), reset from a premature "done" with no story file
+last_updated: 2026-07-11 # Story 10.2 dev-story started (in-progress)
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -137,7 +137,7 @@ development_status:
   # (post-MVP), see deferred-work.md.
   epic-10: in-progress # 10.1 merged to main 2026-07-11 (PR #63, 2a77036); 10.2 story created 2026-07-11 (ready-for-dev, fresh off main); 10.3 not yet created; feature/password-based-login kept as reference/prior-art only
   10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md). Merged to main 2026-07-11 via PR #63 (2a77036), built on its own story/10-1-... branch separate from feature/password-based-login.
-  10-2-hosted-supabase-provisioning-and-auth-hardening: ready-for-dev # 2026-07-11: story file created; remote hosted infra already correct (verified live via Supabase MCP), story scopes the repo-side reconciliation (config.toml link, migration 0030 file, deferred-work.md entry)
+  10-2-hosted-supabase-provisioning-and-auth-hardening: review # 2026-07-11: dev-story complete, all tasks/ACs done, verification suite green; awaiting code review
   10-3-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
   epic-10-retrospective: optional
 

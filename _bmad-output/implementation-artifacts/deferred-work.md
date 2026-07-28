@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: implementation of 10-2-hosted-supabase-provisioning-and-auth-hardening (2026-07-11)
+
+_Leaked-password protection (HaveIBeenPwned check) requires a Supabase Pro-plan feature; the hosted "Exposure Buddy" project (`jhbtzsvlgglyfbrgmpsb`) is on the Free plan. Not an MVP blocker — the client-side 8-character minimum password length (shipped in Story 10.1) remains the only password-strength check at MVP. Trigger: enable when upgraded to Pro plan (Auth → Providers → Email → Password Security)._
+
+- **Leaked-password protection (`auth_leaked_password_protection` advisor finding) is deferred, not silently skipped**, per AC #3 of this story. Enable the toggle at Auth → Providers → Email → Password Security once the hosted project is upgraded to a paid plan.
+
+[`_bmad-output/implementation-artifacts/10-2-hosted-supabase-provisioning-and-auth-hardening.md`]
+
+---
+
 ## Deferred from: spec review of 10-2-hosted-supabase-provisioning-and-auth-hardening (2026-07-11)
 
 _Pre-dev adversarial spec review (Blind Hunter + Edge Case Hunter). `no-spec` mode — the story document was the review target itself. 9 patches applied to the spec; 4 items deferred below._
