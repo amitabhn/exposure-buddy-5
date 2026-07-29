@@ -1,6 +1,6 @@
 # Story 10.5: Re-Erasure Idempotency Guard for `perform_user_erasure()`
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -79,6 +79,13 @@ so that the audit trail stays trustworthy — no indistinguishable duplicate `ou
 
 - [x] Task 5 — Close out the deferred-work entry (AC: #1-#3)
   - [x] In `_bmad-output/implementation-artifacts/deferred-work.md`, find the "Re-erasure of an already-erased user now silently 'succeeds'" bullet under Story 10.4's deferred-findings section (near the top of the file). Mark it resolved with a short note citing this story's key and date, following the same annotate-don't-delete convention Story 10.4 used for its own predecessor bug.
+
+### Review Findings
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...HEAD` (commit `6561607`). 1 decision-needed, 0 patches, 1 deferred, 9 dismissed as noise._
+
+- [x] [Review][Decision] Unchecked `dpo_audit_log.insert()` in the new `alreadyErased` branch — `supabase/functions/dpo-erase-user/index.ts:131-138` inserted the rejected-re-erasure audit entry without checking the result. This exactly mirrored a pre-existing unchecked `.insert()` in the sibling `notFound` block a few lines above (same file, same pattern, predates this story). **Resolved:** fixed both the `notFound` and `alreadyErased` blocks — each now captures `{ error: auditError }` from the insert and `console.error`s if it fails, matching the pattern already established at the file's final audit-log write (lines ~163-177). The HTTP response returned to the caller is unchanged either way (a failed audit write doesn't change the RPC-driven outcome), consistent with how the file already treats audit-log write failures elsewhere.
+- [x] [Review][Defer] No automated regression test exists for the `erasure_target_not_found` path after the `SELECT ... FOR UPDATE` rewrite [supabase/migrations/0033_perform_user_erasure_idempotency_guard.sql, packages/supabase/__tests__/rls/perform_user_erasure.test.ts] — deferred, pre-existing gap (no test for this path existed before this story either — confirmed via repo-wide grep for `erasure_target_not_found` in `__tests__/`), but this migration rewrote the underlying check mechanism (`UPDATE`-then-`NOT FOUND` → `SELECT ... FOR UPDATE`-then-`NOT FOUND`) without adding coverage confirming the rewrite preserved that behavior.
 
 ## Dev Notes
 

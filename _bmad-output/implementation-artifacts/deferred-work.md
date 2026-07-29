@@ -8,6 +8,12 @@ _Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance A
 - **AC #2's Edge-Function-level erasure path (`dpo-erase-user`, not just the raw RPC) was never actually exercised** for Story 10.4 — blocked by the local `edge-runtime` boot failure documented below. Trigger: re-verify once that boot failure is fixed.
 - **AC #4's "no new TypeScript errors in any Edge Function" was confirmed by manually re-reading the three cited files, not by an actual Deno compile check** — mitigated since none of the three Edge Functions (`dpo-export-user`, `dpo-pending-requests`, `dpo-panel`) import `database.types.ts` (confirmed via `grep`), so the coupling this AC worried about is architecturally absent. Trigger: tighten verification rigor (run an actual `deno check`) next time a story touches shared types that Edge Functions might plausibly consume.
 
+## Deferred from: code review of 10-5-perform-user-erasure-reerasure-idempotency (2026-07-29)
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...HEAD` (commit `6561607`). 1 decision-needed, 0 patches, 1 deferred, 9 dismissed as noise._
+
+- **No automated regression test exists for the `erasure_target_not_found` path.** Pre-existing gap — no test for this path existed before Story 10.5 either (confirmed via repo-wide grep for `erasure_target_not_found` in `__tests__/`) — but migration `0033_perform_user_erasure_idempotency_guard.sql` rewrote the underlying check mechanism (the old `UPDATE`-then-`NOT FOUND` check → a `SELECT ... FOR UPDATE`-then-`NOT FOUND` check) without adding coverage confirming the rewrite preserved that behavior. Trigger: add a test to `packages/supabase/__tests__/rls/perform_user_erasure.test.ts` asserting the RPC still raises `erasure_target_not_found` for a nonexistent `p_target_user_id`.
+
 [`_bmad-output/implementation-artifacts/10-4-fix-perform-user-erasure-not-null-bug.md`]
 
 ---

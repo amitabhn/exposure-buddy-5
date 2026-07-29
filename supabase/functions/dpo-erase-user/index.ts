@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
   if (notFound) {
     // Patch 1: log the not-found attempt before returning — FR-DPO-06 requires every
     // DPO action (including probes against non-existent users) to produce an audit entry.
-    await adminClient.from('dpo_audit_log').insert({
+    const { error: auditError } = await adminClient.from('dpo_audit_log').insert({
       action_type: 'erasure',
       acting_operator_id: operator.operatorId,
       target_user_id: targetUserId,
@@ -118,6 +118,9 @@ Deno.serve(async (req: Request) => {
       outcome: 'failure',
       metadata: { failed_step: 'user_not_found' },
     })
+    if (auditError) {
+      console.error('dpo-erase-user: dpo_audit_log insert failed (user_not_found):', auditError)
+    }
     return new Response(JSON.stringify({ error: 'Target user not found' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -128,7 +131,7 @@ Deno.serve(async (req: Request) => {
     // Story 10.5: log the rejected re-erasure attempt before returning — a re-erasure must
     // never produce a second indistinguishable outcome:'success' entry (FR-DPO-06 audit-log
     // integrity).
-    await adminClient.from('dpo_audit_log').insert({
+    const { error: auditError } = await adminClient.from('dpo_audit_log').insert({
       action_type: 'erasure',
       acting_operator_id: operator.operatorId,
       target_user_id: targetUserId,
@@ -136,6 +139,9 @@ Deno.serve(async (req: Request) => {
       outcome: 'failure',
       metadata: { failed_step: 'already_erased' },
     })
+    if (auditError) {
+      console.error('dpo-erase-user: dpo_audit_log insert failed (already_erased):', auditError)
+    }
     return new Response(JSON.stringify({ error: 'Target user was already erased' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
