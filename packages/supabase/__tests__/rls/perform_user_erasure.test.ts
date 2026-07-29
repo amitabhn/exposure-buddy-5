@@ -35,6 +35,7 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
     userId = data.user.id
 
     await serviceClient.from('users').insert({ id: userId, email: TEST_USER_EMAIL })
+    await serviceClient.from('profiles').insert({ id: userId, display_name: 'Erasure Test Display Name' })
   })
 
   afterAll(async () => {
@@ -61,15 +62,28 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
     expect(error!.code).toBe('42501')
   })
 
-  it('[+] service_role has EXECUTE privilege on perform_user_erasure (not blocked at the grant level)', async () => {
-    // Scoped to the EXECUTE-privilege regression this test file exists to guard (migration 0030).
-    // Does NOT assert the function body succeeds end-to-end — public.users.email is NOT NULL
-    // (migration 0001) and this function unconditionally sets email = NULL, so it currently
-    // fails with 23502 regardless of caller. That is a separate, pre-existing bug (predates
-    // this migration) tracked outside this story — see deferred-work.md. A 42501
-    // (insufficient_privilege) here would mean service_role's grant was lost; any other
-    // outcome, including a 23502 from inside the function body, proves the grant is intact.
+  it('[+] service_role can execute perform_user_erasure and the erasure fully succeeds', async () => {
+    // Guards both the EXECUTE grant (migration 0030) and the erasure logic itself
+    // (migration 0007 + 0031 — public.users.email was NOT NULL until Story 10.4 fixed it,
+    // which made every erasure call fail with 23502 regardless of caller).
     const { error } = await serviceClient.rpc('perform_user_erasure', { p_target_user_id: userId! })
-    expect(error?.code).not.toBe('42501')
+    expect(error).toBeNull()
+
+    const { data: row, error: rowError } = await serviceClient
+      .from('users')
+      .select('email, deleted_at')
+      .eq('id', userId!)
+      .single()
+    expect(rowError).toBeNull()
+    expect(row?.email).toBeNull()
+    expect(row?.deleted_at).not.toBeNull()
+
+    const { data: profileRow, error: profileError } = await serviceClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', userId!)
+      .single()
+    expect(profileError).toBeNull()
+    expect(profileRow?.display_name).toBeNull()
   })
 })

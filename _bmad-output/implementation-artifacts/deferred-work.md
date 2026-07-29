@@ -1,6 +1,32 @@
 # Deferred Work
 
-## URGENT — perform_user_erasure() is currently non-functional (discovered 2026-07-28)
+## Deferred from: code review of 10-4-fix-perform-user-erasure-not-null-bug (2026-07-28)
+
+_Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against commit `922c88f`. 3 patches applied, 3 deferred below, 6 dismissed as noise._
+
+- **Re-erasure of an already-erased user now silently "succeeds"** — re-stamps `deleted_at`, and `dpo-erase-user` writes a second, indistinguishable `outcome: 'success'` audit-log entry. Previously masked because every erasure call failed regardless of state (the NOT NULL bug this story fixed); now that erasure can succeed, the pre-existing lack of an idempotency guard in `perform_user_erasure()` (migration 0007's function body, unchanged by Story 10.4) is reachable for the first time. Fixing requires touching either that SECURITY DEFINER function body or `supabase/functions/dpo-erase-user/index.ts` — both outside Story 10.4's stated scope. Deferred for the same reason Story 10.4 itself was spun off from Story 10.2: found mid-review, deferred as its own fast-follow rather than expanding scope. Trigger: create a bug-fix story adding an idempotency guard — likely a `deleted_at IS NOT NULL` check in `dpo-erase-user/index.ts` before calling the RPC, returning an "already erased" response instead of re-erasing.
+- **AC #2's Edge-Function-level erasure path (`dpo-erase-user`, not just the raw RPC) was never actually exercised** for Story 10.4 — blocked by the local `edge-runtime` boot failure documented below. Trigger: re-verify once that boot failure is fixed.
+- **AC #4's "no new TypeScript errors in any Edge Function" was confirmed by manually re-reading the three cited files, not by an actual Deno compile check** — mitigated since none of the three Edge Functions (`dpo-export-user`, `dpo-pending-requests`, `dpo-panel`) import `database.types.ts` (confirmed via `grep`), so the coupling this AC worried about is architecturally absent. Trigger: tighten verification rigor (run an actual `deno check`) next time a story touches shared types that Edge Functions might plausibly consume.
+
+[`_bmad-output/implementation-artifacts/10-4-fix-perform-user-erasure-not-null-bug.md`]
+
+---
+
+## Local edge-runtime fails to boot any Edge Function (discovered 2026-07-28)
+
+_Discovered while verifying Story 10.4's fix at the `dpo-erase-user` Edge Function level (Task 6). Local-dev-environment issue, not a code bug — no Edge Function source was changed to trigger this._
+
+- After removing stale `exposure-buddy`-labeled Docker containers/volumes and running a clean `supabase start` (done as part of Story 10.4's Task 1 to fix an unrelated container-naming mismatch — see Story 10.2's code review, which is where that stale stack first appeared), the local `edge-runtime` container serves its function list correctly (`dpo-erase-user`, `dpo-audit-log`, etc. all listed) but fails to boot **any** of them on invocation: `worker boot error: failed to bootstrap runtime: failed to determine entrypoint`, returning HTTP 503 `{"code":"BOOT_ERROR"}`. Confirmed systemic by testing an unrelated function (`dpo-audit-log`) — same failure.
+- Not caused by Story 10.4's changes (a SQL migration + regenerated types + one test file) — no Edge Function source was touched.
+- **Trigger:** investigate next time local Edge Function testing is needed. Likely candidates: an `edge-runtime`/Deno version mismatch surfaced by the fresh container rebuild, a missing `import_map.json`/`deno.json` entrypoint config, or a stale image cache. Check `docker logs supabase_edge_runtime_jhbtzsvlgglyfbrgmpsb` first.
+
+[`supabase/functions/dpo-erase-user/index.ts`, `supabase/functions/dpo-audit-log/index.ts`]
+
+---
+
+## RESOLVED — perform_user_erasure() is currently non-functional (discovered 2026-07-28, fixed 2026-07-28)
+
+_Fixed by Story 10.4 (`10-4-fix-perform-user-erasure-not-null-bug`): migration `0031_users_email_nullable.sql` drops the `NOT NULL` constraint on `public.users.email`, applied both locally and on the hosted project. `packages/supabase/__tests__/rls/perform_user_erasure.test.ts`'s `service_role` test now asserts full functional success (previously scoped to grant-only). Left below for the historical record of how the bug was found._
 
 _Discovered as a side effect of writing an EXECUTE-privilege regression test for Story 10.2's code review (patch 3). Unrelated to and predates that story — not caused by anything in this story's diff — but is a live DPDPA compliance gap and should be triaged as a fast-follow bug-fix story, not left buried in this file._
 
