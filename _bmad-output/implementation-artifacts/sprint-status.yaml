@@ -140,6 +140,7 @@ development_status:
   10-2-hosted-supabase-provisioning-and-auth-hardening: done # 2026-07-28: code review complete (Blind Hunter + Edge Case Hunter + Acceptance Auditor), 3 patches applied (stale docker stack, config push warning, EXECUTE-privilege regression test), 5 deferred, 5 dismissed; also surfaced an unrelated pre-existing bug (perform_user_erasure non-functional, migration 0007 vs 0001 schema conflict) filed as URGENT in deferred-work.md for a fast-follow story
   10-3-forgot-reset-password-flow-flag-gated: done # implemented, tested, unmerged; hidden behind EXPO_PUBLIC_ENABLE_PASSWORD_RESET pending SMTP
   10-4-fix-perform-user-erasure-not-null-bug: done # 2026-07-28: code review complete (Blind Hunter + Edge Case Hunter + Acceptance Auditor), 3 patches applied (RLS self-nulling guard via migration 0032, profiles.display_name test coverage, unchecked select error), 3 deferred (re-erasure idempotency filed as its own fast-follow, 2 AC-verification-rigor notes), 6 dismissed
+  10-5-perform-user-erasure-reerasure-idempotency: ready-for-dev # 2026-07-29: story created — fast-follow from Story 10.4's deferred "re-erasure silently succeeds" finding; adds idempotency guard to perform_user_erasure() (migration 0033) + dpo-erase-user error handling; AC #5 scopes Edge Function verification to code reading given the still-unresolved local edge-runtime boot failure
   epic-10-retrospective: optional
 
   # ─── Epic 11: Beta Feedback Collection ────────────────────────────────────
