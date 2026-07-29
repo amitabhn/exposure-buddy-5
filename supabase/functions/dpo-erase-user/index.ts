@@ -87,9 +87,11 @@ Deno.serve(async (req: Request) => {
   const now = new Date().toISOString()
   let failedStep: string | null = null
   let notFound = false
+  let alreadyErased = false
 
   // Steps 1+2 (atomic): null PII in public.users + public.profiles via a single DB transaction.
-  // perform_user_erasure() raises 'erasure_target_not_found' if user absent (Finding 8).
+  // perform_user_erasure() raises 'erasure_target_not_found' if user absent (Finding 8), or
+  // 'erasure_already_erased' if the user was already erased (idempotency guard, Story 10.5).
   const { error: rpcError } = await adminClient.rpc('perform_user_erasure', {
     p_target_user_id: targetUserId,
   })
@@ -97,6 +99,8 @@ Deno.serve(async (req: Request) => {
   if (rpcError) {
     if (rpcError.message?.includes('erasure_target_not_found')) {
       notFound = true
+    } else if (rpcError.message?.includes('erasure_already_erased')) {
+      alreadyErased = true
     } else {
       console.error('dpo-erase-user: perform_user_erasure RPC failed:', rpcError)
       failedStep = 'erasure_rpc'
@@ -115,6 +119,24 @@ Deno.serve(async (req: Request) => {
       metadata: { failed_step: 'user_not_found' },
     })
     return new Response(JSON.stringify({ error: 'Target user not found' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (alreadyErased) {
+    // Story 10.5: log the rejected re-erasure attempt before returning — a re-erasure must
+    // never produce a second indistinguishable outcome:'success' entry (FR-DPO-06 audit-log
+    // integrity).
+    await adminClient.from('dpo_audit_log').insert({
+      action_type: 'erasure',
+      acting_operator_id: operator.operatorId,
+      target_user_id: targetUserId,
+      timestamp_utc: now,
+      outcome: 'failure',
+      metadata: { failed_step: 'already_erased' },
+    })
+    return new Response(JSON.stringify({ error: 'Target user was already erased' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
