@@ -396,6 +396,17 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 
 ---
 
+### Epic 13: UI/UX Enhancements & Polish
+
+*(Numbered 13 — Epic 12 remains reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger; this epic does not claim it. Open-ended and living, unlike every other epic in this document: it is seeded at creation with four placeholder stories for the screens named at kickoff (sign-in/sign-up, home, ladder, exposure flow) and is expected to grow additional stories over time as concrete UI/UX issues surface — primarily via Epic 11 beta feedback submissions, but also ad hoc product/design review. Placeholder stories carry no acceptance criteria yet; each is refined into concrete, testable ACs from real feedback before a dev agent picks it up.)*
+
+Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic starts with four placeholder stories — Story 13.1 (sign-in/sign-up), 13.2 (home), 13.3 (ladder), 13.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
+
+**FRs covered:** FR-UXENH-01
+**Planning note:** No story in this epic is ready-for-dev at creation. `sprint-status.yaml` marks each `backlog` with a note that acceptance criteria must be written from concrete feedback first — this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time.
+
+---
+
 ## Epic 1: Project Foundation & Design System
 
 All developers can build features with confidence: the Turborepo monorepo is live, the tech stack is validated (NativeWind v5 spike resolved or fallback ADR written, library evaluation complete), the design token system is authored with enforced typography restrictions, i18n and accessibility infrastructure is in place, motion and layout foundations are established, the PowerSync SyncAdapter interface is scaffolded, and the Supabase client with base user schema and first RLS policy are provisioned. CI gates, crash reporting, and environment secrets management are active before any feature work begins.
@@ -2482,3 +2493,27 @@ So that I can report an issue or impression in the moment without losing my plac
 **Given** a completed form
 **When** the tester submits
 **Then** a row is inserted into the `feedback` table via the `packages/supabase` client with `screen_route`, `category`, `message`, `app_version` (read from Expo config, not hardcoded), and `screenshot_path` (if attached); a confirmation toast/alert dismisses the modal; no navigation occurs and the tester's prior screen state is preserved
+
+---
+
+## Epic 13: UI/UX Enhancements & Polish
+
+A living backlog of screen-level UI/UX improvements driven by real usage feedback (Epic 11) and ad hoc product/design review, rather than a fixed, fully-scoped set of stories decided upfront. Seeded with four placeholder stories at creation (2026-07-30); more are appended to this epic as specific issues are identified — this epic's story list is expected to keep growing.
+
+> **Placeholder convention for this epic:** Each story below marks a screen in scope, not a ready-for-dev spec. Acceptance criteria are written when a concrete issue (a beta feedback submission, a design review note, a specific usability complaint) is identified for that screen, at which point the story is updated in place — a fifth, sixth, etc. story is added only when the new issue targets a screen not already covered by 13.1–13.4.
+
+### Story 13.1: Sign-In/Sign-Up Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+
+> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen; also `apps/mobile/app/(auth)/otp-verification.tsx` if the specific feedback concerns the OTP step). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
+
+### Story 13.2: Home Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+
+> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(app)/index.tsx` (home screen state machine, all states — see Epic 5/6/8 for the states this screen renders). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
+
+### Story 13.3: Ladder Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+
+> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/ladder.tsx` (post-onboarding full courage ladder screen; the onboarding-time ladder at `apps/mobile/app/(onboarding)/ladder.tsx` is a distinct screen and out of scope here unless feedback specifically names it). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
+
+### Story 13.4: Exposure Flow — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+
+> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screens in scope: `apps/mobile/app/session/` — `intent.tsx`, `briefing.tsx`, `technique.tsx`, `active.tsx`, `pause.tsx`, `grounding.tsx`, `debrief.tsx`, `abandoned.tsx` (the full ERP session flow). Acceptance criteria to be written once specific feedback or design review input is available, scoped to the specific screen(s) named by that feedback (FR-UXENH-01).

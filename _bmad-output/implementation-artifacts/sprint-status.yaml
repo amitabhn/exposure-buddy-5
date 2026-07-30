@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact
+last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact; Epic 13 (UI/UX Enhancements & Polish) added — planning only, 4 placeholder stories, no ACs yet
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -152,3 +152,16 @@ development_status:
   11-1-feedback-table-rls-and-storage-bucket: backlog
   11-2-in-app-feedback-capture-entry-point-screen-auto-capture-and-submission: backlog
   epic-11-retrospective: optional
+
+  # ─── Epic 13: UI/UX Enhancements & Polish ─────────────────────────────────
+  # Living epic, not fully scoped — Epic 12 remains reserved for the
+  # ADR-OFFLINE-DEGRADATION remediation trigger; this epic does not claim it.
+  # Seeded 2026-07-30 with 4 placeholder stories (no ACs yet); expected to
+  # grow more stories as concrete beta feedback (Epic 11) or design review
+  # identifies specific issues. See epics.md Epic 13 for the placeholder
+  # convention — each story is fleshed out from real feedback before pickup.
+  epic-13: backlog
+  13-1-sign-in-sign-up-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  13-2-home-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  13-3-ladder-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  13-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet

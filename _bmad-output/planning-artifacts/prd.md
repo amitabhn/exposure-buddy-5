@@ -452,6 +452,10 @@ No competitor occupies the self-directed ERP space for social anxiety in India:
 - **FR-BETA-01:** Authenticated users can submit free-text feedback tagged to the screen they were viewing from any screen in the app, including during an active ERP session, without losing their place or navigating away from their current context
 - **FR-BETA-02:** Feedback submissions (including optional screenshots) are stored exclusively in first-party Supabase infrastructure; no third-party feedback, survey, or form service is used, consistent with the no-third-party-transmission principle in FR-ANALYTICS-02
 
+### UI/UX Enhancements
+
+- **FR-UXENH-01:** The app's UI/UX is iteratively refined post-launch based on structured beta feedback (FR-BETA-01/02) and ad hoc product/design review, covering the sign-in/sign-up screen, home screen, ladder screen, and exposure flow at a minimum, with additional screens added to scope as specific issues are identified; each refinement is written up as a concrete, testable story rather than implemented ad hoc
+
 ## Non-Functional Requirements
 
 ### Performance
