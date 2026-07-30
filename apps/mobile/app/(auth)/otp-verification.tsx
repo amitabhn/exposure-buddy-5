@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth } from '@exposure-buddy/supabase'
 import { emitAccountCreated, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
+import { color } from '@exposure-buddy/ui'
 import { DPO_EMAIL } from '../../src/constants/legal'
 import { ConsentRecordService } from '@exposure-buddy/supabase'
 
@@ -303,31 +304,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#111827',
+    color: color.content.primary,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6b7280',
+    color: color.content.secondary,
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
     alignSelf: 'stretch',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: color.content.primary,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 24,
     fontWeight: '600',
-    color: '#111827',
-    backgroundColor: '#ffffff',
+    color: color.content.primary,
+    backgroundColor: color.surface.primary,
     marginBottom: 8,
     textAlign: 'center',
     letterSpacing: 8,
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: 'stretch',
-    backgroundColor: '#111827',
+    backgroundColor: color.accent.courage,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resendText: {
-    color: '#6b7280',
+    color: color.content.secondary,
     fontSize: 14,
   },
   privacyLink: {
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
   },
   privacyLinkText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: color.content.secondary,
     textDecorationLine: 'underline',
   },
 })

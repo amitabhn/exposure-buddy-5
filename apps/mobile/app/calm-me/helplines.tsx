@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.surface.primary, width: '100%' },
   // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
   backButton: { position: 'absolute', left: 24, padding: 8, zIndex: 1 },
-  backIcon: { fontSize: 28, color: '#111827' },
+  backIcon: { fontSize: 28, color: color.content.primary },
   content: { paddingHorizontal: 24, paddingBottom: 32 },
   intro: { fontSize: 16, color: color.content.primary, textAlign: 'center', marginBottom: 16 },
   unavailable: { fontSize: 15, color: color.content.secondary, textAlign: 'center', marginTop: 16 },

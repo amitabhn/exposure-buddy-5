@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition, CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
+import { color } from '@exposure-buddy/ui'
 
 export default function GroundingScreen() {
   const { t } = useTranslation()
@@ -180,26 +181,26 @@ export default function GroundingScreen() {
 
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center' },
-  affirmation: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', lineHeight: 30, marginBottom: 32 },
+  container: { flexGrow: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, justifyContent: 'center' },
+  affirmation: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, textAlign: 'center', lineHeight: 30, marginBottom: 32 },
   techniquePicker: { gap: 12, marginBottom: 32 },
+  // Bordered card (#e5e7eb) + #f9fafb fill converts to a borderless filled card per Story
+  // 12.5's mapping table, matching the Home/Sign-in visual language.
   techniqueCard: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
     borderRadius: 12,
     padding: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: color.surface.secondary,
     alignItems: 'center',
   },
-  techniqueLabel: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827' },
+  techniqueLabel: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary },
   abandonErrorContainer: { marginBottom: 16 },
   abandonErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20, marginBottom: 8 },
   retryButton: { alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
   actions: { gap: 16 },
-  resumeButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  resumeButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   resumeText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-  stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  stopButton: { borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   stopButtonDisabled: { opacity: 0.5 },
-  stopText: { color: '#374151', fontSize: 16 },
+  stopText: { color: color.content.secondary, fontSize: 16 },
 })

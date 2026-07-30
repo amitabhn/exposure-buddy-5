@@ -2,6 +2,7 @@ import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 
 export default function CompleteScreen() {
   const { t } = useTranslation()
@@ -65,12 +66,12 @@ export default function CompleteScreen() {
 
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
-  container: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 48, backgroundColor: '#ffffff', justifyContent: 'center' },
-  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, textAlign: 'center' },
-  count: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 8 },
-  encouragement: { fontSize: 15, color: '#6b7280', lineHeight: 22, textAlign: 'center', marginBottom: 24 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 48, backgroundColor: color.surface.primary, justifyContent: 'center' },
+  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 8, textAlign: 'center' },
+  count: { fontSize: 15, color: color.content.secondary, textAlign: 'center', marginBottom: 8 },
+  encouragement: { fontSize: 15, color: color.content.secondary, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
   overwhelmedLink: { alignSelf: 'center', marginBottom: 16 },
-  overwhelmedText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
-  button: { alignSelf: 'stretch', backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  overwhelmedText: { fontSize: 14, color: color.content.secondary, textDecorationLine: 'underline' },
+  button: { alignSelf: 'stretch', backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

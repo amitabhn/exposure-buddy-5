@@ -393,7 +393,7 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic started with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
 
 **FRs covered:** FR-UXENH-01
-**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Stories 12.1 (Sign-In/Sign-Up) and 12.2 (Home) were the first to leave placeholder state**, both on 2026-07-30, both from Claude Design redesign imports rather than beta feedback — see their entries below for the pattern later stories in this epic should follow.
+**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Stories 12.1 (Sign-In/Sign-Up) and 12.2 (Home) were the first to leave placeholder state**, both on 2026-07-30, both from Claude Design redesign imports rather than beta feedback — see their entries below for the pattern later stories in this epic should follow. **Story 12.5 (Global Color Theme Unification) was added the same day**, outside the placeholder-first pattern — see its entry below for why it's scoped differently from 12.1–12.4.
 
 ---
 
@@ -2598,3 +2598,31 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 ### Story 12.4: Exposure Flow — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screens in scope: `apps/mobile/app/session/` — `intent.tsx`, `briefing.tsx`, `technique.tsx`, `active.tsx`, `pause.tsx`, `grounding.tsx`, `debrief.tsx`, `abandoned.tsx` (the full ERP session flow). Acceptance criteria to be written once specific feedback or design review input is available, scoped to the specific screen(s) named by that feedback (FR-UXENH-01).
+
+### Story 12.5: Global Color Theme Unification (Palette-Only)
+
+**Status: done.** Unlike 12.1–12.4, this story did not start as a screen-scoped placeholder waiting on a Claude Design mockup — it was requested directly as a cross-cutting consistency pass: bring every remaining screen's colours onto the `packages/ui` semantic token palette already established by Stories 12.1 (Sign-In) and 12.2 (Home), without waiting for each screen's own dedicated redesign.
+
+**Given** Stories 12.3 (Ladder) and 12.4 (Exposure Flow) are still open placeholders reserving `apps/mobile/app/ladder.tsx` and `apps/mobile/app/session/*.tsx` for their own future full UX redesigns (layout, copy, and component changes, sourced from a dedicated Claude Design mockup, matching the depth of Stories 12.1/12.2)
+**When** this story's scope is defined
+**Then** this story is explicitly **palette-only** — it changes colour values alone (raw hex → `packages/ui` tokens) with zero changes to layout, copy, component structure, or interaction logic on any screen, including the ones 12.3/12.4 will later touch more deeply. This story does not close or supersede 12.3/12.4; a future full redesign of Ladder or the session flow is still expected and may re-touch the same files this story changes
+
+**Given** a repo-wide survey found 21 screen files still using the pre-redesign palette (`#111827`, `#374151`, `#6b7280`, `#d1d5db`, `#f9fafb`/`#f3f4f6`, `#e5e7eb`, `#ffffff` backgrounds, and one leftover accent blue `#1d4ed8`), totaling roughly 175 individual colour declarations
+**When** this story is implemented
+**Then** every one of the following files is migrated per the mapping table below: `apps/mobile/app/ladder.tsx`, `apps/mobile/app/(onboarding)/{assessment,complete,ladder,welcome}.tsx`, `apps/mobile/app/(auth)/otp-verification.tsx`, `apps/mobile/app/(app)/settings/index.tsx`, `apps/mobile/app/privacy-notice.tsx`, `apps/mobile/app/reminder-settings.tsx`, `apps/mobile/app/calm-me/{index,breathing,grounding,helplines}.tsx`, `apps/mobile/app/session/{intent,briefing,technique,active,pause,grounding,debrief,abandoned}.tsx`
+
+**Given** `packages/ui/src/tokens/theme.ts`'s 8 semantic colour tokens and the precedent already set by Stories 12.1/12.2 for what stays raw hex
+**When** each file's colours are migrated
+**Then** the following mapping is applied uniformly (deviations only where a specific site's visual role genuinely doesn't fit — documented inline if so):
+- `#ffffff` screen/container background → `color.surface.primary`; `#ffffff` used as text-on-a-dark-background (e.g. button labels on an accent-filled pill) is left unchanged — it's already correct
+- `#111827` (primary text, headings) → `color.content.primary`
+- `#374151` (body/label text) and `#6b7280` (secondary/meta text) → both collapse onto `color.content.secondary` — the old 3-tier grey system had no equivalent to the token system's 2 content tiers; Stories 12.1/12.2 already made this same collapse
+- `#f9fafb` / `#f3f4f6` (card fills) and `#e5e7eb` (borders) → `color.surface.secondary`; bordered cards are converted to borderless filled cards where that matches the Home/Sign-in visual language already shipped, rather than keeping a border in a new colour
+- `#d1d5db` (input/divider borders) → `color.content.primary` for text-input underlines (matching the Story 12.1 pattern), `color.surface.secondary` elsewhere
+- `#1d4ed8` (leftover pre-redesign accent blue, `apps/mobile/app/ladder.tsx`'s "Start session" button) → `color.accent.courage` — the same brand green used for every other primary action across the redesigned screens
+- `#9ca3af` (disabled-state grey) and `#ef4444` (validation error red) are **left unchanged** — both are established, deliberate exceptions from Story 12.1 (see its AC and Dev Notes), not part of the 8-token palette
+- Crisis-banner and destructive/success semantic colours (`#991b1b`, `#fef2f2`, `#fecaca`, `#b91c1c`, `#166534`, `#f0fdfa`, `#f0fdf4`, `#dc2626`, `#bbf7d0`, `#0f766e`, `#0d9488`) are **out of scope and left unchanged** — these are safety/status-semantic colours (crisis keyword banner, destructive delete action, completed/success states), not general UI palette, and this story does not touch semantic-meaning colours, only the general UI palette
+
+**Given** every screen listed above has existing test coverage and none of their underlying logic changes
+**When** this story is implemented
+**Then** no test file needs functional changes — colour values are not asserted by any existing test (confirmed by grep: no test in this diff's scope asserts on a `StyleSheet` colour value or inline style). `pnpm turbo typecheck lint test` passes with zero test changes required, proving the change is colour-only as scoped

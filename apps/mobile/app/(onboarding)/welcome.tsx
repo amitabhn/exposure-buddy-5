@@ -3,6 +3,7 @@ import { Alert, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nat
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 
 export default function WelcomeScreen() {
@@ -69,26 +70,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 32,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
   },
   title: {
     fontSize: 26,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
+    color: color.content.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
   body: {
     fontSize: 16,
-    color: '#6b7280',
+    color: color.content.secondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
   },
   button: {
     alignSelf: 'stretch',
-    backgroundColor: '#111827',
+    backgroundColor: color.accent.courage,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',

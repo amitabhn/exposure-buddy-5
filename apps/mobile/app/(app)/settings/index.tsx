@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
 import { formatTimeForDisplay } from '../../../src/notifications/sessionReminder'
 
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   // unreachable. flexGrow (not flex) on the ScrollView's content container.
   container: {
     flexGrow: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
     paddingHorizontal: 24,
   },
   // paddingRight reserves space for the Calm Me FAB — see (app)/index.tsx's greeting style
@@ -146,14 +147,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: color.content.primary,
     marginBottom: 32,
     paddingRight: 88,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: color.content.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 24,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   row: {
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: color.surface.secondary,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -176,11 +177,11 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 16,
-    color: '#111827',
+    color: color.content.primary,
   },
   rowValueText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: color.content.secondary,
   },
   destructiveText: {
     color: '#ef4444',

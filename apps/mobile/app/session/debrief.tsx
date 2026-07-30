@@ -13,7 +13,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
-import { SudsArcChart, typography } from '@exposure-buddy/ui'
+import { SudsArcChart, typography, color } from '@exposure-buddy/ui'
 import type { DmSerifSurface } from '@exposure-buddy/ui'
 import { getAdapter } from '../../src/sync/adapter'
 
@@ -247,32 +247,37 @@ export default function DebriefScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: color.surface.primary },
   content: { paddingHorizontal: 24, paddingBottom: 48 },
   letterSection: { marginBottom: 24 },
-  letterIntroText: { ...typography.display, color: '#6b7280', marginBottom: 16 },
-  letterText: { ...typography.narrative, color: '#111827' },
+  letterIntroText: { ...typography.display, color: color.content.secondary, marginBottom: 16 },
+  letterText: { ...typography.narrative, color: color.content.primary },
   acknowledgementSection: { marginBottom: 24 },
-  acknowledgementText: { ...typography.narrative, color: '#111827' },
+  acknowledgementText: { ...typography.narrative, color: color.content.primary },
+  // Crisis-contact banner colours (#fef2f2, #991b1b) are safety/status-semantic, out of scope
+  // per Story 12.5; left unchanged.
   crisisSection: { backgroundColor: '#fef2f2', borderRadius: 8, padding: 16, marginBottom: 24 },
   crisisHeading: { fontSize: 14, fontWeight: '600', color: '#991b1b', marginBottom: 12, fontFamily: 'Inter_600SemiBold' },
+  // #1d4ed8 left unchanged deliberately — this link lives inside crisisSection (the
+  // helpline block), which Story 12.5 treats as out-of-scope crisis/safety UI, unlike
+  // the plain retryButtonText links elsewhere in this file.
   crisisContact: { fontSize: 16, color: '#1d4ed8', marginBottom: 8, textDecorationLine: 'underline' },
-  reflectionLabel: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 8, fontFamily: 'Inter_600SemiBold' },
+  reflectionLabel: { fontSize: 16, fontWeight: '600', color: color.content.primary, marginBottom: 8, fontFamily: 'Inter_600SemiBold' },
   reflectionInput: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: color.surface.secondary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: color.content.primary,
     minHeight: 120,
     textAlignVertical: 'top',
     marginBottom: 24,
   },
   saveErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20, marginBottom: 8 },
   retryButton: { marginBottom: 12, alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
-  doneButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
-  doneButtonDisabled: { backgroundColor: '#d1d5db' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
+  doneButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  doneButtonDisabled: { backgroundColor: color.surface.secondary },
   doneButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

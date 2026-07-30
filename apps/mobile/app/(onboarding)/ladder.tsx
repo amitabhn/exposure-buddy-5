@@ -4,6 +4,7 @@ import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { FearItemForm } from '../../src/components/onboarding/FearItemForm'
 import { getAdapter } from '../../src/sync/adapter'
@@ -277,31 +278,34 @@ export default function LadderScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 24, paddingVertical: 32, backgroundColor: '#ffffff' },
-  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, paddingRight: 88 },
-  subtitle: { fontSize: 15, color: '#6b7280', lineHeight: 22, marginBottom: 24 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#e5e7eb' },
+  container: { paddingHorizontal: 24, paddingVertical: 32, backgroundColor: color.surface.primary },
+  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 8, paddingRight: 88 },
+  subtitle: { fontSize: 15, color: color.content.secondary, lineHeight: 22, marginBottom: 24 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: color.surface.secondary, borderRadius: 8, padding: 12, marginBottom: 8 },
   itemContent: { flex: 1 },
-  itemDescription: { fontSize: 15, color: '#111827', lineHeight: 22 },
-  itemSuds: { fontSize: 12, color: '#6b7280', marginTop: 4 },
+  itemDescription: { fontSize: 15, color: color.content.primary, lineHeight: 22 },
+  itemSuds: { fontSize: 12, color: color.content.secondary, marginTop: 4 },
   itemActions: { flexDirection: 'column', gap: 4, marginLeft: 8 },
   reorderButton: { padding: 4 },
-  reorderText: { fontSize: 18, color: '#374151' },
-  reorderTextDisabled: { color: '#d1d5db' },
-  addAnother: { alignSelf: 'stretch', borderWidth: 1, borderColor: '#111827', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
-  addAnotherText: { color: '#111827', fontSize: 15, fontWeight: '500' },
+  reorderText: { fontSize: 18, color: color.content.secondary },
+  // #9ca3af — disabled-state grey, the established exception (not part of the token
+  // palette); color.surface.secondary was wrong here — it matched this row's own card
+  // background, making the disabled arrow invisible.
+  reorderTextDisabled: { color: '#9ca3af' },
+  addAnother: { alignSelf: 'stretch', borderWidth: 1, borderColor: color.content.primary, borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
+  addAnotherText: { color: color.content.primary, fontSize: 15, fontWeight: '500' },
   crisisBanner: { backgroundColor: '#fef2f2', borderRadius: 8, padding: 12, marginTop: 16, borderWidth: 1, borderColor: '#fecaca' },
   crisisText: { fontSize: 14, color: '#991b1b', lineHeight: 20, marginBottom: 4 },
   crisisLink: { fontSize: 13, color: '#991b1b', textDecorationLine: 'underline' },
   overwhelmedLink: { marginTop: 20, alignSelf: 'center' },
-  overwhelmedText: { fontSize: 14, color: '#6b7280', textDecorationLine: 'underline' },
+  overwhelmedText: { fontSize: 14, color: color.content.secondary, textDecorationLine: 'underline' },
   nudge: { backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 1, borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   nudgeText: { fontSize: 13, color: '#166534', lineHeight: 18, flex: 1 },
   nudgeDismiss: { fontSize: 13, color: '#166534', fontWeight: '600', textDecorationLine: 'underline' },
   saveErrorText: { fontSize: 14, color: '#ef4444', marginTop: 8, lineHeight: 20 },
   retryButton: { marginTop: 8, alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
-  button: { alignSelf: 'stretch', backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-  buttonDisabled: { backgroundColor: '#d1d5db' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
+  button: { alignSelf: 'stretch', backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  buttonDisabled: { backgroundColor: color.surface.secondary },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

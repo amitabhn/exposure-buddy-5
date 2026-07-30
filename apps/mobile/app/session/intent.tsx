@@ -7,6 +7,7 @@ import type { SessionRecoveryData } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 import { BackButton } from '../../src/components/navigation/BackButton'
+import { color } from '@exposure-buddy/ui'
 
 // Pure-JS UUID v4 — same pattern as ladder.tsx (Hermes limitation: no crypto.randomUUID)
 function generateUUID(): string {
@@ -142,7 +143,7 @@ export default function IntentScreen() {
           headerTitle: t('session.intent.title'),
           headerShadowVisible: false,
           // eslint-disable-next-line i18next/no-literal-string
-          headerStyle: { backgroundColor: '#ffffff' },
+          headerStyle: { backgroundColor: color.surface.primary },
           headerLeft: () => <BackButton />,
           headerBackVisible: false,
         }}
@@ -193,16 +194,16 @@ export default function IntentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: color.surface.primary },
   content: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
-  descriptionContext: { fontSize: 16, color: '#374151', marginBottom: 24, lineHeight: 24 },
-  label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 12, marginTop: 8 },
-  textInput: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: '#111827', marginBottom: 12, backgroundColor: '#f9fafb', minHeight: 80 },
-  hint: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 16 },
+  descriptionContext: { fontSize: 16, color: color.content.secondary, marginBottom: 24, lineHeight: 24 },
+  label: { fontSize: 14, fontWeight: '500', color: color.content.secondary, marginBottom: 12, marginTop: 8 },
+  textInput: { borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: color.content.primary, marginBottom: 12, backgroundColor: color.surface.secondary, minHeight: 80 },
+  hint: { fontSize: 13, color: color.content.secondary, lineHeight: 18, marginBottom: 16 },
   enqueueErrorText: { fontSize: 14, color: '#ef4444', marginTop: 16, lineHeight: 20 },
   retryButton: { marginTop: 8, alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
-  continueButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
-  continueButtonDisabled: { backgroundColor: '#d1d5db' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
+  continueButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
+  continueButtonDisabled: { backgroundColor: color.surface.secondary },
   continueText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

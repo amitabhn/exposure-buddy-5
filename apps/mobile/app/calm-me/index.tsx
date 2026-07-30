@@ -4,6 +4,7 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
@@ -196,40 +197,38 @@ const styles = StyleSheet.create({
   // marginTop:'auto' bottom-pinned footer behaviour for short content (the container still
   // grows to fill the viewport), while letting tall content (Story 9.3 max-font-size
   // walkthrough finding) scroll instead of being clipped off-screen.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingBottom: 32 },
+  container: { flexGrow: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, paddingBottom: 32 },
   // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
   exitButton: { position: 'absolute', right: 24, padding: 8, zIndex: 1 },
-  exitIcon: { fontSize: 22, color: '#111827' },
+  exitIcon: { fontSize: 22, color: color.content.primary },
   affirmation: {
     fontSize: 20,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
+    color: color.content.primary,
     textAlign: 'center',
     lineHeight: 30,
     marginBottom: 32,
   },
   techniquePicker: { gap: 12, marginBottom: 24 },
   techniqueCard: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
     borderRadius: 12,
     padding: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: color.surface.secondary,
     alignItems: 'center',
   },
-  techniqueLabel: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827' },
+  techniqueLabel: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary },
   actionFooter: { gap: 16, marginTop: 'auto' },
-  keepGoingButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  keepGoingButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   keepGoingText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-  needToStopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
-  needToStopText: { color: '#374151', fontSize: 16 },
-  confirmCard: { marginTop: 'auto', backgroundColor: '#f9fafb', borderRadius: 12, padding: 20 },
-  confirmTitle: { fontSize: 17, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', marginBottom: 16 },
+  needToStopButton: { borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  needToStopText: { color: color.content.secondary, fontSize: 16 },
+  confirmCard: { marginTop: 'auto', backgroundColor: color.surface.secondary, borderRadius: 12, padding: 20 },
+  confirmTitle: { fontSize: 17, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, textAlign: 'center', marginBottom: 16 },
   confirmActions: { flexDirection: 'row', gap: 12 },
-  confirmYesButton: { flex: 1, backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
+  confirmYesButton: { flex: 1, backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   confirmYesText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-  confirmNotNowButton: { flex: 1, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
-  confirmNotNowText: { color: '#374151', fontSize: 15 },
-  sudsPromptCard: { marginTop: 'auto', backgroundColor: '#f9fafb', borderRadius: 12, padding: 20 },
+  confirmNotNowButton: { flex: 1, borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
+  confirmNotNowText: { color: color.content.secondary, fontSize: 15 },
+  sudsPromptCard: { marginTop: 'auto', backgroundColor: color.surface.secondary, borderRadius: 12, padding: 20 },
 })

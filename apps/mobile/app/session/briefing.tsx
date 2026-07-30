@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 
 export default function BriefingScreen() {
   const { t } = useTranslation()
@@ -59,12 +60,12 @@ const styles = StyleSheet.create({
   // centers content even when it's taller than the viewport, clipping the top of the title
   // off-screen. flexGrow + justifyContent on the ScrollView's content container preserves
   // the centered look for short content while scrolling once content overflows.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingBottom: 48, justifyContent: 'center' },
-  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 16, textAlign: 'center' },
-  sessionContext: { fontSize: 16, color: '#374151', lineHeight: 26, textAlign: 'center', marginBottom: 32 },
+  container: { flexGrow: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, paddingBottom: 48, justifyContent: 'center' },
+  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 16, textAlign: 'center' },
+  sessionContext: { fontSize: 16, color: color.content.secondary, lineHeight: 26, textAlign: 'center', marginBottom: 32 },
   letterBlock: { marginBottom: 32 },
-  letterIntro: { fontSize: 13, color: '#6b7280', marginBottom: 8 },
-  intentionText: { fontSize: 18, color: '#111827', lineHeight: 28, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
-  readyButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  letterIntro: { fontSize: 13, color: color.content.secondary, marginBottom: 8 },
+  intentionText: { fontSize: 18, color: color.content.primary, lineHeight: 28, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
+  readyButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   readyText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })
