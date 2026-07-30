@@ -169,13 +169,29 @@
   "home": {
     "readyToStart": "Your Courage Ladder is ready. Let's go!",
     "welcomeBack": "Welcome back. Keep going.",
-    "state4": {
-      "context": "You have an exposure in progress",
-      "cta": "Continue"
+    "subGreetingReadyToStart": "One small step is all it takes to start.",
+    "subGreetingWelcomeBack": "Ready for your next step?",
+    "yourLadderLabel": "Your ladder",
+    "progressLabel": "{{completed}} of {{total}} steps climbed",
+    "nextStepLabel": "Your next step",
+    "nextStep": {
+      "cta": "Start this step",
+      "sudsPrefix": "Anxiety ",
+      "sudsSuffix": "/10"
     },
-    "state10": {
-      "message": "You've completed every situation on your Courage Ladder. Well done.",
-      "addMore": "Add more situations"
+    "emptyState": {
+      "headline": "Every climb starts with one step",
+      "subtext": "Add a situation that makes you anxious — we'll help you work up to it.",
+      "cta": "Add your first situation"
+    },
+    "completedState": {
+      "headline": "You've reached the top of your ladder",
+      "subtext": "Every situation you set out to face — faced. That's real progress.",
+      "cta": "Add another challenge"
+    },
+    "progressingState": {
+      "label": "Session in progress",
+      "cta": "Continue where you left off"
     },
     "courageCard": {
       "itemLabel": "{{description}}, anxiety level {{suds}} out of 10",
@@ -290,6 +306,7 @@
   "calmMe": {
     "fab": "Calm Me",
     "fabHint": "Opens calming techniques and crisis support",
+    "fabLabel": "INSTA\nCALM",
     "exit": "Close",
     "affirmation": {
       "1": "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time."

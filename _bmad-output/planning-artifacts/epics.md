@@ -390,10 +390,10 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 
 *(Numbered 12 as of 2026-07-30 — created the same day as Epic 13 (originally numbered 13), then swapped with the ADR-OFFLINE-DEGRADATION reservation so the reservation could hold the higher, still-inactive number and this living epic could take the lower one. See Epic 13's numbering history below for the full swap rationale. Open-ended and living, unlike every other epic in this document: it is seeded at creation with four placeholder stories for the screens named at kickoff (sign-in/sign-up, home, ladder, exposure flow) and is expected to grow additional stories over time as concrete UI/UX issues surface — primarily via Epic 11 beta feedback submissions, but also ad hoc product/design review. Placeholder stories carry no acceptance criteria yet; each is refined into concrete, testable ACs from real feedback before a dev agent picks it up.)*
 
-Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic starts with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
+Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic started with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
 
 **FRs covered:** FR-UXENH-01
-**Planning note:** No story in this epic is ready-for-dev at creation. `sprint-status.yaml` marks each `backlog` with a note that acceptance criteria must be written from concrete feedback first — this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time.
+**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Story 12.2 (Home) was the first to leave placeholder state** (2026-07-30, from a Claude Design redesign import, not beta feedback) and is done — see its entry below for the pattern later stories in this epic should follow.
 
 ---
 
@@ -2508,9 +2508,48 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen; also `apps/mobile/app/(auth)/otp-verification.tsx` if the specific feedback concerns the OTP step). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
 
-### Story 12.2: Home Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.2: Home Screen — UI/UX Enhancements
 
-> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(app)/index.tsx` (home screen state machine, all states — see Epic 5/6/8 for the states this screen renders). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
+**Status: done.** Source: Claude Design project "Exposure Buddy" (`Home - Redesign.dc.html`, compared against `Home - Current.dc.html` recreating the as-shipped screen), imported via the `claude_design` MCP. Screen in scope: `apps/mobile/app/(app)/index.tsx` (home screen state machine — 'morning', 'empty-ladder', 'completed', 'progressing' — see Epic 5/6/8 for how these states are populated).
+
+**Given** the redesign mockup and the as-shipped screen were compared directly
+**When** the palette is mapped
+**Then** every colour in the redesign (`#F5F7F6`, `#EBF0EE`, `#1A2E2A`, `#4A6B62`, `#2D6A5A`, `#E8A84C` decorative-only, `#FDF7ED`) maps exactly onto the 8 semantic tokens already defined in `packages/ui/src/tokens/theme.ts` (Story 1.4) — the Home screen was simply never migrated onto those tokens. No new tokens are introduced; the one exception is the completed-state card's border colour (`#F1E4CC`, a warm companion to `color.reflect.background` with no existing token), kept as a documented raw hex per the precedent already established in `CalmMeButton.tsx`'s shadow colour
+
+**Given** the container background is `#ffffff` with 24px horizontal padding today
+**When** this story is implemented
+**Then** `styles.container` uses `color.surface.primary` and `spacing[5]` (20px) horizontal padding, matching the redesign
+
+**Given** the greeting is a single line today (`home.welcomeBack` / `home.readyToStart`)
+**When** this story is implemented
+**Then** a second line renders below it using two new keys, `home.subGreetingWelcomeBack` ("Ready for your next step?") and `home.subGreetingReadyToStart` ("One small step is all it takes to start."), selected by the same `seenOnMount.current` check already driving the greeting. Personalising the greeting with the user's name (shown as "Priya" in the mockup) is explicitly deferred — `profiles.display_name` has no existing read hook, and wiring one up is a data-layer addition out of scope for a visual-polish story, not a rejected idea
+
+**Given** the redesign shows a ladder-completion progress bar ("Your ladder" / "N of M steps climbed" / a filled track) that does not exist today
+**When** this story is implemented
+**Then** a new component `LadderProgressBar` (`packages/ui/src/components/LadderProgressBar.tsx`, exported from `packages/ui/src/index.ts`) renders this row, taking pre-translated `label`/`progressLabel` strings plus `completed`/`total` numbers (packages/ui has no `react-i18next` dependency, per the existing `HelplineCard` precedent); `apps/mobile/app/(app)/index.tsx` computes `completed`/`total` from the already-fetched `items` array (`items.filter(i => i.status === 'completed').length` / `items.length`) — no new query. The bar renders whenever `homeState !== 'empty-ladder'` (a 0-item ladder has nothing to show progress on); it is absent only in the empty-ladder state
+
+**Given** `CourageLadderEntryCard` (`packages/ui/src/components/CourageLadderEntryCard.tsx`) renders the 'morning' state today as a plain bordered card with description + "Anxiety: N/10" text and no button
+**When** this story is implemented
+**Then** the card is restyled to the redesign's "Your next step" treatment: an uppercase section label, the pending item's description at `typography.h2`, a pill-shaped SUDS badge (a decorative dot in `color.accent.progress` + "Anxiety N/10" text), and an explicit "Start this step" CTA button — all inside the same single pressable card (tapping anywhere still navigates to `/ladder`; the CTA is a visual affordance, not a second independently-focusable pressable, to avoid complicating the existing `cardRef` accessibility-focus contract from Story 6.2-B). The `ladderItemCount` prop is removed (it only drove the never-reached-in-production `lowestPendingItem === null` fallback branch's text choice, which the caller now resolves directly); `nextStepLabel`, `ctaLabel`, `sudsPrefix`, `sudsSuffix`, and `fallbackLabel` (all pre-translated) are added. **The SUDS clamp (`Math.min(10, Math.max(0, Math.round(predictedSuds)))`) stays inside the component**, computed from `sudsPrefix`/`sudsSuffix` split around the clamped number rather than a single pre-formatted string — preserving Story 6.2-B AC5's defense-in-depth-at-the-render-boundary guarantee and its existing clamp test coverage in `apps/mobile/src/components/CourageLadderEntryCard.test.tsx`, rather than relocating the safety check to the caller where it would lose direct test coverage
+
+**Given** the empty-ladder, completed, and progressing states render generic bordered-card placeholder text today (`ladder.emptyState`, `home.state10.message`/`state10.addMore`, `home.state4.context`/`state4.cta`)
+**When** this story is implemented
+**Then** each state gets the redesign's warmer, purpose-built treatment, replacing the old i18n keys with new ones (old keys removed, not kept as dead aliases):
+- **Empty** (`home.emptyState.*`): centred card, `color.surface.secondary` background, headline "Every climb starts with one step", subtext "Add a situation that makes you anxious — we'll help you work up to it.", CTA "Add your first situation" → `/ladder`. The `accessibilityLiveRegion="polite"` behaviour on the headline text (Story 9.3 audit fix) is preserved
+- **Completed** (`home.completedState.*`): warm card, `color.reflect.background` + `#F1E4CC` border, headline "You've reached the top of your ladder", subtext "Every situation you set out to face — faced. That's real progress.", CTA "Add another challenge" → `/ladder`
+- **Progressing** (`home.progressingState.*`): `color.accent.courage` filled card, uppercase "Session in progress" label with a decorative dot, the in-progress item's description in white, CTA "Continue where you left off" — the CTA/card press still routes through the existing `progressingTarget` logic (grounding-aware recovery routing, Story 9.2) unchanged
+
+**Given** the global Calm Me FAB (`CalmMeButton`, `packages/ui/src/components/CalmMeButton.tsx`, mounted app-wide via `CalmMeFab.tsx`) appears in the redesign mockup as a pill with "INSTA CALM" text beside the icon, not the current plain 56×56 circular icon button
+**When** this story is implemented
+**Then** `CalmMeButton` is restyled to a 48px-tall pill (`radius.card`, white background, 2px `color.accent.courage` border) with a new required `label` prop (pre-translated, a literal `"\n"` renders the stacked "INSTA\nCALM" two-line text) rendered beside the existing `IconCalmMe.png` icon; `accessibilityLabel`/`accessibilityHint` are unchanged. **This is a deliberate cross-cutting change** — `CalmMeButton` renders on every screen, not just Home, since the mockup redesigns the button as it appears on the Home screen; `apps/mobile/src/components/CalmMeFab.tsx` passes the new `label` prop via a new `calmMe.fabLabel` key. No other screen's layout assumes the old 56×56 circular footprint, so this does not block Stories 12.1/12.3/12.4
+
+**Given** project convention requires every user-facing string to use `t()` (CI lint enforced) and Hindi entries duplicate English copy pending Story 9.9 localisation (Story 6.2-B AC6 precedent)
+**When** this story adds/renames the `home.subGreeting*`, `home.yourLadderLabel`, `home.progressLabel`, `home.nextStepLabel`, `home.nextStep.*`, `home.emptyState.*`, `home.completedState.*`, `home.progressingState.*`, and `calmMe.fabLabel` keys
+**Then** all are added to both `apps/mobile/src/i18n/locales/en.json` and `hi.json`; the removed keys (`home.state4.*`, `home.state10.*`) are deleted from both files, not left as orphans; no raw string literals appear in any changed component
+
+**Given** `apps/mobile/app/(app)/index.test.tsx` and the dedicated `packages/ui` component tests hosted in `apps/mobile/src/components/` (`CalmMeButton.test.tsx`, `CourageLadderEntryCard.test.tsx` — per that directory's own comment, apps/mobile is "the only package with `@testing-library/react-native` set up") assert on the old copy/props
+**When** this story is implemented
+**Then** all three files are updated: the `@exposure-buddy/ui` jest mock in `index.test.tsx` is extended to re-export the real `color`/`radius`/`spacing`/`typography` tokens (via `jest.requireActual`) alongside lightweight `CourageLadderEntryCard`/`LadderProgressBar` stubs (index.tsx's own `StyleSheet.create()` dereferences those tokens at module load and would throw on `undefined` otherwise); renamed-key assertions are updated; new tests cover progress-bar visibility per state and the empty state's absence of it; `CalmMeButton.test.tsx` and `CourageLadderEntryCard.test.tsx` pass the new required props (`label`; `nextStepLabel`/`ctaLabel`/`sudsPrefix`/`sudsSuffix`/`fallbackLabel`) and assert the clamped `"Anxiety N/10"` text (no colon, per the redesign copy) renders as a single concatenated `Text` node. `pnpm turbo typecheck lint test` passes clean across all affected packages (`@exposure-buddy/ui`, `exposure-buddy-mobile`)
 
 ### Story 12.3: Ladder Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 

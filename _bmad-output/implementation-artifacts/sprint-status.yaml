@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact; UI/UX Enhancements & Polish epic added and renumbered 13→12, swapping with the ADR-OFFLINE-DEGRADATION reservation (now Epic 13) — planning only, 4 placeholder stories, no ACs yet
+last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact; UI/UX Enhancements & Polish epic added and renumbered 13→12, swapping with the ADR-OFFLINE-DEGRADATION reservation (now Epic 13); Story 12.2 (Home screen) implemented from a Claude Design redesign import and done — first story in Epic 12 to leave placeholder state
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -162,8 +162,8 @@ development_status:
   # feedback (Epic 11) or design review identifies specific issues. See
   # epics.md Epic 12 for the placeholder convention — each story is fleshed
   # out from real feedback before pickup.
-  epic-12: backlog
+  epic-12: in-progress # 12.2 done 2026-07-30; 12.1/12.3/12.4 still placeholder
   12-1-sign-in-sign-up-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
-  12-2-home-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  12-2-home-screen-ui-ux-enhancements: done # 2026-07-30: implemented from Claude Design "Exposure Buddy" project (Home - Redesign.dc.html); pnpm turbo typecheck lint test green (19/19 tasks)
   12-3-ladder-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
   12-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet

@@ -23,13 +23,19 @@ jest.mock('@exposure-buddy/supabase', () => ({
 
 jest.mock('@exposure-buddy/ui', () => {
   const MockReact = require('react')
-  const { TouchableOpacity: MockTouchable } = require('react-native')
+  const { TouchableOpacity: MockTouchable, View: MockView } = require('react-native')
+  const actual = jest.requireActual('@exposure-buddy/ui')
   return {
+    color: actual.color,
+    radius: actual.radius,
+    spacing: actual.spacing,
+    typography: actual.typography,
     CourageLadderEntryCard: MockReact.forwardRef(
       ({ onPress }: { onPress: () => void }, ref: React.ForwardedRef<View>) => (
         <MockTouchable ref={ref} testID="courage-card" onPress={onPress} />
       )
     ),
+    LadderProgressBar: () => <MockView testID="progress-bar" />,
   }
 })
 
@@ -154,10 +160,18 @@ describe('HomeScreen', () => {
       mockResolveHomeScreenState.mockReturnValue('completed')
     })
 
-    it('renders the state10 message with no CTA card', () => {
-      const { getByText, queryByTestId } = render(<HomeScreen />)
-      expect(getByText('home.state10.message')).toBeTruthy()
+    it('renders the completed-state headline, subtext and CTA card', () => {
+      const { getByText, getByRole, queryByTestId } = render(<HomeScreen />)
+      expect(getByText('home.completedState.headline')).toBeTruthy()
+      expect(getByText('home.completedState.subtext')).toBeTruthy()
+      expect(getByRole('button', { name: 'home.completedState.cta' })).toBeTruthy()
       expect(queryByTestId('courage-card')).toBeNull()
+    })
+
+    it('completed-state CTA navigates to /ladder', () => {
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.completedState.cta' }))
+      expect(mockPush).toHaveBeenCalledWith('/ladder')
     })
   })
 
@@ -166,16 +180,41 @@ describe('HomeScreen', () => {
       mockResolveHomeScreenState.mockReturnValue('empty-ladder')
     })
 
-    it('renders the empty-ladder message and add-item CTA', () => {
+    it('renders the empty-ladder headline, subtext and add-item CTA', () => {
       const { getByText, getByRole } = render(<HomeScreen />)
-      expect(getByText('ladder.emptyState')).toBeTruthy()
-      expect(getByRole('button', { name: 'ladder.addItem' })).toBeTruthy()
+      expect(getByText('home.emptyState.headline')).toBeTruthy()
+      expect(getByText('home.emptyState.subtext')).toBeTruthy()
+      expect(getByRole('button', { name: 'home.emptyState.cta' })).toBeTruthy()
     })
 
     it('add-item CTA navigates to /ladder', () => {
       const { getByRole } = render(<HomeScreen />)
-      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.press(getByRole('button', { name: 'home.emptyState.cta' }))
       expect(mockPush).toHaveBeenCalledWith('/ladder')
+    })
+
+    it('does NOT render the ladder progress bar (zero items)', () => {
+      const { queryByTestId } = render(<HomeScreen />)
+      expect(queryByTestId('progress-bar')).toBeNull()
+    })
+  })
+
+  describe('ladder progress bar', () => {
+    it('renders for the morning state', () => {
+      const { getByTestId } = render(<HomeScreen />)
+      expect(getByTestId('progress-bar')).toBeTruthy()
+    })
+
+    it('renders for the progressing state', () => {
+      mockResolveHomeScreenState.mockReturnValue('progressing')
+      const { getByTestId } = render(<HomeScreen />)
+      expect(getByTestId('progress-bar')).toBeTruthy()
+    })
+
+    it('renders for the completed state', () => {
+      mockResolveHomeScreenState.mockReturnValue('completed')
+      const { getByTestId } = render(<HomeScreen />)
+      expect(getByTestId('progress-bar')).toBeTruthy()
     })
   })
 
@@ -190,7 +229,7 @@ describe('HomeScreen', () => {
         sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
       })
       const { getByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(getByText('home.progressingState.label')).toBeTruthy()
       expect(getByText('Public speaking')).toBeTruthy()
     })
 
@@ -200,7 +239,7 @@ describe('HomeScreen', () => {
         sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
       })
       const { getByRole } = render(<HomeScreen />)
-      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
       expect(mockPush).toHaveBeenCalledWith(
         '/session/active?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
       )
@@ -213,9 +252,9 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       const { getByText, getByRole, queryByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(getByText('home.progressingState.label')).toBeTruthy()
       expect(queryByText('Public speaking')).toBeNull()
-      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
       expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s2&fearItemId=b&description=&preSuds=0')
     })
 
@@ -226,7 +265,7 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       const { getByRole } = render(<HomeScreen />)
-      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
       expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s3&fearItemId=&description=&preSuds=0')
     })
 
@@ -236,7 +275,7 @@ describe('HomeScreen', () => {
         sessionRecoveryData: { sessionId: 's1', fearItemId: null, description: 'Public speaking', preSuds: 4 },
       })
       const { getByRole } = render(<HomeScreen />)
-      fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+      fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
       expect(mockPush).toHaveBeenCalledWith(
         '/session/active?sessionId=s1&fearItemId=&description=Public%20speaking&preSuds=4'
       )
@@ -248,8 +287,8 @@ describe('HomeScreen', () => {
         sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: '', preSuds: 4 },
       })
       const { getByText, queryByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.context')).toBeTruthy()
-      expect(getByText('home.state4.cta')).toBeTruthy()
+      expect(getByText('home.progressingState.label')).toBeTruthy()
+      expect(getByText('home.progressingState.cta')).toBeTruthy()
       expect(queryByText('Public speaking')).toBeNull()
     })
 
@@ -281,7 +320,7 @@ describe('HomeScreen', () => {
           getGroundingActiveAt: () => 1_750_000_000_000,
         })
         const { getByRole } = render(<HomeScreen />)
-        fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+        fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
         expect(mockPush).toHaveBeenCalledWith(
           '/session/grounding?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
         )
@@ -294,7 +333,7 @@ describe('HomeScreen', () => {
           sessionRecoveryData: { sessionId: 's1', fearItemId: 'a', description: 'Public speaking', preSuds: 4 },
         })
         const { getByRole } = render(<HomeScreen />)
-        fireEvent.press(getByRole('button', { name: 'home.state4.cta' }))
+        fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
         expect(mockPush).toHaveBeenCalledWith(
           '/session/active?sessionId=s1&fearItemId=a&description=Public%20speaking&preSuds=4'
         )
@@ -314,15 +353,15 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       const { getByText, queryByTestId } = render(<HomeScreen />)
-      expect(getByText('home.state10.message')).toBeTruthy()
+      expect(getByText('home.completedState.headline')).toBeTruthy()
       expect(queryByTestId('courage-card')).toBeNull()
     })
 
     it('an empty ladder does NOT vacuously resolve ladderComplete -> empty-ladder state, not completed', () => {
       mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
       const { getByText, queryByText } = render(<HomeScreen />)
-      expect(getByText('ladder.emptyState')).toBeTruthy()
-      expect(queryByText('home.state10.message')).toBeNull()
+      expect(getByText('home.emptyState.headline')).toBeTruthy()
+      expect(queryByText('home.completedState.headline')).toBeNull()
     })
 
     it('a pending (non-complete) ladder with no active session -> morning state', () => {
@@ -344,7 +383,7 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       const { getByText } = render(<HomeScreen />)
-      expect(getByText('home.state4.context')).toBeTruthy()
+      expect(getByText('home.progressingState.label')).toBeTruthy()
     })
   })
 })
