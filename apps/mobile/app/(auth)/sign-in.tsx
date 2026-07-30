@@ -585,9 +585,9 @@ export default function SignInScreen() {
         accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
       >
         <Text style={styles.modeSwitchText}>
-          {state.mode === 'signup' ? t('auth.modeSwitch.newHere') : t('auth.modeSwitch.alreadyHaveAccount')}{' '}
+          {state.mode === 'signup' ? t('auth.modeSwitch.alreadyHaveAccount') : t('auth.modeSwitch.newHere')}{' '}
           <Text style={styles.modeSwitchLink}>
-            {state.mode === 'signup' ? t('auth.mode.createAccount') : t('auth.mode.signIn')}
+            {state.mode === 'signup' ? t('auth.mode.signIn') : t('auth.mode.createAccount')}
           </Text>
         </Text>
       </TouchableOpacity>

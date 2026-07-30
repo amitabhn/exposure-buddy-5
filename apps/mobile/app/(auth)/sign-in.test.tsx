@@ -119,11 +119,14 @@ describe('SignInScreen', () => {
   })
 
   it('renders all four mode x authMethod combinations', () => {
-    const { getByLabelText, getAllByLabelText, queryByLabelText } = render(<SignInScreen />)
+    const { getByLabelText, getAllByLabelText, queryByLabelText, getByText } = render(<SignInScreen />)
 
     // Default: signup + password (INITIAL_STATE.authMethod is 'password')
     expect(getIdentifierInput(getAllByLabelText)).toBeTruthy()
     expect(getByLabelText('auth.password.label')).toBeTruthy()
+    // Mode-switch footer must invite the OTHER mode, not repeat the current one.
+    expect(getByText(/auth\.modeSwitch\.alreadyHaveAccount/)).toBeTruthy()
+    expect(getByText(/auth\.mode\.signIn$/)).toBeTruthy()
 
     // signup + otp
     fireEvent.press(getByLabelText('auth.authMethod.switchToOtp'))
@@ -133,6 +136,9 @@ describe('SignInScreen', () => {
     // signin + otp
     fireEvent.press(getByLabelText('auth.mode.signIn'))
     expect(getIdentifierInput(getAllByLabelText)).toBeTruthy()
+    // Now in signin mode — footer must invite switching to signup, not repeat "sign in".
+    expect(getByText(/auth\.modeSwitch\.newHere/)).toBeTruthy()
+    expect(getByText(/auth\.mode\.createAccount$/)).toBeTruthy()
 
     // signin + password
     fireEvent.press(getByLabelText('auth.authMethod.switchToPassword'))
