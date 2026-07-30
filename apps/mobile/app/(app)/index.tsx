@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
-    color: color.surface.secondary,
+    color: '#ffffff',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },

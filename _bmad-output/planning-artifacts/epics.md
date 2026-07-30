@@ -2554,7 +2554,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 **Given** the redesign mockup and the as-shipped screen were compared directly
 **When** the palette is mapped
-**Then** every colour in the redesign (`#F5F7F6`, `#EBF0EE`, `#1A2E2A`, `#4A6B62`, `#2D6A5A`, `#E8A84C` decorative-only, `#FDF7ED`) maps exactly onto the 8 semantic tokens already defined in `packages/ui/src/tokens/theme.ts` (Story 1.4) — the Home screen was simply never migrated onto those tokens. No new tokens are introduced; the one exception is the completed-state card's border colour (`#F1E4CC`, a warm companion to `color.reflect.background` with no existing token), kept as a documented raw hex per the precedent already established in `CalmMeButton.tsx`'s shadow colour
+**Then** every colour in the redesign (`#F5F7F6`, `#EBF0EE`, `#1A2E2A`, `#4A6B62`, `#2D6A5A`, `#E8A84C` decorative-only, `#FDF7ED`) maps exactly onto the 8 semantic tokens already defined in `packages/ui/src/tokens/theme.ts` (Story 1.4) — the Home screen was simply never migrated onto those tokens. No new tokens are introduced; the one exception is the completed-state card's border colour (`#F1E4CC`, a warm companion to `color.reflect.background` with no existing token), kept as a documented raw hex — the same pattern this story's own `CalmMeButton.tsx` change now demonstrates in reverse (its shadow colour is migrated from raw hex onto a token, since a token was available for it, unlike `#F1E4CC`)
 
 **Given** the container background is `#ffffff` with 24px horizontal padding today
 **When** this story is implemented

@@ -483,9 +483,9 @@ export default function SignInScreen() {
       {state.authMethod === 'password' ? (
         <>
           <Text style={styles.fieldLabel}>{t('auth.password.label')}</Text>
-          <View style={styles.passwordRow}>
+          <View style={[styles.passwordRow, isPasswordFieldError ? styles.inputError : null]}>
             <TextInput
-              style={[styles.passwordInput, isPasswordFieldError ? styles.inputError : null]}
+              style={styles.passwordInput}
               value={state.password}
               onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
               onBlur={handlePasswordBlur}
@@ -582,6 +582,7 @@ export default function SignInScreen() {
         }}
         accessibilityRole="button"
         accessibilityLabel={state.mode === 'signup' ? t('auth.mode.signIn') : t('auth.mode.createAccount')}
+        accessibilityHint={state.mode === 'signup' ? t('auth.modeSwitch.toSignInHint') : t('auth.modeSwitch.toSignUpHint')}
         accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
       >
         <Text style={styles.modeSwitchText}>
@@ -786,6 +787,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
+    // #9AAEA7 — same documented token gap as modeSwitchText above
     color: '#9AAEA7',
     textDecorationLine: 'underline',
   },

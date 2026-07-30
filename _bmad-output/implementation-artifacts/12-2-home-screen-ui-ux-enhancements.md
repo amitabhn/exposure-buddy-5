@@ -74,6 +74,13 @@ See the full Given/When/Then acceptance criteria under Story 12.2 in `_bmad-outp
 - [x] Update `CalmMeButton.test.tsx` (add required `label` prop to all 3 render calls) and `CourageLadderEntryCard.test.tsx` (new required props, updated clamp-text assertions without the colon, new fallback-label test)
 - [x] `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks)
 
+### Review Findings
+
+- [x] [Review][Patch] `progressingLabel` uses `color.surface.secondary` (a background/surface token) as a foreground text color on the green `progressingCard`, inconsistent with its sibling `progressingDescription` which correctly uses explicit white [apps/mobile/app/(app)/index.tsx — progressingLabel/progressingDescription styles] — fixed: changed to `'#ffffff'`, matching `progressingDescription`
+- [x] [Review][Patch] `CalmMeButton`'s pill has a fixed `height: 48` (not `minHeight`) and its new two-line `label` Text has no `allowFontScaling={false}`/`maxFontSizeMultiplier`, unlike this codebase's existing convention for other small glyph/label text — will overflow the pill at large accessibility text sizes. This component is mounted globally on every screen [packages/ui/src/components/CalmMeButton.tsx:33-42] — fixed: `height` → `minHeight`, added `allowFontScaling={false}` to the label `Text`
+- [x] [Review][Defer] `calmMe.fabLabel` ("INSTA\nCALM") is English-duplicated in `hi.json` rather than translated — deferred, pre-existing convention (matches the established "duplicate English pending Story 9.9 Hindi activation" pattern used throughout both locale files; this is the first instance of that pattern applied to a *visibly rendered* string rather than an accessibility-only one, worth flagging to whoever does the Story 9.9 pass) [apps/mobile/src/i18n/locales/hi.json:276]
+- [x] [Review][Patch] Story 12.2's AC1 in epics.md cites "the precedent already established in `CalmMeButton.tsx`'s shadow colour" as raw hex — but this same diff converts that shadow color from `#000000` to the `color.content.primary` token, so the precedent it cites no longer exists in the code. Spec-hygiene only, not a code defect [_bmad-output/planning-artifacts/epics.md — Story 12.2 AC1] — fixed: reworded the AC1 sentence to describe the shadow-colour change accurately instead of citing it as a precedent
+
 ---
 
 ## Dev Notes
@@ -121,3 +128,4 @@ None — no blocking issues. `pnpm turbo typecheck lint test` passed clean (19/1
 ### Change Log
 
 - 2026-07-30 — Implemented Story 12.2: Home screen redesign per the Claude Design "Exposure Buddy" project (`Home - Redesign.dc.html`). Migrated the screen onto existing `packages/ui` design tokens, added a ladder progress bar, restyled all 4 home states with the warmer palette and explicit CTAs, and restyled the global `CalmMeButton` pill. Status: done.
+- 2026-07-30 — Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..planning/epic-12-ui-ux-enhancements` branch: 3 patches applied to this story (wrong token used for `progressingLabel` text color, `CalmMeButton` font-scaling overflow risk fixed, epics.md AC1's self-undermining precedent citation reworded), 1 deferred (`calmMe.fabLabel` not translated in `hi.json` — logged in `deferred-work.md`, matches pre-existing convention), 0 dismissed for this story. `pnpm turbo typecheck lint test` green after fixes. Status remains done.

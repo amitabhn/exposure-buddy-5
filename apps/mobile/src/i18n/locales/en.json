@@ -19,7 +19,9 @@
     },
     "modeSwitch": {
       "newHere": "New here?",
-      "alreadyHaveAccount": "Already have an account?"
+      "alreadyHaveAccount": "Already have an account?",
+      "toSignInHint": "Switches the form to sign in to an existing account",
+      "toSignUpHint": "Switches the form to create a new account"
     },
     "otp": {
       "emailLabel": "Email address",

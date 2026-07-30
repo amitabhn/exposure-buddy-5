@@ -22,7 +22,7 @@ export const CalmMeButton = React.forwardRef<
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} allowFontScaling={false}>{label}</Text>
       <Image source={require('../assets/IconCalmMe.png')} style={styles.icon} />
     </TouchableOpacity>
   )
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   button: {
-    height: 48,
+    minHeight: 48,
     borderRadius: radius.card,
     backgroundColor: '#ffffff',
     borderWidth: 2,

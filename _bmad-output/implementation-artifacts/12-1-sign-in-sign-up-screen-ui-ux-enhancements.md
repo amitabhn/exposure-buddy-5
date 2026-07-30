@@ -70,6 +70,12 @@ See the full Given/When/Then acceptance criteria under Story 12.1 in `_bmad-outp
 - [x] Rewrite the "renders all four mode x authMethod combinations" test to drive the new inline links and mode-switch button
 - [x] `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks; 394 mobile Jest tests, sign-in suite 9/9)
 
+### Review Findings
+
+- [x] [Review][Patch] Password field's `inputError` style is applied to `passwordInput`, but the visible underline border lives on the wrapping `passwordRow` — the red error color has zero effect [apps/mobile/app/(auth)/sign-in.tsx:488] — fixed: moved the conditional `inputError` style onto `passwordRow`
+- [x] [Review][Patch] Mode-switch footer button has no `accessibilityHint`, unlike its sibling auth-method toggle links which both got one [apps/mobile/app/(auth)/sign-in.tsx:578-593] — fixed: added `auth.modeSwitch.toSignInHint`/`toSignUpHint` keys and wired the hint
+- [x] [Review][Patch] `#9AAEA7` raw-hex token-gap comment only appears at its first use site (`modeSwitchText`); `privacyLinkText` reuses the same value with no comment of its own [apps/mobile/app/(auth)/sign-in.tsx:~745] — fixed: added a matching comment at the second use site
+
 ---
 
 ## Dev Notes
@@ -108,3 +114,4 @@ None — no blocking issues. `pnpm turbo typecheck lint test` passed clean (19/1
 ### Change Log
 
 - 2026-07-30 — Implemented Story 12.1: Sign-in/sign-up screen redesign per the Claude Design "Exposure Buddy" project's `design_handoff_sign_in/` folder (`Sign In Options.dc.html` + `1c-sign-in.html` + `README.md`). Consolidated three tab rows into one pill switch plus two inline links, restyled title/fields/button/layout onto `packages/ui` tokens (with two documented raw-hex exceptions), all existing auth logic unchanged. Status: done.
+- 2026-07-30 — Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..planning/epic-12-ui-ux-enhancements` branch: 3 patches applied to this story (password field error border applied to the wrong element, missing `accessibilityHint` on the mode-switch footer, missing token-gap comment at a second use site), 0 deferred, 0 dismissed for this story. `pnpm turbo typecheck lint test` green after fixes. Status remains done.

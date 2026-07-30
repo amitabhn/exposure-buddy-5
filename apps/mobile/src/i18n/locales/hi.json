@@ -232,7 +232,9 @@
     },
     "modeSwitch": {
       "newHere": "New here?",
-      "alreadyHaveAccount": "Already have an account?"
+      "alreadyHaveAccount": "Already have an account?",
+      "toSignInHint": "Switches the form to sign in to an existing account",
+      "toSignUpHint": "Switches the form to create a new account"
     },
     "authMethod": {
       "useCodeInstead": "use a code instead",

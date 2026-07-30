@@ -957,3 +957,11 @@ _Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of co
 - **Two independently hand-maintained copies of the MMKV-literal ESLint rule with no shared extraction.** Deliberate per this story's own Dev Notes (no `eslint-rules/` precedent in repo); flagged as the root cause of the `.contains()` selector-coverage drift resolved as a decision-needed item in the same review. [`apps/mobile/.eslintrc.js`, `packages/supabase/.eslintrc.js`]
 
 [`_bmad-output/implementation-artifacts/9-4-mmkv-key-hygiene-and-storage-audit.md`]
+
+## Deferred from: code review of stories 12.1/12.2 (2026-07-30)
+
+_Multi-layer review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..planning/epic-12-ui-ux-enhancements` branch diff — Story 12.1 (Sign-in/Sign-up redesign) and Story 12.2 (Home screen redesign). Full detail in the "Review Findings" sections of `12-1-sign-in-sign-up-screen-ui-ux-enhancements.md` and `12-2-home-screen-ui-ux-enhancements.md`._
+
+- **`calmMe.fabLabel` ("INSTA\nCALM") is English-duplicated in `hi.json` rather than translated.** Matches the established "duplicate English pending Story 9.9 Hindi activation" convention already applied throughout both locale files — but this is the first instance of that convention landing on a *visibly rendered* string (the global Calm Me FAB's pill label) rather than an accessibility-only one. Worth flagging explicitly for whoever does the Story 9.9 Hindi pass, since a native speaker may want a translated or intentionally-kept-in-English decision made deliberately here, not by default. [`apps/mobile/src/i18n/locales/hi.json:276`]
+
+[`_bmad-output/implementation-artifacts/12-1-sign-in-sign-up-screen-ui-ux-enhancements.md`, `_bmad-output/implementation-artifacts/12-2-home-screen-ui-ux-enhancements.md`]
