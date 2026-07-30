@@ -393,7 +393,7 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic started with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
 
 **FRs covered:** FR-UXENH-01
-**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Story 12.2 (Home) was the first to leave placeholder state** (2026-07-30, from a Claude Design redesign import, not beta feedback) and is done — see its entry below for the pattern later stories in this epic should follow.
+**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Stories 12.1 (Sign-In/Sign-Up) and 12.2 (Home) were the first to leave placeholder state**, both on 2026-07-30, both from Claude Design redesign imports rather than beta feedback — see their entries below for the pattern later stories in this epic should follow.
 
 ---
 
@@ -2504,9 +2504,49 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 > **Placeholder convention for this epic:** Each story below marks a screen in scope, not a ready-for-dev spec. Acceptance criteria are written when a concrete issue (a beta feedback submission, a design review note, a specific usability complaint) is identified for that screen, at which point the story is updated in place — a fifth, sixth, etc. story is added only when the new issue targets a screen not already covered by 12.1–12.4.
 
-### Story 12.1: Sign-In/Sign-Up Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.1: Sign-In/Sign-Up Screen — UI/UX Enhancements
 
-> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen; also `apps/mobile/app/(auth)/otp-verification.tsx` if the specific feedback concerns the OTP step). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
+**Status: done.** Source: Claude Design project "Exposure Buddy" (`Sign In Options.dc.html`, plus a dedicated `design_handoff_sign_in/` folder with a high-fidelity `1c-sign-in.html` reference and a written `README.md` handoff spec), imported via the `claude_design` MCP. Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen). `otp-verification.tsx` was out of scope — the handoff only redesigns the identifier/password entry screen, not the OTP code-entry step.
+
+**Given** the handoff README states this is "a visual/layout simplification only" and lists every existing reducer field, action, and validation function `sign-in.tsx` must keep unchanged
+**When** this story is implemented
+**Then** the `State`/`Action`/`reducer`, `validateIdentifier`/`validatePassword`, all error-classification functions, the `isAuthenticated` redirect effect, the DPDPA consent-write retry logic, and the `__DEV__`/preview test-user shortcut are all byte-for-byte unchanged — only the JSX render tree and `StyleSheet` are touched
+
+**Given** the current screen renders three stacked tab rows (mode: create-account/sign-in; identifier type: email/phone; auth method: password/OTP) styled in the pre-redesign near-black/gray palette
+**When** this story is implemented
+**Then** the three tab rows are consolidated per the handoff spec into: one pill switch for identifier type only (`#EBF0EE` track, active pill `color.accent.courage`), and two inline text links replacing the other two tab rows — "use a code instead" / "use a password instead" (toggles `authMethod`, shown one at a time depending on current method) and a bottom "New here? **Create an account**" / "Already have an account? **Sign in**" line (toggles `mode`). All three toggles dispatch the exact same actions (`SET_IDENTIFIER_TYPE`, `SET_AUTH_METHOD`, `SET_MODE`) the old tabs did, gated by the same `isAuthMethodOrModeLocked` guard
+
+**Given** the screen title is currently a single `common.appName` line plus a separate subtitle line
+**When** this story is implemented
+**Then** the title becomes mode-variant — `auth.welcomeSignup` ("Welcome to\n{{appName}}", 30px/36px/700) for signup mode, `auth.welcomeSignin` ("Welcome back") for signin mode — and the separate subtitle line is removed entirely, matching the handoff mock exactly. Personalizing further (e.g. a returning user's name) is out of scope — not shown in the handoff mock
+
+**Given** the identifier field currently uses a bordered box and a translated-label placeholder ("Email address"/"Phone number")
+**When** this story is implemented
+**Then** it becomes an underlined field (`border-bottom: 1.5px solid color.content.primary`) with example-format placeholders (`auth.identifierType.emailPlaceholder` "you@email.com", `auth.identifierType.phonePlaceholder` "+91 98765 43210") — the field's `accessibilityLabel` keeps using the existing `auth.otp.emailLabel`/`phoneLabel` keys unchanged, so screen readers still announce "Email address"/"Phone number", not the terse placeholder text
+
+**Given** the password field currently uses the same bordered-box style with `auth.password.label` as its placeholder (screen readers would read the masked value's placeholder, not a stable label)
+**When** this story is implemented
+**Then** an uppercase `auth.password.label` caption renders above the field (styled via `textTransform: 'uppercase'`, copy unchanged — same pattern as Story 12.2's home-screen labels) and the `TextInput` itself has no placeholder; the inline auth-method link sits in the same row, right-aligned
+
+**Given** the primary submit button currently reads only the branch-specific label (`auth.otp.sendCode` / `auth.password.submitSignUp` / `auth.password.submitSignIn`) with no visual affordance beyond color
+**When** this story is implemented
+**Then** the button is restyled to the handoff's green pill (`color.accent.courage`, `16px` radius) with a trailing "→" glyph (`eslint-disable-next-line i18next/no-literal-string` — decorative, language-agnostic, not translatable copy) — **the branch-specific label logic is unchanged**; the handoff README's "Continue" mockup label was illustrative, not a mandate to collapse three distinct translation keys into one generic label (explicit per the README: "keep translation keys")
+
+**Given** the screen currently centers all content vertically as one block (`justifyContent: 'center'`)
+**When** this story is implemented
+**Then** the layout becomes top-anchored — content flows from the top, and a `flex: 1` spacer between the last input/error block and the submit button pushes the button + footer links to the bottom of the screen, matching the handoff's `padding: 44px 28px 28px 28px` layout; this follows the existing `flexGrow: 1` ScrollView content-container pattern already used elsewhere in this codebase (`session/briefing.tsx`)
+
+**Given** the redesign's palette includes two values with no equivalent in `packages/ui`'s 8 semantic tokens — the screen background `#FDFBF7` (distinct from `color.surface.primary` `#F5F7F6`) and a muted footer-link color `#9AAEA7` (distinct from `color.content.secondary` `#4A6B62`)
+**When** this story is implemented
+**Then** both are kept as documented raw hex values with an inline comment explaining the gap, following the same precedent Story 12.2 established for `#F1E4CC` — no new semantic token is added unilaterally by an implementation story
+
+**Given** project convention requires every user-facing string to use `t()` and the removed tab rows leave several i18n keys with zero remaining call sites
+**When** this story adds `auth.welcomeSignup`, `auth.welcomeSignin`, `auth.identifierType.*` (4 keys), `auth.modeSwitch.*` (2 keys), and `auth.authMethod.useCodeInstead`/`usePasswordInstead`/`switchToOtp`/`switchToOtpHint`/`switchToPassword`/`switchToPasswordHint`
+**Then** all are added to both `en.json` and `hi.json` (English copy duplicated in `hi.json` per the established convention); `auth.authMethod.password`/`otp`/`passwordAccessibilityLabel` and `auth.password.screenSubtitle` are deleted from `en.json` (their only call sites) — `hi.json` never had an `auth.mode`/`auth.otp`/`auth.password`/`auth.authMethod` section to begin with (a pre-existing gap, not touched by this story)
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx`'s existing 9 tests drive the screen exclusively through `getByLabelText`/`getByText` against the old tab structure, including a now-nonexistent `auth.authMethod.passwordAccessibilityLabel` key pressed as a no-op reset at the start of 8 of the 9 tests (redundant even before this story — `INITIAL_STATE.authMethod` is already `'password'`)
+**When** this story is implemented
+**Then** those 8 now-redundant press calls are removed (not replaced — the initial render already satisfies the state they were resetting to) and the one test that exercises all four mode×authMethod combinations is rewritten to drive the two new inline links (`auth.authMethod.switchToOtp`/`switchToPassword`) and the mode-switch button (whose `accessibilityLabel` is the target mode's label — `auth.mode.signIn` when currently signup, `auth.mode.createAccount` when currently signin, so the same label strings the old always-visible tabs used still resolve correctly against the new single toggle). No functional test coverage is lost — every existing assertion (validation, consent-write ordering, error classification, pendingDeletion guard) is preserved verbatim
 
 ### Story 12.2: Home Screen — UI/UX Enhancements
 

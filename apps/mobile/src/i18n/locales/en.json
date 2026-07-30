@@ -9,6 +9,18 @@
     "goHome": "Go to home screen!"
   },
   "auth": {
+    "welcomeSignup": "Welcome to\n{{appName}}",
+    "welcomeSignin": "Welcome back",
+    "identifierType": {
+      "emailShort": "Email",
+      "phoneShort": "Phone",
+      "emailPlaceholder": "you@email.com",
+      "phonePlaceholder": "+91 98765 43210"
+    },
+    "modeSwitch": {
+      "newHere": "New here?",
+      "alreadyHaveAccount": "Already have an account?"
+    },
     "otp": {
       "emailLabel": "Email address",
       "phoneLabel": "Phone number",
@@ -32,14 +44,16 @@
       "signIn": "Sign in"
     },
     "authMethod": {
-      "otp": "OTP",
-      "password": "Password",
-      "passwordAccessibilityLabel": "Password sign-in method"
+      "useCodeInstead": "use a code instead",
+      "usePasswordInstead": "use a password instead",
+      "switchToOtp": "Switch to sign in with a one-time code",
+      "switchToOtpHint": "Sends a one-time code instead of using a password",
+      "switchToPassword": "Switch to sign in with a password",
+      "switchToPasswordHint": "Uses a password instead of a one-time code"
     },
     "password": {
       "label": "Password",
       "hint": "Enter a password with at least 8 characters",
-      "screenSubtitle": "Sign up or sign in with a password",
       "submitSignUp": "Sign up",
       "submitSignIn": "Sign in",
       "submitHint": "Submits your email or phone number and password",

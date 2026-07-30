@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth, ConsentRecordService } from '@exposure-buddy/supabase'
 import { emitAccountCreated, CONSENT_PURPOSE_ACCOUNT_CREATION, CONSENT_VERSION_CURRENT } from '@exposure-buddy/core'
+import { color, radius, spacing, typography } from '@exposure-buddy/ui'
 import { SafetyCheckboxes } from '../../src/components/auth/SafetyCheckboxes'
 import { DPO_EMAIL } from '../../src/constants/legal'
 
@@ -426,82 +427,33 @@ export default function SignInScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('common.appName')}</Text>
-      <Text style={styles.subtitle}>
-        {state.authMethod === 'otp' ? t('auth.otp.sendCode') : t('auth.password.screenSubtitle')}
+      <Text style={styles.title}>
+        {state.mode === 'signup'
+          ? t('auth.welcomeSignup', { appName: t('common.appName') })
+          : t('auth.welcomeSignin')}
       </Text>
 
-      <View style={styles.tabRow}>
+      <View style={styles.identifierTypeSwitch}>
         <TouchableOpacity
-          style={[styles.tab, state.mode === 'signup' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_MODE', payload: 'signup' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.mode.createAccount')}
-          accessibilityState={{ selected: state.mode === 'signup', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.mode === 'signup' && styles.tabTextActive]}>
-            {t('auth.mode.createAccount')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, state.mode === 'signin' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_MODE', payload: 'signin' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.mode.signIn')}
-          accessibilityState={{ selected: state.mode === 'signin', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.mode === 'signin' && styles.tabTextActive]}>
-            {t('auth.mode.signIn')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tab, state.identifierType === 'email' && styles.tabActive]}
+          style={[styles.identifierPill, state.identifierType === 'email' && styles.identifierPillActive]}
           onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'email' }) }}
-          accessibilityLabel={t('auth.otp.emailLabel')}
           accessibilityRole="tab"
+          accessibilityLabel={t('auth.otp.emailLabel')}
           accessibilityState={{ selected: state.identifierType === 'email', disabled: isAuthMethodOrModeLocked }}
         >
-          <Text style={[styles.tabText, state.identifierType === 'email' && styles.tabTextActive]}>
-            {t('auth.otp.emailLabel')}
+          <Text style={[styles.identifierPillText, state.identifierType === 'email' && styles.identifierPillTextActive]}>
+            {t('auth.identifierType.emailShort')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, state.identifierType === 'phone' && styles.tabActive]}
+          style={[styles.identifierPill, state.identifierType === 'phone' && styles.identifierPillActive]}
           onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_IDENTIFIER_TYPE', payload: 'phone' }) }}
-          accessibilityLabel={t('auth.otp.phoneLabel')}
           accessibilityRole="tab"
+          accessibilityLabel={t('auth.otp.phoneLabel')}
           accessibilityState={{ selected: state.identifierType === 'phone', disabled: isAuthMethodOrModeLocked }}
         >
-          <Text style={[styles.tabText, state.identifierType === 'phone' && styles.tabTextActive]}>
-            {t('auth.otp.phoneLabel')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tab, state.authMethod === 'password' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.authMethod.passwordAccessibilityLabel')}
-          accessibilityState={{ selected: state.authMethod === 'password', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.authMethod === 'password' && styles.tabTextActive]}>
-            {t('auth.authMethod.password')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, state.authMethod === 'otp' && styles.tabActive]}
-          onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
-          accessibilityRole="tab"
-          accessibilityLabel={t('auth.authMethod.otp')}
-          accessibilityState={{ selected: state.authMethod === 'otp', disabled: isAuthMethodOrModeLocked }}
-        >
-          <Text style={[styles.tabText, state.authMethod === 'otp' && styles.tabTextActive]}>
-            {t('auth.authMethod.otp')}
+          <Text style={[styles.identifierPillText, state.identifierType === 'phone' && styles.identifierPillTextActive]}>
+            {t('auth.identifierType.phoneShort')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -513,8 +465,8 @@ export default function SignInScreen() {
         onBlur={handleBlur}
         placeholder={
           state.identifierType === 'email'
-            ? t('auth.otp.emailLabel')
-            : t('auth.otp.phoneLabel')
+            ? t('auth.identifierType.emailPlaceholder')
+            : t('auth.identifierType.phonePlaceholder')
         }
         keyboardType={state.identifierType === 'email' ? 'email-address' : 'phone-pad'}
         autoCapitalize="none"
@@ -528,20 +480,45 @@ export default function SignInScreen() {
         accessibilityHint={inputHint}
       />
 
-      {state.authMethod === 'password' && (
-        <TextInput
-          style={[styles.input, isPasswordFieldError ? styles.inputError : null]}
-          value={state.password}
-          onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
-          onBlur={handlePasswordBlur}
-          placeholder={t('auth.password.label')}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!state.isLoading}
-          accessibilityLabel={t('auth.password.label')}
-          accessibilityHint={t('auth.password.hint')}
-        />
+      {state.authMethod === 'password' ? (
+        <>
+          <Text style={styles.fieldLabel}>{t('auth.password.label')}</Text>
+          <View style={styles.passwordRow}>
+            <TextInput
+              style={[styles.passwordInput, isPasswordFieldError ? styles.inputError : null]}
+              value={state.password}
+              onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
+              onBlur={handlePasswordBlur}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!state.isLoading}
+              accessibilityLabel={t('auth.password.label')}
+              accessibilityHint={t('auth.password.hint')}
+            />
+            <TouchableOpacity
+              onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.authMethod.switchToOtp')}
+              accessibilityHint={t('auth.authMethod.switchToOtpHint')}
+              accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+            >
+              <Text style={styles.inlineLink}>{t('auth.authMethod.useCodeInstead')}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : (
+        <View style={styles.authMethodSwitchRow}>
+          <TouchableOpacity
+            onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'password' }) }}
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.authMethod.switchToPassword')}
+            accessibilityHint={t('auth.authMethod.switchToPasswordHint')}
+            accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+          >
+            <Text style={styles.inlineLink}>{t('auth.authMethod.usePasswordInstead')}</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {state.mode === 'signup' && (
@@ -572,6 +549,8 @@ export default function SignInScreen() {
         >{t(state.consentError)}</Text>
       ) : null}
 
+      <View style={styles.spacer} />
+
       <TouchableOpacity
         style={[styles.button, isSubmitDisabled && styles.buttonDisabled]}
         onPress={state.authMethod === 'otp' ? handleSendCode : handlePasswordSubmit}
@@ -590,6 +569,26 @@ export default function SignInScreen() {
           {state.authMethod === 'otp'
             ? t('auth.otp.sendCode')
             : t(state.mode === 'signup' ? 'auth.password.submitSignUp' : 'auth.password.submitSignIn')}
+        </Text>
+        {/* Decorative, language-agnostic glyph — not user-facing copy that needs translation */}
+        {/* eslint-disable-next-line i18next/no-literal-string */}
+        <Text style={styles.buttonArrow}>→</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.modeSwitchRow}
+        onPress={() => {
+          if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_MODE', payload: state.mode === 'signup' ? 'signin' : 'signup' })
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={state.mode === 'signup' ? t('auth.mode.signIn') : t('auth.mode.createAccount')}
+        accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+      >
+        <Text style={styles.modeSwitchText}>
+          {state.mode === 'signup' ? t('auth.modeSwitch.newHere') : t('auth.modeSwitch.alreadyHaveAccount')}{' '}
+          <Text style={styles.modeSwitchLink}>
+            {state.mode === 'signup' ? t('auth.mode.createAccount') : t('auth.mode.signIn')}
+          </Text>
         </Text>
       </TouchableOpacity>
 
@@ -640,77 +639,113 @@ const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
   container: {
     flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 28,
+    paddingTop: 44,
+    paddingBottom: 28,
+    // #FDFBF7 has no equivalent in packages/ui's 8 semantic tokens (closest is
+    // color.surface.primary #F5F7F6) — kept as a documented raw hex, same precedent
+    // as Story 12.2's completed-card border.
+    backgroundColor: '#FDFBF7',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '700',
-    marginBottom: 8,
-    color: '#111827',
+    fontFamily: 'Inter_700Bold',
+    color: color.content.primary,
+    marginBottom: spacing[8],
   },
-  subtitle: {
-    fontSize: 15,
-    color: '#6b7280',
-    marginBottom: 32,
-  },
-  tabRow: {
+  identifierTypeSwitch: {
     flexDirection: 'row',
-    marginBottom: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    overflow: 'hidden',
-    alignSelf: 'stretch',
+    alignSelf: 'flex-start',
+    backgroundColor: color.surface.secondary,
+    borderRadius: 24,
+    padding: 4,
+    marginBottom: spacing[7],
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+  identifierPill: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: radius.pill,
   },
-  tabActive: {
-    backgroundColor: '#ffffff',
+  identifierPillActive: {
+    backgroundColor: color.accent.courage,
   },
-  tabText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    color: '#111827',
+  identifierPillText: {
+    fontSize: 13,
     fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    color: color.content.secondary,
+  },
+  identifierPillTextActive: {
+    color: '#ffffff',
   },
   input: {
     alignSelf: 'stretch',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#ffffff',
-    marginBottom: 8,
+    borderBottomWidth: 1.5,
+    borderBottomColor: color.content.primary,
+    paddingBottom: 10,
+    fontSize: 18,
+    color: color.content.primary,
+    backgroundColor: 'transparent',
+    marginBottom: spacing[7],
+  },
+  fieldLabel: {
+    ...typography.caption,
+    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
+    color: color.content.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: spacing[1] + 2,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1.5,
+    borderBottomColor: color.content.primary,
+    paddingBottom: 10,
+    marginBottom: spacing[8],
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 18,
+    color: color.content.primary,
+    backgroundColor: 'transparent',
+    padding: 0,
+  },
+  authMethodSwitchRow: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing[8],
+  },
+  inlineLink: {
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
+    color: color.accent.courage,
   },
   inputError: {
-    borderColor: '#ef4444',
+    borderBottomColor: '#ef4444',
   },
   errorText: {
     alignSelf: 'stretch',
     fontSize: 13,
     color: '#ef4444',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
+  spacer: { flex: 1 },
   button: {
     alignSelf: 'stretch',
-    backgroundColor: '#111827',
-    borderRadius: 8,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    gap: spacing[2],
+    backgroundColor: color.accent.courage,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: spacing[6],
+    marginBottom: spacing[5],
   },
   buttonDisabled: {
     backgroundColor: '#9ca3af',
@@ -719,14 +754,39 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  buttonArrow: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
+  modeSwitchRow: {
+    alignSelf: 'center',
+  },
+  modeSwitchText: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    // #9AAEA7 (muted footer-link colour) has no equivalent in packages/ui's 8 semantic
+    // tokens — kept as a documented raw hex, same precedent as the screen background above.
+    color: '#9AAEA7',
+    textAlign: 'center',
+  },
+  modeSwitchLink: {
+    color: color.accent.courage,
+    fontWeight: '600',
   },
   privacyLink: {
-    marginTop: 24,
+    marginTop: spacing[3] + 2,
     alignSelf: 'center',
   },
   privacyLinkText: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    color: '#9AAEA7',
     textDecorationLine: 'underline',
   },
 })
