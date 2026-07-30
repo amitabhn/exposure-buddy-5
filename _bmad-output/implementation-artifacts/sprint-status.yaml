@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-19
-last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact; Epic 13 (UI/UX Enhancements & Polish) added — planning only, 4 placeholder stories, no ACs yet
+last_updated: 2026-07-30 # Epic 10 retrospective complete — bug-chain discipline (10.2→10.4→10.5) called out, 5 action items, no epic-11 impact; UI/UX Enhancements & Polish epic added and renumbered 13→12, swapping with the ADR-OFFLINE-DEGRADATION reservation (now Epic 13) — planning only, 4 placeholder stories, no ACs yet
 project: exposure-buddy
 # Updated: story 1-1 done (2026-05-21) — CR, 6 patches; story 1-2 done (2026-05-21) — CR, 6 patches; story 1-3 done (2026-05-21) — CR, 5 patches; FALLBACK: NativeWind v5 rejected, StyleSheet approach adopted
 project_key: NOKEY
@@ -128,13 +128,13 @@ development_status:
   9-7-performance-budget-low-end-device-validation: done
   9-8-haptic-and-sound-degradation-audit: deferred-post-mvp # deferred 2026-07-01 — no haptic or audio features exist in MVP codebase; audit has nothing to find; revisit when haptics/audio are added post-MVP
   9-9-i18n-coverage-hindi-activation-and-phase-1-india-launch-verification: deferred-post-mvp # deferred 2026-07-01 — Phase 1 India gate; i18n coverage enforced by CI (Story 1.6); Hindi activation, RTL verification, 2G testing, and NFR-SCALE-01 load testing are India-launch prerequisites not closed-beta prerequisites
-  9-10-silent-enqueue-failure-remediation-error-retry-ui: deferred-post-mvp # deferred 2026-07-01 — ADR-OFFLINE-DEGRADATION Decision 2 accepted silent-failure as MVP state; the ADR's named trigger (the reserved remediation epic, currently Epic 12 as of 2026-07-09 — see epics.md Epic List for its current number) is post-MVP; revisit as first story of that epic or next sync-mutation-queue story
+  9-10-silent-enqueue-failure-remediation-error-retry-ui: deferred-post-mvp # deferred 2026-07-01 — ADR-OFFLINE-DEGRADATION Decision 2 accepted silent-failure as MVP state; the ADR's named trigger (the reserved remediation epic, currently Epic 13 as of 2026-07-30, previously Epic 12 — see epics.md Epic List for its current number) is post-MVP; revisit as first story of that epic or next sync-mutation-queue story
   epic-9-retrospective: optional
 
   # ─── Epic 10: Password-Based Login (Alternative Authentication Method) ────
   # Numbered 10 — pre-beta must-have; the ADR-OFFLINE-DEGRADATION Decision 2
-  # remediation trigger that previously reserved 10 has moved to Epic 12
-  # (post-MVP), see deferred-work.md.
+  # remediation trigger that previously reserved 10 has moved to Epic 13
+  # (post-MVP, via Epic 12 from 2026-07-09 to 2026-07-30), see deferred-work.md.
   epic-10: in-progress # 10.1 merged to main 2026-07-11 (PR #63, 2a77036); 10.2 story created 2026-07-11 (ready-for-dev, fresh off main); 10.3 not yet created; feature/password-based-login kept as reference/prior-art only
   10-1-password-based-sign-up-and-sign-in-email-and-phone: done # 2026-07-09: implementation code review complete (commit c417fbd) — 2 decisions resolved via party-mode, 10 patches applied, typecheck/lint/test green (387/387); 3 items deferred (see deferred-work.md). Merged to main 2026-07-11 via PR #63 (2a77036), built on its own story/10-1-... branch separate from feature/password-based-login.
   10-2-hosted-supabase-provisioning-and-auth-hardening: done # 2026-07-28: code review complete (Blind Hunter + Edge Case Hunter + Acceptance Auditor), 3 patches applied (stale docker stack, config push warning, EXECUTE-privilege regression test), 5 deferred, 5 dismissed; also surfaced an unrelated pre-existing bug (perform_user_erasure non-functional, migration 0007 vs 0001 schema conflict) filed as URGENT in deferred-work.md for a fast-follow story
@@ -147,21 +147,23 @@ development_status:
   # Pre-beta must-have, same tier as Epic 10 (Password-Based Login). Epic 10
   # is claimed by Password-Based Login, not reserved for the
   # ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation
-  # moved to Epic 12, see deferred-work.md.
+  # moved to Epic 13 (via Epic 12, 2026-07-09–2026-07-30), see deferred-work.md.
   epic-11: backlog
   11-1-feedback-table-rls-and-storage-bucket: backlog
   11-2-in-app-feedback-capture-entry-point-screen-auto-capture-and-submission: backlog
   epic-11-retrospective: optional
 
-  # ─── Epic 13: UI/UX Enhancements & Polish ─────────────────────────────────
-  # Living epic, not fully scoped — Epic 12 remains reserved for the
-  # ADR-OFFLINE-DEGRADATION remediation trigger; this epic does not claim it.
-  # Seeded 2026-07-30 with 4 placeholder stories (no ACs yet); expected to
-  # grow more stories as concrete beta feedback (Epic 11) or design review
-  # identifies specific issues. See epics.md Epic 13 for the placeholder
-  # convention — each story is fleshed out from real feedback before pickup.
-  epic-13: backlog
-  13-1-sign-in-sign-up-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
-  13-2-home-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
-  13-3-ladder-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
-  13-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  # ─── Epic 12: UI/UX Enhancements & Polish ─────────────────────────────────
+  # Living epic, not fully scoped — created 2026-07-30 originally as Epic 13,
+  # renumbered to 12 the same day when swapped with the ADR-OFFLINE-DEGRADATION
+  # reservation (that reservation now sits at Epic 13, see the Epic 10/11
+  # comments above and epics.md's Epic 13 entry). Seeded with 4 placeholder
+  # stories (no ACs yet); expected to grow more stories as concrete beta
+  # feedback (Epic 11) or design review identifies specific issues. See
+  # epics.md Epic 12 for the placeholder convention — each story is fleshed
+  # out from real feedback before pickup.
+  epic-12: backlog
+  12-1-sign-in-sign-up-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  12-2-home-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  12-3-ladder-screen-ui-ux-enhancements: backlog # placeholder, no ACs yet
+  12-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet

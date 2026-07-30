@@ -365,7 +365,7 @@ Push token registration and a daily local session reminder are in place. The Ach
 
 ### Epic 10: Password-Based Login (Alternative Authentication Method)
 
-*(Numbered 10 — the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger, previously reserving 10, has moved to Epic 12; see `deferred-work.md`. Password-based login and Epic 11 (Beta Feedback Collection) are both pre-beta must-haves and take the lower numbers ahead of that post-MVP placeholder. Implemented on branch `feature/password-based-login`, not yet merged to `main` as of this planning entry.)*
+*(Numbered 10 — the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger, previously reserving 10, moved to Epic 12 on 2026-07-09 and then to Epic 13 on 2026-07-30, swapping with the newly-created UI/UX Enhancements epic; see `deferred-work.md`. Password-based login and Epic 11 (Beta Feedback Collection) are both pre-beta must-haves and take the lower numbers ahead of that post-MVP placeholder. Implemented on branch `feature/password-based-login`, not yet merged to `main` as of this planning entry.)*
 
 Users can create an account and sign in with an email or phone number **plus password**, as an alternative to the OTP-only flow shipped in Epic 2. A full forgot/reset-password flow (deep-link recovery, pure parser, new-password form) is code-complete and tested, but held behind a feature flag for closed beta until custom SMTP is provisioned. The hosted Supabase project is provisioned and migration-current in support of this epic, with a cross-user PII-erasure hole (found in migration 0007) closed along the way.
 
@@ -377,7 +377,7 @@ Users can create an account and sign in with an email or phone number **plus pas
 
 ### Epic 11: Beta Feedback Collection
 
-*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12; see `deferred-work.md`.)*
+*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12 on 2026-07-09, then to Epic 13 on 2026-07-30; see `deferred-work.md`.)*
 
 Beta testers get a low-friction, first-party way to report bugs and impressions tagged to the exact screen they were on — replacing ad hoc channels (WhatsApp, email, third-party forms) with structured feedback that writes directly to Supabase infrastructure already provisioned for the project. The entry point is available on every screen, including mid-exposure-session, and is gated behind an env flag so it never ships to production/GA builds.
 
@@ -386,24 +386,24 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 
 ---
 
-### Epic 12 [Reserved, not yet planned]: ADR-OFFLINE-DEGRADATION Remediation (Post-MVP)
+### Epic 12: UI/UX Enhancements & Polish
+
+*(Numbered 12 as of 2026-07-30 — created the same day as Epic 13 (originally numbered 13), then swapped with the ADR-OFFLINE-DEGRADATION reservation so the reservation could hold the higher, still-inactive number and this living epic could take the lower one. See Epic 13's numbering history below for the full swap rationale. Open-ended and living, unlike every other epic in this document: it is seeded at creation with four placeholder stories for the screens named at kickoff (sign-in/sign-up, home, ladder, exposure flow) and is expected to grow additional stories over time as concrete UI/UX issues surface — primarily via Epic 11 beta feedback submissions, but also ad hoc product/design review. Placeholder stories carry no acceptance criteria yet; each is refined into concrete, testable ACs from real feedback before a dev agent picks it up.)*
+
+Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic starts with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
+
+**FRs covered:** FR-UXENH-01
+**Planning note:** No story in this epic is ready-for-dev at creation. `sprint-status.yaml` marks each `backlog` with a note that acceptance criteria must be written from concrete feedback first — this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time.
+
+---
+
+### Epic 13 [Reserved, not yet planned]: ADR-OFFLINE-DEGRADATION Remediation (Post-MVP)
 
 *(Not a planned epic — a reservation. This is the trigger condition named in ADR-OFFLINE-DEGRADATION Decision 2's "Accepted — deferred remediation" sub-status: the silent enqueue-failure remediation ships either at the next story that touches the sync mutation queue, or when this epic begins, whichever comes first. Story 9.1's review required this trigger be concrete, not "someday" — the reservation satisfies that by being a specific, named epic slot, without needing to hardcode a number everywhere it's referenced.)*
 
 **This entry is the single source of truth for this reservation's current number.** Other documents (`deferred-work.md`, `ADR-OFFLINE-DEGRADATION.md`, Story 9.10's AC in this file, `sprint-status.yaml`) refer to it by name — "the ADR-OFFLINE-DEGRADATION remediation epic (see epics.md Epic List for its current number)" — rather than repeating a hardcoded number, so a future renumbering only requires editing this heading, not five scattered files.
 
-**Numbering history:** reserved at Epic 10 pre-2026-07-09; moved to Epic 12 on 2026-07-09 when Epic 10 and Epic 11 were claimed by Password-Based Login and Beta Feedback Collection (both pre-beta must-haves, taking priority over a post-MVP placeholder).
-
----
-
-### Epic 13: UI/UX Enhancements & Polish
-
-*(Numbered 13 — Epic 12 remains reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger; this epic does not claim it. Open-ended and living, unlike every other epic in this document: it is seeded at creation with four placeholder stories for the screens named at kickoff (sign-in/sign-up, home, ladder, exposure flow) and is expected to grow additional stories over time as concrete UI/UX issues surface — primarily via Epic 11 beta feedback submissions, but also ad hoc product/design review. Placeholder stories carry no acceptance criteria yet; each is refined into concrete, testable ACs from real feedback before a dev agent picks it up.)*
-
-Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic starts with four placeholder stories — Story 13.1 (sign-in/sign-up), 13.2 (home), 13.3 (ladder), 13.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
-
-**FRs covered:** FR-UXENH-01
-**Planning note:** No story in this epic is ready-for-dev at creation. `sprint-status.yaml` marks each `backlog` with a note that acceptance criteria must be written from concrete feedback first — this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time.
+**Numbering history:** reserved at Epic 10 pre-2026-07-09; moved to Epic 12 on 2026-07-09 when Epic 10 and Epic 11 were claimed by Password-Based Login and Beta Feedback Collection (both pre-beta must-haves, taking priority over a post-MVP placeholder). **Moved again to Epic 13 on 2026-07-30**, swapping with the newly-created Epic 12 (UI/UX Enhancements & Polish, created that same day originally as Epic 13): the living, already-active UI/UX epic took the lower number and this still-dormant reservation moved up one slot to make room.
 
 ---
 
@@ -2496,24 +2496,26 @@ So that I can report an issue or impression in the moment without losing my plac
 
 ---
 
-## Epic 13: UI/UX Enhancements & Polish
+## Epic 12: UI/UX Enhancements & Polish
+
+*(Created 2026-07-30, originally numbered Epic 13; renumbered to 12 the same day when swapped with the ADR-OFFLINE-DEGRADATION reservation — see Epic 13's Epic List entry for the swap rationale.)*
 
 A living backlog of screen-level UI/UX improvements driven by real usage feedback (Epic 11) and ad hoc product/design review, rather than a fixed, fully-scoped set of stories decided upfront. Seeded with four placeholder stories at creation (2026-07-30); more are appended to this epic as specific issues are identified — this epic's story list is expected to keep growing.
 
-> **Placeholder convention for this epic:** Each story below marks a screen in scope, not a ready-for-dev spec. Acceptance criteria are written when a concrete issue (a beta feedback submission, a design review note, a specific usability complaint) is identified for that screen, at which point the story is updated in place — a fifth, sixth, etc. story is added only when the new issue targets a screen not already covered by 13.1–13.4.
+> **Placeholder convention for this epic:** Each story below marks a screen in scope, not a ready-for-dev spec. Acceptance criteria are written when a concrete issue (a beta feedback submission, a design review note, a specific usability complaint) is identified for that screen, at which point the story is updated in place — a fifth, sixth, etc. story is added only when the new issue targets a screen not already covered by 12.1–12.4.
 
-### Story 13.1: Sign-In/Sign-Up Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.1: Sign-In/Sign-Up Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen; also `apps/mobile/app/(auth)/otp-verification.tsx` if the specific feedback concerns the OTP step). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
 
-### Story 13.2: Home Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.2: Home Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/(app)/index.tsx` (home screen state machine, all states — see Epic 5/6/8 for the states this screen renders). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
 
-### Story 13.3: Ladder Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.3: Ladder Screen — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screen in scope: `apps/mobile/app/ladder.tsx` (post-onboarding full courage ladder screen; the onboarding-time ladder at `apps/mobile/app/(onboarding)/ladder.tsx` is a distinct screen and out of scope here unless feedback specifically names it). Acceptance criteria to be written once specific feedback or design review input is available (FR-UXENH-01).
 
-### Story 13.4: Exposure Flow — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+### Story 12.4: Exposure Flow — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
 
 > **Status: PLACEHOLDER — not ready for dev-story pickup.** Screens in scope: `apps/mobile/app/session/` — `intent.tsx`, `briefing.tsx`, `technique.tsx`, `active.tsx`, `pause.tsx`, `grounding.tsx`, `debrief.tsx`, `abandoned.tsx` (the full ERP session flow). Acceptance criteria to be written once specific feedback or design review input is available, scoped to the specific screen(s) named by that feedback (FR-UXENH-01).
