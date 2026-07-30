@@ -2393,6 +2393,34 @@ So that the "right to erasure" feature works end-to-end instead of failing on ev
 
 ---
 
+### Story 10.5: Re-Erasure Idempotency Guard for `perform_user_erasure()`
+
+As a DPO reviewing the erasure audit log,
+I want a second erasure attempt against an already-erased user to be rejected instead of silently "succeeding" again,
+So that the audit trail stays trustworthy and re-erasure can't mask an operator mistake or a scripting bug (DPDPA 2023 §5 completeness requirement; FR-DPO-06 audit-log integrity).
+
+**Acceptance Criteria:**
+
+**Given** `perform_user_erasure()` (migration `0007`) currently runs its `UPDATE ... SET email = NULL, deleted_at = now()` unconditionally whenever the target row exists
+**When** this story is implemented
+**Then** a new migration adds a guard so that, if the target row's `deleted_at` is already non-null, the function raises a distinct `erasure_already_erased` exception instead of re-running the update — mirroring the existing `erasure_target_not_found` guard's convention, and placed in the `SECURITY DEFINER` function body so it protects every caller, not just one Edge Function
+
+**Given** `supabase/functions/dpo-erase-user/index.ts` already pattern-matches `erasure_target_not_found` to special-case the not-found path
+**When** this story is implemented
+**Then** it gains an analogous `erasure_already_erased` branch that writes a `dpo_audit_log` entry with `outcome: 'failure'` and returns HTTP 400 — never a second indistinguishable `outcome: 'success'` entry for a re-erasure attempt
+
+**Given** the existing `service_role` regression test in `packages/supabase/__tests__/rls/perform_user_erasure.test.ts` already exercises a full successful erasure
+**When** this story is implemented
+**Then** a new test calls the RPC a second time against the same already-erased user and asserts the call is rejected and `deleted_at` is unchanged from its first-erasure value
+
+**Given** the migration changes a DPDPA-critical `SECURITY DEFINER` function
+**When** this story is implemented
+**Then** it is applied and confirmed on both the local stack and the hosted project (`jhbtzsvlgglyfbrgmpsb`)
+
+**Source:** `_bmad-output/implementation-artifacts/deferred-work.md` — "Re-erasure of an already-erased user now silently 'succeeds'", found during Story 10.4's code review.
+
+---
+
 ## Epic 11: Beta Feedback Collection
 
 Give beta testers a low-friction, first-party way to report bugs and impressions tied to the exact screen they were on. Feedback writes directly to Supabase — no third-party form or feedback SaaS is introduced, avoiding an additional DPDPA data-processor disclosure during closed beta.

@@ -22,6 +22,7 @@ const skipIfNoSupabase = !SERVICE_ROLE_KEY || !ANON_KEY
 describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migration 0030)', () => {
   let serviceClient: SupabaseClient<Database>
   let userId: string | undefined
+  let capturedDeletedAt: string | null = null
 
   beforeAll(async () => {
     serviceClient = createClient<Database>(LOCAL_URL, SERVICE_ROLE_KEY)
@@ -77,6 +78,7 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
     expect(rowError).toBeNull()
     expect(row?.email).toBeNull()
     expect(row?.deleted_at).not.toBeNull()
+    capturedDeletedAt = row?.deleted_at ?? null
 
     const { data: profileRow, error: profileError } = await serviceClient
       .from('profiles')
@@ -85,5 +87,20 @@ describe.skipIf(skipIfNoSupabase)('perform_user_erasure EXECUTE privileges (migr
       .single()
     expect(profileError).toBeNull()
     expect(profileRow?.display_name).toBeNull()
+  })
+
+  // Depends on the preceding test having already erased userId — must run after it.
+  it('[-] a second erasure call against an already-erased user is rejected, not silently repeated', async () => {
+    const { error } = await serviceClient.rpc('perform_user_erasure', { p_target_user_id: userId! })
+    expect(error).not.toBeNull()
+    expect(error!.message).toContain('erasure_already_erased')
+
+    const { data: row, error: rowError } = await serviceClient
+      .from('users')
+      .select('deleted_at')
+      .eq('id', userId!)
+      .single()
+    expect(rowError).toBeNull()
+    expect(row?.deleted_at).toBe(capturedDeletedAt)
   })
 })
