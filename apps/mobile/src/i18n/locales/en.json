@@ -195,6 +195,10 @@
       "sudsPrefix": "Anxiety ",
       "sudsSuffix": "/10"
     },
+    "actions": {
+      "yourLadder": "Your Ladder",
+      "practiceRelaxation": "Practice Relaxation"
+    },
     "emptyState": {
       "headline": "Every climb starts with one step",
       "subtext": "Add a situation that makes you anxious — we'll help you work up to it.",

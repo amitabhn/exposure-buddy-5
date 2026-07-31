@@ -9,6 +9,14 @@ import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFres
 import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSession'
 
+// Pure-JS UUID v4 — same pattern as ladder.tsx / session/intent.tsx (Hermes limitation: no crypto.randomUUID)
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
@@ -66,6 +74,23 @@ export default function HomeScreen() {
   // suppressed only for 'empty-ladder' (every other reachable state has items.length > 0).
   const showProgress = homeState !== 'empty-ladder'
 
+  // "Start this step" on the 'morning' card jumps straight into the session flow
+  // (mirroring ladder.tsx's own "Start session" button) instead of detouring through
+  // the full ladder screen. Falls back to '/ladder' in the defensive, not-actively-reached
+  // branch where lowestPendingItemForLabel is null (see CourageLadderEntryCard's
+  // fallbackLabel prop) — there's no item to start a session for in that case.
+  function handleStartNextStep() {
+    if (!lowestPendingItemForLabel) {
+      router.push('/ladder')
+      return
+    }
+    const sessionId = generateUUID()
+    router.push(
+      // eslint-disable-next-line i18next/no-literal-string
+      `/session/technique?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
+    )
+  }
+
   // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,
   // already has description/preSuds), fall back to activeSession (PowerSync, cross-device) when
   // the recovery blob never reached this device. fearItemId can be null in either source (ladder
@@ -110,7 +135,7 @@ export default function HomeScreen() {
             <CourageLadderEntryCard
               ref={cardRef}
               lowestPendingItem={lowestPendingItemForLabel}
-              onPress={() => router.push('/ladder')}
+              onPress={handleStartNextStep}
               nextStepLabel={t('home.nextStepLabel')}
               ctaLabel={t('home.nextStep.cta')}
               sudsPrefix={t('home.nextStep.sudsPrefix')}
@@ -184,6 +209,25 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           )}
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push('/ladder')}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.actions.yourLadder')}
+            >
+              <Text style={styles.actionButtonText}>{t('home.actions.yourLadder')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push('/calm-me')}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.actions.practiceRelaxation')}
+            >
+              <Text style={styles.actionButtonText}>{t('home.actions.practiceRelaxation')}</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
     </View>
@@ -253,4 +297,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressingCtaText: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.accent.courage },
+  actionRow: { flexDirection: 'row', gap: spacing[3], marginTop: spacing[6] },
+  actionButton: {
+    flex: 1,
+    backgroundColor: color.accent.courage,
+    borderRadius: radius.card,
+    paddingVertical: 22,
+    paddingHorizontal: spacing[4],
+    alignItems: 'center',
+  },
+  actionButtonText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold', color: '#ffffff', textAlign: 'center' },
 })

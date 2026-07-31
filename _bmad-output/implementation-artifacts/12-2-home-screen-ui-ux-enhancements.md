@@ -74,6 +74,15 @@ See the full Given/When/Then acceptance criteria under Story 12.2 in `_bmad-outp
 - [x] Update `CalmMeButton.test.tsx` (add required `label` prop to all 3 render calls) and `CourageLadderEntryCard.test.tsx` (new required props, updated clamp-text assertions without the colon, new fallback-label test)
 - [x] `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks)
 
+### T8 — Amendment: action row + direct-to-session CTA (2026-07-31, AC: amendment block)
+
+- [x] Add `styles.actionRow` with "Your Ladder" (`→ /ladder`) and "Practice Relaxation" (`→ /calm-me`) buttons, rendered unconditionally in every home state
+- [x] Add `home.actions.yourLadder`/`practiceRelaxation` keys to both locale files
+- [x] Add a local `generateUUID()` helper to `index.tsx` (same pattern as `ladder.tsx`/`session/intent.tsx`)
+- [x] Change `CourageLadderEntryCard`'s `onPress` to `handleStartNextStep`: routes to `/session/technique?fearItemId=...&sessionId=...&description=...&predictedSuds=...` when a lowest-pending-item exists, falls back to `/ladder` when it doesn't
+- [x] Make `resolveLowestPendingItem`'s test mock per-test-overridable (previously hardcoded to always return `null`); add tests for both `handleStartNextStep` branches and both new action buttons across all 4 home states
+- [x] `pnpm turbo typecheck lint test` green (19/19 tasks, 399/399 mobile Jest tests)
+
 ### Review Findings
 
 - [x] [Review][Patch] `progressingLabel` uses `color.surface.secondary` (a background/surface token) as a foreground text color on the green `progressingCard`, inconsistent with its sibling `progressingDescription` which correctly uses explicit white [apps/mobile/app/(app)/index.tsx — progressingLabel/progressingDescription styles] — fixed: changed to `'#ffffff'`, matching `progressingDescription`
@@ -90,6 +99,8 @@ See the full Given/When/Then acceptance criteria under Story 12.2 in `_bmad-outp
 - **`CalmMeButton`'s redesign is global**, not Home-scoped, because the component itself is mounted once in `app/_layout.tsx` and appears on every screen. This is flagged explicitly in the AC rather than done silently, since Epic 12's other stories (12.1/12.3/12.4) are scoped to specific screens and a reader might otherwise assume this component was out of bounds for a "Home screen" story.
 - **Name personalization deferred:** the redesign mockup shows "Priya" in the greeting. `profiles.display_name` exists in the schema (added around Story 10.x) but has no read hook anywhere in the app today. Wiring one up is a small data-layer feature, not a visual-polish change — deferred rather than pulled into this story's scope.
 - **Test-location convention:** `packages/ui` uses Vitest with `passWithNoTests: true` (no RN-renderable test files). Components that need real RN rendering (`CalmMeButton`, `CourageLadderEntryCard`) are tested from `apps/mobile/src/components/*.test.tsx` instead, per that directory's own header comment — this story follows the existing pattern rather than introducing a new one.
+- **T8 amendment (2026-07-31): reuse existing screens, don't duplicate them.** The re-fetched mockup added three new inline sub-views (pre-session SUDS check, relaxation list, simplified ladder list) navigable from two new Home buttons. Each overlaps an existing real screen (`session/intent.tsx`, the Calm Me hub, `ladder.tsx`). Per explicit product direction, the amendment wires the two new buttons and the changed "Start this step" CTA to the real existing screens instead of building three duplicate inline views — the mockup's sub-views were treated as *interaction intent*, not a literal screen inventory. This is the same interpretive move Story 12.1 made for its button-label copy (README's "Continue" mockup label vs. keeping the real branch-specific translation keys).
+- **T8 amendment: found and fixed a real test-coverage gap while implementing, not introduced by it.** `resolveLowestPendingItem`'s mock in `index.test.tsx` was hardcoded to always return `null` — every existing test exercised only the "no pending item" fallback path, never the branch where a real item drives navigation. This pre-existing gap was invisible until this amendment added a second branch to that same handler and had nowhere to test it. Fixed by making the mock per-test-overridable, matching the existing pattern already used for `resolveHomeScreenState`.
 
 ## Dev Agent Record
 
@@ -108,6 +119,7 @@ None — no blocking issues. `pnpm turbo typecheck lint test` passed clean (19/1
 - T4: `ladderItemCount` prop removed from `CourageLadderEntryCardProps` — it only existed to pick between two fallback strings, a choice now made by the caller (mirroring the existing `accessibilityLabel` ternary already in `index.tsx`), so it had no remaining internal use.
 - T7: The `@exposure-buddy/ui` jest mock in `index.test.tsx` originally exported only `CourageLadderEntryCard`. Since `index.tsx` now also imports `color`/`radius`/`spacing`/`typography` for its own `StyleSheet.create()`, the mock was extended with `jest.requireActual('@exposure-buddy/ui')` re-exports for the token objects — without this, `StyleSheet.create()` would throw on `undefined` token access at module load, before any test body runs.
 - T7: All 52 tests across the 4 directly-affected suites pass (`index.test.tsx`, `CalmMeButton.test.tsx`, `CourageLadderEntryCard.test.tsx`, `CalmMeFab.test.tsx`); full mobile suite is 394/394; full monorepo `pnpm turbo typecheck lint test` is 19/19 tasks green.
+- T8 (2026-07-31): Added `handleStartNextStep` and the two-button `actionRow`; both new i18n keys added to `en.json`/`hi.json`. 5 new tests added to `index.test.tsx` (both `handleStartNextStep` branches, action-button rendering/navigation, action buttons present across all 4 states) — mobile suite now 399/399, 19/19 turbo tasks green.
 
 ### File List
 
@@ -115,8 +127,8 @@ None — no blocking issues. `pnpm turbo typecheck lint test` passed clean (19/1
 - `packages/ui/src/components/CourageLadderEntryCard.tsx` (modified)
 - `packages/ui/src/components/CalmMeButton.tsx` (modified)
 - `packages/ui/src/index.ts` (modified)
-- `apps/mobile/app/(app)/index.tsx` (modified)
-- `apps/mobile/app/(app)/index.test.tsx` (modified)
+- `apps/mobile/app/(app)/index.tsx` (modified — T8 amendment)
+- `apps/mobile/app/(app)/index.test.tsx` (modified — T8 amendment)
 - `apps/mobile/src/components/CalmMeFab.tsx` (modified)
 - `apps/mobile/src/components/CalmMeButton.test.tsx` (modified)
 - `apps/mobile/src/components/CourageLadderEntryCard.test.tsx` (modified)
@@ -129,3 +141,4 @@ None — no blocking issues. `pnpm turbo typecheck lint test` passed clean (19/1
 
 - 2026-07-30 — Implemented Story 12.2: Home screen redesign per the Claude Design "Exposure Buddy" project (`Home - Redesign.dc.html`). Migrated the screen onto existing `packages/ui` design tokens, added a ladder progress bar, restyled all 4 home states with the warmer palette and explicit CTAs, and restyled the global `CalmMeButton` pill. Status: done.
 - 2026-07-30 — Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the `main..planning/epic-12-ui-ux-enhancements` branch: 3 patches applied to this story (wrong token used for `progressingLabel` text color, `CalmMeButton` font-scaling overflow risk fixed, epics.md AC1's self-undermining precedent citation reworded), 1 deferred (`calmMe.fabLabel` not translated in `hi.json` — logged in `deferred-work.md`, matches pre-existing convention), 0 dismissed for this story. `pnpm turbo typecheck lint test` green after fixes. Status remains done.
+- 2026-07-31 — Amendment (T8): re-fetched Claude Design mockup had grown to include an always-visible "Your Ladder"/"Practice Relaxation" button row and a direct-to-session-flow "Start this step" CTA. Implemented by routing to the app's real existing screens (`/ladder`, `/calm-me`, `/session/technique`) rather than building the mockup's new inline sub-views as duplicate screens, per explicit product direction. Added test coverage for the previously-untested real-item branch of the "Start this step" handler. Status remains done.

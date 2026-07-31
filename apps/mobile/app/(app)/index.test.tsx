@@ -41,9 +41,10 @@ jest.mock('@exposure-buddy/ui', () => {
 
 const mockResolveHomeScreenState = jest.fn()
 const mockIsGroundingSignalFresh = jest.fn()
+const mockResolveLowestPendingItem = jest.fn()
 
 jest.mock('@exposure-buddy/core', () => ({
-  resolveLowestPendingItem: jest.fn(() => null),
+  resolveLowestPendingItem: (...args: unknown[]) => mockResolveLowestPendingItem(...args),
   resolveHomeScreenState: (...args: unknown[]) => mockResolveHomeScreenState(...args),
   isGroundingSignalFresh: (...args: unknown[]) => mockIsGroundingSignalFresh(...args),
 }))
@@ -80,6 +81,7 @@ describe('HomeScreen', () => {
     mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
     mockResolveHomeScreenState.mockReturnValue('morning')
     mockIsGroundingSignalFresh.mockReturnValue(false)
+    mockResolveLowestPendingItem.mockReturnValue(null)
   })
 
   afterEach(() => {
@@ -134,10 +136,56 @@ describe('HomeScreen', () => {
     expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
   })
 
-  it('CourageLadderEntryCard onPress navigates to /ladder', () => {
+  it('CourageLadderEntryCard onPress falls back to /ladder when there is no lowest pending item', () => {
     const { getByTestId } = render(<HomeScreen />)
     fireEvent.press(getByTestId('courage-card'))
     expect(mockPush).toHaveBeenCalledWith('/ladder')
+  })
+
+  it('CourageLadderEntryCard onPress jumps to /session/technique with the lowest pending item when one exists', () => {
+    mockResolveLowestPendingItem.mockReturnValue({
+      id: 'item-a',
+      description: 'Speaking up in a meeting',
+      predictedSuds: 5,
+      position: 1,
+      status: 'pending',
+      peakSuds: null,
+    })
+    const { getByTestId } = render(<HomeScreen />)
+    fireEvent.press(getByTestId('courage-card'))
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^\/session\/technique\?fearItemId=item-a&sessionId=[0-9a-f-]{36}&description=Speaking%20up%20in%20a%20meeting&predictedSuds=5$/
+      )
+    )
+  })
+
+  it('renders the Your Ladder and Practice Relaxation action buttons', () => {
+    const { getByRole } = render(<HomeScreen />)
+    expect(getByRole('button', { name: 'home.actions.yourLadder' })).toBeTruthy()
+    expect(getByRole('button', { name: 'home.actions.practiceRelaxation' })).toBeTruthy()
+  })
+
+  it('Your Ladder action button navigates to /ladder', () => {
+    const { getByRole } = render(<HomeScreen />)
+    fireEvent.press(getByRole('button', { name: 'home.actions.yourLadder' }))
+    expect(mockPush).toHaveBeenCalledWith('/ladder')
+  })
+
+  it('Practice Relaxation action button navigates to /calm-me', () => {
+    const { getByRole } = render(<HomeScreen />)
+    fireEvent.press(getByRole('button', { name: 'home.actions.practiceRelaxation' }))
+    expect(mockPush).toHaveBeenCalledWith('/calm-me')
+  })
+
+  it('renders the action buttons in every home state', () => {
+    for (const state of ['morning', 'completed', 'progressing', 'empty-ladder'] as const) {
+      mockResolveHomeScreenState.mockReturnValue(state)
+      const { getByRole, unmount } = render(<HomeScreen />)
+      expect(getByRole('button', { name: 'home.actions.yourLadder' })).toBeTruthy()
+      expect(getByRole('button', { name: 'home.actions.practiceRelaxation' })).toBeTruthy()
+      unmount()
+    }
   })
 
   describe('loading state', () => {
