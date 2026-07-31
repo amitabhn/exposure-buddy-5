@@ -74,21 +74,29 @@ export default function HomeScreen() {
   // suppressed only for 'empty-ladder' (every other reachable state has items.length > 0).
   const showProgress = homeState !== 'empty-ladder'
 
-  // "Start this step" on the 'morning' card jumps straight into the session flow
-  // (mirroring ladder.tsx's own "Start session" button) instead of detouring through
-  // the full ladder screen. Falls back to '/ladder' in the defensive, not-actively-reached
-  // branch where lowestPendingItemForLabel is null (see CourageLadderEntryCard's
-  // fallbackLabel prop) — there's no item to start a session for in that case.
-  function handleStartNextStep() {
-    if (!lowestPendingItemForLabel) {
-      router.push('/ladder')
-      return
-    }
+  // Builds a fresh-session route into the ERP session flow for the lowest pending ladder
+  // item, matching the query-param contract ladder.tsx's own "Start session" button uses.
+  // Returns null when there's no pending item to start a session for (defensive,
+  // not-actively-reached branch — see CourageLadderEntryCard's fallbackLabel prop) — callers
+  // fall back to '/ladder' in that case.
+  function buildSessionRoute(path: '/session/technique' | '/session/intent'): string | null {
+    if (!lowestPendingItemForLabel) return null
     const sessionId = generateUUID()
-    router.push(
-      // eslint-disable-next-line i18next/no-literal-string
-      `/session/technique?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
-    )
+    // eslint-disable-next-line i18next/no-literal-string
+    return `${path}?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
+  }
+
+  // "Start this step" on the 'morning' card skips technique selection entirely and jumps
+  // straight to the pre-exposure intention/SUDS-check screen — intent.tsx's `technique`
+  // param is optional and defaults to null when omitted, so this is safe.
+  function handleStartNextStep() {
+    router.push(buildSessionRoute('/session/intent') ?? '/ladder')
+  }
+
+  // "Practice Relaxation" opens the technique-picker for the same lowest pending item,
+  // letting the user browse/select a technique without committing past that screen.
+  function handlePracticeRelaxation() {
+    router.push(buildSessionRoute('/session/technique') ?? '/ladder')
   }
 
   // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,
@@ -221,7 +229,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push('/calm-me')}
+              onPress={handlePracticeRelaxation}
               accessibilityRole="button"
               accessibilityLabel={t('home.actions.practiceRelaxation')}
             >

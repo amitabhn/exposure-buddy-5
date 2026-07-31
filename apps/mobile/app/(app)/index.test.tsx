@@ -142,7 +142,7 @@ describe('HomeScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/ladder')
   })
 
-  it('CourageLadderEntryCard onPress jumps to /session/technique with the lowest pending item when one exists', () => {
+  it('CourageLadderEntryCard onPress jumps to /session/intent with the lowest pending item when one exists', () => {
     mockResolveLowestPendingItem.mockReturnValue({
       id: 'item-a',
       description: 'Speaking up in a meeting',
@@ -155,7 +155,7 @@ describe('HomeScreen', () => {
     fireEvent.press(getByTestId('courage-card'))
     expect(mockPush).toHaveBeenCalledWith(
       expect.stringMatching(
-        /^\/session\/technique\?fearItemId=item-a&sessionId=[0-9a-f-]{36}&description=Speaking%20up%20in%20a%20meeting&predictedSuds=5$/
+        /^\/session\/intent\?fearItemId=item-a&sessionId=[0-9a-f-]{36}&description=Speaking%20up%20in%20a%20meeting&predictedSuds=5$/
       )
     )
   })
@@ -172,10 +172,28 @@ describe('HomeScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/ladder')
   })
 
-  it('Practice Relaxation action button navigates to /calm-me', () => {
+  it('Practice Relaxation action button falls back to /ladder when there is no lowest pending item', () => {
     const { getByRole } = render(<HomeScreen />)
     fireEvent.press(getByRole('button', { name: 'home.actions.practiceRelaxation' }))
-    expect(mockPush).toHaveBeenCalledWith('/calm-me')
+    expect(mockPush).toHaveBeenCalledWith('/ladder')
+  })
+
+  it('Practice Relaxation action button navigates to /session/technique with the lowest pending item when one exists', () => {
+    mockResolveLowestPendingItem.mockReturnValue({
+      id: 'item-a',
+      description: 'Speaking up in a meeting',
+      predictedSuds: 5,
+      position: 1,
+      status: 'pending',
+      peakSuds: null,
+    })
+    const { getByRole } = render(<HomeScreen />)
+    fireEvent.press(getByRole('button', { name: 'home.actions.practiceRelaxation' }))
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^\/session\/technique\?fearItemId=item-a&sessionId=[0-9a-f-]{36}&description=Speaking%20up%20in%20a%20meeting&predictedSuds=5$/
+      )
+    )
   })
 
   it('renders the action buttons in every home state', () => {
