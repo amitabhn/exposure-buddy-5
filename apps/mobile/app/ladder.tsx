@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'
 import { useAuth } from '@exposure-buddy/supabase'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { color, radius } from '@exposure-buddy/ui'
 import { detectCrisisKeywords } from '@exposure-buddy/core'
 import type { FearLadderItem } from '@exposure-buddy/core'
@@ -24,6 +25,7 @@ export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const { userId, sessionRecoveryData } = useAuth()
+  const insets = useSafeAreaInsets()
   const { items: remoteItems, isLoading: ladderLoading } = useFearLadderItems(userId)
   const { activeSession, isLoading: sessionLoading } = useActiveExposureSession(userId)
   const [items, setItems] = useState<FearLadderItem[]>([...remoteItems].sort((a, b) => a.position - b.position))
@@ -37,10 +39,12 @@ export default function LadderScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Add-path optimistic item identity (id + position) is captured once and reused across
-  // retry attempts (Story 12.3 AC-B1) — a naive retry that re-invokes handleSubmit would
-  // otherwise generate a new id/position each time, breaking the "same item" rollback contract.
-  const pendingAddIdRef = useRef<{ id: string; position: number } | null>(null)
+  // Add-path optimistic item id is captured once and reused across retry attempts (Story
+  // 12.3 AC-B1) — a naive retry that re-invokes handleSubmit would otherwise generate a new
+  // id each time, breaking the "same item" rollback contract. `position` is deliberately NOT
+  // frozen here — it's recomputed from the current list length on every attempt (including
+  // retries) so a retry after the list has changed doesn't ship a stale/colliding position.
+  const pendingAddIdRef = useRef<{ id: string } | null>(null)
 
   // Accessibility: focus first item or add button once loading settles (Story 12.3 AC-B3).
   // The prior fixed 100ms setTimeout raced both DraggableFlatList's virtualized layout AND
@@ -48,10 +52,21 @@ export default function LadderScreen() {
   // onto the Add button, and never retry once items arrived. This effect re-evaluates whenever
   // loading state or item count changes, and bounded-retries (retry-until-ref-exists) in case
   // the target hasn't finished laying out on the first check.
+  //
+  // Focus is tracked per target *category* (empty-state Add button vs. a real first item),
+  // not as a single one-shot latch — a plain "have we ever focused" boolean would permanently
+  // stop refocusing once tripped, missing the case where focus lands on the Add button while
+  // items is still transiently empty and the real data arrives moments later, or where the
+  // list later empties out after items were focused. Crossing the empty/non-empty boundary is
+  // the only thing that re-triggers a focus attempt; changes within the same category (e.g. a
+  // 2nd item appearing while the 1st is already focused) intentionally do not steal focus again.
   const firstInteractiveRef = useRef<ElementRef<typeof TouchableOpacity> | null>(null)
-  const hasSetInitialFocusRef = useRef(false)
+  const lastFocusedCategoryRef = useRef<'empty' | 'nonEmpty' | null>(null)
   useEffect(() => {
-    if (ladderLoading || hasSetInitialFocusRef.current) return
+    if (ladderLoading) return
+    // eslint-disable-next-line i18next/no-literal-string
+    const category = items.length === 0 ? 'empty' : 'nonEmpty'
+    if (lastFocusedCategoryRef.current === category) return
     let cancelled = false
     let attempts = 0
     let timeoutId: ReturnType<typeof setTimeout>
@@ -59,16 +74,18 @@ export default function LadderScreen() {
     const RETRY_DELAY_MS = 16
 
     function tryFocus() {
-      if (cancelled || hasSetInitialFocusRef.current) return
+      if (cancelled || lastFocusedCategoryRef.current === category) return
       const tag = firstInteractiveRef.current ? findNodeHandle(firstInteractiveRef.current) : null
       if (tag) {
         AccessibilityInfo.setAccessibilityFocus(tag)
-        hasSetInitialFocusRef.current = true
+        lastFocusedCategoryRef.current = category
         return
       }
       attempts += 1
       if (attempts < MAX_ATTEMPTS) {
         timeoutId = setTimeout(tryFocus, RETRY_DELAY_MS)
+      } else {
+        console.error('[LadderScreen] accessibility focus retry exhausted without resolving a target ref')
       }
     }
     tryFocus()
@@ -86,8 +103,11 @@ export default function LadderScreen() {
 
   // Story 12.3 AC-B2: boundary-clamp a stored SUDS value (not reject-to-null like the
   // TextInput's own onChangeText handler below — a stored value gets clamped to something
-  // sane rather than forcing the user to retype it).
+  // sane rather than forcing the user to retype it). NaN is guarded explicitly: Math.round/
+  // max/min all propagate NaN unchanged, which would otherwise slip a corrupt/legacy stored
+  // value past this clamp and past the `!== null` guards that gate Save elsewhere.
   function clampSuds(value: number): number {
+    if (Number.isNaN(value)) return 0
     return Math.min(10, Math.max(0, Math.round(value)))
   }
 
@@ -125,10 +145,13 @@ export default function LadderScreen() {
     const now = new Date().toISOString()
 
     if (editingItem) {
-      // Edit path — only description and predicted_suds. editingItem.id is already stable
-      // across retries, so no identity-capture is needed here (unlike the add path below).
-      const previousItems = items
-      const updated = { ...editingItem, description: description.trim(), predictedSuds: predictedSuds }
+      // Edit path — only description and predicted_suds. editingItem.id is stable across
+      // retries, but the base item is re-read fresh from `items` on every call (initial submit
+      // and each retry) rather than trusting the `editingItem` closure captured when the form
+      // opened — a concurrent remote sync may have updated other fields (status, peakSuds)
+      // while the error was showing, and a stale closure would silently discard those on retry.
+      const currentItem = items.find(i => i.id === editingItem.id) ?? editingItem
+      const updated = { ...currentItem, description: description.trim(), predictedSuds: predictedSuds }
       setItems(prev => prev.map(i => i.id === updated.id ? updated : i))  // optimistic
       try {
         // eslint-disable-next-line i18next/no-literal-string
@@ -141,21 +164,27 @@ export default function LadderScreen() {
       } catch (err) {
         console.error('[LadderScreen] edit enqueue failed:', err)
         // Story 12.3 AC-B1: roll back the optimistic update and surface a retryable error
-        // instead of leaving a silently-stale edit in the UI.
-        setItems(previousItems)
+        // instead of leaving a silently-stale edit in the UI. Restoring only this one item (by
+        // id, against the *current* list) rather than a whole-array snapshot means a concurrent
+        // remote sync to other items — or even a concurrent delete of this same item — isn't
+        // silently clobbered/resurrected by the rollback.
+        setItems(prev => prev.map(i => i.id === currentItem.id ? currentItem : i))
         setIsSubmitting(false)
         setSaveError(t('ladder.saveFailed'))
         return
       }
     } else {
-      // Add path. The generated id/position are captured once (in pendingAddIdRef) and reused
-      // across retry attempts, so a retry re-enqueues the *same* item rather than a new one —
+      // Add path. The generated id is captured once (in pendingAddIdRef) and reused across
+      // retry attempts, so a retry re-enqueues the *same* item rather than a new one —
       // description/predictedSuds are still read fresh from form state each attempt, so an
-      // edit made before pressing retry is still picked up.
+      // edit made before pressing retry is still picked up. `position` is recomputed from the
+      // current list length on every attempt (not frozen with the id) since the list may have
+      // changed between a failed attempt and a later retry.
       if (!pendingAddIdRef.current) {
-        pendingAddIdRef.current = { id: generateUUID(), position: items.length + 1 }
+        pendingAddIdRef.current = { id: generateUUID() }
       }
-      const { id, position } = pendingAddIdRef.current
+      const { id } = pendingAddIdRef.current
+      const position = items.length + 1
       const hasCrisis = detectCrisisKeywords(description.trim())
       if (hasCrisis) setCrisisDetected(true)
       const newItem: FearLadderItem = {
@@ -167,7 +196,6 @@ export default function LadderScreen() {
         status: 'pending',
         peakSuds: null,
       }
-      const previousItems = items
       setItems(prev => [...prev, newItem])  // optimistic
       try {
         // eslint-disable-next-line i18next/no-literal-string
@@ -186,8 +214,10 @@ export default function LadderScreen() {
       } catch (err) {
         console.error('[LadderScreen] add enqueue failed:', err)
         // Story 12.3 AC-B1: roll back the optimistic add and surface a retryable error instead
-        // of leaving an orphaned "ghost" item that only gets corrected by the next sync.
-        setItems(previousItems)
+        // of leaving an orphaned "ghost" item that only gets corrected by the next sync. Removing
+        // just this id from the *current* list (rather than restoring a whole-array snapshot)
+        // means a concurrent remote sync that landed during the await isn't silently discarded.
+        setItems(prev => prev.filter(i => i.id !== id))
         setIsSubmitting(false)
         setSaveError(t('ladder.saveFailed'))
         return
@@ -260,9 +290,9 @@ export default function LadderScreen() {
           native iOS nav bar every other pushed screen still uses (Story 12.3) */}
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <BackButton />
-          <Text style={styles.headerTitle}>{t('ladder.title')}</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">{t('ladder.title')}</Text>
         </View>
 
         {/* Crisis banner — persists for session once shown; same behaviour as Story 4.3 */}
@@ -305,7 +335,7 @@ export default function LadderScreen() {
                   onLongPress={drag}
                   onPress={() => openEditForm(item)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.description}, ${t('ladder.sudsLabel')}: ${item.predictedSuds}, ${statusLabel(item.status)}`}
+                  accessibilityLabel={`${item.description}, ${t('ladder.sudsLabel')}: ${clampSuds(item.predictedSuds)}, ${statusLabel(item.status)}`}
                   accessibilityHint={t('ladder.reorderHint')}
                 >
                   {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -314,7 +344,7 @@ export default function LadderScreen() {
                     <Text style={styles.itemDescription}>{item.description}</Text>
                     <Text style={styles.itemMeta}>
                       {t('ladder.sudsPrefix')}
-                      {item.predictedSuds}
+                      {clampSuds(item.predictedSuds)}
                       {t('ladder.sudsSuffix')}
                     </Text>
                   </View>
@@ -367,7 +397,14 @@ export default function LadderScreen() {
               accessibilityLabel={t('ladder.sudsLabel')}
             />
             <View style={styles.formActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={closeForm} accessibilityRole="button" accessibilityLabel={t('ladder.cancel')}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={closeForm}
+                disabled={isSubmitting}
+                accessibilityRole="button"
+                accessibilityLabel={t('ladder.cancel')}
+                accessibilityState={{ disabled: isSubmitting }}
+              >
                 <Text style={styles.cancelText}>{t('ladder.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -456,7 +493,7 @@ export default function LadderScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.surface.primary },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 24, marginTop: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 24 },
   headerTitle: { fontSize: 20, fontWeight: '700', fontFamily: 'Inter_700Bold', color: color.content.primary },
   listContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 100 },
   // #E3EAE7 (resting card border) has no equivalent in packages/ui's 8 semantic tokens —
