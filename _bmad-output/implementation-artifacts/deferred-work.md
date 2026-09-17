@@ -1,5 +1,14 @@
 # Deferred Work
 
+## Deferred from: product feedback on pre-exposure SUDS screen (2026-08-04)
+
+_User-requested copy/UX change to the pre-exposure intention screen (`apps/mobile/app/session/intent.tsx`, `session.intent.*` i18n keys). Not yet scoped as a story — strong candidate input for Story 12.4 (Exposure Flow UI/UX Enhancements) once it leaves placeholder state, since `session/intent.tsx` is explicitly within that story's declared scope._
+
+- **Change the intention-prompt copy** from "Would you like to write yourself a note?" (`session.intent.intentionPrompt`, `apps/mobile/src/i18n/locales/en.json:261`) to "How are you feeling right now? What do you think will happen?" — reframes the optional note field from a generic journaling prompt into a direct feeling-check + expectation-check, better matching the screen's purpose (a SUDS check-in immediately before starting exposure). Requires an equivalent Hindi update at `hi.json`'s matching key.
+- **Add an emotion-identification aid alongside the free-text note field.** Users experiencing anxiety often struggle to find the right word for what they're feeling in the moment. Needs UX design before ACs can be written — candidates include a tappable feeling-word chip list (e.g. "nervous," "scared," "tense," "uneasy," "on edge") that inserts into the note text, or a lightweight emotion-picker widget. Open questions: exact word set (needs clinical/product input, same category as other India-context copy deferred elsewhere in this doc), whether chip taps are stored as structured data or just append to the free-text note, and visual placement relative to the existing `intentionPlaceholder` field.
+
+---
+
 ## Deferred from: code review of 10-4-fix-perform-user-erasure-not-null-bug (2026-07-28)
 
 _Post-implementation code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against commit `922c88f`. 3 patches applied, 3 deferred below, 6 dismissed as noise._

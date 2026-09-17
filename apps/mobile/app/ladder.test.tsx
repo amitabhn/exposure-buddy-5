@@ -345,24 +345,38 @@ describe('LadderScreen', () => {
     })
   })
 
-  describe('Start session button (T7.1 / T7.2)', () => {
-    it('shows Start session button for a pending item', () => {
+  describe('Start session button (T7.1 / T7.2) — moved into edit modal', () => {
+    function openEditModal(getAllByRole: ReturnType<typeof render>['getAllByRole'], description: string) {
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes(description))
+      fireEvent.press(itemButton!)
+    }
+
+    it('Start session button is not shown on the Add path', () => {
+      const { getByRole, queryByRole } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      expect(queryByRole('button', { name: /ladder\.startSession/ })).toBeNull()
+    })
+
+    it('shows Start session button when editing a pending item', () => {
       mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
-      const { getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      openEditModal(getAllByRole, baseItem.description)
       expect(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` })).toBeTruthy()
     })
 
-    it('shows Start session button for a completed item', () => {
+    it('shows Start session button when editing a completed item', () => {
       const completedItem = { ...baseItem, status: 'completed' }
       mockUseFearLadderItems.mockReturnValue({ items: [completedItem], isLoading: false })
-      const { getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      openEditModal(getAllByRole, completedItem.description)
       expect(getByRole('button', { name: `ladder.startSession, ${completedItem.description}` })).toBeTruthy()
     })
 
     it('pressing Start session navigates to /session/technique', () => {
       mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: null })
       mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
-      const { getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      openEditModal(getAllByRole, baseItem.description)
       fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
       expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/session/technique'))
       expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining(`fearItemId=${baseItem.id}`))
@@ -371,7 +385,8 @@ describe('LadderScreen', () => {
     it('pressing Start session redirects to home when a session is already in progress (T7.2)', () => {
       mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: { sessionId: 's1', fearItemId: 'item-1', preSuds: 5, description: 'test' } })
       mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
-      const { getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      openEditModal(getAllByRole, baseItem.description)
       fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
       expect(mockRouterReplace).toHaveBeenCalledWith('/')
       expect(mockRouterPush).not.toHaveBeenCalled()

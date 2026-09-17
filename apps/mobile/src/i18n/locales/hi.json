@@ -99,7 +99,7 @@
     }
   },
   "ladder": {
-    "title": "Your Courage Ladder",
+    "title": "Your Ladder",
     "addItem": "Add situation",
     "startSession": "Start session",
     "emptyState": "Your Courage Ladder is empty. Add your first situation to get started.",
@@ -109,9 +109,11 @@
     "descriptionLabel": "Situation",
     "descriptionPlaceholder": "Describe the situation...",
     "sudsLabel": "Anxiety level (0–10)",
-    "statusPending": "Pending",
+    "sudsPrefix": "Anxiety ",
+    "sudsSuffix": "/10",
+    "statusPending": "To do",
     "statusInProgress": "In progress",
-    "statusCompleted": "Completed",
+    "statusCompleted": "Done",
     "reorderHint": "Long-press to reorder",
     "removeItem": "Remove item",
     "delete": {
@@ -195,7 +197,7 @@
   },
   "home": {
     "readyToStart": "Your Courage Ladder is ready. Let's go!",
-    "welcomeBack": "Welcome back. Keep going.",
+    "welcomeBack": "Welcome back.",
     "subGreetingReadyToStart": "One small step is all it takes to start.",
     "subGreetingWelcomeBack": "Ready for your next step?",
     "yourLadderLabel": "Your ladder",
