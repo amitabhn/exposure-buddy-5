@@ -1,6 +1,6 @@
 # Story 12.3: Ladder Screen — UI/UX Enhancements
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -53,32 +53,32 @@ Full Given/When/Then text lives under Story 12.3 in `_bmad-output/planning-artif
 
 ### T2 — Optimistic-update rollback + retry UI (AC: B1)
 
-- [ ] In `handleSubmit`'s edit branch: capture `const previousItems = items` before `setItems(prev => prev.map(...))`; in `catch`, call `setItems(previousItems)`. Apply the identical pattern in the add branch (before `setItems(prev => [...prev, newItem])`) — same snapshot-and-restore shape, both branches.
-- [ ] **Add-path retry must reuse the same optimistic item across attempts, not regenerate one.** `newItem` (with its `generateUUID()` id and `position: items.length + 1`) is currently a fresh local value computed on every `handleSubmit` call. If retry simply re-invokes `handleSubmit`, a second attempt would generate a *different* id/position than the one that failed and got rolled back — breaking the "retry re-sends the same payload" contract this AC depends on (the whole point of rollback is that the *same* item gets reconciled, not a new one appended). Capture the generated item (id, position, and the enqueue payload) in a ref or piece of state on the first attempt, and reuse it on retry instead of recomputing — clear it only on success or on explicit Cancel.
-- [ ] Add `const [saveError, setSaveError] = useState<string | null>(null)`; clear it at the start of `handleSubmit`, set it to `t('ladder.saveFailed')` in each `catch` block (mirror `session/debrief.tsx`'s `saveError`/`handleSubmitReflection` shape)
-- [ ] On failure, do **not** call `closeForm()` — leave the modal open with the error + retry visible so typed input isn't lost. **But `closeForm()` is currently the only place that resets `isSubmitting` to `false` (bundled with clearing `description`/`predictedSuds`/`editingItem`) — skipping it on failure means `isSubmitting` stays `true` forever unless you reset it separately.** In each `catch` block, call `setIsSubmitting(false)` directly (independent of `closeForm()`), *before or alongside* setting `saveError`. Without this, `handleSubmit`'s own guard (`if (!userId || isSubmitting || ...) return`) makes the retry button a silent no-op, and the visible Save button stays permanently disabled.
-- [ ] Render the error text (`accessibilityLiveRegion="polite"`) + a `t('ladder.tryAgain')` retry button inside the modal when `saveError` is set, styled consistent with `debrief.tsx`'s `saveErrorText`/`retryButton`. Placement: between `formActions` (Cancel/Save) and the conditionally-rendered Start-session/Remove sections (which only render when `editingItem !== null`) — the error UI itself must render identically for both the add path (no `editingItem`) and edit path.
-- [ ] Add `ladder.saveFailed` / `ladder.tryAgain` keys to `en.json` and `hi.json` (reuse `session.debrief.saveFailed`'s wording pattern: "We couldn't save your situation. It's stored on your device and will sync when you reconnect." — adapt "situation" wording to match `ladder.descriptionLabel`'s existing terminology)
-- [ ] Tests: enqueue-rejects-on-add restores `items` to pre-optimistic state, shows error+retry, and leaves the Save button enabled (not stuck disabled); enqueue-rejects-on-edit does the same; pressing retry on the add path re-calls `enqueue` with the *same* id/position as the failed attempt (not a newly generated one); a subsequent successful retry clears `saveError` and closes the form
+- [x] In `handleSubmit`'s edit branch: capture `const previousItems = items` before `setItems(prev => prev.map(...))`; in `catch`, call `setItems(previousItems)`. Apply the identical pattern in the add branch (before `setItems(prev => [...prev, newItem])`) — same snapshot-and-restore shape, both branches.
+- [x] **Add-path retry must reuse the same optimistic item across attempts, not regenerate one.** Implemented via `pendingAddIdRef` (`{ id, position }`), captured once on first attempt and reused on retry; description/predictedSuds are still read fresh from form state each attempt. Cleared on success (end of add branch) and on `closeForm()` (Cancel).
+- [x] Add `const [saveError, setSaveError] = useState<string | null>(null)`; clear it at the start of `handleSubmit`, set it to `t('ladder.saveFailed')` in each `catch` block
+- [x] On failure, do **not** call `closeForm()`; `setIsSubmitting(false)` is called directly in each `catch` block (independent of `closeForm()`), so the Save/retry buttons don't get stuck disabled
+- [x] Render the error text (`accessibilityLiveRegion="polite"`) + a `t('ladder.tryAgain')` retry button inside the modal when `saveError` is set, between `formActions` and the Start-session/Remove sections, rendering identically for both add and edit paths
+- [x] Added `ladder.saveFailed` / `ladder.tryAgain` keys to `en.json` and `hi.json` (hi.json follows this section's existing English-duplicate convention, matching every other `ladder.*` key already in that file)
+- [x] Tests (5 new): add-failure rollback + error/retry + Save re-enabled; edit-failure rollback + error shown + form stays open with attempted edit; retry re-sends the same generated id; successful retry clears error and closes form; Cancel-after-failure clears the pending id so a fresh add doesn't reuse it
 
 ### T3 — SUDS clamp on edit-open (AC: B2)
 
-- [ ] Add a small integer-clamp helper (inline or shared) — same clamp shape as the existing `TextInput.onChangeText` handler (lines 295-298), but clamping a `number` input directly (not parsing a string): `Math.min(10, Math.max(0, Math.round(item.predictedSuds)))`
-- [ ] Apply it in `openEditForm` when calling `setPredictedSuds(...)`
-- [ ] Tests: `openEditForm` with `predictedSuds: 12` → form shows `10`; with `-3` → shows `0`; with `7.6` → shows `8` (rounds); with `5` (already valid) → shows `5` unchanged
+- [x] Added `clampSuds()` helper: `Math.min(10, Math.max(0, Math.round(value)))`
+- [x] Applied in `openEditForm` via `setPredictedSuds(clampSuds(item.predictedSuds))`
+- [x] Tests (4 new): `12` → `10`; `-3` → `0`; `7.6` → `8` (rounds); `5` (already valid) → `5` unchanged
 
 ### T4 — Accessibility focus timing fix (AC: B3)
 
-- [ ] Replace the fixed 100ms `setTimeout` (lines 41-50) with a layout-driven trigger — either `onLayout` on the first `DraggableFlatList` row (fire focus once that row has laid out) or a bounded retry-until-ref-exists loop; do not remove the empty-state (Add button) focus path, which the Story 9.3 audit already confirmed works correctly
-- [ ] **This is a superset of the pure-virtualization race the AC names — there's also a data-loading race.** The current effect has `[]` deps and fires once at mount, but `remoteItems`/`items` can still be empty at mount time and populate later via the separate `useEffect` on `[remoteItems]` (lines 52-55). An `onLayout` callback wired only to whatever element exists *at mount* may permanently latch onto the Add button and never re-fire once real items arrive. The fix must key off the loaded state (e.g. wait for `!ladderLoading`, or re-evaluate when `items` transitions from empty to non-empty) rather than firing once at mount — and must not double-fire or visibly flicker focus from the Add button to the first row if items arrive shortly after.
-- [ ] Keep behavior symmetric: empty list still focuses the Add button; non-empty list focuses the first item row, now reliably, regardless of whether items were already loaded at mount or arrived shortly after
-- [ ] Manual on-device verification: VoiceOver (iOS) and TalkBack (Android) both land focus on the first item row when the ladder has ≥1 item, and on the Add button when empty — record the verification in Dev Agent Record, this AC is not satisfied by unit tests alone
-- [ ] Existing unit tests (`accessibility focus set on first item after 100ms`, `accessibility focus set on Add button when empty`) will need updating to match whatever timing mechanism replaces the fixed timeout — keep both cases covered, just no longer keyed to a hardcoded 100ms. If the replacement is `onLayout`-driven, note that RNTL requires simulating it explicitly (`fireEvent(element, 'layout', { nativeEvent: { layout: {...} } })`) — `jest.advanceTimersByTime` alone won't trigger it.
+- [x] Replaced the fixed 100ms `setTimeout` with a bounded retry-until-ref-exists loop (the AC's second suggested alternative): up to 10 attempts, 16ms apart, checking `findNodeHandle(firstInteractiveRef.current)` each time; fires `setAccessibilityFocus` on the first successful resolution and never again (`hasSetInitialFocusRef` guard)
+- [x] Effect is keyed on `[ladderLoading, items.length]` (not `[]`) and early-returns while `ladderLoading` is true — closes the data-loading race: the trigger now re-evaluates whenever loading state or item count changes, instead of firing once at mount before real items exist
+- [x] Empty-state (Add button) and non-empty (first item row) focus targets both still work via the existing conditional `ref={...}` assignments — behavior unchanged, only the *timing* mechanism changed
+- [x] Tests (5 new, replacing the 2 old fixed-100ms tests): loading→loaded transition fires focus on the correct target and not before; bounded retry actually retries (mocked `findNodeHandle` returns `null` twice then a tag); focus fires exactly once even if `items.length` changes again afterward; the 2 pre-existing tests updated to drop the `advanceTimersByTime(100)` dependency
+- [ ] **Manual on-device verification (VoiceOver/TalkBack) — NOT performed.** This requires a physical device or simulator interaction session, which this implementation environment cannot perform. The unit-level retry/timing logic is implemented and tested; on-device confirmation that focus is audibly announced correctly is an outstanding manual QA step before this AC can be considered fully verified. Flagging explicitly rather than marking done.
 
 ### T5 — Final verification
 
-- [ ] `pnpm turbo typecheck lint test` green across all packages/apps
-- [ ] Update sprint-status.yaml / epics.md status notes once all of T2-T4 are complete and reviewed
+- [x] `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks, 413/413 mobile Jest tests — 401 prior + 12 new: 5 rollback/retry, 4 SUDS clamp, 3 focus-timing)
+- [x] sprint-status.yaml updated (this session)
 
 ---
 
@@ -123,18 +123,29 @@ Full Given/When/Then text lives under Story 12.3 in `_bmad-output/planning-artif
 
 ### Agent Model Used
 
+Claude Sonnet 5 (claude-sonnet-5)
+
 ### Debug Log References
+
+None — no blocking issues. `pnpm turbo typecheck lint test` passed clean on the first full run after implementation (19/19 tasks, 413/413 mobile Jest tests).
 
 ### Completion Notes List
 
+- T2: Implemented rollback + retry exactly as scoped, including both validation-pass fixes (`isSubmitting` reset independent of `closeForm()`; `pendingAddIdRef` for stable retry identity on the add path). Chose to rebuild the enqueue payload fresh from current `description`/`predictedSuds` state on every attempt (only `id`/`position` are frozen in the ref) rather than freezing the entire payload — this means a user who edits the text before pressing retry gets their edit sent, while a plain retry (no edits) naturally resends an identical payload, satisfying the AC's test expectation without over-constraining the retry UX.
+- T3: Straightforward boundary-clamp helper, distinct from the `TextInput.onChangeText` handler's reject-to-null behavior per the story's Dev Notes guidance.
+- T4: Implemented as a bounded retry-until-ref-exists loop (10 attempts × 16ms) gated on `!ladderLoading`, re-evaluated on `[ladderLoading, items.length]`. This resolves both races the story called out: the DraggableFlatList virtualization race (original AC) and the data-loading race (found during story validation). **The on-device VoiceOver/TalkBack verification subtask is not checked off** — it requires physical device interaction this implementation environment cannot perform. Everything else in T4 (the timing/retry logic itself, and its unit coverage) is complete and tested.
+- All 12 new tests pass; full regression suite green (413/413, up from 401/401 before this story).
+
 ### File List
 
-- `apps/mobile/app/ladder.tsx` (already modified — Part A, commit `adcda38`; T2-T4 pending)
-- `apps/mobile/app/ladder.test.tsx` (already modified — Part A test updates, commit `adcda38`; T2-T4 test additions pending)
-- `apps/mobile/src/i18n/locales/en.json` (already modified — Part A keys, commit `adcda38`; T2 keys pending)
-- `apps/mobile/src/i18n/locales/hi.json` (already modified — Part A keys, commit `adcda38`; T2 keys pending)
+- `apps/mobile/app/ladder.tsx` (modified — Part A commit `adcda38`; T2/T3/T4 this session)
+- `apps/mobile/app/ladder.test.tsx` (modified — Part A test updates commit `adcda38`; 12 new tests this session)
+- `apps/mobile/src/i18n/locales/en.json` (modified — Part A keys commit `adcda38`; `ladder.saveFailed`/`ladder.tryAgain` this session)
+- `apps/mobile/src/i18n/locales/hi.json` (modified — Part A keys commit `adcda38`; `ladder.saveFailed`/`ladder.tryAgain` this session)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — status tracking)
 
 ### Change Log
 
 - 2026-09-17 — Story file created retroactively for the already-implemented Part A visual redesign (commit `adcda38`) plus formal scoping of the three open logic ACs (B1-B3), sourced from `deferred-work.md`'s `5-1-D1`/`5-1-D3`/`5-1-D5` and `epics.md`'s Story 12.3 entry. Status: ready-for-dev (for T2-T4; T1 already done).
 - 2026-09-17 — Independent validation pass (fresh-context reviewer, per `bmad-create-story` validate action): all factual/source claims verified correct against the actual code (adapter.ts semantics, debrief.tsx pattern, useFocusOnMount inapplicability, accessibility-audit quote). 2 critical gaps found and fixed in T2 (isSubmitting never reset on failure since `closeForm()` was the only reset path — retry button would've been permanently dead; add-path retry would've regenerated a new id/position instead of resending the failed item). T4 gap fixed (focus fix must also cover the data-loading race, not just the virtualization race). Minor test-count correction (24→28) and RNTL `onLayout` testing note added. Status remains ready-for-dev.
+- 2026-09-17 — Implemented T2 (rollback + retry), T3 (SUDS clamp), T4 (bounded-retry focus fix). 12 new tests added, full suite green (413/413 mobile, 19/19 turbo tasks). One item intentionally left unchecked: T4's on-device VoiceOver/TalkBack verification, which requires physical-device testing outside this environment's capability — flagged for whoever picks up code-review/QA rather than silently marked done. Status: review.

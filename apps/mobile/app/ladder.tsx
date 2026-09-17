@@ -35,36 +35,76 @@ export default function LadderScreen() {
   const [description, setDescription] = useState('')
   const [predictedSuds, setPredictedSuds] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Accessibility: focus first item or add button on mount
+  // Add-path optimistic item identity (id + position) is captured once and reused across
+  // retry attempts (Story 12.3 AC-B1) — a naive retry that re-invokes handleSubmit would
+  // otherwise generate a new id/position each time, breaking the "same item" rollback contract.
+  const pendingAddIdRef = useRef<{ id: string; position: number } | null>(null)
+
+  // Accessibility: focus first item or add button once loading settles (Story 12.3 AC-B3).
+  // The prior fixed 100ms setTimeout raced both DraggableFlatList's virtualized layout AND
+  // ladderLoading's own async resolution — it could fire before real items had loaded, latch
+  // onto the Add button, and never retry once items arrived. This effect re-evaluates whenever
+  // loading state or item count changes, and bounded-retries (retry-until-ref-exists) in case
+  // the target hasn't finished laying out on the first check.
   const firstInteractiveRef = useRef<ElementRef<typeof TouchableOpacity> | null>(null)
+  const hasSetInitialFocusRef = useRef(false)
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (firstInteractiveRef.current) {
-        const tag = findNodeHandle(firstInteractiveRef.current)
-        if (tag) AccessibilityInfo.setAccessibilityFocus(tag)
+    if (ladderLoading || hasSetInitialFocusRef.current) return
+    let cancelled = false
+    let attempts = 0
+    let timeoutId: ReturnType<typeof setTimeout>
+    const MAX_ATTEMPTS = 10
+    const RETRY_DELAY_MS = 16
+
+    function tryFocus() {
+      if (cancelled || hasSetInitialFocusRef.current) return
+      const tag = firstInteractiveRef.current ? findNodeHandle(firstInteractiveRef.current) : null
+      if (tag) {
+        AccessibilityInfo.setAccessibilityFocus(tag)
+        hasSetInitialFocusRef.current = true
+        return
       }
-    }, 100)
-    return () => clearTimeout(timeout)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+      attempts += 1
+      if (attempts < MAX_ATTEMPTS) {
+        timeoutId = setTimeout(tryFocus, RETRY_DELAY_MS)
+      }
+    }
+    tryFocus()
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
+  }, [ladderLoading, items.length])
 
   // Sync remote items into local state when stub is replaced in Epic 6; sort by position ascending (AC 1)
   useEffect(() => {
     setItems([...remoteItems].sort((a, b) => a.position - b.position))
   }, [remoteItems])
 
+  // Story 12.3 AC-B2: boundary-clamp a stored SUDS value (not reject-to-null like the
+  // TextInput's own onChangeText handler below — a stored value gets clamped to something
+  // sane rather than forcing the user to retype it).
+  function clampSuds(value: number): number {
+    return Math.min(10, Math.max(0, Math.round(value)))
+  }
+
   function openAddForm() {
     setEditingItem(null)
     setDescription('')
     setPredictedSuds(null)
+    setSaveError(null)
+    pendingAddIdRef.current = null
     setFormVisible(true)
   }
 
   function openEditForm(item: FearLadderItem) {
     setEditingItem(item)
     setDescription(item.description)
-    setPredictedSuds(item.predictedSuds)
+    setPredictedSuds(clampSuds(item.predictedSuds))
+    setSaveError(null)
     setFormVisible(true)
   }
 
@@ -74,15 +114,20 @@ export default function LadderScreen() {
     setDescription('')
     setPredictedSuds(null)
     setIsSubmitting(false)
+    setSaveError(null)
+    pendingAddIdRef.current = null
   }
 
   async function handleSubmit() {
     if (!userId || isSubmitting || !description.trim() || predictedSuds === null) return
     setIsSubmitting(true)
+    setSaveError(null)
     const now = new Date().toISOString()
 
     if (editingItem) {
-      // Edit path — only description and predicted_suds
+      // Edit path — only description and predicted_suds. editingItem.id is already stable
+      // across retries, so no identity-capture is needed here (unlike the add path below).
+      const previousItems = items
       const updated = { ...editingItem, description: description.trim(), predictedSuds: predictedSuds }
       setItems(prev => prev.map(i => i.id === updated.id ? updated : i))  // optimistic
       try {
@@ -95,20 +140,34 @@ export default function LadderScreen() {
         })
       } catch (err) {
         console.error('[LadderScreen] edit enqueue failed:', err)
+        // Story 12.3 AC-B1: roll back the optimistic update and surface a retryable error
+        // instead of leaving a silently-stale edit in the UI.
+        setItems(previousItems)
+        setIsSubmitting(false)
+        setSaveError(t('ladder.saveFailed'))
+        return
       }
     } else {
-      // Add path — crisis check first
+      // Add path. The generated id/position are captured once (in pendingAddIdRef) and reused
+      // across retry attempts, so a retry re-enqueues the *same* item rather than a new one —
+      // description/predictedSuds are still read fresh from form state each attempt, so an
+      // edit made before pressing retry is still picked up.
+      if (!pendingAddIdRef.current) {
+        pendingAddIdRef.current = { id: generateUUID(), position: items.length + 1 }
+      }
+      const { id, position } = pendingAddIdRef.current
       const hasCrisis = detectCrisisKeywords(description.trim())
       if (hasCrisis) setCrisisDetected(true)
       const newItem: FearLadderItem = {
-        id: generateUUID(),
+        id,
         description: description.trim(),
         predictedSuds: predictedSuds,
-        position: items.length + 1,
+        position,
         // eslint-disable-next-line i18next/no-literal-string
         status: 'pending',
         peakSuds: null,
       }
+      const previousItems = items
       setItems(prev => [...prev, newItem])  // optimistic
       try {
         // eslint-disable-next-line i18next/no-literal-string
@@ -126,7 +185,14 @@ export default function LadderScreen() {
         })
       } catch (err) {
         console.error('[LadderScreen] add enqueue failed:', err)
+        // Story 12.3 AC-B1: roll back the optimistic add and surface a retryable error instead
+        // of leaving an orphaned "ghost" item that only gets corrected by the next sync.
+        setItems(previousItems)
+        setIsSubmitting(false)
+        setSaveError(t('ladder.saveFailed'))
+        return
       }
+      pendingAddIdRef.current = null
     }
     closeForm()
   }
@@ -315,6 +381,28 @@ export default function LadderScreen() {
                 <Text style={styles.saveText}>{t('ladder.saveItem')}</Text>
               </TouchableOpacity>
             </View>
+            {saveError ? (
+              // Story 12.3 AC-B1: shown after a rolled-back save failure — reuses the
+              // saveError/tryAgain retry pattern from session/debrief.tsx. Renders identically
+              // for the add path (no editingItem) and the edit path.
+              <View style={styles.saveErrorContainer}>
+                <Text
+                  // eslint-disable-next-line i18next/no-literal-string
+                  accessibilityLiveRegion="polite"
+                  style={styles.saveErrorText}
+                >{saveError}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('ladder.tryAgain')}
+                  accessibilityState={{ disabled: isSubmitting }}
+                >
+                  <Text style={styles.retryButtonText}>{t('ladder.tryAgain')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
             {editingItem !== null && (
               // T7.1: "Start session" — all items (pending and completed). Completed items
               // can be repeated; active.tsx will update peak_suds on the re-run.
@@ -408,6 +496,11 @@ const styles = StyleSheet.create({
   saveButton: { flex: 1, backgroundColor: color.accent.courage, borderRadius: radius.button, paddingVertical: 14, alignItems: 'center' },
   saveButtonDisabled: { backgroundColor: color.surface.secondary },
   saveText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  // saveErrorText/retryButton/retryButtonText mirror session/debrief.tsx's saveError/tryAgain styles
+  saveErrorContainer: { marginTop: 12 },
+  saveErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20, marginBottom: 8 },
+  retryButton: { alignSelf: 'flex-start' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
   removeSection: { marginTop: 24, alignItems: 'center' },
   removeButton: { paddingVertical: 12, paddingHorizontal: 16 },
   removeButtonDisabled: { opacity: 0.5 },

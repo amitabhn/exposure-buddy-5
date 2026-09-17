@@ -236,22 +236,60 @@ describe('LadderScreen', () => {
     expect(getByLabelText('ladder.sudsLabel').props.value).toBe('5')
   })
 
-  it('accessibility focus set on first item after 100ms', () => {
+  it('accessibility focus set on first item once loaded', () => {
     mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     render(<LadderScreen />)
-    act(() => {
-      jest.advanceTimersByTime(100)
-    })
     expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
   })
 
   it('accessibility focus set on Add button when empty', () => {
     mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: false })
     render(<LadderScreen />)
-    act(() => {
-      jest.advanceTimersByTime(100)
-    })
     expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+  })
+
+  describe('Accessibility focus timing fix (Story 12.3 AC-B3)', () => {
+    it('does not set focus while ladder items are still loading, and focuses the first item once loading completes', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [], isLoading: true })
+      const { rerender } = render(<LadderScreen />)
+      expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      rerender(<LadderScreen />)
+
+      expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+    })
+
+    it('retries focus placement until the ref resolves to a native tag (bounded retry-until-ref-exists)', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const findNodeHandleSpy = jest.spyOn(require('react-native'), 'findNodeHandle')
+      findNodeHandleSpy.mockReturnValueOnce(null).mockReturnValueOnce(null).mockReturnValue(42)
+
+      render(<LadderScreen />)
+      expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+      act(() => {
+        jest.advanceTimersByTime(16)
+      })
+      expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+      act(() => {
+        jest.advanceTimersByTime(16)
+      })
+      expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+    })
+
+    it('only sets focus once even though items.length can change again after the initial placement', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { rerender } = render(<LadderScreen />)
+      expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledTimes(1)
+
+      const secondItem = { id: 'b', description: 'Item B', predictedSuds: 4, position: 2, status: 'pending' }
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem, secondItem], isLoading: false })
+      rerender(<LadderScreen />)
+
+      expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('Remove item (Story 6.2-C)', () => {
@@ -390,6 +428,140 @@ describe('LadderScreen', () => {
       fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
       expect(mockRouterReplace).toHaveBeenCalledWith('/')
       expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('SUDS clamp on edit-open (Story 12.3 AC-B2)', () => {
+    it('clamps a predictedSuds above 10 down to 10 when opening the edit form', () => {
+      const item = { ...baseItem, predictedSuds: 12 }
+      mockUseFearLadderItems.mockReturnValue({ items: [item], isLoading: false })
+      const { getAllByRole, getByLabelText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      expect(getByLabelText('ladder.sudsLabel').props.value).toBe('10')
+    })
+
+    it('clamps a predictedSuds below 0 up to 0 when opening the edit form', () => {
+      const item = { ...baseItem, predictedSuds: -3 }
+      mockUseFearLadderItems.mockReturnValue({ items: [item], isLoading: false })
+      const { getAllByRole, getByLabelText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      expect(getByLabelText('ladder.sudsLabel').props.value).toBe('0')
+    })
+
+    it('rounds a non-integer predictedSuds when opening the edit form', () => {
+      const item = { ...baseItem, predictedSuds: 7.6 }
+      mockUseFearLadderItems.mockReturnValue({ items: [item], isLoading: false })
+      const { getAllByRole, getByLabelText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      expect(getByLabelText('ladder.sudsLabel').props.value).toBe('8')
+    })
+
+    it('leaves an already-valid integer predictedSuds unchanged', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      const { getAllByRole, getByLabelText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      expect(getByLabelText('ladder.sudsLabel').props.value).toBe('5')
+    })
+  })
+
+  describe('Optimistic-update rollback + retry (Story 12.3 AC-B1)', () => {
+    it('enqueue failure on add rolls back the optimistic item, shows error+retry, and keeps Save enabled', async () => {
+      mockEnqueue.mockRejectedValueOnce(new Error('boom'))
+      const { getByRole, getByLabelText, getByText, queryByText } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'test situation')
+      fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '3')
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+      })
+
+      expect(getByText('ladder.saveFailed')).toBeTruthy()
+      expect(queryByText('test situation')).toBeNull() // rolled back — not left as a ghost item in the list
+      const saveButton = getByRole('button', { name: 'ladder.saveItem' })
+      expect(saveButton.props.accessibilityState.disabled).toBe(false)
+      expect(getByRole('button', { name: 'ladder.tryAgain' })).toBeTruthy()
+    })
+
+    it('enqueue failure on edit rolls back and shows error+retry, form stays open with the attempted edit', async () => {
+      mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+      mockEnqueue.mockRejectedValueOnce(new Error('boom'))
+      const { getAllByRole, getByLabelText, getByText } = render(<LadderScreen />)
+      const itemButton = getAllByRole('button').find(b => b.props.accessibilityLabel?.includes('Test situation'))
+      fireEvent.press(itemButton!)
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'Updated description')
+      await act(async () => {
+        const saveButton = getAllByRole('button').find(b => b.props.accessibilityLabel === 'ladder.saveItem')
+        fireEvent.press(saveButton!)
+      })
+
+      expect(getByText('ladder.saveFailed')).toBeTruthy()
+      expect(getByLabelText('ladder.descriptionLabel').props.value).toBe('Updated description')
+    })
+
+    it('retrying a failed add re-enqueues with the same generated id, not a new one', async () => {
+      mockEnqueue.mockRejectedValueOnce(new Error('boom'))
+      const { getByRole, getByLabelText } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'test situation')
+      fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '3')
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+      })
+      const firstCallPayload = mockEnqueue.mock.calls[0][2] as { id: string }
+
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.tryAgain' }))
+      })
+
+      expect(mockEnqueue).toHaveBeenCalledTimes(2)
+      const secondCallPayload = mockEnqueue.mock.calls[1][2] as { id: string }
+      expect(secondCallPayload.id).toBe(firstCallPayload.id)
+    })
+
+    it('a successful retry after a failed add clears the error and closes the form', async () => {
+      mockEnqueue.mockRejectedValueOnce(new Error('boom'))
+      const { getByRole, getByLabelText, queryByText, queryByLabelText } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'test situation')
+      fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '3')
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+      })
+
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.tryAgain' }))
+      })
+
+      expect(queryByText('ladder.saveFailed')).toBeNull()
+      expect(queryByLabelText('ladder.descriptionLabel')).toBeNull()
+    })
+
+    it('canceling after a failed add clears the pending item so a fresh add does not reuse its id', async () => {
+      mockEnqueue.mockRejectedValueOnce(new Error('boom'))
+      const { getByRole, getByLabelText } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'test situation')
+      fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '3')
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+      })
+      const firstCallPayload = mockEnqueue.mock.calls[0][2] as { id: string }
+
+      fireEvent.press(getByRole('button', { name: 'ladder.cancel' }))
+
+      fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+      fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'another situation')
+      fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '4')
+      await act(async () => {
+        fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+      })
+
+      const secondCallPayload = mockEnqueue.mock.calls[1][2] as { id: string }
+      expect(secondCallPayload.id).not.toBe(firstCallPayload.id)
     })
   })
 })

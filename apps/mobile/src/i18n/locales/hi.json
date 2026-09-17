@@ -116,6 +116,8 @@
     "statusCompleted": "Done",
     "reorderHint": "Long-press to reorder",
     "removeItem": "Remove item",
+    "saveFailed": "We couldn't save your situation. It's stored on your device and will sync when you reconnect.",
+    "tryAgain": "Try again",
     "delete": {
       "confirmTitle": "Remove item?",
       "confirmMessage": "This fear and all your progress on it will be permanently removed.",
