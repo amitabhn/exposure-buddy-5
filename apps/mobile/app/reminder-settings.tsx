@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import * as Notifications from 'expo-notifications'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { BackButton } from '../src/components/navigation/BackButton'
 import { usePushRegistration } from '../src/hooks/usePushRegistration'
 import { scheduleSessionReminder, cancelSessionReminder, parseTime, DEFAULT_TIME } from '../src/notifications/sessionReminder'
@@ -174,8 +175,7 @@ export default function ReminderSettingsScreen() {
           headerShown: true,
           headerTitle: t('reminderSettings.screenTitle'),
           headerShadowVisible: false,
-          // eslint-disable-next-line i18next/no-literal-string
-          headerStyle: { backgroundColor: '#ffffff' },
+          headerStyle: { backgroundColor: color.surface.primary },
           headerLeft: () => <BackButton />,
           headerBackVisible: false,
         }}
@@ -254,14 +254,14 @@ export default function ReminderSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
     paddingTop: 24,
     paddingHorizontal: 24,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: color.content.primary,
     marginBottom: 24,
   },
   radioRow: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: color.surface.secondary,
   },
   radioRowDisabled: {
     opacity: 0.5,
@@ -283,12 +283,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   radioCircleSelected: {
-    borderColor: '#111827',
-    backgroundColor: '#111827',
+    borderColor: color.accent.courage,
+    backgroundColor: color.accent.courage,
   },
   radioLabel: {
     fontSize: 16,
-    color: '#111827',
+    color: color.content.primary,
   },
   permissionErrorBox: {
     marginTop: 16,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
   },
   saveButton: {
-    backgroundColor: '#111827',
+    backgroundColor: color.accent.courage,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',

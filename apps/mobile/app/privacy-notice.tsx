@@ -1,6 +1,7 @@
 import { ScrollView, Text, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { color } from '@exposure-buddy/ui'
 import { PRIVACY_NOTICE_LAST_UPDATED } from '../src/constants/legal'
 
 export default function PrivacyNoticeScreen() {
@@ -42,7 +43,7 @@ export default function PrivacyNoticeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
   },
   content: {
     padding: 24,
@@ -51,29 +52,29 @@ const styles = StyleSheet.create({
   h1: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: color.content.primary,
     marginBottom: 4,
   },
   meta: {
     fontSize: 13,
-    color: '#6b7280',
+    color: color.content.secondary,
     marginBottom: 24,
   },
   h2: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#111827',
+    color: color.content.primary,
     marginTop: 24,
     marginBottom: 8,
   },
   body: {
     fontSize: 15,
-    color: '#374151',
+    color: color.content.secondary,
     lineHeight: 24,
   },
   email: {
     fontSize: 15,
-    color: '#111827',
+    color: color.content.primary,
     textDecorationLine: 'underline',
     marginTop: 4,
   },

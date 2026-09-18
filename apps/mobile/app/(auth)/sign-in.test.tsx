@@ -118,28 +118,35 @@ describe('SignInScreen', () => {
     mockSignOut.mockResolvedValue(undefined)
   })
 
-  it('renders all four mode x authMethod tab combinations', () => {
-    const { getByLabelText, getAllByLabelText } = render(<SignInScreen />)
+  it('renders all four mode x authMethod combinations', () => {
+    const { getByLabelText, getAllByLabelText, queryByLabelText, getByText } = render(<SignInScreen />)
 
-    // Default: signup + otp (hasAuthedBefore is false)
+    // Default: signup + password (INITIAL_STATE.authMethod is 'password')
     expect(getIdentifierInput(getAllByLabelText)).toBeTruthy()
-
-    // signup + password
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     expect(getByLabelText('auth.password.label')).toBeTruthy()
+    // Mode-switch footer must invite the OTHER mode, not repeat the current one.
+    expect(getByText(/auth\.modeSwitch\.alreadyHaveAccount/)).toBeTruthy()
+    expect(getByText(/auth\.mode\.signIn$/)).toBeTruthy()
 
-    // signin + password
-    fireEvent.press(getByLabelText('auth.mode.signIn'))
-    expect(getByLabelText('auth.password.label')).toBeTruthy()
+    // signup + otp
+    fireEvent.press(getByLabelText('auth.authMethod.switchToOtp'))
+    expect(getIdentifierInput(getAllByLabelText)).toBeTruthy()
+    expect(queryByLabelText('auth.password.label')).toBeNull()
 
     // signin + otp
-    fireEvent.press(getByLabelText('auth.authMethod.otp'))
+    fireEvent.press(getByLabelText('auth.mode.signIn'))
     expect(getIdentifierInput(getAllByLabelText)).toBeTruthy()
+    // Now in signin mode — footer must invite switching to signup, not repeat "sign in".
+    expect(getByText(/auth\.modeSwitch\.newHere/)).toBeTruthy()
+    expect(getByText(/auth\.mode\.createAccount$/)).toBeTruthy()
+
+    // signin + password
+    fireEvent.press(getByLabelText('auth.authMethod.switchToPassword'))
+    expect(getByLabelText('auth.password.label')).toBeTruthy()
   })
 
   it('blocks password signup submit when the password is under 8 characters', async () => {
     const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'user@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'short')
     checkSafetyBoxes(getByLabelText)
@@ -154,7 +161,6 @@ describe('SignInScreen', () => {
 
   it('disables password signup submit until both safety checkboxes are checked, identically to OTP signup', () => {
     const { getByLabelText } = render(<SignInScreen />)
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     const submit = getByLabelText('auth.password.submitSignUp')
     expect(submit.props.accessibilityState.disabled).toBe(true)
 
@@ -170,7 +176,6 @@ describe('SignInScreen', () => {
     )
 
     const { getByLabelText, getAllByLabelText, rerender } = render(<SignInScreen />)
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'new@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
     checkSafetyBoxes(getByLabelText)
@@ -216,7 +221,6 @@ describe('SignInScreen', () => {
     mockRecordConsent.mockRejectedValue(new Error('network'))
 
     const { getByLabelText, getAllByLabelText, getByText, rerender } = render(<SignInScreen />)
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'new@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
     checkSafetyBoxes(getByLabelText)
@@ -244,7 +248,6 @@ describe('SignInScreen', () => {
 
     const { getByLabelText, getAllByLabelText, rerender } = render(<SignInScreen />)
     fireEvent.press(getByLabelText('auth.mode.signIn'))
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'existing@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'whatever1')
 
@@ -269,7 +272,6 @@ describe('SignInScreen', () => {
 
     const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
     fireEvent.press(getByLabelText('auth.mode.signIn'))
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'existing@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'whatever1')
 
@@ -284,7 +286,6 @@ describe('SignInScreen', () => {
     mockSignUp.mockResolvedValue({ data: { session: null }, error: null })
 
     const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'dupe@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
     checkSafetyBoxes(getByLabelText)
@@ -302,7 +303,6 @@ describe('SignInScreen', () => {
 
     const { getByLabelText, getAllByLabelText, getByText, rerender } = render(<SignInScreen />)
     fireEvent.press(getByLabelText('auth.mode.signIn'))
-    fireEvent.press(getByLabelText('auth.authMethod.passwordAccessibilityLabel'))
     fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'deleted@test.com')
     fireEvent.changeText(getByLabelText('auth.password.label'), 'whatever1')
 

@@ -7,7 +7,7 @@ import { CalmMeButton } from '@exposure-buddy/ui'
 describe('CalmMeButton', () => {
   it('has accessibilityRole="button" and the given accessibilityLabel', () => {
     const { getByRole } = render(
-      <CalmMeButton onPress={jest.fn()} accessibilityLabel="Calm Me" />,
+      <CalmMeButton label={'INSTA\nCALM'} onPress={jest.fn()} accessibilityLabel="Calm Me" />,
     )
     const el = getByRole('button')
     expect(el.props.accessibilityLabel).toBe('Calm Me')
@@ -15,7 +15,12 @@ describe('CalmMeButton', () => {
 
   it('passes accessibilityHint through when provided', () => {
     const { getByRole } = render(
-      <CalmMeButton onPress={jest.fn()} accessibilityLabel="Calm Me" accessibilityHint="Opens calming techniques" />,
+      <CalmMeButton
+        label={'INSTA\nCALM'}
+        onPress={jest.fn()}
+        accessibilityLabel="Calm Me"
+        accessibilityHint="Opens calming techniques"
+      />,
     )
     const el = getByRole('button')
     expect(el.props.accessibilityHint).toBe('Opens calming techniques')
@@ -24,7 +29,7 @@ describe('CalmMeButton', () => {
   it('calls onPress when tapped', () => {
     const onPress = jest.fn()
     const { getByRole } = render(
-      <CalmMeButton onPress={onPress} accessibilityLabel="Calm Me" />,
+      <CalmMeButton label={'INSTA\nCALM'} onPress={onPress} accessibilityLabel="Calm Me" />,
     )
     fireEvent.press(getByRole('button'))
     expect(onPress).toHaveBeenCalledTimes(1)

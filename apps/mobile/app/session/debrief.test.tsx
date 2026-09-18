@@ -32,16 +32,20 @@ jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
-jest.mock('@exposure-buddy/ui', () => ({
-  SudsArcChart: ({ accessibilityLabel }: { accessibilityLabel?: string }) => {
-    const { View } = require('react-native')
-    return <View testID="suds-arc-chart" accessibilityLabel={accessibilityLabel} />
-  },
-  typography: {
-    display:   { fontSize: 28, fontWeight: '400', lineHeight: 32, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
-    narrative: { fontSize: 15, fontWeight: '400', lineHeight: 24, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
-  },
-}))
+jest.mock('@exposure-buddy/ui', () => {
+  const actual = jest.requireActual('@exposure-buddy/ui')
+  return {
+    SudsArcChart: ({ accessibilityLabel }: { accessibilityLabel?: string }) => {
+      const { View } = require('react-native')
+      return <View testID="suds-arc-chart" accessibilityLabel={accessibilityLabel} />
+    },
+    color: actual.color,
+    typography: {
+      display:   { fontSize: 28, fontWeight: '400', lineHeight: 32, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
+      narrative: { fontSize: 15, fontWeight: '400', lineHeight: 24, fontFamily: 'DMSerifDisplay_400Regular_Italic' },
+    },
+  }
+})
 
 const { useLocalSearchParams } = require('expo-router')
 

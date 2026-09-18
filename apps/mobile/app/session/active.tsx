@@ -7,6 +7,7 @@ import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition } from '@exposure-buddy/core'
+import { color } from '@exposure-buddy/ui'
 
 // Pure-JS UUID v4 — same pattern as ladder.tsx (Hermes limitation: no crypto.randomUUID)
 function generateUUID(): string {
@@ -293,26 +294,27 @@ export default function ActiveScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingBottom: 32 },
+  container: { flex: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, paddingBottom: 32 },
   // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint)
-  title: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 12, paddingRight: 88 },
-  description: { fontSize: 16, color: '#374151', lineHeight: 24, marginBottom: 32 },
+  title: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 12, paddingRight: 88 },
+  description: { fontSize: 16, color: color.content.secondary, lineHeight: 24, marginBottom: 32 },
   actions: { flex: 1, justifyContent: 'center', gap: 16 },
-  logButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  logButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   logButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  // #0f766e — completed/success semantic colour, out of scope per Story 12.5; left unchanged.
   completeButton: { backgroundColor: '#0f766e', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   completeButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   completionErrorText: { fontSize: 14, color: '#ef4444', lineHeight: 20 },
   retryButton: { marginTop: 8, alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
-  stopButton: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
-  stopButtonText: { color: '#374151', fontSize: 16 },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
+  stopButton: { borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
+  stopButtonText: { color: color.content.secondary, fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#ffffff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 48 },
-  modalTitle: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 20 },
-  logConfirmButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
-  logConfirmDisabled: { backgroundColor: '#d1d5db' },
+  modalCard: { backgroundColor: color.surface.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 48 },
+  modalTitle: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 20 },
+  logConfirmButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  logConfirmDisabled: { backgroundColor: color.surface.secondary },
   logConfirmText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   cancelButton: { paddingVertical: 12, alignItems: 'center', marginTop: 8 },
-  cancelText: { color: '#6b7280', fontSize: 15 },
+  cancelText: { color: color.content.secondary, fontSize: 15 },
 })

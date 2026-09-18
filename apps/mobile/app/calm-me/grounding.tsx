@@ -51,5 +51,5 @@ export default function GroundingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.surface.primary, width: '100%', alignItems: 'center', justifyContent: 'center' },
   backButton: { position: 'absolute', top: 48, left: 24, padding: 8, zIndex: 1 },
-  backIcon: { fontSize: 28, color: '#111827' },
+  backIcon: { fontSize: 28, color: color.content.primary },
 })

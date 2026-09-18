@@ -9,6 +9,20 @@
     "goHome": "Go to home screen!"
   },
   "auth": {
+    "welcomeSignup": "Welcome to\n{{appName}}",
+    "welcomeSignin": "Welcome back",
+    "identifierType": {
+      "emailShort": "Email",
+      "phoneShort": "Phone",
+      "emailPlaceholder": "you@email.com",
+      "phonePlaceholder": "+91 98765 43210"
+    },
+    "modeSwitch": {
+      "newHere": "New here?",
+      "alreadyHaveAccount": "Already have an account?",
+      "toSignInHint": "Switches the form to sign in to an existing account",
+      "toSignUpHint": "Switches the form to create a new account"
+    },
     "otp": {
       "emailLabel": "Email address",
       "phoneLabel": "Phone number",
@@ -32,14 +46,16 @@
       "signIn": "Sign in"
     },
     "authMethod": {
-      "otp": "OTP",
-      "password": "Password",
-      "passwordAccessibilityLabel": "Password sign-in method"
+      "useCodeInstead": "use a code instead",
+      "usePasswordInstead": "use a password instead",
+      "switchToOtp": "Switch to sign in with a one-time code",
+      "switchToOtpHint": "Sends a one-time code instead of using a password",
+      "switchToPassword": "Switch to sign in with a password",
+      "switchToPasswordHint": "Uses a password instead of a one-time code"
     },
     "password": {
       "label": "Password",
       "hint": "Enter a password with at least 8 characters",
-      "screenSubtitle": "Sign up or sign in with a password",
       "submitSignUp": "Sign up",
       "submitSignIn": "Sign in",
       "submitHint": "Submits your email or phone number and password",
@@ -168,14 +184,34 @@
   },
   "home": {
     "readyToStart": "Your Courage Ladder is ready. Let's go!",
-    "welcomeBack": "Welcome back. Keep going.",
-    "state4": {
-      "context": "You have an exposure in progress",
-      "cta": "Continue"
+    "welcomeBack": "Welcome back.",
+    "subGreetingReadyToStart": "One small step is all it takes to start.",
+    "subGreetingWelcomeBack": "Ready for your next step?",
+    "yourLadderLabel": "Your ladder",
+    "progressLabel": "{{completed}} of {{total}} steps climbed",
+    "nextStepLabel": "Your next step",
+    "nextStep": {
+      "cta": "Start this step",
+      "sudsPrefix": "Anxiety ",
+      "sudsSuffix": "/10"
     },
-    "state10": {
-      "message": "You've completed every situation on your Courage Ladder. Well done.",
-      "addMore": "Add more situations"
+    "actions": {
+      "yourLadder": "Your Ladder",
+      "practiceRelaxation": "Practice Relaxation"
+    },
+    "emptyState": {
+      "headline": "Every climb starts with one step",
+      "subtext": "Add a situation that makes you anxious — we'll help you work up to it.",
+      "cta": "Add your first situation"
+    },
+    "completedState": {
+      "headline": "You've reached the top of your ladder",
+      "subtext": "Every situation you set out to face — faced. That's real progress.",
+      "cta": "Add another challenge"
+    },
+    "progressingState": {
+      "label": "Session in progress",
+      "cta": "Continue where you left off"
     },
     "courageCard": {
       "itemLabel": "{{description}}, anxiety level {{suds}} out of 10",
@@ -184,7 +220,7 @@
     }
   },
   "ladder": {
-    "title": "Your Courage Ladder",
+    "title": "Your Ladder",
     "addItem": "Add situation",
     "startSession": "Start session",
     "emptyState": "Your Courage Ladder is empty. Add your first situation to get started.",
@@ -194,11 +230,15 @@
     "descriptionLabel": "Situation",
     "descriptionPlaceholder": "Describe the situation...",
     "sudsLabel": "Anxiety level (0–10)",
-    "statusPending": "Pending",
+    "sudsPrefix": "Anxiety ",
+    "sudsSuffix": "/10",
+    "statusPending": "To do",
     "statusInProgress": "In progress",
-    "statusCompleted": "Completed",
+    "statusCompleted": "Done",
     "reorderHint": "Long-press to reorder",
     "removeItem": "Remove item",
+    "saveFailed": "We couldn't save your situation. It's stored on your device and will sync when you reconnect.",
+    "tryAgain": "Try again",
     "delete": {
       "confirmTitle": "Remove item?",
       "confirmMessage": "This fear and all your progress on it will be permanently removed.",
@@ -290,6 +330,7 @@
   "calmMe": {
     "fab": "Calm Me",
     "fabHint": "Opens calming techniques and crisis support",
+    "fabLabel": "INSTA\nCALM",
     "exit": "Close",
     "affirmation": {
       "1": "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time."

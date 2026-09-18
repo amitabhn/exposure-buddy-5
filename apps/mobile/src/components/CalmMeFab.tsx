@@ -45,7 +45,12 @@ export function CalmMeFab() {
   return (
     // eslint-disable-next-line i18next/no-literal-string
     <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">
-      <CalmMeButton onPress={handlePress} accessibilityLabel={t('calmMe.fab')} accessibilityHint={t('calmMe.fabHint')} />
+      <CalmMeButton
+        onPress={handlePress}
+        label={t('calmMe.fabLabel')}
+        accessibilityLabel={t('calmMe.fab')}
+        accessibilityHint={t('calmMe.fabHint')}
+      />
     </View>
   )
 }

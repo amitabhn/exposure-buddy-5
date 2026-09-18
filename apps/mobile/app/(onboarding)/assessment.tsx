@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 
 import { useRouter, Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
+import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { SudsCalibrationWidget } from '../../src/components/onboarding/SudsCalibrationWidget'
 import { getAdapter } from '../../src/sync/adapter'
@@ -125,57 +126,57 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 24,
     paddingVertical: 32,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
   },
   title: {
     fontSize: 26,
     fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
+    color: color.content.primary,
     marginBottom: 16,
   },
   body: {
     fontSize: 16,
-    color: '#6b7280',
+    color: color.content.secondary,
     lineHeight: 24,
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: color.content.primary,
     marginTop: 24,
     marginBottom: 8,
   },
   scenario: {
     fontSize: 16,
-    color: '#374151',
+    color: color.content.secondary,
     lineHeight: 24,
     marginBottom: 16,
     fontStyle: 'italic',
   },
   saveErrorText: { fontSize: 14, color: '#ef4444', marginTop: 16, lineHeight: 20 },
   retryButton: { marginTop: 8, alignSelf: 'flex-start' },
-  retryButtonText: { fontSize: 14, color: '#1d4ed8', textDecorationLine: 'underline' },
+  retryButtonText: { fontSize: 14, color: color.accent.courage, textDecorationLine: 'underline' },
   overwhelmedLink: {
     marginTop: 24,
     alignSelf: 'center',
   },
   overwhelmedText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: color.content.secondary,
     textDecorationLine: 'underline',
   },
   button: {
     alignSelf: 'stretch',
-    backgroundColor: '#111827',
+    backgroundColor: color.accent.courage,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 24,
   },
   buttonDisabled: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: color.surface.secondary,
   },
   buttonText: {
     color: '#ffffff',

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import type { TechniqueType } from '@exposure-buddy/core'
 import { BackButton } from '../../src/components/navigation/BackButton'
+import { color } from '@exposure-buddy/ui'
 
 const TECHNIQUES: TechniqueType[] = ['somatic', 'breathing', 'cognitive']
 
@@ -44,7 +45,7 @@ export default function TechniqueScreen() {
           headerTitle: t('session.technique.title'),
           headerShadowVisible: false,
           // eslint-disable-next-line i18next/no-literal-string
-          headerStyle: { backgroundColor: '#ffffff' },
+          headerStyle: { backgroundColor: color.surface.primary },
           headerLeft: () => <BackButton />,
           headerBackVisible: false,
         }}
@@ -87,23 +88,25 @@ export default function TechniqueScreen() {
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: at large accessibility text sizes the 3 technique
   // cards plus Continue button no longer fit in the viewport — ScrollView keeps them reachable.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
-  heading: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 20 },
+  container: { flexGrow: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 },
+  heading: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 20 },
   card: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: color.surface.secondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: color.surface.primary,
   },
+  // #0d9488 / #f0fdfa — selected-state teal, out of scope per Story 12.5's semantic-colour
+  // exception list; left unchanged.
   cardSelected: {
     borderColor: '#0d9488',
     backgroundColor: '#f0fdfa',
   },
-  cardTitle: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 4 },
-  cardDescription: { fontSize: 14, color: '#6b7280', lineHeight: 20 },
-  continueButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
-  continueButtonDisabled: { backgroundColor: '#d1d5db' },
+  cardTitle: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 4 },
+  cardDescription: { fontSize: 14, color: color.content.secondary, lineHeight: 20 },
+  continueButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },
+  continueButtonDisabled: { backgroundColor: color.surface.secondary },
   continueText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })

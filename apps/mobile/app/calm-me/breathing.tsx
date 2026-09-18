@@ -75,6 +75,6 @@ export default function BreathingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.surface.primary, alignItems: 'center', justifyContent: 'center' },
   backButton: { position: 'absolute', top: 48, left: 24, padding: 8, zIndex: 1 },
-  backIcon: { fontSize: 28, color: '#111827' },
-  sessionComplete: { fontSize: 16, color: '#374151' },
+  backIcon: { fontSize: 28, color: color.content.primary },
+  sessionComplete: { fontSize: 16, color: color.content.secondary },
 })

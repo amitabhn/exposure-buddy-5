@@ -4,10 +4,18 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
-import { CourageLadderEntryCard } from '@exposure-buddy/ui'
+import { CourageLadderEntryCard, LadderProgressBar, color, radius, spacing, typography } from '@exposure-buddy/ui'
 import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, type HomeScreenContext } from '@exposure-buddy/core'
 import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSession'
+
+// Pure-JS UUID v4 — same pattern as ladder.tsx / session/intent.tsx (Hermes limitation: no crypto.randomUUID)
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
 
 export default function HomeScreen() {
   const { t } = useTranslation()
@@ -61,6 +69,35 @@ export default function HomeScreen() {
   }
   const homeState = resolveHomeScreenState(ctx)
   const lowestPendingItemForLabel = resolveLowestPendingItem(items)
+  const completedCount = items.filter(item => item.status === 'completed').length
+  // Progress bar tracks ladder completion — meaningless with zero items, so it is
+  // suppressed only for 'empty-ladder' (every other reachable state has items.length > 0).
+  const showProgress = homeState !== 'empty-ladder'
+
+  // Builds a fresh-session route into the ERP session flow for the lowest pending ladder
+  // item, matching the query-param contract ladder.tsx's own "Start session" button uses.
+  // Returns null when there's no pending item to start a session for (defensive,
+  // not-actively-reached branch — see CourageLadderEntryCard's fallbackLabel prop) — callers
+  // fall back to '/ladder' in that case.
+  function buildSessionRoute(path: '/session/technique' | '/session/intent'): string | null {
+    if (!lowestPendingItemForLabel) return null
+    const sessionId = generateUUID()
+    // eslint-disable-next-line i18next/no-literal-string
+    return `${path}?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
+  }
+
+  // "Start this step" on the 'morning' card skips technique selection entirely and jumps
+  // straight to the pre-exposure intention/SUDS-check screen — intent.tsx's `technique`
+  // param is optional and defaults to null when omitted, so this is safe.
+  function handleStartNextStep() {
+    router.push(buildSessionRoute('/session/intent') ?? '/ladder')
+  }
+
+  // "Practice Relaxation" opens the technique-picker for the same lowest pending item,
+  // letting the user browse/select a technique without committing past that screen.
+  function handlePracticeRelaxation() {
+    router.push(buildSessionRoute('/session/technique') ?? '/ladder')
+  }
 
   // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,
   // already has description/preSuds), fall back to activeSession (PowerSync, cross-device) when
@@ -85,94 +122,197 @@ export default function HomeScreen() {
       <Text style={styles.greeting}>
         {seenOnMount.current ? t('home.welcomeBack') : t('home.readyToStart')}
       </Text>
+      <Text style={styles.subGreeting}>
+        {seenOnMount.current ? t('home.subGreetingWelcomeBack') : t('home.subGreetingReadyToStart')}
+      </Text>
 
       {isLoading ? (
         <ActivityIndicator style={styles.loadingIndicator} accessibilityLabel={t('common.loading')} />
-      ) : homeState === 'morning' ? (
-        <CourageLadderEntryCard
-          ref={cardRef}
-          ladderItemCount={items.length}
-          lowestPendingItem={lowestPendingItemForLabel}
-          onPress={() => router.push('/ladder')}
-          accessibilityLabel={
-            lowestPendingItemForLabel
-              ? t('home.courageCard.itemLabel', {
-                  description: lowestPendingItemForLabel.description,
-                  suds: Math.min(10, Math.max(0, Math.round(lowestPendingItemForLabel.predictedSuds))),
-                })
-              : items.length === 0
-                ? t('home.courageCard.emptyLabel')
-                : t('home.courageCard.noPendingLabel')
-          }
-        />
-      ) : homeState === 'completed' ? (
-        <View>
-          <Text style={styles.placeholder}>{t('home.state10.message')}</Text>
-          <TouchableOpacity
-            style={styles.placeholderCard}
-            onPress={() => router.push('/ladder')}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.state10.addMore')}
-          >
-            <Text style={styles.addItemText}>{t('home.state10.addMore')}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : homeState === 'progressing' ? (
-        <TouchableOpacity
-          style={styles.placeholderCard}
-          onPress={() =>
-            router.push(
-              // eslint-disable-next-line i18next/no-literal-string
-              `${progressingTarget}?sessionId=${progressingSessionId}&fearItemId=${progressingFearItemId != null ? encodeURIComponent(progressingFearItemId) : ''}&description=${encodeURIComponent(progressingDescription)}&preSuds=${progressingPreSuds}`
-            )
-          }
-          accessibilityRole="button"
-          accessibilityLabel={t('home.state4.cta')}
-        >
-          <Text style={styles.placeholder}>{t('home.state4.context')}</Text>
-          {progressingDescription ? <Text style={styles.placeholder}>{progressingDescription}</Text> : null}
-          <Text style={styles.addItemText}>{t('home.state4.cta')}</Text>
-        </TouchableOpacity>
       ) : (
-        // 'empty-ladder', 'first-use' (unreachable — hasAccount is always true here), and the
-        // type-level-only states ('avoidance', 'mid-exposure', 'return-after-gap', never
-        // returned by resolveHomeScreenState in this story) all render the empty-ladder UI.
-        <View>
-          <Text
-            // eslint-disable-next-line i18next/no-literal-string
-            accessibilityLiveRegion="polite"
-            style={styles.placeholder}
-          >{t('ladder.emptyState')}</Text>
-          <TouchableOpacity
-            style={styles.placeholderCard}
-            onPress={() => router.push('/ladder')}
-            accessibilityRole="button"
-            accessibilityLabel={t('ladder.addItem')}
-          >
-            <Text style={styles.addItemText}>{t('ladder.addItem')}</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          {showProgress ? (
+            <LadderProgressBar
+              label={t('home.yourLadderLabel')}
+              progressLabel={t('home.progressLabel', { completed: completedCount, total: items.length })}
+              completed={completedCount}
+              total={items.length}
+            />
+          ) : null}
+
+          {homeState === 'morning' ? (
+            <CourageLadderEntryCard
+              ref={cardRef}
+              lowestPendingItem={lowestPendingItemForLabel}
+              onPress={handleStartNextStep}
+              nextStepLabel={t('home.nextStepLabel')}
+              ctaLabel={t('home.nextStep.cta')}
+              sudsPrefix={t('home.nextStep.sudsPrefix')}
+              sudsSuffix={t('home.nextStep.sudsSuffix')}
+              fallbackLabel={items.length === 0 ? t('home.courageCard.emptyLabel') : t('home.courageCard.noPendingLabel')}
+              accessibilityLabel={
+                lowestPendingItemForLabel
+                  ? t('home.courageCard.itemLabel', {
+                      description: lowestPendingItemForLabel.description,
+                      suds: Math.min(10, Math.max(0, Math.round(lowestPendingItemForLabel.predictedSuds))),
+                    })
+                  : items.length === 0
+                    ? t('home.courageCard.emptyLabel')
+                    : t('home.courageCard.noPendingLabel')
+              }
+            />
+          ) : homeState === 'completed' ? (
+            <View style={styles.completedCard}>
+              <Text style={styles.stateHeadline}>{t('home.completedState.headline')}</Text>
+              <Text style={styles.stateSubtext}>{t('home.completedState.subtext')}</Text>
+              <TouchableOpacity
+                style={styles.ctaButton}
+                onPress={() => router.push('/ladder')}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.completedState.cta')}
+              >
+                <Text style={styles.ctaButtonText}>{t('home.completedState.cta')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : homeState === 'progressing' ? (
+            <TouchableOpacity
+              style={styles.progressingCard}
+              onPress={() =>
+                router.push(
+                  // eslint-disable-next-line i18next/no-literal-string
+                  `${progressingTarget}?sessionId=${progressingSessionId}&fearItemId=${progressingFearItemId != null ? encodeURIComponent(progressingFearItemId) : ''}&description=${encodeURIComponent(progressingDescription)}&preSuds=${progressingPreSuds}`
+                )
+              }
+              accessibilityRole="button"
+              accessibilityLabel={t('home.progressingState.cta')}
+            >
+              <View style={styles.progressingLabelRow}>
+                <View style={styles.progressingDot} />
+                <Text style={styles.progressingLabel}>{t('home.progressingState.label')}</Text>
+              </View>
+              {progressingDescription ? <Text style={styles.progressingDescription}>{progressingDescription}</Text> : null}
+              <View style={styles.progressingCta}>
+                <Text style={styles.progressingCtaText}>{t('home.progressingState.cta')}</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // 'empty-ladder', 'first-use' (unreachable — hasAccount is always true here), and the
+            // type-level-only states ('avoidance', 'mid-exposure', 'return-after-gap', never
+            // returned by resolveHomeScreenState in this story) all render the empty-ladder UI.
+            <View style={styles.emptyCard}>
+              <Text
+                // eslint-disable-next-line i18next/no-literal-string
+                accessibilityLiveRegion="polite"
+                style={styles.stateHeadline}
+              >
+                {t('home.emptyState.headline')}
+              </Text>
+              <Text style={styles.stateSubtext}>{t('home.emptyState.subtext')}</Text>
+              <TouchableOpacity
+                style={styles.ctaButton}
+                onPress={() => router.push('/ladder')}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.emptyState.cta')}
+              >
+                <Text style={styles.ctaButtonText}>{t('home.emptyState.cta')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push('/ladder')}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.actions.yourLadder')}
+            >
+              <Text style={styles.actionButtonText}>{t('home.actions.yourLadder')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handlePracticeRelaxation}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.actions.practiceRelaxation')}
+            >
+              <Text style={styles.actionButtonText}>{t('home.actions.practiceRelaxation')}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, backgroundColor: '#ffffff' },
-  // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint) — without
-  // it, wrapped text at large accessibility font sizes runs directly behind the FAB (Story
-  // 9.3 max-font-size walkthrough finding).
-  greeting: { fontSize: 22, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', marginBottom: 8, paddingRight: 88 },
-  loadingIndicator: { marginVertical: 16 },
-  placeholder: { fontSize: 15, color: '#374151', marginVertical: 16 },
-  placeholderCard: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: '#f9fafb',
-    marginVertical: 16,
-    alignSelf: 'stretch',
+  container: { flex: 1, paddingHorizontal: spacing[5], backgroundColor: color.surface.primary },
+  // paddingRight reserves space for the Calm Me FAB (top-right, ~110pt footprint at its
+  // widest) — without it, wrapped text at large accessibility font sizes runs directly
+  // behind the FAB (Story 9.3 max-font-size walkthrough finding).
+  greeting: { ...typography.h1, color: color.content.primary, paddingRight: 130 },
+  subGreeting: { ...typography.body, color: color.content.secondary, marginTop: spacing[1] },
+  loadingIndicator: { marginVertical: spacing[4] },
+  emptyCard: {
+    marginTop: spacing[5],
+    backgroundColor: color.surface.secondary,
+    borderRadius: radius.card,
+    padding: spacing[6],
+    alignItems: 'center',
+    gap: spacing[2],
   },
-  addItemText: { fontSize: 15, color: '#111827', fontWeight: '600', textAlign: 'center' },
+  completedCard: {
+    marginTop: spacing[5],
+    backgroundColor: color.reflect.background,
+    borderColor: '#F1E4CC', // warm border companion to reflect.background — no token for this shade
+    borderWidth: 1,
+    borderRadius: radius.card,
+    padding: spacing[6],
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  stateHeadline: { ...typography.h2, color: color.content.primary, textAlign: 'center' },
+  stateSubtext: { ...typography.body, color: color.content.secondary, textAlign: 'center' },
+  ctaButton: {
+    marginTop: spacing[2],
+    alignSelf: 'stretch',
+    backgroundColor: color.accent.courage,
+    borderRadius: radius.button,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  ctaButtonText: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#ffffff' },
+  progressingCard: {
+    marginTop: spacing[5],
+    backgroundColor: color.accent.courage,
+    borderRadius: radius.card,
+    padding: spacing[5],
+    gap: spacing[3],
+  },
+  progressingLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  progressingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: color.accent.progress },
+  progressingLabel: {
+    ...typography.caption,
+    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  progressingDescription: { ...typography.h2, color: '#ffffff' },
+  progressingCta: {
+    marginTop: spacing[1],
+    backgroundColor: '#ffffff',
+    borderRadius: radius.button,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  progressingCtaText: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.accent.courage },
+  actionRow: { flexDirection: 'row', gap: spacing[3], marginTop: spacing[6] },
+  actionButton: {
+    flex: 1,
+    backgroundColor: color.accent.courage,
+    borderRadius: radius.card,
+    paddingVertical: 22,
+    paddingHorizontal: spacing[4],
+    alignItems: 'center',
+  },
+  actionButtonText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold', color: '#ffffff', textAlign: 'center' },
 })

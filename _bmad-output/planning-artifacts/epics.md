@@ -365,7 +365,7 @@ Push token registration and a daily local session reminder are in place. The Ach
 
 ### Epic 10: Password-Based Login (Alternative Authentication Method)
 
-*(Numbered 10 — the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger, previously reserving 10, has moved to Epic 12; see `deferred-work.md`. Password-based login and Epic 11 (Beta Feedback Collection) are both pre-beta must-haves and take the lower numbers ahead of that post-MVP placeholder. Implemented on branch `feature/password-based-login`, not yet merged to `main` as of this planning entry.)*
+*(Numbered 10 — the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger, previously reserving 10, moved to Epic 12 on 2026-07-09 and then to Epic 13 on 2026-07-30, swapping with the newly-created UI/UX Enhancements epic; see `deferred-work.md`. Password-based login and Epic 11 (Beta Feedback Collection) are both pre-beta must-haves and take the lower numbers ahead of that post-MVP placeholder. Implemented on branch `feature/password-based-login`, not yet merged to `main` as of this planning entry.)*
 
 Users can create an account and sign in with an email or phone number **plus password**, as an alternative to the OTP-only flow shipped in Epic 2. A full forgot/reset-password flow (deep-link recovery, pure parser, new-password form) is code-complete and tested, but held behind a feature flag for closed beta until custom SMTP is provisioned. The hosted Supabase project is provisioned and migration-current in support of this epic, with a cross-user PII-erasure hole (found in migration 0007) closed along the way.
 
@@ -377,7 +377,7 @@ Users can create an account and sign in with an email or phone number **plus pas
 
 ### Epic 11: Beta Feedback Collection
 
-*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12; see `deferred-work.md`.)*
+*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12 on 2026-07-09, then to Epic 13 on 2026-07-30; see `deferred-work.md`.)*
 
 Beta testers get a low-friction, first-party way to report bugs and impressions tagged to the exact screen they were on — replacing ad hoc channels (WhatsApp, email, third-party forms) with structured feedback that writes directly to Supabase infrastructure already provisioned for the project. The entry point is available on every screen, including mid-exposure-session, and is gated behind an env flag so it never ships to production/GA builds.
 
@@ -386,13 +386,24 @@ Beta testers get a low-friction, first-party way to report bugs and impressions 
 
 ---
 
-### Epic 12 [Reserved, not yet planned]: ADR-OFFLINE-DEGRADATION Remediation (Post-MVP)
+### Epic 12: UI/UX Enhancements & Polish
+
+*(Numbered 12 as of 2026-07-30 — created the same day as Epic 13 (originally numbered 13), then swapped with the ADR-OFFLINE-DEGRADATION reservation so the reservation could hold the higher, still-inactive number and this living epic could take the lower one. See Epic 13's numbering history below for the full swap rationale. Open-ended and living, unlike every other epic in this document: it is seeded at creation with four placeholder stories for the screens named at kickoff (sign-in/sign-up, home, ladder, exposure flow) and is expected to grow additional stories over time as concrete UI/UX issues surface — primarily via Epic 11 beta feedback submissions, but also ad hoc product/design review. Placeholder stories carry no acceptance criteria yet; each is refined into concrete, testable ACs from real feedback before a dev agent picks it up.)*
+
+Users get a progressively polished experience across the app's core screens, driven by real usage feedback rather than upfront speculation. This epic started with four placeholder stories — Story 12.1 (sign-in/sign-up), 12.2 (home), 12.3 (ladder), 12.4 (exposure flow) — and new stories are appended to this same epic as specific issues are identified, rather than opening a new epic per round of feedback.
+
+**FRs covered:** FR-UXENH-01
+**Planning note:** Stories in this epic are not ready-for-dev at creation — each starts as a placeholder in `sprint-status.yaml`'s `backlog` state until concrete feedback or design input gives it real acceptance criteria; this is a deliberate deviation from every other epic in this document, where stories carry full ACs at creation time. **Stories 12.1 (Sign-In/Sign-Up) and 12.2 (Home) were the first to leave placeholder state**, both on 2026-07-30, both from Claude Design redesign imports rather than beta feedback — see their entries below for the pattern later stories in this epic should follow. **Story 12.5 (Global Color Theme Unification) was added the same day**, outside the placeholder-first pattern — see its entry below for why it's scoped differently from 12.1–12.4.
+
+---
+
+### Epic 13 [Reserved, not yet planned]: ADR-OFFLINE-DEGRADATION Remediation (Post-MVP)
 
 *(Not a planned epic — a reservation. This is the trigger condition named in ADR-OFFLINE-DEGRADATION Decision 2's "Accepted — deferred remediation" sub-status: the silent enqueue-failure remediation ships either at the next story that touches the sync mutation queue, or when this epic begins, whichever comes first. Story 9.1's review required this trigger be concrete, not "someday" — the reservation satisfies that by being a specific, named epic slot, without needing to hardcode a number everywhere it's referenced.)*
 
 **This entry is the single source of truth for this reservation's current number.** Other documents (`deferred-work.md`, `ADR-OFFLINE-DEGRADATION.md`, Story 9.10's AC in this file, `sprint-status.yaml`) refer to it by name — "the ADR-OFFLINE-DEGRADATION remediation epic (see epics.md Epic List for its current number)" — rather than repeating a hardcoded number, so a future renumbering only requires editing this heading, not five scattered files.
 
-**Numbering history:** reserved at Epic 10 pre-2026-07-09; moved to Epic 12 on 2026-07-09 when Epic 10 and Epic 11 were claimed by Password-Based Login and Beta Feedback Collection (both pre-beta must-haves, taking priority over a post-MVP placeholder).
+**Numbering history:** reserved at Epic 10 pre-2026-07-09; moved to Epic 12 on 2026-07-09 when Epic 10 and Epic 11 were claimed by Password-Based Login and Beta Feedback Collection (both pre-beta must-haves, taking priority over a post-MVP placeholder). **Moved again to Epic 13 on 2026-07-30**, swapping with the newly-created Epic 12 (UI/UX Enhancements & Polish, created that same day originally as Epic 13): the living, already-active UI/UX epic took the lower number and this still-dormant reservation moved up one slot to make room.
 
 ---
 
@@ -2482,3 +2493,168 @@ So that I can report an issue or impression in the moment without losing my plac
 **Given** a completed form
 **When** the tester submits
 **Then** a row is inserted into the `feedback` table via the `packages/supabase` client with `screen_route`, `category`, `message`, `app_version` (read from Expo config, not hardcoded), and `screenshot_path` (if attached); a confirmation toast/alert dismisses the modal; no navigation occurs and the tester's prior screen state is preserved
+
+---
+
+## Epic 12: UI/UX Enhancements & Polish
+
+*(Created 2026-07-30, originally numbered Epic 13; renumbered to 12 the same day when swapped with the ADR-OFFLINE-DEGRADATION reservation — see Epic 13's Epic List entry for the swap rationale.)*
+
+A living backlog of screen-level UI/UX improvements driven by real usage feedback (Epic 11) and ad hoc product/design review, rather than a fixed, fully-scoped set of stories decided upfront. Seeded with four placeholder stories at creation (2026-07-30); more are appended to this epic as specific issues are identified — this epic's story list is expected to keep growing.
+
+> **Placeholder convention for this epic:** Each story below marks a screen in scope, not a ready-for-dev spec. Acceptance criteria are written when a concrete issue (a beta feedback submission, a design review note, a specific usability complaint) is identified for that screen, at which point the story is updated in place — a fifth, sixth, etc. story is added only when the new issue targets a screen not already covered by 12.1–12.4.
+
+### Story 12.1: Sign-In/Sign-Up Screen — UI/UX Enhancements
+
+**Status: done.** Source: Claude Design project "Exposure Buddy" (`Sign In Options.dc.html`, plus a dedicated `design_handoff_sign_in/` folder with a high-fidelity `1c-sign-in.html` reference and a written `README.md` handoff spec), imported via the `claude_design` MCP. Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (combined sign-in/sign-up screen). `otp-verification.tsx` was out of scope — the handoff only redesigns the identifier/password entry screen, not the OTP code-entry step.
+
+**Given** the handoff README states this is "a visual/layout simplification only" and lists every existing reducer field, action, and validation function `sign-in.tsx` must keep unchanged
+**When** this story is implemented
+**Then** the `State`/`Action`/`reducer`, `validateIdentifier`/`validatePassword`, all error-classification functions, the `isAuthenticated` redirect effect, the DPDPA consent-write retry logic, and the `__DEV__`/preview test-user shortcut are all byte-for-byte unchanged — only the JSX render tree and `StyleSheet` are touched
+
+**Given** the current screen renders three stacked tab rows (mode: create-account/sign-in; identifier type: email/phone; auth method: password/OTP) styled in the pre-redesign near-black/gray palette
+**When** this story is implemented
+**Then** the three tab rows are consolidated per the handoff spec into: one pill switch for identifier type only (`#EBF0EE` track, active pill `color.accent.courage`), and two inline text links replacing the other two tab rows — "use a code instead" / "use a password instead" (toggles `authMethod`, shown one at a time depending on current method) and a bottom "New here? **Create an account**" / "Already have an account? **Sign in**" line (toggles `mode`). All three toggles dispatch the exact same actions (`SET_IDENTIFIER_TYPE`, `SET_AUTH_METHOD`, `SET_MODE`) the old tabs did, gated by the same `isAuthMethodOrModeLocked` guard
+
+**Given** the screen title is currently a single `common.appName` line plus a separate subtitle line
+**When** this story is implemented
+**Then** the title becomes mode-variant — `auth.welcomeSignup` ("Welcome to\n{{appName}}", 30px/36px/700) for signup mode, `auth.welcomeSignin` ("Welcome back") for signin mode — and the separate subtitle line is removed entirely, matching the handoff mock exactly. Personalizing further (e.g. a returning user's name) is out of scope — not shown in the handoff mock
+
+**Given** the identifier field currently uses a bordered box and a translated-label placeholder ("Email address"/"Phone number")
+**When** this story is implemented
+**Then** it becomes an underlined field (`border-bottom: 1.5px solid color.content.primary`) with example-format placeholders (`auth.identifierType.emailPlaceholder` "you@email.com", `auth.identifierType.phonePlaceholder` "+91 98765 43210") — the field's `accessibilityLabel` keeps using the existing `auth.otp.emailLabel`/`phoneLabel` keys unchanged, so screen readers still announce "Email address"/"Phone number", not the terse placeholder text
+
+**Given** the password field currently uses the same bordered-box style with `auth.password.label` as its placeholder (screen readers would read the masked value's placeholder, not a stable label)
+**When** this story is implemented
+**Then** an uppercase `auth.password.label` caption renders above the field (styled via `textTransform: 'uppercase'`, copy unchanged — same pattern as Story 12.2's home-screen labels) and the `TextInput` itself has no placeholder; the inline auth-method link sits in the same row, right-aligned
+
+**Given** the primary submit button currently reads only the branch-specific label (`auth.otp.sendCode` / `auth.password.submitSignUp` / `auth.password.submitSignIn`) with no visual affordance beyond color
+**When** this story is implemented
+**Then** the button is restyled to the handoff's green pill (`color.accent.courage`, `16px` radius) with a trailing "→" glyph (`eslint-disable-next-line i18next/no-literal-string` — decorative, language-agnostic, not translatable copy) — **the branch-specific label logic is unchanged**; the handoff README's "Continue" mockup label was illustrative, not a mandate to collapse three distinct translation keys into one generic label (explicit per the README: "keep translation keys")
+
+**Given** the screen currently centers all content vertically as one block (`justifyContent: 'center'`)
+**When** this story is implemented
+**Then** the layout becomes top-anchored — content flows from the top, and a `flex: 1` spacer between the last input/error block and the submit button pushes the button + footer links to the bottom of the screen, matching the handoff's `padding: 44px 28px 28px 28px` layout; this follows the existing `flexGrow: 1` ScrollView content-container pattern already used elsewhere in this codebase (`session/briefing.tsx`)
+
+**Given** the redesign's palette includes two values with no equivalent in `packages/ui`'s 8 semantic tokens — the screen background `#FDFBF7` (distinct from `color.surface.primary` `#F5F7F6`) and a muted footer-link color `#9AAEA7` (distinct from `color.content.secondary` `#4A6B62`)
+**When** this story is implemented
+**Then** both are kept as documented raw hex values with an inline comment explaining the gap, following the same precedent Story 12.2 established for `#F1E4CC` — no new semantic token is added unilaterally by an implementation story
+
+**Given** project convention requires every user-facing string to use `t()` and the removed tab rows leave several i18n keys with zero remaining call sites
+**When** this story adds `auth.welcomeSignup`, `auth.welcomeSignin`, `auth.identifierType.*` (4 keys), `auth.modeSwitch.*` (2 keys), and `auth.authMethod.useCodeInstead`/`usePasswordInstead`/`switchToOtp`/`switchToOtpHint`/`switchToPassword`/`switchToPasswordHint`
+**Then** all are added to both `en.json` and `hi.json` (English copy duplicated in `hi.json` per the established convention); `auth.authMethod.password`/`otp`/`passwordAccessibilityLabel` and `auth.password.screenSubtitle` are deleted from `en.json` (their only call sites) — `hi.json` never had an `auth.mode`/`auth.otp`/`auth.password`/`auth.authMethod` section to begin with (a pre-existing gap, not touched by this story)
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx`'s existing 9 tests drive the screen exclusively through `getByLabelText`/`getByText` against the old tab structure, including a now-nonexistent `auth.authMethod.passwordAccessibilityLabel` key pressed as a no-op reset at the start of 8 of the 9 tests (redundant even before this story — `INITIAL_STATE.authMethod` is already `'password'`)
+**When** this story is implemented
+**Then** those 8 now-redundant press calls are removed (not replaced — the initial render already satisfies the state they were resetting to) and the one test that exercises all four mode×authMethod combinations is rewritten to drive the two new inline links (`auth.authMethod.switchToOtp`/`switchToPassword`) and the mode-switch button (whose `accessibilityLabel` is the target mode's label — `auth.mode.signIn` when currently signup, `auth.mode.createAccount` when currently signin, so the same label strings the old always-visible tabs used still resolve correctly against the new single toggle). No functional test coverage is lost — every existing assertion (validation, consent-write ordering, error classification, pendingDeletion guard) is preserved verbatim
+
+### Story 12.2: Home Screen — UI/UX Enhancements
+
+**Status: done.** Source: Claude Design project "Exposure Buddy" (`Home - Redesign.dc.html`, compared against `Home - Current.dc.html` recreating the as-shipped screen), imported via the `claude_design` MCP. Screen in scope: `apps/mobile/app/(app)/index.tsx` (home screen state machine — 'morning', 'empty-ladder', 'completed', 'progressing' — see Epic 5/6/8 for how these states are populated).
+
+**Given** the redesign mockup and the as-shipped screen were compared directly
+**When** the palette is mapped
+**Then** every colour in the redesign (`#F5F7F6`, `#EBF0EE`, `#1A2E2A`, `#4A6B62`, `#2D6A5A`, `#E8A84C` decorative-only, `#FDF7ED`) maps exactly onto the 8 semantic tokens already defined in `packages/ui/src/tokens/theme.ts` (Story 1.4) — the Home screen was simply never migrated onto those tokens. No new tokens are introduced; the one exception is the completed-state card's border colour (`#F1E4CC`, a warm companion to `color.reflect.background` with no existing token), kept as a documented raw hex — the same pattern this story's own `CalmMeButton.tsx` change now demonstrates in reverse (its shadow colour is migrated from raw hex onto a token, since a token was available for it, unlike `#F1E4CC`)
+
+**Given** the container background is `#ffffff` with 24px horizontal padding today
+**When** this story is implemented
+**Then** `styles.container` uses `color.surface.primary` and `spacing[5]` (20px) horizontal padding, matching the redesign
+
+**Given** the greeting is a single line today (`home.welcomeBack` / `home.readyToStart`)
+**When** this story is implemented
+**Then** a second line renders below it using two new keys, `home.subGreetingWelcomeBack` ("Ready for your next step?") and `home.subGreetingReadyToStart` ("One small step is all it takes to start."), selected by the same `seenOnMount.current` check already driving the greeting. Personalising the greeting with the user's name (shown as "Priya" in the mockup) is explicitly deferred — `profiles.display_name` has no existing read hook, and wiring one up is a data-layer addition out of scope for a visual-polish story, not a rejected idea
+
+**Given** the redesign shows a ladder-completion progress bar ("Your ladder" / "N of M steps climbed" / a filled track) that does not exist today
+**When** this story is implemented
+**Then** a new component `LadderProgressBar` (`packages/ui/src/components/LadderProgressBar.tsx`, exported from `packages/ui/src/index.ts`) renders this row, taking pre-translated `label`/`progressLabel` strings plus `completed`/`total` numbers (packages/ui has no `react-i18next` dependency, per the existing `HelplineCard` precedent); `apps/mobile/app/(app)/index.tsx` computes `completed`/`total` from the already-fetched `items` array (`items.filter(i => i.status === 'completed').length` / `items.length`) — no new query. The bar renders whenever `homeState !== 'empty-ladder'` (a 0-item ladder has nothing to show progress on); it is absent only in the empty-ladder state
+
+**Given** `CourageLadderEntryCard` (`packages/ui/src/components/CourageLadderEntryCard.tsx`) renders the 'morning' state today as a plain bordered card with description + "Anxiety: N/10" text and no button
+**When** this story is implemented
+**Then** the card is restyled to the redesign's "Your next step" treatment: an uppercase section label, the pending item's description at `typography.h2`, a pill-shaped SUDS badge (a decorative dot in `color.accent.progress` + "Anxiety N/10" text), and an explicit "Start this step" CTA button — all inside the same single pressable card (tapping anywhere still navigates to `/ladder`; the CTA is a visual affordance, not a second independently-focusable pressable, to avoid complicating the existing `cardRef` accessibility-focus contract from Story 6.2-B). The `ladderItemCount` prop is removed (it only drove the never-reached-in-production `lowestPendingItem === null` fallback branch's text choice, which the caller now resolves directly); `nextStepLabel`, `ctaLabel`, `sudsPrefix`, `sudsSuffix`, and `fallbackLabel` (all pre-translated) are added. **The SUDS clamp (`Math.min(10, Math.max(0, Math.round(predictedSuds)))`) stays inside the component**, computed from `sudsPrefix`/`sudsSuffix` split around the clamped number rather than a single pre-formatted string — preserving Story 6.2-B AC5's defense-in-depth-at-the-render-boundary guarantee and its existing clamp test coverage in `apps/mobile/src/components/CourageLadderEntryCard.test.tsx`, rather than relocating the safety check to the caller where it would lose direct test coverage
+
+**Given** the empty-ladder, completed, and progressing states render generic bordered-card placeholder text today (`ladder.emptyState`, `home.state10.message`/`state10.addMore`, `home.state4.context`/`state4.cta`)
+**When** this story is implemented
+**Then** each state gets the redesign's warmer, purpose-built treatment, replacing the old i18n keys with new ones (old keys removed, not kept as dead aliases):
+- **Empty** (`home.emptyState.*`): centred card, `color.surface.secondary` background, headline "Every climb starts with one step", subtext "Add a situation that makes you anxious — we'll help you work up to it.", CTA "Add your first situation" → `/ladder`. The `accessibilityLiveRegion="polite"` behaviour on the headline text (Story 9.3 audit fix) is preserved
+- **Completed** (`home.completedState.*`): warm card, `color.reflect.background` + `#F1E4CC` border, headline "You've reached the top of your ladder", subtext "Every situation you set out to face — faced. That's real progress.", CTA "Add another challenge" → `/ladder`
+- **Progressing** (`home.progressingState.*`): `color.accent.courage` filled card, uppercase "Session in progress" label with a decorative dot, the in-progress item's description in white, CTA "Continue where you left off" — the CTA/card press still routes through the existing `progressingTarget` logic (grounding-aware recovery routing, Story 9.2) unchanged
+
+**Given** the global Calm Me FAB (`CalmMeButton`, `packages/ui/src/components/CalmMeButton.tsx`, mounted app-wide via `CalmMeFab.tsx`) appears in the redesign mockup as a pill with "INSTA CALM" text beside the icon, not the current plain 56×56 circular icon button
+**When** this story is implemented
+**Then** `CalmMeButton` is restyled to a 48px-tall pill (`radius.card`, white background, 2px `color.accent.courage` border) with a new required `label` prop (pre-translated, a literal `"\n"` renders the stacked "INSTA\nCALM" two-line text) rendered beside the existing `IconCalmMe.png` icon; `accessibilityLabel`/`accessibilityHint` are unchanged. **This is a deliberate cross-cutting change** — `CalmMeButton` renders on every screen, not just Home, since the mockup redesigns the button as it appears on the Home screen; `apps/mobile/src/components/CalmMeFab.tsx` passes the new `label` prop via a new `calmMe.fabLabel` key. No other screen's layout assumes the old 56×56 circular footprint, so this does not block Stories 12.1/12.3/12.4
+
+**Given** project convention requires every user-facing string to use `t()` (CI lint enforced) and Hindi entries duplicate English copy pending Story 9.9 localisation (Story 6.2-B AC6 precedent)
+**When** this story adds/renames the `home.subGreeting*`, `home.yourLadderLabel`, `home.progressLabel`, `home.nextStepLabel`, `home.nextStep.*`, `home.emptyState.*`, `home.completedState.*`, `home.progressingState.*`, and `calmMe.fabLabel` keys
+**Then** all are added to both `apps/mobile/src/i18n/locales/en.json` and `hi.json`; the removed keys (`home.state4.*`, `home.state10.*`) are deleted from both files, not left as orphans; no raw string literals appear in any changed component
+
+**Given** `apps/mobile/app/(app)/index.test.tsx` and the dedicated `packages/ui` component tests hosted in `apps/mobile/src/components/` (`CalmMeButton.test.tsx`, `CourageLadderEntryCard.test.tsx` — per that directory's own comment, apps/mobile is "the only package with `@testing-library/react-native` set up") assert on the old copy/props
+**When** this story is implemented
+**Then** all three files are updated: the `@exposure-buddy/ui` jest mock in `index.test.tsx` is extended to re-export the real `color`/`radius`/`spacing`/`typography` tokens (via `jest.requireActual`) alongside lightweight `CourageLadderEntryCard`/`LadderProgressBar` stubs (index.tsx's own `StyleSheet.create()` dereferences those tokens at module load and would throw on `undefined` otherwise); renamed-key assertions are updated; new tests cover progress-bar visibility per state and the empty state's absence of it; `CalmMeButton.test.tsx` and `CourageLadderEntryCard.test.tsx` pass the new required props (`label`; `nextStepLabel`/`ctaLabel`/`sudsPrefix`/`sudsSuffix`/`fallbackLabel`) and assert the clamped `"Anxiety N/10"` text (no colon, per the redesign copy) renders as a single concatenated `Text` node. `pnpm turbo typecheck lint test` passes clean across all affected packages (`@exposure-buddy/ui`, `exposure-buddy-mobile`)
+
+---
+
+**Amendment (2026-07-31):** the Claude Design mockup was re-fetched and had grown since the ACs above were implemented — it now includes three new in-mockup sub-views (a pre-session SUDS check, a relaxation-technique list, a simplified ladder list), each navigable from two new Home-screen elements. Rather than build three new duplicate screens, the amendment below translates the mockup's navigation *intent* onto the app's real existing screens, per explicit product direction — this is a deliberate, confirmed deviation from the mockup's literal inline-view structure, not an oversight.
+
+**Given** the mockup adds two always-visible buttons below the state-specific card — "Your Ladder" and "Practice Relaxation" — each opening a new inline sub-view in the mockup's own local state
+**When** this amendment is implemented
+**Then** the two buttons are added to `apps/mobile/app/(app)/index.tsx` as a `styles.actionRow` (flex row, `spacing[3]` gap, `spacing[6]` margin-top) below the state-specific card, rendered unconditionally in every home state (matching the mockup's placement, outside every `sc-if` block); "Your Ladder" navigates to the existing `/ladder` screen. **"Practice Relaxation" was refined a second time within this same amendment** (explicit follow-up direction, same day) to open the existing session flow's technique-picker (`/session/technique`) for the lowest pending item, rather than the Calm Me hub (`/calm-me`) — letting the user browse/select a technique without committing past that screen. No new screens are built either way. New keys `home.actions.yourLadder`/`practiceRelaxation` added to both locale files
+
+**Given** the mockup changes the "Start this step" CTA from navigating nowhere on its own (the whole `CourageLadderEntryCard` was one pressable going to `/ladder`) to an explicit `onClick` that opens the new inline pre-session SUDS-check view
+**When** this amendment is implemented
+**Then** `CourageLadderEntryCard`'s `onPress` (still the whole card — no internal restructuring into separately-tappable zones) is changed to jump directly into the existing session flow, skipping the ladder-screen detour. **Refined a second time within this same amendment**: rather than landing on the technique-picker (`/session/technique`), "Start this step" skips technique selection entirely and jumps straight to the pre-exposure intention/SUDS-check screen, `/session/intent` — `intent.tsx`'s `technique` param is optional and defaults to `null` when omitted, so this is safe. Both this and "Practice Relaxation" share a `buildSessionRoute(path)` helper taking the target path, using the same query-param contract `apps/mobile/app/ladder.tsx`'s own "Start session" button already uses (`fearItemId`, a freshly generated `sessionId` per tap, `description`, `predictedSuds`) via a local `generateUUID()` helper (same pure-JS v4 pattern already duplicated in `ladder.tsx` and `session/intent.tsx`). When `resolveLowestPendingItem` returns `null` (the defensive, not-actively-reached fallback branch — see the original AC above), both handlers fall back to `/ladder` instead, since there is no item to start a session for
+
+**Given** every existing test in `index.test.tsx` mocks `resolveLowestPendingItem` to always return `null`, meaning the new real-item routing branches had zero test coverage before this amendment
+**When** this amendment is implemented
+**Then** `resolveLowestPendingItem`'s mock is made per-test-overridable (matching the existing pattern for `resolveHomeScreenState`); new tests cover both branches of the "Start this step" handler (fallback to `/ladder`, and the real-item path to `/session/intent` asserted via a regex match against the generated UUID) and both branches of "Practice Relaxation" (fallback to `/ladder`, real-item path to `/session/technique`), plus rendering across all four home states for both action buttons. `pnpm turbo typecheck lint test` passes clean (19/19 tasks, 400/400 mobile Jest tests)
+
+### Story 12.3: Ladder Screen — UI/UX Enhancements ~~[PARTIAL — visual redesign implemented 2026-08-04, 3 logic-bug ACs still open]~~
+
+> **Status: PARTIAL.** Screen in scope: `apps/mobile/app/ladder.tsx` (post-onboarding full courage ladder screen; the onboarding-time ladder at `apps/mobile/app/(onboarding)/ladder.tsx` is a distinct screen and out of scope here unless feedback specifically names it).
+>
+> **Visual/component redesign implemented 2026-08-04** — sourced from the "Exposure Buddy" Claude Design project's `Home - Redesign.dc.html`, specifically its `showLadder` inline sub-view (the same file Story 12.2 pulled the Home screen from; no separate "Ladder" mockup file exists in that project). Changes: native iOS header replaced with a custom inline header (chevron + title, matching the mockup and the no-native-chrome precedent set by Stories 12.1/12.2); row cards restyled to white/bordered per the mockup with the drag handle moved to the left; a new Done/To-do status pill replaces the old inline status text; SUDS meta line reuses the `sudsPrefix`/`sudsSuffix` i18n pattern already established by `home.nextStep` (Story 12.2); screen title copy changed from "Your Courage Ladder" to "Your Ladder" to match the mockup and existing `home.actions.yourLadder` wording; edit-modal sheet restyled (white background, lighter input borders, token-based radii). Three raw-hex colours (`#E3EAE7`, `#9AAEA7`, `#B8863A`) have no equivalent in `packages/ui`'s 8 semantic tokens and are used with the same documented-deviation convention Story 12.1 established for `#9AAEA7` in `sign-in.tsx`. The mockup's own Edit-situation sub-view shows read-only display fields and no Start-session affordance; the real screen keeps its editable `TextInput`s, Cancel/Save/Remove actions, and the Start-session button (relocated into the edit modal in a prior pass this same day) unchanged — only visual language was brought in line with the mockup, not interaction structure. `pnpm turbo typecheck lint test` green (401/401 mobile Jest tests, no regressions).
+>
+> **Still open** — the three ACs below (drafted earlier the same day from `deferred-work.md` Story 5.1 / Story 6.2-A findings) are logic/robustness fixes, not visual changes, and were deliberately left untouched by the redesign pass above so the visual diff stayed reviewable on its own. They do not require a Claude Design mockup and are ready for scoping into a dev-story.
+
+**Given** `handleSubmit`'s add and edit paths optimistically update local `items` state via `setItems` before awaiting `getAdapter().enqueue(...)`, and the `catch` block only `console.error`s on failure with no rollback or user-facing feedback (`apps/mobile/app/ladder.tsx:78-127`)
+**When** this story is implemented
+**Then** the prior `items` array is snapshotted before each optimistic update and restored in the `catch` block if `enqueue` throws, for both the add and edit paths; the user sees an error message (reusing the existing `saveFailed`/`tryAgain` retry pattern already established in `session/debrief.tsx`) instead of a silently orphaned "ghost" item that only gets corrected by the next PowerSync sync
+
+**Given** `openEditForm` sets `predictedSuds` directly from `item.predictedSuds` (`apps/mobile/app/ladder.tsx:64-69`) with no range/integer clamp — unlike the form's own SUDS `TextInput.onChangeText` handler, which already parses and clamps typed input to an integer 0–10
+**When** this story is implemented
+**Then** `openEditForm` clamps `item.predictedSuds` to an integer in `[0, 10]` before setting form state, so a non-integer or out-of-range value arriving via a future sync conflict cannot round-trip through the edit form unmodified
+
+**Given** the accessibility-focus-on-mount effect (`apps/mobile/app/ladder.tsx:38-47`) fires `AccessibilityInfo.setAccessibilityFocus` after a fixed 100ms `setTimeout`, which reliably targets the empty-state add button but races `DraggableFlatList`'s virtualized layout when real items exist, so focus can silently fail to land on the first item
+**When** this story is implemented
+**Then** the focus trigger is replaced with a layout-driven signal (e.g. `onLayout` on the first row, or a retry-until-ref-exists check) instead of a fixed timer, and the fix is verified on-device with VoiceOver (iOS) and TalkBack (Android) — not just by static inspection — since timing-based accessibility bugs frequently appear fixed in code but still fail in the real screen-reader runtime
+
+### Story 12.4: Exposure Flow — UI/UX Enhancements ~~[PLACEHOLDER — scope TBD]~~
+
+> **Status: PLACEHOLDER — not ready for dev-story pickup.** Screens in scope: `apps/mobile/app/session/` — `intent.tsx`, `briefing.tsx`, `technique.tsx`, `active.tsx`, `pause.tsx`, `grounding.tsx`, `debrief.tsx`, `abandoned.tsx` (the full ERP session flow). Acceptance criteria to be written once specific feedback or design review input is available, scoped to the specific screen(s) named by that feedback (FR-UXENH-01).
+
+### Story 12.5: Global Color Theme Unification (Palette-Only)
+
+**Status: done.** Unlike 12.1–12.4, this story did not start as a screen-scoped placeholder waiting on a Claude Design mockup — it was requested directly as a cross-cutting consistency pass: bring every remaining screen's colours onto the `packages/ui` semantic token palette already established by Stories 12.1 (Sign-In) and 12.2 (Home), without waiting for each screen's own dedicated redesign.
+
+**Given** Stories 12.3 (Ladder) and 12.4 (Exposure Flow) are still open placeholders reserving `apps/mobile/app/ladder.tsx` and `apps/mobile/app/session/*.tsx` for their own future full UX redesigns (layout, copy, and component changes, sourced from a dedicated Claude Design mockup, matching the depth of Stories 12.1/12.2)
+**When** this story's scope is defined
+**Then** this story is explicitly **palette-only** — it changes colour values alone (raw hex → `packages/ui` tokens) with zero changes to layout, copy, component structure, or interaction logic on any screen, including the ones 12.3/12.4 will later touch more deeply. This story does not close or supersede 12.3/12.4; a future full redesign of Ladder or the session flow is still expected and may re-touch the same files this story changes
+
+**Given** a repo-wide survey found 21 screen files still using the pre-redesign palette (`#111827`, `#374151`, `#6b7280`, `#d1d5db`, `#f9fafb`/`#f3f4f6`, `#e5e7eb`, `#ffffff` backgrounds, and one leftover accent blue `#1d4ed8`), totaling roughly 175 individual colour declarations
+**When** this story is implemented
+**Then** every one of the following files is migrated per the mapping table below: `apps/mobile/app/ladder.tsx`, `apps/mobile/app/(onboarding)/{assessment,complete,ladder,welcome}.tsx`, `apps/mobile/app/(auth)/otp-verification.tsx`, `apps/mobile/app/(app)/settings/index.tsx`, `apps/mobile/app/privacy-notice.tsx`, `apps/mobile/app/reminder-settings.tsx`, `apps/mobile/app/calm-me/{index,breathing,grounding,helplines}.tsx`, `apps/mobile/app/session/{intent,briefing,technique,active,pause,grounding,debrief,abandoned}.tsx`
+
+**Given** `packages/ui/src/tokens/theme.ts`'s 8 semantic colour tokens and the precedent already set by Stories 12.1/12.2 for what stays raw hex
+**When** each file's colours are migrated
+**Then** the following mapping is applied uniformly (deviations only where a specific site's visual role genuinely doesn't fit — documented inline if so):
+- `#ffffff` screen/container background → `color.surface.primary`; `#ffffff` used as text-on-a-dark-background (e.g. button labels on an accent-filled pill) is left unchanged — it's already correct
+- `#111827` (primary text, headings) → `color.content.primary`
+- `#374151` (body/label text) and `#6b7280` (secondary/meta text) → both collapse onto `color.content.secondary` — the old 3-tier grey system had no equivalent to the token system's 2 content tiers; Stories 12.1/12.2 already made this same collapse
+- `#f9fafb` / `#f3f4f6` (card fills) and `#e5e7eb` (borders) → `color.surface.secondary`; bordered cards are converted to borderless filled cards where that matches the Home/Sign-in visual language already shipped, rather than keeping a border in a new colour
+- `#d1d5db` (input/divider borders) → `color.content.primary` for text-input underlines (matching the Story 12.1 pattern), `color.surface.secondary` elsewhere
+- `#1d4ed8` (leftover pre-redesign accent blue, `apps/mobile/app/ladder.tsx`'s "Start session" button) → `color.accent.courage` — the same brand green used for every other primary action across the redesigned screens
+- `#9ca3af` (disabled-state grey) and `#ef4444` (validation error red) are **left unchanged** — both are established, deliberate exceptions from Story 12.1 (see its AC and Dev Notes), not part of the 8-token palette
+- Crisis-banner and destructive/success semantic colours (`#991b1b`, `#fef2f2`, `#fecaca`, `#b91c1c`, `#166534`, `#f0fdfa`, `#f0fdf4`, `#dc2626`, `#bbf7d0`, `#0f766e`, `#0d9488`) are **out of scope and left unchanged** — these are safety/status-semantic colours (crisis keyword banner, destructive delete action, completed/success states), not general UI palette, and this story does not touch semantic-meaning colours, only the general UI palette
+
+**Given** every screen listed above has existing test coverage and none of their underlying logic changes
+**When** this story is implemented
+**Then** no test file needs functional changes — colour values are not asserted by any existing test (confirmed by grep: no test in this diff's scope asserts on a `StyleSheet` colour value or inline style). `pnpm turbo typecheck lint test` passes with zero test changes required, proving the change is colour-only as scoped

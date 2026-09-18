@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { color } from '@exposure-buddy/ui'
 
 export default function PauseScreen() {
   const { t } = useTranslation()
@@ -45,9 +46,9 @@ export default function PauseScreen() {
 
 const styles = StyleSheet.create({
   // Story 9.3 max-font-size walkthrough: see session/briefing.tsx for the flexGrow fix pattern.
-  container: { flexGrow: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: '#111827', textAlign: 'center', marginBottom: 16 },
-  body: { fontSize: 16, color: '#374151', textAlign: 'center', lineHeight: 26, marginBottom: 48 },
-  beginButton: { backgroundColor: '#111827', borderRadius: 8, paddingVertical: 16, paddingHorizontal: 48, alignItems: 'center', width: '100%' },
+  container: { flexGrow: 1, backgroundColor: color.surface.primary, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 26, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, textAlign: 'center', marginBottom: 16 },
+  body: { fontSize: 16, color: color.content.secondary, textAlign: 'center', lineHeight: 26, marginBottom: 48 },
+  beginButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, paddingHorizontal: 48, alignItems: 'center', width: '100%' },
   beginText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
 })
