@@ -239,6 +239,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action's default `packages` input is "tools platform-tools" — the legacy
+          # standalone 'tools' package was removed from Google's SDK repository, which makes
+          # sdkmanager exit 1 trying to fetch it. Only platform-tools (adb) is actually needed
+          # here; the Gradle build resolves its own SDK components separately.
+          packages: 'platform-tools'
 
       # ── Build APK. The app targets 127.0.0.1:54321; each shard sets up
       # `adb reverse tcp:54321 tcp:54321` so the emulator's localhost forwards to the host's
@@ -356,6 +362,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # See the identical comment on the e2e-build-apk job's "Set up Android SDK" step —
+          # the action's default `packages` input requests the now-removed legacy 'tools'
+          # package, which makes sdkmanager exit 1.
+          packages: 'platform-tools'
 
       # ── Pre-download system image (android-emulator-runner otherwise downloads it
       # inside the step, competing with the boot timeout). ─────────────────────────────
