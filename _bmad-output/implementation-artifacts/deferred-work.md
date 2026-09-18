@@ -1,5 +1,18 @@
 # Deferred Work
 
+## Deferred from: CI investigation on PR #67 (2026-09-18)
+
+_URGENT — first real signal in 7+ weeks, since `main`'s last successful CI run (2026-07-30). CI's E2E job was silently non-functional the whole time this branch's stories (12.1/12.2/12.5/12.3) were merged onto it: first blocked by a GitHub Actions billing/payment issue, then (once that was fixed) by `android-actions/setup-android@v3` requesting the now-removed legacy `tools` SDK package (fixed on this branch, commit `a9a8a13`). With both blockers cleared, E2E actually ran on real emulators for the first time — and all 6 Maestro flows across all 3 shards (`core`, `session`, `onboarding`) failed identically:_
+
+```
+Element not found: Text matching regex: Add situation
+```
+
+- **All 6 flows fail at the exact same point: the very first `tapOn: "Add situation"`**, which is the Home screen's empty-ladder-state button (`apps/mobile/.maestro/setup/ensureOnboarded.yaml` → each flow's next step), reached via DEV sign-in + onboarding clickthrough — **before any flow ever reaches `ladder.tsx`**, the screen Story 12.3 actually changed. This means the failure is very unlikely to be caused by Story 12.3's patches (which only touched `ladder.tsx`/`ladder.test.tsx`) — it points at either the Home screen (Story 12.2, `apps/mobile/app/(app)/index.tsx`) or the DEV sign-in/onboarding path (`ensureOnboarded.yaml`, `_onboarding-clickthrough.yaml`), neither of which has had any E2E coverage since before those stories merged.
+- Checked `logcat.txt` from the failed runs for a root cause: no native crash, no ANR, no fatal exception. The release APK strips JS console output (per this workflow's own existing comment), so a React-level error/exception is invisible in this log — inconclusive either way.
+- Two plausible categories: (a) a real regression in Home's empty-ladder-state or the onboarding clickthrough flow, introduced any time in the last 7 weeks and never caught because E2E was dark; or (b) environment drift unrelated to app code (Supabase CLI 2.107.0, Android system image, Maestro version) that changed independently of any of this repo's commits.
+- **Next steps for whoever picks this up:** run `ensureOnboarded.yaml` alone against a fresh emulator/local Supabase and observe with `maestro studio` or a screenshot-on-failure step (not currently in `ci.yml`) to see which screen is actually on-screen when "Add situation" times out. Artifacts: `gh run download <run-id> -n maestro-smoke-artifacts-<shard>` for `report.xml` + `logcat.txt` (run `35335195833` on PR #67 has the first reproduction).
+
 ## Deferred from: code review of 12-3-ladder-screen-ui-ux-enhancements (2026-09-17)
 
 _Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `dd40236..HEAD`. 11 patches applied, 6 deferred below, 6 dismissed as noise. (2 of the 6 were reclassified from patch to defer during apply, after checking established precedent — see their entries below.)_
