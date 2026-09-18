@@ -18,9 +18,10 @@ appId: com.exposurebuddy.app
 - waitForAnimationToEnd
 
 # ── Navigate to standalone ladder editor ──────────────────────────────────────────────────
-# Home screen empty-ladder state shows "Add situation" button (accessibilityLabel: t('ladder.addItem'))
+# Home screen empty-ladder state shows an "Add your first situation" button (Story 12.2
+# redesign; accessibilityLabel: t('home.emptyState.cta') — was t('ladder.addItem') before 12.2)
 - tapOn:
-    text: "Add situation"
+    text: "Add your first situation"
 - waitForAnimationToEnd
 
 # ── Add a fear-ladder item via the standalone editor ──────────────────────────────────────
