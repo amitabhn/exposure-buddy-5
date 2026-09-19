@@ -22,6 +22,12 @@ appId: com.exposurebuddy.app
 # (accessibilityLabel: t('auth.authMethod.switchToOtp'), visible text: t('auth.authMethod.
 # useCodeInstead') — there is no literal "OTP" text anywhere on this screen). Without this
 # the "Send code" button never renders (password mode shows a submit button instead).
+# This is the first interaction after a cold `launchApp` with no prior wait/scroll — use
+# scrollUntilVisible (as ensureOnboarded.yaml does for its own first post-launch tap)
+# rather than a bare tapOn, to tolerate slow cold-boot rendering and any scroll position.
+- scrollUntilVisible:
+    element:
+      text: "use a code instead"
 - tapOn:
     text: "use a code instead"
 
