@@ -33,28 +33,20 @@ appId: com.exposurebuddy.app
     text: "Go back"
 - waitForAnimationToEnd
 
-# ── Navigate from home to the item's "Start session" button ────────────────────────────────
-# Home screen 'morning' state: CourageLadderEntryCard.
+# ── Navigate from home directly into the exposure session ──────────────────────────────────
+# Home screen 'morning' state: CourageLadderEntryCard. Tapping it calls handleStartNextStep
+# (Story 12.2's "direct-to-session CTA" amendment), which routes straight to /session/intent
+# with no `technique` param (defaults to null) — technique.tsx is skipped entirely, and
+# ladder.tsx's own "Start session" button (now inside its edit modal, Story 12.3 Part A) is
+# never visited via this path.
 # accessibilityLabel: t('home.courageCard.itemLabel', {description, suds})
 #   = "Facing a crowd, anxiety level 5 out of 10"
 - tapOn:
     text: "Facing a crowd, anxiety level 5 out of 10"
 - waitForAnimationToEnd
 
-# Ladder screen: tap "Start session" for the pending item
-# accessibilityLabel: `${t('ladder.startSession')}, ${item.description}`
-- tapOn:
-    text: "Start session, Facing a crowd"
-- waitForAnimationToEnd
-
 # ── Exposure session loop ──────────────────────────────────────────────────────────────────
-
-# technique.tsx — select "Somatic" technique card (accessibilityRole: "radio")
-- tapOn:
-    text: "Somatic"
-- tapOn:
-    text: "Continue"
-- waitForAnimationToEnd
+# We're now directly on intent.tsx — see comment above for why technique.tsx is skipped.
 
 # intent.tsx — pre-SUDS: pick 4 (below 8 to avoid crisis-contacts block on debrief)
 # SudsScale anchor label: "4 — Mild"

@@ -30,7 +30,11 @@ appId: com.exposurebuddy.app
 
 # ── Start a session on the newly-added item ─────────────────────────────────────────────
 # The item "Facing a crowd" was just added via UI (via PowerSync enqueue → local SQLite).
-# Wait for the list to refresh, then tap "Start session".
+# Story 12.3 Part A moved "Start session" off the list row and into the item's edit modal —
+# tap the row first to open it, then tap "Start session" inside the modal.
+- waitForAnimationToEnd
+- tapOn:
+    text: "Facing a crowd"
 - waitForAnimationToEnd
 - tapOn:
     text: "Start session, Facing a crowd"
