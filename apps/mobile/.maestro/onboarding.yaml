@@ -12,18 +12,24 @@ appId: com.exposurebuddy.app
 # Generate a per-invocation-unique email for this run
 - runScript: setup/generateEmail.js
 
-# Launch app — defaults to signup mode on fresh install
-- launchApp
-
-# Ensure we're on the signup tab
-- tapOn:
-    text: "Create account"
+# Launch app — defaults to signup mode on fresh install (hasAuthedBefore is false, so
+# sign-in.tsx's mode toggle already opens on signup; the toggle button itself shows the
+# opposite-mode label ("Sign in", not "Create account") once already in signup mode, so
+# there is nothing to tap here — this step was a stale leftover and has been removed).
 
 # Story 10.1 defaulted the auth method to Password; this flow exercises the OTP path
-# (the whole point of this shard), so switch to the OTP method tab. Without this the
-# "Send code" button never renders (password mode shows a submit button instead).
+# (the whole point of this shard), so switch it via the "use a code instead" inline link
+# (accessibilityLabel: t('auth.authMethod.switchToOtp'), visible text: t('auth.authMethod.
+# useCodeInstead') — there is no literal "OTP" text anywhere on this screen). Without this
+# the "Send code" button never renders (password mode shows a submit button instead).
+# This is the first interaction after a cold `launchApp` with no prior wait/scroll — use
+# scrollUntilVisible (as ensureOnboarded.yaml does for its own first post-launch tap)
+# rather than a bare tapOn, to tolerate slow cold-boot rendering and any scroll position.
+- scrollUntilVisible:
+    element:
+      text: "use a code instead"
 - tapOn:
-    text: "OTP"
+    text: "use a code instead"
 
 # Enter the unique test email.
 # The "Email address" identifier-type tab (index 0) and the TextInput (index 1) share the

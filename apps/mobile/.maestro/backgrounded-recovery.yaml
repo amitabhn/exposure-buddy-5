@@ -19,8 +19,10 @@ appId: com.exposurebuddy.app
 # ── Add a ladder item via the standalone editor (Task 8.1/8.2) ─────────────────────────
 # backgrounded-recovery.yaml adds its own item via UI (not backend seed) so it is not
 # dependent on PowerSync sync stream availability (unlike exposure-loop.yaml/debrief.yaml).
+# Home screen empty-ladder state shows an "Add your first situation" button (Story 12.2
+# redesign; accessibilityLabel: t('home.emptyState.cta') — was t('ladder.addItem') before 12.2)
 - tapOn:
-    text: "Add situation"
+    text: "Add your first situation"
 - waitForAnimationToEnd
 
 # We're now on /ladder. Add the item via the shared addLadderItem.yaml subflow.
@@ -28,7 +30,11 @@ appId: com.exposurebuddy.app
 
 # ── Start a session on the newly-added item ─────────────────────────────────────────────
 # The item "Facing a crowd" was just added via UI (via PowerSync enqueue → local SQLite).
-# Wait for the list to refresh, then tap "Start session".
+# Story 12.3 Part A moved "Start session" off the list row and into the item's edit modal —
+# tap the row first to open it, then tap "Start session" inside the modal.
+- waitForAnimationToEnd
+- tapOn:
+    text: "Facing a crowd"
 - waitForAnimationToEnd
 - tapOn:
     text: "Start session, Facing a crowd"
