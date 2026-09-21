@@ -2,9 +2,9 @@
 
 ## Hand-off Brief
 
-1. **What happened.** Commit `831f637` (PR #68, 2026-09-19) deleted the flow's only `- launchApp` step while removing an unrelated stale tap in the same diff hunk — the app is installed by CI but never started, so Maestro times out waiting for UI that was never rendered.
-2. **Where the case stands.** Root cause Confirmed with direct evidence (diff + 4/4 deterministic CI failures since + logcat contrast). This is not a flake: it has failed on every single run since the line was deleted, and the "occasional"/"possible flake" framing in `deferred-work.md` was based on examining only one post-regression run.
-3. **What's needed next.** Restore the `- launchApp` step. Trivial one-line fix — route to `bmad-quick-dev`.
+1. **What happened.** Commit `831f637` (PR #68, 2026-09-19) deleted the flow's only `- launchApp` step while removing an unrelated stale tap in the same diff hunk; fixing it surfaced a second, independent staleness bug (a stale `index: 1` selector on the "Send code" tap, orphaned by Story 12.1's redesign) one layer further into the flow.
+2. **Where the case stands.** Both root causes Confirmed with direct evidence, both fixed on PR #69, and both **verified passing on real CI** (run `35595854350`: `E2E Smoke (onboarding)` green in 10m38s, all 16 checks pass). Case closed.
+3. **What's needed next.** Nothing — resolved. PR #69 is ready to merge (pending human review/merge decision).
 
 ## Case Info
 
@@ -187,8 +187,8 @@ None — this is a new, independently-confirmed finding, not a revision of the o
 
 ### Backlog Changes
 
-Added and actioned (not yet verified green on CI): remove the stale `index: 1` from all 3 "Send code" `tapOn` calls in `onboarding.yaml` — fix applied in the same PR #69 (commit follows this note); status stays Open until the next CI run confirms it.
+Added, actioned, and closed: removed the stale `index: 1` from all 3 "Send code" `tapOn` calls in `onboarding.yaml` (PR #69, commit `6fef2d9`) — verified passing on CI run `35595854350`.
 
 ### Updated Conclusion
 
-Both bugs blocking the `onboarding` shard are Confirmed root-caused, with fixes applied in PR #69: the `launchApp` regression (original scope, verified fixed on real CI — run `35587263831` shows the app launching) and the stale `index: 1` "Send code" selector (found only once the first fix let the flow run far enough to reach it; fix applied but not yet re-run on CI) — a "waves of staleness" pattern consistent with how the original 4 bugs in `831f637`'s own PR were discovered. Remaining verification is the next CI run on PR #69.
+Both bugs blocking the `onboarding` shard are Confirmed root-caused and fixed in PR #69, and both are now verified passing on real CI: run `35587263831` confirmed the `launchApp` fix (app launches, flow reaches the "Send code" step); run `35595854350` confirmed the `index: 1` fix (`E2E Smoke (onboarding)` green end-to-end in 10m38s, all 16 PR checks passing). A "waves of staleness" pattern, consistent with how the original 4 bugs in `831f637`'s own PR were discovered — each fix let the flow reach further and surface the next latent bug. No further verification needed; case closed.
