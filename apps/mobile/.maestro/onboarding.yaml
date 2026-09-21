@@ -15,7 +15,8 @@ appId: com.exposurebuddy.app
 # Launch app — defaults to signup mode on fresh install (hasAuthedBefore is false, so
 # sign-in.tsx's mode toggle already opens on signup; the toggle button itself shows the
 # opposite-mode label ("Sign in", not "Create account") once already in signup mode, so
-# there is nothing to tap here — this step was a stale leftover and has been removed).
+# there is no tap needed to reach signup mode — only the launch itself is required here).
+- launchApp
 
 # Story 10.1 defaulted the auth method to Password; this flow exercises the OTP path
 # (the whole point of this shard), so switch it via the "use a code instead" inline link
