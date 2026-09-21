@@ -166,3 +166,29 @@ None needed — proceed directly to the fix. Verification is the CI run itself (
 
 - **Maestro CLI is not version-pinned in CI** (`.github/workflows/ci.yml:377`: `curl -Ls "https://get.maestro.mobile.dev" | bash` installs whatever is latest at run time). Unrelated to this root cause, but it means Maestro's own behavior could silently change between runs — worth pinning for reproducibility, as a separate hardening item.
 - `deferred-work.md`'s "Remaining" entry (lines 14-22) should be updated/superseded once this fix lands — it currently misdescribes this as an unconfirmed flake.
+
+## Follow-up: 2026-09-21
+
+### New Evidence
+
+PR #69 (branch `fix/onboarding-e2e-launchapp-regression`, commit `00652e0`) pushed the `launchApp` fix to real CI (run `35587263831`). Result: `E2E Smoke (core)` and `E2E Smoke (session)` passed; `E2E Smoke (onboarding)` still failed, but on a **different, later** symptom — `report.xml`: `Element not found: Text matching regex: Send code, Index: 1`, after a 98-second run (vs. the old 25-second dead-launch timeout). Logcat confirms the app genuinely launched this time (`ReactNativeJS "Running main"` at `11:09:50.833`), and a failure screenshot (`step-018-tapOnElement-Send_code.png`) shows the flow correctly reached the OTP-mode sign-up screen with email filled and both consent checkboxes checked — the failure is purely the "Send code" tap itself.
+
+### Additional Findings
+
+**Finding 5: The `index: 1` disambiguator on the "Send code" tap is itself stale — the duplicate subtitle it was written for no longer exists.**
+
+**Evidence:** `git show f28b02d5a951403f278946d84b2eb10470c3284d` (2026-07-09) shows `index: 1` was added specifically because the sign-in screen's subtitle rendered the same `t('auth.otp.sendCode')` string as the button, ahead of it in the hierarchy. `apps/mobile/app/(auth)/sign-in.tsx:554-576` (current) shows only two usages of that key on the whole screen — the button's own `accessibilityLabel` and its inner `<Text>` — no separate subtitle element. The CI run's own screen-hierarchy dump (`step-018-tapOnElement-Send_code.json`, from the `maestro-debug-logs-onboarding` artifact) confirms these render as 2 distinct accessibility-tree nodes at failure time — a clickable `Button` (`accessibilityText: "Send code"`) wrapping a non-clickable `TextView` (`text: "Send code"`), fully nested inside it — yet Maestro's own match count there was only 1 (it reported `index: 1`, the second match, not found), consistent with Maestro resolving to the nearest clickable ancestor rather than double-counting a non-interactive child. The failure screenshot itself shows only one "Send code" button on screen, no subtitle.
+
+**Detail:** Story 12.1 (Sign-in/Sign-up screen UI/UX redesign, merged 2026-07-30) is the intervening change — it restyled this screen and evidently dropped the old duplicate subtitle along the way. `831f637`'s wave of staleness fixes (2026-09-19) never caught this because the flow was still dying at the `launchApp` step before ever reaching this tap; it only surfaced once that blocker was cleared.
+
+### Updated Hypotheses
+
+None — this is a new, independently-confirmed finding, not a revision of the original `launchApp` hypothesis (which remains Confirmed; `core`/`session` staying green and the app now genuinely launching in run `35587263831` corroborate it directly).
+
+### Backlog Changes
+
+Added and actioned (not yet verified green on CI): remove the stale `index: 1` from all 3 "Send code" `tapOn` calls in `onboarding.yaml` — fix applied in the same PR #69 (commit follows this note); status stays Open until the next CI run confirms it.
+
+### Updated Conclusion
+
+Both bugs blocking the `onboarding` shard are Confirmed root-caused, with fixes applied in PR #69: the `launchApp` regression (original scope, verified fixed on real CI — run `35587263831` shows the app launching) and the stale `index: 1` "Send code" selector (found only once the first fix let the flow run far enough to reach it; fix applied but not yet re-run on CI) — a "waves of staleness" pattern consistent with how the original 4 bugs in `831f637`'s own PR were discovered. Remaining verification is the next CI run on PR #69.

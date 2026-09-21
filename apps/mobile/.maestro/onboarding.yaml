@@ -80,24 +80,28 @@ appId: com.exposurebuddy.app
     text: "I understand that Exposure Buddy is a general health and wellness app. Its content is not a substitute for professional medical advice and is not valid for medico-legal proceedings."
 
 # Send OTP.
-# index: 1 is CRITICAL: the screen's subtitle renders the same t('auth.otp.sendCode')
-# string ("Send code") as the button, and it comes first in the hierarchy — a bare
-# `tapOn: "Send code"` taps the subtitle (a no-op; CI runs showed 3 taps at the subtitle's
-# bounds and zero requests ever reaching kong). index: 1 targets the actual button.
+# Story 12.1's sign-in/sign-up redesign (2026-07-30) removed the screen's old duplicate
+# subtitle that used to render the same t('auth.otp.sendCode') string ("Send code") above
+# the button, ahead of it in the hierarchy — the button itself still renders that string
+# twice (accessibilityLabel + inner Text, both nested under the same clickable widget),
+# but there is no longer a second, separate "Send code" element anywhere on screen, so a
+# plain text match (Maestro's default index: 0) unambiguously targets the button. The old
+# `index: 1` disambiguator is stale and has been removed (Maestro reported "Element not
+# found: ... Index: 1" once the launchApp fix let the flow actually reach this screen —
+# see the investigation case file for the earlier, unrelated launchApp regression this
+# shard also had).
 # On success the app navigates to otp-verification (shows "One-time passcode"). If the
 # request stalls, the app's EXPO_PUBLIC_FETCH_TIMEOUT_MS (10s in the E2E APK) aborts it,
 # re-enabling the Send button — so each retry below waits 15s (past that timeout) before
 # re-tapping. The waits are `optional: true` so a not-yet-visible OTP screen falls through
 # to the next retry instead of failing the flow; the final wait is a hard assertion.
-# Scroll guard targets "Privacy Notice" (the link just BELOW the button) rather than
-# "Send code" itself — the subtitle at the top of the screen renders the same string, so
-# a scrollUntilVisible on "Send code" would be satisfied without scrolling at all.
+# Scroll guard targets "Privacy Notice" (the link just below the button) so the button is
+# guaranteed to be in view before the tap.
 - scrollUntilVisible:
     element:
       text: "Privacy Notice"
 - tapOn:
     text: "Send code"
-    index: 1
 - extendedWaitUntil:
     visible: "One-time passcode"
     timeout: 15000
@@ -108,7 +112,6 @@ appId: com.exposurebuddy.app
     commands:
       - tapOn:
           text: "Send code"
-          index: 1
       - extendedWaitUntil:
           visible: "One-time passcode"
           timeout: 15000
@@ -119,7 +122,6 @@ appId: com.exposurebuddy.app
     commands:
       - tapOn:
           text: "Send code"
-          index: 1
 - extendedWaitUntil:
     visible: "One-time passcode"
     timeout: 15000
