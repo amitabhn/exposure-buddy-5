@@ -27,6 +27,7 @@ const config: ExpoConfig = {
     // @sentry/react-native/expo plugin removed — requires sentry-cli binary which
     // doesn't build on EAS with pnpm. Basic crash capturing via Sentry.init() in
     // src/error-handler.ts works without it. Re-add when sentry-cli issue resolved.
+    './plugins/withIosScene27Compat',
   ],
   scheme: 'exposure-buddy',
   extra: {
