@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ElementRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator, Alert } from 'react-native'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useRouter, useNavigation } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -13,6 +13,14 @@ import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
 import { BackButton } from '../src/components/navigation/BackButton'
 
+// expo-router's useNavigation() returns the base NavigationProp, whose EventMapCore doesn't
+// include native-stack-specific events like 'transitionEnd' — @react-navigation/native-stack
+// isn't a direct dependency here to import NativeStackNavigationEventMap from, so this narrows
+// just the one call site we need instead of widening the whole navigation object.
+type NavigationWithTransitionEnd = {
+  addListener(event: 'transitionEnd', callback: (e: { data: { closing: boolean } }) => void): () => void
+}
+
 // Pure-JS UUID v4 — same pattern as onboarding ladder.tsx
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -24,6 +32,7 @@ function generateUUID(): string {
 export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const navigation = useNavigation()
   const { userId, sessionRecoveryData } = useAuth()
   const insets = useSafeAreaInsets()
   const { items: remoteItems, isLoading: ladderLoading } = useFearLadderItems(userId)
@@ -46,12 +55,42 @@ export default function LadderScreen() {
   // retries) so a retry after the list has changed doesn't ship a stale/colliding position.
   const pendingAddIdRef = useRef<{ id: string } | null>(null)
 
-  // Accessibility: focus first item or add button once loading settles (Story 12.3 AC-B3).
-  // The prior fixed 100ms setTimeout raced both DraggableFlatList's virtualized layout AND
-  // ladderLoading's own async resolution — it could fire before real items had loaded, latch
-  // onto the Add button, and never retry once items arrived. This effect re-evaluates whenever
-  // loading state or item count changes, and bounded-retries (retry-until-ref-exists) in case
-  // the target hasn't finished laying out on the first check.
+  // Accessibility: wait for the stack-push transition to finish before placing focus (Story
+  // 12.3 AC-B3, root-caused 2026-09-21). On-device VoiceOver/TalkBack testing found that even
+  // with a correct, ref-resolved AccessibilityInfo.setAccessibilityFocus call firing within
+  // ~160ms of mount, focus still landed on the header BackButton on both platforms — reproduced
+  // identically on iOS Simulator + VoiceOver and a physical Android device + TalkBack. Root
+  // cause: the OS's own automatic screen-change focus (which lands on the first element in
+  // reading order — here, the back button, since it precedes the list) fires when the *native*
+  // push transition finishes, which takes longer than our early retry loop's ~160ms window and
+  // so lands *after* our call, silently stealing focus back. `transitionEnd` (emitted by
+  // react-native-screens' native-stack once the push animation completes) is the correct signal
+  // to wait for — firing our own focus call only after it means we go last, not the OS.
+  const [screenTransitioned, setScreenTransitioned] = useState(false)
+  useEffect(() => {
+    // eslint-disable-next-line i18next/no-literal-string
+    const unsubscribe = (navigation as unknown as NavigationWithTransitionEnd).addListener('transitionEnd', (e) => {
+      // A 'closing' transitionEnd fires when this screen is being popped, not pushed in —
+      // ignore it so a delayed pop-in-progress event can't flip this true prematurely.
+      if (!e.data.closing) setScreenTransitioned(true)
+    })
+    // Fallback safety net: if transitionEnd never fires for some reason (e.g. this screen
+    // somehow renders as the initial route with no push animation, or an unusual navigator
+    // config swallows the event), don't leave accessibility focus permanently unset — fire
+    // after a delay generous enough to exceed any real transition duration.
+    const fallback = setTimeout(() => setScreenTransitioned(true), 500)
+    return () => {
+      unsubscribe()
+      clearTimeout(fallback)
+    }
+  }, [navigation])
+
+  // Focus first item or add button once both the transition has settled AND loading completes
+  // (Story 12.3 AC-B3). The prior fixed 100ms setTimeout raced both DraggableFlatList's
+  // virtualized layout AND ladderLoading's own async resolution — it could fire before real
+  // items had loaded, latch onto the Add button, and never retry once items arrived. This effect
+  // re-evaluates whenever transition, loading state, or item count changes, and bounded-retries
+  // (retry-until-ref-exists) in case the target hasn't finished laying out on the first check.
   //
   // Focus is tracked per target *category* (empty-state Add button vs. a real first item),
   // not as a single one-shot latch — a plain "have we ever focused" boolean would permanently
@@ -63,7 +102,7 @@ export default function LadderScreen() {
   const firstInteractiveRef = useRef<ElementRef<typeof TouchableOpacity> | null>(null)
   const lastFocusedCategoryRef = useRef<'empty' | 'nonEmpty' | null>(null)
   useEffect(() => {
-    if (ladderLoading) return
+    if (ladderLoading || !screenTransitioned) return
     // eslint-disable-next-line i18next/no-literal-string
     const category = items.length === 0 ? 'empty' : 'nonEmpty'
     if (lastFocusedCategoryRef.current === category) return
@@ -94,7 +133,7 @@ export default function LadderScreen() {
       cancelled = true
       clearTimeout(timeoutId)
     }
-  }, [ladderLoading, items.length])
+  }, [ladderLoading, screenTransitioned, items.length])
 
   // Sync remote items into local state when stub is replaced in Epic 6; sort by position ascending (AC 1)
   useEffect(() => {
