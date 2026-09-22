@@ -7,8 +7,8 @@ Status: ready-for-dev
 ## Story
 
 As a security-conscious team,
-I want the "DEV: Sign in as test user" shortcut to never render when the app is configured against the hosted Supabase project,
-so that hardcoded test credentials baked into a distributed binary can never be used to sign into a real backend.
+I want the "DEV: Sign in as test user" shortcut hidden against hosted Supabase AND the hosted account's password rotated,
+so that hardcoded test credentials baked into a distributed binary can never be used — via the UI or via bundle extraction — to sign into a real backend.
 
 ## Context
 
@@ -18,32 +18,38 @@ Discovered 2026-09-22 as a direct consequence of parallel beta-distribution work
 - Any local `expo start` dev build reads `.env.local`'s hosted URL and shows the shortcut.
 - The already-distributed 2026-09-22 `preview` APK (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) has the shortcut live against the hosted project, reachable by any beta tester who has that build installed.
 
-**Scope boundary (do not exceed):** this story only changes whether the button renders. It does NOT remove the shortcut itself, rotate the `test1@test.com` / `DevTest123!` credential, or audit for other `__DEV__`-gated affordances elsewhere in the app — those are explicitly out of scope for this story (see Epic 15's scope note for future follow-up).
+**Confirmed finding (2026-09-22, via Supabase MCP against project `jhbtzsvlgglyfbrgmpsb`):** `test1@test.com` is a real, confirmed hosted account (`id: 30089f53-c290-43c2-99d4-0dd7d129a6ce`, created 2026-05-26, has a password set) — and it was **signed in as recently as 2026-09-22 09:04 UTC**, the same day this exposure was discovered. It currently has zero associated `fear_ladder_items`, `exposure_sessions`, or `consent_records` rows, so no personal/health data is exposed today. But pressing this button against hosted Supabase Auth **succeeds** — it returns a real, valid session for a real account. Hiding the button (this story's original scope) only closes the in-app tap path; the credential is also a literal string in the shipped JS bundle (React Native bundles are not meaningfully obfuscated), extractable and usable directly against the hosted Auth REST endpoint with the equally-embedded anon key, bypassing the app UI entirely. **This is why credential rotation is now folded into this story, not just button-hiding.**
+
+**Scope boundary (do not exceed):** this story changes whether the button renders AND rotates the hosted account's password (operationally, not via a source-code edit). It does NOT remove the shortcut itself (still valuable against a genuinely local/ephemeral Supabase instance), delete/remove the `test1@test.com` account, or audit for other `__DEV__`-gated affordances elsewhere in the app — those remain out of scope (see Epic 15's scope note for future follow-up).
 
 ## Acceptance Criteria
 
 1. A new local helper, `isLocalSupabaseUrl(url: string | undefined): boolean`, is added in `apps/mobile/app/(auth)/sign-in.tsx`. It returns `true` only for known local/loopback Supabase hosts — `127.0.0.1` (local dev) and `10.0.2.2` (Android emulator, per the `e2e` build profile's `EXPO_PUBLIC_SUPABASE_URL` in `eas.json`) — and `false` for everything else, including any `*.supabase.co` hostname or an unset/empty URL. **Fail closed**: an unset/undefined URL must return `false` (button hidden), not `true`.
 2. The shortcut's render condition changes from `(__DEV__ || variant === 'preview') ? <Button/> : null` to `(__DEV__ || variant === 'preview') && isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? <Button/> : null`. The existing `__DEV__`/variant gate is preserved unchanged; the new hosted-URL check is an additional, unconditional AND — never bypassable by either existing condition alone.
-3. No change is made to the button's `onPress` handler, the hardcoded credentials, or the `createSupabaseClient()` call — only the render condition changes.
-4. `apps/mobile/app/(auth)/sign-in.test.tsx` gets new tests asserting:
+3. No CODE change is made to the button's `onPress` handler or the hardcoded `test1@test.com` / `DevTest123!` string literals — the client-side string must stay as-is so it keeps working against a local Supabase instance. The credential is handled operationally instead (AC #4).
+4. **The hosted account's password is rotated directly on the hosted Supabase project** (`jhbtzsvlgglyfbrgmpsb`, user id `30089f53-c290-43c2-99d4-0dd7d129a6ce`) to a value that is (a) not `DevTest123!`, and (b) not committed anywhere in the repo — via the Supabase dashboard or Management API/MCP, not a migration or code change. Do this as early as possible when this story is picked up; it does not depend on the code changes below and closes the more serious (bundle-extraction) exposure immediately, before AC #1-2's code fix even ships.
+5. `apps/mobile/app/(auth)/sign-in.test.tsx` gets new tests asserting:
    - (a) button absent when `EXPO_PUBLIC_SUPABASE_URL` is mocked as a hosted URL (`https://jhbtzsvlgglyfbrgmpsb.supabase.co` or any other `*.supabase.co` value), regardless of `EXPO_PUBLIC_APP_VARIANT`
    - (b) button present when `EXPO_PUBLIC_SUPABASE_URL` is mocked as `http://127.0.0.1:54321` (regression guard for today's already-working local-dev case)
    - (c) button absent when `EXPO_PUBLIC_SUPABASE_URL` is unset/undefined (fail-closed case)
-5. `pnpm turbo typecheck lint test` passes clean with no regressions to `sign-in.test.tsx`'s existing coverage.
-6. Dev-story completion notes must flag that a NEW preview build should be cut and redistributed to already-invited beta testers once this story ships — the existing distributed APK (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) remains exposed until replaced. This is a deployment/communication follow-up, not a code change, but must not be silently dropped from the completion report.
+6. `pnpm turbo typecheck lint test` passes clean with no regressions to `sign-in.test.tsx`'s existing coverage.
+7. Dev-story completion notes must flag that a NEW preview build should be cut and redistributed to already-invited beta testers once this story ships — the existing distributed APK (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) remains exposed to the button-visibility issue until replaced (though AC #4's rotation independently closes the credential-reuse risk regardless of which APK is installed). This is a deployment/communication follow-up, not a code change, but must not be silently dropped from the completion report.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Add the local-URL helper (AC: #1)
+- [ ] Task 1 — Rotate the hosted credential (AC: #4) — **do this first, independent of the code tasks below**
+  - [ ] Rotate `test1@test.com`'s password on the hosted project (`jhbtzsvlgglyfbrgmpsb`) via the Supabase dashboard or Management API/MCP
+  - [ ] Confirm the new password is not `DevTest123!` and is not written anywhere in the repo (not even in a comment or Dev Notes)
+- [ ] Task 2 — Add the local-URL helper (AC: #1)
   - [ ] Add `isLocalSupabaseUrl(url: string | undefined): boolean` to `sign-in.tsx`, checking for `127.0.0.1` / `10.0.2.2` substrings/hostnames, returning `false` for anything else including unset
-- [ ] Task 2 — Gate the shortcut (AC: #2, #3)
+- [ ] Task 3 — Gate the shortcut (AC: #2, #3)
   - [ ] Update the button's render condition to AND in `isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL)`
-  - [ ] Verify no other code inside the button block changes
-- [ ] Task 3 — Tests (AC: #4, #5)
+  - [ ] Verify no other code inside the button block changes (the `test1@test.com` / `DevTest123!` string literals stay as-is — they still need to work against local Supabase)
+- [ ] Task 4 — Tests (AC: #5, #6)
   - [ ] Add the three new test cases (hosted-hidden, local-shown, unset-hidden)
   - [ ] Run `pnpm turbo typecheck lint test`, confirm zero regressions
-- [ ] Task 4 — Completion notes (AC: #6)
-  - [ ] Explicitly note in Dev Agent Record → Completion Notes that a fresh preview build + tester redistribution is needed post-merge
+- [ ] Task 5 — Completion notes (AC: #7)
+  - [ ] Explicitly note in Dev Agent Record → Completion Notes that a fresh preview build + tester redistribution is needed post-merge, and confirm Task 1 (rotation) was completed
 
 ## Dev Notes
 
@@ -85,12 +91,17 @@ Implement as a simple substring/hostname check (e.g. `url.includes('127.0.0.1') 
 
 Follow `sign-in.test.tsx`'s existing test structure and mocking conventions exactly (it does not currently mock `process.env.EXPO_PUBLIC_SUPABASE_URL` or `EXPO_PUBLIC_APP_VARIANT` at all — this story is the first to need that; set them via `process.env.X = '...'` in each test, per Jest's standard env-var mutation pattern, and restore in `afterEach` if any existing test in this file already establishes that pattern for other env vars — check first before introducing a new cleanup mechanism). Note: `__DEV__` defaults to `true` under the RN Jest preset, so tests for the hosted-hidden and unset-hidden cases rely entirely on the new `isLocalSupabaseUrl` check to hide the button, not on `__DEV__`.
 
+### How to rotate the hosted password (Task 1)
+
+Via Supabase MCP/dashboard — Auth → Users → find `test1@test.com` (id `30089f53-c290-43c2-99d4-0dd7d129a6ce`) on project `jhbtzsvlgglyfbrgmpsb` → reset/set password. This is an Auth Admin operation, not a SQL write to `auth.users` — use the dashboard's "Reset password" action or the Management API's user-update endpoint, not a raw `UPDATE auth.users SET encrypted_password = ...` (that bypasses GoTrue's password hashing/validation). Do not record the new password anywhere in the repo — it only needs to exist in whatever secret store (if any) developers use for manual hosted-account testing going forward; this shortcut is not meant to work against hosted after this story ships, so there's no code that needs to know the new value.
+
 ### Explicitly out of scope (do not implement)
 
 - Removing the shortcut entirely
-- Rotating the `test1@test.com` / `DevTest123!` credential
+- Deleting the `test1@test.com` account
 - Auditing other `__DEV__`-gated code paths in the app
 - Any change to `createSupabaseClient()` or the sign-in submission logic
+- Any change to the local Supabase seed data or the `DevTest123!` string used for local dev
 
 ### Project Structure Notes
 

@@ -414,7 +414,9 @@ Users get a progressively polished experience across the app's core screens, dri
 The dev/test sign-in shortcut never renders when the app is configured against the hosted Supabase project, regardless of `__DEV__` or build variant — closing an unintended credential-exposure path opened by pointing preview/dev builds at real infrastructure.
 
 **FRs covered:** FR-DEVAUTH-01
-**Scope note:** This epic hardens the existing shortcut's visibility condition only. It does not remove the shortcut itself (still valuable against a genuinely local/ephemeral Supabase instance), rotate the `test1@test.com` credential, or audit for other `__DEV__`-gated affordances — a broader audit is a natural future story in this epic if more such gaps surface, but is not assumed or required by Story 15.1.
+**Scope note:** This epic hardens the shortcut's visibility condition AND rotates the hosted account's password (both folded into Story 15.1 as of 2026-09-22 — see finding below). It does not remove the shortcut itself (still valuable against a genuinely local/ephemeral Supabase instance) or audit for other `__DEV__`-gated affordances — a broader audit is a natural future story in this epic if more such gaps surface, but is not assumed or required by Story 15.1.
+
+**Finding (2026-09-22, confirmed via Supabase MCP against the hosted project):** `test1@test.com` is a real, confirmed account on hosted Supabase — created 2026-05-26, has a password set, and was **signed in as recently as 2026-09-22 09:04 UTC** (the same day this shortcut's exposure was discovered). It currently has zero associated `fear_ladder_items`, `exposure_sessions`, or `consent_records` rows, so no personal/health data is exposed today — but the account is live and reachable by anyone who taps the shortcut or extracts the hardcoded credential from the shipped JS bundle (React Native bundles are not meaningfully obfuscated, so hiding the button alone does not stop a bundle-extraction attack — only the UI-visible path). This is why credential rotation, not just button-hiding, is now in scope.
 
 ---
 
@@ -2692,7 +2694,11 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 **Given** the shortcut's `onPress` handler signs in with hardcoded credentials (`test1@test.com` / `DevTest123!`) against whatever `createSupabaseClient()` resolves to at call time
 **When** this story is implemented
-**Then** no change is made to the `onPress` handler itself, the credentials, or the `createSupabaseClient()` call — this story only changes whether the button renders, not what it does when pressed; rotating the credential or removing the shortcut entirely is out of scope (see Epic 15's scope note)
+**Then** no code change is made to the `onPress` handler itself, the hardcoded credential string, or the `createSupabaseClient()` call — this story only changes whether the button renders in code, not what it does when pressed; the credential itself is handled operationally (see the next AC), not by editing the source string, since the same string must keep working against a local Supabase instance
+
+**Given** the finding above confirms `test1@test.com` is a real, active hosted account, and hiding the button (the ACs above) only stops the in-app UI path — the credential remains extractable from the shipped JS bundle and usable directly against the hosted Auth REST endpoint with the (also-embedded) anon key
+**When** this story is implemented
+**Then** the hosted account's password is rotated directly on the hosted Supabase project (via dashboard or the Supabase Management API/MCP — NOT a code change, since the hardcoded client string must stay `DevTest123!` for the local-Supabase case to keep working) to a value that is not `DevTest123!` and is not committed anywhere in the repo. This is the step that actually closes the bundle-extraction path, independent of and faster than the code fix above — it should be done as soon as this story is picked up, not gated on the code PR merging. Removing the shortcut or the account entirely remains out of scope (see Epic 15's scope note) — rotation, not removal, is the chosen fix, since the account has zero associated personal/health data today and the shortcut has ongoing local-dev value
 
 **Given** `apps/mobile/app/(auth)/sign-in.test.tsx` has no existing coverage of this button (confirmed: no test currently asserts on `DEV:`, `test1@test.com`, `__DEV__`, or `EXPO_PUBLIC_APP_VARIANT`) — meaning it has always rendered unconditionally in the Jest environment (`__DEV__` defaults to `true` under the RN Jest preset) with zero regression risk visible in CI today
 **When** this story is implemented
