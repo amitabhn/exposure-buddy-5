@@ -2680,9 +2680,21 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 **FR-DEVAUTH-01:** The dev/test one-tap sign-in shortcut on the sign-in screen never renders when the app is configured against a non-local (hosted) Supabase backend, regardless of `__DEV__` or `EXPO_PUBLIC_APP_VARIANT`.
 
-### Story 15.1: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
+### Story 15.1: Rotate Hosted Dev/Test Account Credential
 
-**Status: backlog.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation).
+**Status: done (2026-09-22).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
+
+**Given** `test1@test.com` was confirmed as a real, active hosted account (Supabase MCP query, 2026-09-22 — signed in as recently as that same day), and the credential is a literal string in the shipped JS bundle, extractable and usable directly against the hosted Auth REST endpoint regardless of whether the in-app shortcut is visible
+**When** this story is implemented
+**Then** the hosted account's password is rotated directly on the hosted Supabase project (NOT a code change — the hardcoded client string must stay `DevTest123!` for the local-Supabase case to keep working) to a value that is not `DevTest123!` and is not committed anywhere in the repo. Removing the shortcut or the account entirely remains out of scope (see Epic 15's scope note) — rotation, not removal, is the chosen fix, since the account has zero associated personal/health data and the shortcut has ongoing local-dev value.
+
+**✅ DONE 2026-09-22.** No Admin API MCP tool was available and a throwaway Edge Function would have left uncleanable residue, so the rotation was done via `execute_sql` using `extensions.crypt(new_password, extensions.gen_salt('bf'))` against `auth.users.encrypted_password` — a standard GoTrue-compatible bcrypt hash, not a hashing bypass. Verified live: the old `DevTest123!` credential now returns `400` from the hosted token endpoint. New password shared with the account owner out of band, not committed to the repo.
+
+---
+
+### Story 15.2: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
+
+**Status: backlog.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation). Split from Story 15.1 (2026-09-22) — the remaining, no-longer-time-critical code half of the original combined story, now that Story 15.1's credential rotation has already closed the more serious (bundle-extraction) exposure.
 
 **Given** the shortcut button today is gated solely on `(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview')`, with no check of which Supabase backend is configured, and both the EAS `preview` build profile and, as of 2026-09-22, local `.env.local` now set `EXPO_PUBLIC_SUPABASE_URL` to the hosted project (`https://jhbtzsvlgglyfbrgmpsb.supabase.co`)
 **When** this story is implemented
@@ -2692,20 +2704,14 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 **When** this story is implemented
 **Then** the condition becomes `(__DEV__ || variant === 'preview') && isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? <Button/> : null` — the existing `__DEV__`/variant gate is preserved (unchanged behavior for genuinely local dev/preview builds against a local Supabase instance), and the new hosted-URL check is an additional, unconditional AND — never bypassable by either of the existing conditions alone
 
-**Given** the shortcut's `onPress` handler signs in with hardcoded credentials (`test1@test.com` / `DevTest123!`) against whatever `createSupabaseClient()` resolves to at call time
+**Given** the shortcut's `onPress` handler signs in with hardcoded credentials (`test1@test.com` / `DevTest123!`, now rotated on the hosted project per Story 15.1) against whatever `createSupabaseClient()` resolves to at call time
 **When** this story is implemented
-**Then** no code change is made to the `onPress` handler itself, the hardcoded credential string, or the `createSupabaseClient()` call — this story only changes whether the button renders in code, not what it does when pressed; the credential itself is handled operationally (see the next AC), not by editing the source string, since the same string must keep working against a local Supabase instance
-
-**Given** the finding above confirms `test1@test.com` is a real, active hosted account, and hiding the button (the ACs above) only stops the in-app UI path — the credential remains extractable from the shipped JS bundle and usable directly against the hosted Auth REST endpoint with the (also-embedded) anon key
-**When** this story is implemented
-**Then** the hosted account's password is rotated directly on the hosted Supabase project (NOT a code change, since the hardcoded client string must stay `DevTest123!` for the local-Supabase case to keep working) to a value that is not `DevTest123!` and is not committed anywhere in the repo. Removing the shortcut or the account entirely remains out of scope (see Epic 15's scope note) — rotation, not removal, is the chosen fix, since the account has zero associated personal/health data today and the shortcut has ongoing local-dev value.
-
-**✅ DONE 2026-09-22.** No Admin API MCP tool was available and a throwaway Edge Function would have left uncleanable residue, so the rotation was done via `execute_sql` using `extensions.crypt(new_password, extensions.gen_salt('bf'))` against `auth.users.encrypted_password` — a standard GoTrue-compatible bcrypt hash, not a hashing bypass. Verified live: the old `DevTest123!` credential now returns `400` from the hosted token endpoint. New password shared with the account owner out of band, not committed to the repo.
+**Then** no code change is made to the `onPress` handler itself, the hardcoded credential string, or the `createSupabaseClient()` call — this story only changes whether the button renders in code, not what it does when pressed; the string stays as-is since it still needs to work against a local Supabase instance
 
 **Given** `apps/mobile/app/(auth)/sign-in.test.tsx` has no existing coverage of this button (confirmed: no test currently asserts on `DEV:`, `test1@test.com`, `__DEV__`, or `EXPO_PUBLIC_APP_VARIANT`) — meaning it has always rendered unconditionally in the Jest environment (`__DEV__` defaults to `true` under the RN Jest preset) with zero regression risk visible in CI today
 **When** this story is implemented
 **Then** new tests are added asserting: (a) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is mocked as the hosted URL (`https://jhbtzsvlgglyfbrgmpsb.supabase.co` or any other `*.supabase.co` value), regardless of `EXPO_PUBLIC_APP_VARIANT`; (b) the button is present when `EXPO_PUBLIC_SUPABASE_URL` is mocked as `http://127.0.0.1:54321` (matching today's already-passing implicit behavior, so this is a regression guard, not new functionality); (c) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is unset/undefined (fail-closed case). `pnpm turbo typecheck lint test` passes clean
 
-**Given** this fix closes a live exposure — right now, any local `expo start` dev build reads `.env.local`'s hosted `EXPO_PUBLIC_SUPABASE_URL` and would show this shortcut, and the already-distributed 2026-09-22 `preview` APK build (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) has it live against the hosted project
+**Given** the already-distributed 2026-09-22 `preview` APK build (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) still shows this button in the UI (though it's now harmless — Story 15.1 already rotated the credential it would have signed in with)
 **When** this story is picked up
-**Then** the dev-story agent should flag in its completion notes that a NEW preview build should be cut and redistributed to already-invited testers once this story ships, since the existing distributed APK remains exposed until replaced — this is a deployment/communication follow-up, not a code AC, but must not be silently dropped
+**Then** the dev-story agent should flag in its completion notes that a NEW preview build should be cut and redistributed to already-invited testers once this story ships, so the UI itself stops advertising a dev-only affordance to external testers — this is a deployment/communication follow-up, not a code AC, but must not be silently dropped
