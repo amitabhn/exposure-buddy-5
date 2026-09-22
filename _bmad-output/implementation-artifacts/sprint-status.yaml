@@ -169,6 +169,14 @@ development_status:
   12-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet
   12-5-global-color-theme-unification: done # 2026-07-30: palette-only pass across 21 remaining screens onto packages/ui tokens; requested directly, not a placeholder; does not close 12.3/12.4 (still reserved for their own future full redesigns); pnpm turbo typecheck lint test green
 
+  # ─── Epic 14: App Build Versioning & Identification ──────────────────────
+  # Added 2026-09-22, prompted by the start of ad hoc EAS preview-profile
+  # distribution to beta testers — no way to identify which build a piece of
+  # feedback referred to. Takes the next open number after Epic 13, which
+  # remains a dormant reservation (see epics.md Epic 13 entry).
+  epic-14: in-progress # 2026-09-22: first story (14.1) created via create-story
+  14-1-app-version-and-build-number-in-settings: ready-for-dev # 2026-09-22: story file created (_bmad-output/implementation-artifacts/14-1-app-version-and-build-number-in-settings.md)
+
   # ─── Epic 15: Auth Safety Hardening for Hosted-Backend Builds ────────────
   # Added 2026-09-22 — discovered via the Epic 14 beta-distribution work
   # (that epic tracked separately on its own branch, not yet merged).
