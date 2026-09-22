@@ -407,6 +407,17 @@ Users get a progressively polished experience across the app's core screens, dri
 
 ---
 
+### Epic 15: Auth Safety Hardening for Hosted-Backend Builds
+
+*(Added 2026-09-22, discovered as a direct consequence of parallel beta-distribution work (tracked separately as Epic 14, on its own not-yet-merged branch): `apps/mobile/(auth)/sign-in.tsx`'s "Sign in as Dev user" shortcut (Story 10.1 Task 5, hardcoded `test1@test.com` / `DevTest123!` one-tap credentials) is gated on `__DEV__ || EXPO_PUBLIC_APP_VARIANT === 'preview'` — a condition with no awareness of which Supabase backend is configured. Both the EAS `preview` profile and, as of this session, local `.env.local` now point at the **hosted** Supabase project rather than a local/ephemeral instance, so the shortcut currently ships live, reachable by any beta tester or local dev, against a real backend. Epic 2 (Authentication & Account Safety) is already marked done, so this is scoped as its own epic rather than reopened there — see `create-story`'s standing rule against adding stories to a completed epic. Takes the next open number after Epic 13 (dormant reservation); may end up adjacent to Epic 14 once both branches merge, whichever lands first.)*
+
+The dev/test sign-in shortcut never renders when the app is configured against the hosted Supabase project, regardless of `__DEV__` or build variant — closing an unintended credential-exposure path opened by pointing preview/dev builds at real infrastructure.
+
+**FRs covered:** FR-DEVAUTH-01
+**Scope note:** This epic hardens the existing shortcut's visibility condition only. It does not remove the shortcut itself (still valuable against a genuinely local/ephemeral Supabase instance), rotate the `test1@test.com` credential, or audit for other `__DEV__`-gated affordances — a broader audit is a natural future story in this epic if more such gaps surface, but is not assumed or required by Story 15.1.
+
+---
+
 ## Epic 1: Project Foundation & Design System
 
 All developers can build features with confidence: the Turborepo monorepo is live, the tech stack is validated (NativeWind v5 spike resolved or fallback ADR written, library evaluation complete), the design token system is authored with enforced typography restrictions, i18n and accessibility infrastructure is in place, motion and layout foundations are established, the PowerSync SyncAdapter interface is scaffolded, and the Supabase client with base user schema and first RLS policy are provisioned. CI gates, crash reporting, and environment secrets management are active before any feature work begins.
@@ -2658,3 +2669,35 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 **Given** every screen listed above has existing test coverage and none of their underlying logic changes
 **When** this story is implemented
 **Then** no test file needs functional changes — colour values are not asserted by any existing test (confirmed by grep: no test in this diff's scope asserts on a `StyleSheet` colour value or inline style). `pnpm turbo typecheck lint test` passes with zero test changes required, proving the change is colour-only as scoped
+
+---
+
+## Epic 15: Auth Safety Hardening for Hosted-Backend Builds
+
+*(Added 2026-09-22. See Epic List entry above for the discovery context — the dev/test sign-in shortcut's visibility condition has no awareness of which Supabase backend is configured, and both the EAS `preview` profile and local `.env.local` now point at the hosted project. Discovered via parallel beta-distribution work tracked separately as Epic 14, on its own not-yet-merged branch.)*
+
+**FR-DEVAUTH-01:** The dev/test one-tap sign-in shortcut on the sign-in screen never renders when the app is configured against a non-local (hosted) Supabase backend, regardless of `__DEV__` or `EXPO_PUBLIC_APP_VARIANT`.
+
+### Story 15.1: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
+
+**Status: backlog.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation).
+
+**Given** the shortcut button today is gated solely on `(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview')`, with no check of which Supabase backend is configured, and both the EAS `preview` build profile and, as of 2026-09-22, local `.env.local` now set `EXPO_PUBLIC_SUPABASE_URL` to the hosted project (`https://jhbtzsvlgglyfbrgmpsb.supabase.co`)
+**When** this story is implemented
+**Then** a new local helper (e.g. `isLocalSupabaseUrl(url: string | undefined): boolean`) is added in `sign-in.tsx`, returning `true` only for known local/loopback hosts — `127.0.0.1` (local dev) and `10.0.2.2` (Android emulator, per the `e2e` build profile's `EXPO_PUBLIC_SUPABASE_URL` in `eas.json`) — and `false` for everything else, including any `*.supabase.co` hostname or an unset/empty URL (fail closed — an unset URL must NOT show the shortcut)
+
+**Given** the button's current render condition is `(__DEV__ || variant === 'preview') ? <Button/> : null`
+**When** this story is implemented
+**Then** the condition becomes `(__DEV__ || variant === 'preview') && isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? <Button/> : null` — the existing `__DEV__`/variant gate is preserved (unchanged behavior for genuinely local dev/preview builds against a local Supabase instance), and the new hosted-URL check is an additional, unconditional AND — never bypassable by either of the existing conditions alone
+
+**Given** the shortcut's `onPress` handler signs in with hardcoded credentials (`test1@test.com` / `DevTest123!`) against whatever `createSupabaseClient()` resolves to at call time
+**When** this story is implemented
+**Then** no change is made to the `onPress` handler itself, the credentials, or the `createSupabaseClient()` call — this story only changes whether the button renders, not what it does when pressed; rotating the credential or removing the shortcut entirely is out of scope (see Epic 15's scope note)
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx` has no existing coverage of this button (confirmed: no test currently asserts on `DEV:`, `test1@test.com`, `__DEV__`, or `EXPO_PUBLIC_APP_VARIANT`) — meaning it has always rendered unconditionally in the Jest environment (`__DEV__` defaults to `true` under the RN Jest preset) with zero regression risk visible in CI today
+**When** this story is implemented
+**Then** new tests are added asserting: (a) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is mocked as the hosted URL (`https://jhbtzsvlgglyfbrgmpsb.supabase.co` or any other `*.supabase.co` value), regardless of `EXPO_PUBLIC_APP_VARIANT`; (b) the button is present when `EXPO_PUBLIC_SUPABASE_URL` is mocked as `http://127.0.0.1:54321` (matching today's already-passing implicit behavior, so this is a regression guard, not new functionality); (c) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is unset/undefined (fail-closed case). `pnpm turbo typecheck lint test` passes clean
+
+**Given** this fix closes a live exposure — right now, any local `expo start` dev build reads `.env.local`'s hosted `EXPO_PUBLIC_SUPABASE_URL` and would show this shortcut, and the already-distributed 2026-09-22 `preview` APK build (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) has it live against the hosted project
+**When** this story is picked up
+**Then** the dev-story agent should flag in its completion notes that a NEW preview build should be cut and redistributed to already-invited testers once this story ships, since the existing distributed APK remains exposed until replaced — this is a deployment/communication follow-up, not a code AC, but must not be silently dropped

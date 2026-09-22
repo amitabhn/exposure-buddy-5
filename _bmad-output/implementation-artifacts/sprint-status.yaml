@@ -168,3 +168,15 @@ development_status:
   12-3-ladder-screen-ui-ux-enhancements: done # 2026-08-04: visual redesign implemented (401/401 mobile tests). 2026-09-17: story file created formally scoping the 3 open logic-bug ACs, traced to deferred-work.md's 5-1-D1/D3/D5. 2026-09-17: T2 (rollback+retry)/T3 (SUDS clamp)/T4 (bounded-retry focus fix) implemented, 12 new tests, 413/413 mobile tests, 19/19 turbo tasks green; status review. 2026-09-17: code review complete (Blind Hunter + Edge Case Hunter + Acceptance Auditor) — 1 decision resolved, 11 patches applied (see story file Review Findings), 6 deferred to deferred-work.md, 6 dismissed; 420/420 mobile tests, 19/19 turbo tasks green. Status set to in-progress, not done — T4's on-device VoiceOver/TalkBack verification still requires a physical-device pass. 2026-09-21: manual VoiceOver verification performed on iOS Simulator — FAILED; focus lands on the header back button ("Go back button" announced), not the first item row, contradicting AC-B3. See story file T4 for the finding and working hypothesis. 2026-09-21: manual TalkBack verification performed on a physical Android device (Redmi K20 Pro) — also FAILED, same signature (focus lands on the back button). AC-B3 confirmed failing on both platforms. 2026-09-21: root-caused (OS auto-focus-on-transition-end racing the app's early setAccessibilityFocus call) and fixed by gating focus on navigation's transitionEnd event; 3 new tests (423/423 mobile, 19/19 turbo tasks green); re-verified PASSED on both iOS VoiceOver and Android TalkBack using the same on-device protocol as the original failing pass. Status: done.
   12-4-exposure-flow-ui-ux-enhancements: backlog # placeholder, no ACs yet
   12-5-global-color-theme-unification: done # 2026-07-30: palette-only pass across 21 remaining screens onto packages/ui tokens; requested directly, not a placeholder; does not close 12.3/12.4 (still reserved for their own future full redesigns); pnpm turbo typecheck lint test green
+
+  # ─── Epic 15: Auth Safety Hardening for Hosted-Backend Builds ────────────
+  # Added 2026-09-22 — discovered via the Epic 14 beta-distribution work
+  # (that epic tracked separately on its own branch, not yet merged).
+  # sign-in.tsx's dev/test sign-in shortcut (Story 10.1 Task 5) has no
+  # awareness of which Supabase backend is configured; both the EAS preview
+  # profile and local .env.local now point at hosted Supabase, so the
+  # shortcut is currently live against real infrastructure. Epic 2
+  # (Authentication & Account Safety) is already done, so this is its own
+  # epic rather than reopened there.
+  epic-15: in-progress # 2026-09-22: first story (15.1) created via create-story
+  15-1-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase: ready-for-dev # 2026-09-22: story file created (_bmad-output/implementation-artifacts/15-1-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase.md)
