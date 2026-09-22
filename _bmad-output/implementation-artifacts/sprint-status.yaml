@@ -175,7 +175,7 @@ development_status:
   # feedback referred to. Takes the next open number after Epic 13, which
   # remains a dormant reservation (see epics.md Epic 13 entry).
   epic-14: in-progress # 2026-09-22: first story (14.1) created via create-story
-  14-1-app-version-and-build-number-in-settings: ready-for-dev # 2026-09-22: story file created (_bmad-output/implementation-artifacts/14-1-app-version-and-build-number-in-settings.md)
+  14-1-app-version-and-build-number-in-settings: review # 2026-09-22: implemented (eas.json appVersionSource, app.config.ts comment, expo-application dep, Settings screen row + 3 i18n keys), 19/19 turbo tasks green, 438/438 mobile tests (436 existing + 2 new)
 
   # ─── Epic 15: Auth Safety Hardening for Hosted-Backend Builds ────────────
   # Added 2026-09-22 — discovered via the Epic 14 beta-distribution work

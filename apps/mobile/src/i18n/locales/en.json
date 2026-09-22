@@ -111,6 +111,11 @@
       "dpoContact": "For questions about your data, contact our Data Protection Officer at {{dpoEmail}}.",
       "confirmButton": "Delete my account",
       "cancelButton": "Cancel"
+    },
+    "about": {
+      "versionLabel": "{{version}} ({{build}})",
+      "variantSuffix": " · {{variant}}",
+      "versionAccessibilityLabel": "App version {{version}}, build {{build}}{{variantSuffix}}"
     }
   },
   "reminderSettings": {

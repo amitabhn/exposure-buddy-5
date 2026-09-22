@@ -3,8 +3,13 @@ import { render, fireEvent, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
   }),
+}))
+
+jest.mock('expo-application', () => ({
+  nativeApplicationVersion: '1.0.0',
+  nativeBuildVersion: '42',
 }))
 
 const mockRouterPush = jest.fn()
@@ -150,6 +155,35 @@ describe('SettingsScreen', () => {
         rerender(<SettingsScreen />)
       })
       expect(getByText('7:30 settings.reminders.pm')).toBeTruthy()
+    })
+  })
+
+  describe('App version row', () => {
+    const originalAppVariant = process.env.EXPO_PUBLIC_APP_VARIANT
+
+    afterEach(() => {
+      process.env.EXPO_PUBLIC_APP_VARIANT = originalAppVariant
+    })
+
+    it('renders version and build with no variant suffix under a production-like variant', async () => {
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'production'
+      const { getByText } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(
+        getByText('settings.about.versionLabel:{"version":"1.0.0","build":"42"}'),
+      ).toBeTruthy()
+    })
+
+    it('appends the variant suffix when EXPO_PUBLIC_APP_VARIANT is preview', async () => {
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
+      const { getByText } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(
+        getByText(
+          'settings.about.versionLabel:{"version":"1.0.0","build":"42"}' +
+            'settings.about.variantSuffix:{"variant":"preview"}',
+        ),
+      ).toBeTruthy()
     })
   })
 })

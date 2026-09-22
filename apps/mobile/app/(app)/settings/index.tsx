@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as Application from 'expo-application'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
 import { DeleteAccountModal } from '../../../src/components/settings/DeleteAccountModal'
@@ -67,6 +68,23 @@ export default function SettingsScreen() {
       ? formatTimeForDisplay(reminderTime, t('settings.reminders.am'), t('settings.reminders.pm'))
       : t('settings.reminders.disabledValue')
 
+  // expo-dev-client always provides real native values on dev/preview/production EAS builds;
+  // only bare `expo start` under plain Expo Go can leave these null, which is not a
+  // supported way to run this app — rendered as-is rather than special-cased.
+  const appVariant = process.env.EXPO_PUBLIC_APP_VARIANT
+  const variantSuffix =
+    appVariant !== 'production' ? t('settings.about.variantSuffix', { variant: appVariant }) : ''
+  const versionText =
+    t('settings.about.versionLabel', {
+      version: Application.nativeApplicationVersion,
+      build: Application.nativeBuildVersion,
+    }) + variantSuffix
+  const versionAccessibilityLabel = t('settings.about.versionAccessibilityLabel', {
+    version: Application.nativeApplicationVersion,
+    build: Application.nativeBuildVersion,
+    variantSuffix,
+  })
+
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
       <Text style={styles.title}>{t('settings.title')}</Text>
@@ -129,6 +147,12 @@ export default function SettingsScreen() {
         onCancel={() => setShowDeleteModal(false)}
         isLoading={isDeletingAccount}
       />
+
+      <View style={styles.row}>
+        <Text style={styles.rowText} accessibilityLabel={versionAccessibilityLabel}>
+          {versionText}
+        </Text>
+      </View>
     </ScrollView>
   )
 }

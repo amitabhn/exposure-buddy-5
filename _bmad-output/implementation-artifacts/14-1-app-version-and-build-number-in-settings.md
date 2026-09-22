@@ -1,6 +1,6 @@
 # Story 14.1: Surface App Version & Build Number in Settings
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,23 +30,23 @@ Added 2026-09-22 after the first ad hoc EAS `preview`-profile Android build was 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — EAS/version-source config (AC: #1, #2)
-  - [ ] Add `"appVersionSource": "remote"` to `apps/mobile/eas.json`'s `cli` block
-  - [ ] Add the semver-bump-convention comment above `version` in `apps/mobile/app.config.ts`
-- [ ] Task 2 — Add native version-reading dependency (AC: #3)
-  - [ ] Run `npx expo install expo-application` from `apps/mobile`
-- [ ] Task 3 — i18n keys (AC: #7)
-  - [ ] Add `settings.about.versionLabel`, `settings.about.variantSuffix`, `settings.about.versionAccessibilityLabel` to `en.json`
-  - [ ] Duplicate the same English copy into `hi.json`
-- [ ] Task 4 — Settings screen row (AC: #4, #5, #6)
-  - [ ] Read `Application.nativeApplicationVersion` / `Application.nativeBuildVersion` in `SettingsScreen`
-  - [ ] Render the new row below the "Privacy" section using the existing `styles.row` / `styles.rowText` pattern (plain `Text`, not `TouchableOpacity` — nothing to tap)
-  - [ ] Append the ` · {variant}` suffix only when `process.env.EXPO_PUBLIC_APP_VARIANT !== 'production'`
-  - [ ] Set the row's `accessibilityLabel` from `settings.about.versionAccessibilityLabel` with full interpolated text
-- [ ] Task 5 — Tests (AC: #8, #9)
-  - [ ] Add `jest.mock('expo-application', ...)` to `settings/index.test.tsx`
-  - [ ] Add the two new assertions (default/no-suffix, and preview-suffix)
-  - [ ] Run `pnpm turbo typecheck lint test` and confirm zero regressions
+- [x] Task 1 — EAS/version-source config (AC: #1, #2)
+  - [x] Add `"appVersionSource": "remote"` to `apps/mobile/eas.json`'s `cli` block
+  - [x] Add the semver-bump-convention comment above `version` in `apps/mobile/app.config.ts`
+- [x] Task 2 — Add native version-reading dependency (AC: #3)
+  - [x] Run `npx expo install expo-application` from `apps/mobile`
+- [x] Task 3 — i18n keys (AC: #7)
+  - [x] Add `settings.about.versionLabel`, `settings.about.variantSuffix`, `settings.about.versionAccessibilityLabel` to `en.json`
+  - [x] Duplicate the same English copy into `hi.json`
+- [x] Task 4 — Settings screen row (AC: #4, #5, #6)
+  - [x] Read `Application.nativeApplicationVersion` / `Application.nativeBuildVersion` in `SettingsScreen`
+  - [x] Render the new row below the "Privacy" section using the existing `styles.row` / `styles.rowText` pattern (plain `Text`, not `TouchableOpacity` — nothing to tap)
+  - [x] Append the ` · {variant}` suffix only when `process.env.EXPO_PUBLIC_APP_VARIANT !== 'production'`
+  - [x] Set the row's `accessibilityLabel` from `settings.about.versionAccessibilityLabel` with full interpolated text
+- [x] Task 5 — Tests (AC: #8, #9)
+  - [x] Add `jest.mock('expo-application', ...)` to `settings/index.test.tsx`
+  - [x] Add the two new assertions (default/no-suffix, and preview-suffix)
+  - [x] Run `pnpm turbo typecheck lint test` and confirm zero regressions
 
 ## Dev Notes
 
@@ -96,10 +96,29 @@ Mobile tests run under Jest + `@testing-library/react-native` (`apps/mobile` is 
 
 ### Agent Model Used
 
-_(to be filled in by dev-story)_
+Claude Sonnet 5 (claude-sonnet-5), via bmad-dev-story workflow
 
 ### Debug Log References
 
+None — implementation proceeded without failures requiring debug investigation.
+
 ### Completion Notes List
 
+- `cli.appVersionSource: "remote"` set in `eas.json` (top-level `cli` block covers all four build profiles); no per-profile override needed since none currently set local version fields.
+- `app.config.ts`'s `version` field got a documentation-only comment; no bump automation added, per scope boundary.
+- `expo-application` installed via `npx expo install` (resolved to `~7.0.8` for Expo SDK 54) — no hand-picked version.
+- The visible row text and its `accessibilityLabel` are both built entirely through `t()` interpolation (`settings.about.versionLabel` / `variantSuffix` / `versionAccessibilityLabel`) — no raw string literals in the component, satisfying the `i18next/no-literal-string` lint rule (`mode: 'all'`) and AC #7's "no raw string literals" requirement. `variantSuffix`'s translated text (e.g. " · preview") is reused as the interpolation value for both the visible-row suffix and the accessibility label's trailing part, keeping the i18n surface to exactly the 3 specified keys.
+- `Application.nativeApplicationVersion` / `nativeBuildVersion` are passed through to `t()` as-is with no null fallback, per Dev Notes' explicit guidance not to special-case the Expo Go edge case (this project always runs on an `expo-dev-client` native build).
+- Test file's `t` mock was upgraded from plain identity (`(key) => key`) to a params-aware mock (`(key, params) => params ? \`${key}:${JSON.stringify(params)}\` : key`), matching the existing precedent in `OnboardingStepIndicator.test.tsx` / `complete.test.tsx` — this doesn't change behavior for any of the file's existing assertions (none of which pass `t()` params) and lets the two new tests assert on the interpolated version/variant values deterministically without needing real i18next interpolation in the test environment.
+- `pnpm turbo typecheck lint test`: 19/19 tasks green, 438/438 mobile tests passing (436 existing + 2 new), zero regressions.
+
 ### File List
+
+- `apps/mobile/eas.json` (modified)
+- `apps/mobile/app.config.ts` (modified)
+- `apps/mobile/package.json` (modified — added `expo-application` dependency)
+- `pnpm-lock.yaml` (modified — lockfile update from `expo install`)
+- `apps/mobile/app/(app)/settings/index.tsx` (modified)
+- `apps/mobile/app/(app)/settings/index.test.tsx` (modified)
+- `apps/mobile/src/i18n/locales/en.json` (modified)
+- `apps/mobile/src/i18n/locales/hi.json` (modified)
