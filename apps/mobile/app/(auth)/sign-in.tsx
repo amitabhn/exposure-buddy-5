@@ -91,6 +91,15 @@ function isRateLimitedError(message: string): boolean {
   return lower.includes('rate limit') || lower.includes('security purposes')
 }
 
+// Gates the dev/test sign-in shortcut (Story 15.2) — true only for known local/loopback
+// Supabase hosts, so the shortcut never renders against a real hosted backend regardless
+// of __DEV__ or build variant. Fails closed: an unset/empty URL returns false.
+function isLocalSupabaseUrl(url: string | undefined): boolean {
+  if (!url) return false
+  // eslint-disable-next-line i18next/no-literal-string
+  return url.includes('127.0.0.1') || url.includes('10.0.2.2')
+}
+
 function classifyPasswordSignInError(message: string): string {
   // eslint-disable-next-line i18next/no-literal-string
   if (isRateLimitedError(message)) return 'auth.password.rateLimited'
@@ -603,7 +612,8 @@ export default function SignInScreen() {
         <Text style={styles.privacyLinkText}>{t('legal.privacyNotice.title')}</Text>
       </TouchableOpacity>
 
-      {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') ? (
+      {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') &&
+      isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? (
         <TouchableOpacity
           style={[
             styles.button,

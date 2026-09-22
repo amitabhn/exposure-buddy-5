@@ -326,4 +326,30 @@ describe('SignInScreen', () => {
     expect(getByText(/auth\.deletion\.accountPendingDeletion/)).toBeTruthy()
     expect(mockRouterReplace).not.toHaveBeenCalled()
   })
+
+  describe('dev/test sign-in shortcut', () => {
+    const originalSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+
+    afterEach(() => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = originalSupabaseUrl
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL points at a hosted Supabase project', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://jhbtzsvlgglyfbrgmpsb.supabase.co'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is shown when EXPO_PUBLIC_SUPABASE_URL points at local Supabase', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeTruthy()
+    })
+
+    it('is hidden (fail closed) when EXPO_PUBLIC_SUPABASE_URL is unset', () => {
+      delete process.env.EXPO_PUBLIC_SUPABASE_URL
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+  })
 })

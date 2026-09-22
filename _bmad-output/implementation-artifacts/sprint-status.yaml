@@ -180,4 +180,4 @@ development_status:
   # epic rather than reopened there.
   epic-15: in-progress # 2026-09-22: story 15.1 done (credential rotated + verified); 15.2 (code fix) created via create-story
   15-1-rotate-hosted-dev-test-account-credential: done # 2026-09-22: split from the original combined 15.1 (renamed) once rotation closed the urgent exposure; rotated via execute_sql (crypt/gen_salt bcrypt hash), verified live (old credential returns 400 from hosted token endpoint)
-  15-2-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase: ready-for-dev # 2026-09-22: code-only half split from original 15.1; story file created (_bmad-output/implementation-artifacts/15-2-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase.md)
+  15-2-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase: review # 2026-09-22: implemented (isLocalSupabaseUrl helper + gated render condition + 3 new tests), 19/19 turbo tasks green, 426/426 mobile tests; follow-up (not blocking): cut + redistribute a fresh preview build so testers stop seeing the now-inert button

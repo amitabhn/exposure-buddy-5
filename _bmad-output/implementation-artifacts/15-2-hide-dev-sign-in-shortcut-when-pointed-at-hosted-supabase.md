@@ -1,6 +1,6 @@
 # Story 15.2: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,16 +32,16 @@ The dev/test sign-in shortcut on the sign-in screen (Story 10.1 Task 5) is gated
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Add the local-URL helper (AC: #1)
-  - [ ] Add `isLocalSupabaseUrl(url: string | undefined): boolean` to `sign-in.tsx`, checking for `127.0.0.1` / `10.0.2.2` substrings/hostnames, returning `false` for anything else including unset
-- [ ] Task 2 — Gate the shortcut (AC: #2, #3)
-  - [ ] Update the button's render condition to AND in `isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL)`
-  - [ ] Verify no other code inside the button block changes
-- [ ] Task 3 — Tests (AC: #4, #5)
-  - [ ] Add the three new test cases (hosted-hidden, local-shown, unset-hidden)
-  - [ ] Run `pnpm turbo typecheck lint test`, confirm zero regressions
-- [ ] Task 4 — Completion notes (AC: #6)
-  - [ ] Explicitly note in Dev Agent Record → Completion Notes that a fresh preview build + tester redistribution is a nice-to-have follow-up (not urgent — credential already rotated)
+- [x] Task 1 — Add the local-URL helper (AC: #1)
+  - [x] Added `isLocalSupabaseUrl(url: string | undefined): boolean` to `sign-in.tsx`, checking for `127.0.0.1` / `10.0.2.2` substrings, returning `false` for anything else including unset
+- [x] Task 2 — Gate the shortcut (AC: #2, #3)
+  - [x] Updated the button's render condition to AND in `isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL)`
+  - [x] No other code inside the button block changed
+- [x] Task 3 — Tests (AC: #4, #5)
+  - [x] Added the three new test cases (hosted-hidden, local-shown, unset-hidden) in a new `describe('dev/test sign-in shortcut')` block
+  - [x] `pnpm turbo typecheck lint test` — 19/19 tasks passed, 426/426 mobile tests, zero regressions
+- [x] Task 4 — Completion notes (AC: #6)
+  - [x] See Completion Notes below — fresh preview build + redistribution flagged as a nice-to-have follow-up (not urgent — credential already rotated by Story 15.1)
 
 ## Dev Notes
 
@@ -105,10 +105,21 @@ Follow `sign-in.test.tsx`'s existing test structure and mocking conventions exac
 
 ### Agent Model Used
 
-_(to be filled in by dev-story)_
+Claude Sonnet 5 (interactive session, 2026-09-22)
 
 ### Debug Log References
 
+- `npx jest "app/(auth)/sign-in.test.tsx"` — 12/12 passed (9 existing + 3 new)
+- `pnpm turbo typecheck lint test` — 19/19 tasks passed, 426/426 mobile tests
+
 ### Completion Notes List
 
+- Implemented `isLocalSupabaseUrl` as a module-level helper in `sign-in.tsx`, next to the file's other module-level validation helpers (`validateIdentifier`, `isRateLimitedError`, etc.) — not extracted to `packages/core`, per the story's explicit guidance (single call site).
+- Button's render condition now ANDs in the new check; nothing inside the `TouchableOpacity` changed.
+- Added 3 new tests in a dedicated `describe('dev/test sign-in shortcut')` block, using `process.env.EXPO_PUBLIC_SUPABASE_URL` mutation + `afterEach` restore (no existing precedent for this pattern in the test suite — established it here, matching Jest's standard approach).
+- **Follow-up needed (not done as part of this story):** a new EAS `preview` build should be cut and redistributed to already-invited beta testers so the UI itself stops showing the now-inert "DEV: Sign in as test user" button. Not urgent — Story 15.1 already rotated the hosted credential, so the button is harmless even on the currently-distributed APK (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`).
+
 ### File List
+
+- `apps/mobile/app/(auth)/sign-in.tsx` — added `isLocalSupabaseUrl` helper; updated shortcut's render condition
+- `apps/mobile/app/(auth)/sign-in.test.tsx` — added 3 tests covering hosted/local/unset `EXPO_PUBLIC_SUPABASE_URL` cases
