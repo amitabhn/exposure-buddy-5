@@ -1,6 +1,6 @@
 # Story 14.1: Surface App Version & Build Number in Settings
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -47,6 +47,13 @@ Added 2026-09-22 after the first ad hoc EAS `preview`-profile Android build was 
   - [x] Add `jest.mock('expo-application', ...)` to `settings/index.test.tsx`
   - [x] Add the two new assertions (default/no-suffix, and preview-suffix)
   - [x] Run `pnpm turbo typecheck lint test` and confirm zero regressions
+
+### Review Findings
+
+- [x] [Review][Decision] AC1's "unchanged in practice" claim for `appVersionSource: "remote"` is unverified — RESOLVED, no action needed. Investigated live via `eas build:version:get --platform android|ios` and `eas build:list --limit 20` (2026-09-22): both platforms report "No remote versions are configured for this project," and all 20 most recent builds (May–Sept 2026, `development`/`preview` profiles, both platforms) show `appBuildVersion: "1"` — the native build number has never actually incremented, on any build, regardless of version source. AC1's premise ("EAS continues auto-incrementing... unchanged in practice") doesn't match build history — there was nothing being auto-incremented to begin with. Since no remote counter exists, EAS will auto-initialize it at 1 on the next build and increment cleanly from there; there is no prior state to reset or conflict with. Net effect of this story: the build number will finally start moving instead of staying frozen at 1. [`apps/mobile/eas.json`]
+- [x] [Review][Patch] Accessibility label splices the visual "·" variant suffix into the screen-reader string instead of natural phrasing, and no test asserts on `accessibilityLabel` [apps/mobile/app/(app)/settings/index.tsx:82-86] — fixed: accessibility label now built from a separate comma-joined `variantClause` (e.g. ", preview") distinct from the visual `variantSuffix`; both `versionAccessibilityLabel` i18n keys (en/hi) updated to `{{variantClause}}`; two new tests assert on `accessibilityLabel` content directly via `getByLabelText`.
+- [x] [Review][Patch] `EXPO_PUBLIC_APP_VARIANT` unset/undefined renders a broken variant suffix (literal "undefined" or a dangling " · ") — confirmed reachable in local dev (`apps/mobile/.env.local` sets no `EXPO_PUBLIC_APP_VARIANT`, unlike all four `eas.json` build profiles) [apps/mobile/app/(app)/settings/index.tsx:74-76] — fixed: `showVariant` now guards on `Boolean(appVariant) && appVariant !== 'production'`; new test covers the unset case.
+- [x] [Review][Patch] `epics.md`'s new Story 14.1 section says "Status: backlog" while `sprint-status.yaml` and the story file added in the same commit both say "review" (already implemented) [_bmad-output/planning-artifacts/epics.md] — fixed: updated to "Status: review."
 
 ## Dev Notes
 

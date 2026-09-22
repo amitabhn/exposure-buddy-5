@@ -2693,7 +2693,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 14.1: Surface App Version & Build Number in Settings
 
-**Status: backlog.** Screen in scope: `apps/mobile/app/(app)/settings/index.tsx`. Also touches `apps/mobile/eas.json` (build config) and `apps/mobile/package.json` (new dependency).
+**Status: review.** Screen in scope: `apps/mobile/app/(app)/settings/index.tsx`. Also touches `apps/mobile/eas.json` (build config) and `apps/mobile/package.json` (new dependency).
 
 **Given** `apps/mobile/eas.json`'s `cli` block has no `appVersionSource` set, and every recent EAS build (including the 2026-09-22 `preview` build) prints the warning `The field "cli.appVersionSource" is not set, but it will be required in the future`
 **When** this story is implemented

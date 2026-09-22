@@ -72,17 +72,23 @@ export default function SettingsScreen() {
   // only bare `expo start` under plain Expo Go can leave these null, which is not a
   // supported way to run this app — rendered as-is rather than special-cased.
   const appVariant = process.env.EXPO_PUBLIC_APP_VARIANT
-  const variantSuffix =
-    appVariant !== 'production' ? t('settings.about.variantSuffix', { variant: appVariant }) : ''
+  // Guard against unset/empty (e.g. local `expo start`, which sets no EXPO_PUBLIC_APP_VARIANT)
+  // as well as 'production' — otherwise the suffix would render with an undefined variant name.
+  const showVariant = Boolean(appVariant) && appVariant !== 'production'
+  const variantSuffix = showVariant ? t('settings.about.variantSuffix', { variant: appVariant }) : ''
   const versionText =
     t('settings.about.versionLabel', {
       version: Application.nativeApplicationVersion,
       build: Application.nativeBuildVersion,
     }) + variantSuffix
+  // The accessibility label uses its own comma-joined clause rather than reusing the
+  // visual "·"-punctuated variantSuffix, so screen readers get spoken-language phrasing
+  // distinct from the on-screen text (not just a spliced-in visual separator).
+  const variantClause = showVariant ? `, ${appVariant}` : ''
   const versionAccessibilityLabel = t('settings.about.versionAccessibilityLabel', {
     version: Application.nativeApplicationVersion,
     build: Application.nativeBuildVersion,
-    variantSuffix,
+    variantClause,
   })
 
   return (

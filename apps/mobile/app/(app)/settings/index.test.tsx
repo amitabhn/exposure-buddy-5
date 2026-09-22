@@ -185,5 +185,38 @@ describe('SettingsScreen', () => {
         ),
       ).toBeTruthy()
     })
+
+    it('shows no variant suffix when EXPO_PUBLIC_APP_VARIANT is unset', async () => {
+      delete process.env.EXPO_PUBLIC_APP_VARIANT
+      const { getByText } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(
+        getByText('settings.about.versionLabel:{"version":"1.0.0","build":"42"}'),
+      ).toBeTruthy()
+    })
+
+    it('sets an accessibilityLabel built from a comma-joined variant clause, distinct from the visible text', async () => {
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
+      const { getByLabelText } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(
+        getByLabelText(
+          'settings.about.versionAccessibilityLabel:' +
+            '{"version":"1.0.0","build":"42","variantClause":", preview"}',
+        ),
+      ).toBeTruthy()
+    })
+
+    it('accessibilityLabel has an empty variant clause under a production-like variant', async () => {
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'production'
+      const { getByLabelText } = render(<SettingsScreen />)
+      await act(async () => {})
+      expect(
+        getByLabelText(
+          'settings.about.versionAccessibilityLabel:' +
+            '{"version":"1.0.0","build":"42","variantClause":""}',
+        ),
+      ).toBeTruthy()
+    })
   })
 })
