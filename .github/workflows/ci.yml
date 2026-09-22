@@ -261,6 +261,7 @@ jobs:
           EXPO_PUBLIC_APP_VARIANT="preview" \
           EXPO_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321" \
           EXPO_PUBLIC_FETCH_TIMEOUT_MS="10000" \
+          EXPO_PUBLIC_ENABLE_OTP_SIGNIN="true" \
           EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
           pnpm exec expo prebuild --platform android --clean
           # E2E APK only: allow cleartext HTTP so the app can reach the local Supabase at
@@ -274,6 +275,7 @@ jobs:
           EXPO_PUBLIC_APP_VARIANT="preview" \
           EXPO_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321" \
           EXPO_PUBLIC_FETCH_TIMEOUT_MS="10000" \
+          EXPO_PUBLIC_ENABLE_OTP_SIGNIN="true" \
           EXPO_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk /tmp/exposure-buddy-e2e.apk
