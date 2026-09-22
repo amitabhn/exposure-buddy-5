@@ -178,7 +178,7 @@ development_status:
   # shortcut is currently live against real infrastructure. Epic 2
   # (Authentication & Account Safety) is already done, so this is its own
   # epic rather than reopened there.
-  epic-15: in-progress # 2026-09-22: 15.1 (credential rotation, verified) and 15.2 (dev-shortcut code fix) both in review; 15.3 (OTP gating) in backlog
+  epic-15: in-progress # 2026-09-22: 15.1, 15.2, and 15.3 all implemented and in review
   15-1-rotate-hosted-dev-test-account-credential: review # 2026-09-22: split from the original combined 15.1 (renamed) once rotation closed the urgent exposure; rotated via execute_sql (crypt/gen_salt bcrypt hash), verified live (old credential returns 400 from hosted token endpoint); moved to review per user request
   15-2-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase: review # 2026-09-22: implemented (isLocalSupabaseUrl helper + gated render condition + 3 new tests), 19/19 turbo tasks green, 426/426 mobile tests; follow-up (not blocking): cut + redistribute a fresh preview build so testers stop seeing the now-inert button
-  15-3-hide-otp-sign-in-pending-smtp-provisioning: backlog # 2026-09-22: story file created; user-facing behavior change (hides "use a code instead" for both identifier types, both signup/signin) -- flags need for product sign-off before shipping beyond internal testing
+  15-3-hide-otp-sign-in-pending-smtp-provisioning: review # 2026-09-22: implemented (EXPO_PUBLIC_ENABLE_OTP_SIGNIN flag, default off; gated "use a code instead"; fixed 1 existing test + 3 new tests), 19/19 turbo tasks green, 429/429 mobile tests; USER-FACING behavior change -- needs product sign-off before shipping beyond internal testing

@@ -1,6 +1,6 @@
 # Story 15.3: Hide OTP Sign-In ("Use a Code Instead") Pending SMTP Provisioning
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,18 +34,18 @@ Added 2026-09-22, directly from this session's `deferred-work.md` finding ("beta
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Declare the flag (AC: #1)
-  - [ ] Add `EXPO_PUBLIC_ENABLE_OTP_SIGNIN?: string` to `apps/mobile/src/types/global.d.ts`
-- [ ] Task 2 — Gate the link (AC: #2, #3)
-  - [ ] Wrap the "use a code instead" `TouchableOpacity` in a flag check, rendering `null` when off
-  - [ ] Verify no other code in that render branch changes
-- [ ] Task 3 — Fix the existing test (AC: #4)
-  - [ ] Set the flag to `'true'` in `'renders all four mode x authMethod combinations'`, restore after
-- [ ] Task 4 — New tests (AC: #5, #6)
-  - [ ] Add the three new gating test cases
-  - [ ] Run `pnpm turbo typecheck lint test`, confirm zero regressions
-- [ ] Task 5 — Completion notes (AC: #7)
-  - [ ] Flag the user-facing/product-sign-off distinction explicitly in Dev Agent Record → Completion Notes
+- [x] Task 1 — Declare the flag (AC: #1)
+  - [x] Added `EXPO_PUBLIC_ENABLE_OTP_SIGNIN?: string` to `apps/mobile/src/types/global.d.ts`
+- [x] Task 2 — Gate the link (AC: #2, #3)
+  - [x] Wrapped the "use a code instead" `TouchableOpacity` in `process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN === 'true' ? (...) : null`
+  - [x] No other code in that render branch changed; reducer/`handleSendCode`/`signInWithOtp`/reverse-toggle link all untouched
+- [x] Task 3 — Fix the existing test (AC: #4)
+  - [x] `'renders all four mode x authMethod combinations'` now sets the flag to `'true'` before rendering; a suite-level `afterEach` deletes it after every test
+- [x] Task 4 — New tests (AC: #5, #6)
+  - [x] Added 3 tests in `describe('OTP sign-in gating')`: absent when unset, present when `'true'`, absent when `'false'` (strict-equality check)
+  - [x] `pnpm turbo typecheck lint test` — 19/19 tasks passed, 429/429 mobile tests, zero regressions
+- [x] Task 5 — Completion notes (AC: #7)
+  - [x] See Completion Notes below
 
 ## Dev Notes
 
@@ -106,10 +106,22 @@ Follow the `process.env.X = '...'` + `afterEach` restore pattern Story 15.2 esta
 
 ### Agent Model Used
 
-_(to be filled in by dev-story)_
+Claude Sonnet 5 (interactive session, 2026-09-22)
 
 ### Debug Log References
 
+- `npx jest "app/(auth)/sign-in.test.tsx"` — 15/15 passed (9 original + 3 dev-shortcut + 3 new OTP-gating)
+- `pnpm turbo typecheck lint test` — 19/19 tasks passed, 429/429 mobile tests
+
 ### Completion Notes List
 
+- ⚠️ **User-facing behavior change, not an internal-only fix (unlike Stories 15.1/15.2).** This removes the "use a code instead" sign-in/signup path for every build where `EXPO_PUBLIC_ENABLE_OTP_SIGNIN` isn't explicitly set to `'true'` — which today is every build (no `.env*` file or `eas.json` profile sets it, per the story's explicit scope). **Flag for product sign-off before this ships to any build beyond internal testing** — real users lose an existing sign-in method, even though it was already broken for anyone outside the Supabase org team.
+- Implementation matches Story 15.2's established pattern exactly: a single-purpose gate condition, no changes to underlying logic, `process.env` mutation + `afterEach` restore in tests.
+- The reverse "use a password instead" link required no code change — confirmed unreachable by construction, since `state.authMethod` has no other path to `'otp'`.
+- Both identifier types (email and phone) and both modes (signup and signin) are affected identically, since the gate sits above the single shared toggle — matches the story's documented scope, not an oversight.
+
 ### File List
+
+- `apps/mobile/src/types/global.d.ts` — declared `EXPO_PUBLIC_ENABLE_OTP_SIGNIN`
+- `apps/mobile/app/(auth)/sign-in.tsx` — gated the "use a code instead" link
+- `apps/mobile/app/(auth)/sign-in.test.tsx` — fixed existing OTP test, added 3 new gating tests, added suite-level `afterEach` cleanup

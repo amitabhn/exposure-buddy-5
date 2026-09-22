@@ -505,15 +505,17 @@ export default function SignInScreen() {
               accessibilityLabel={t('auth.password.label')}
               accessibilityHint={t('auth.password.hint')}
             />
-            <TouchableOpacity
-              onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
-              accessibilityRole="button"
-              accessibilityLabel={t('auth.authMethod.switchToOtp')}
-              accessibilityHint={t('auth.authMethod.switchToOtpHint')}
-              accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
-            >
-              <Text style={styles.inlineLink}>{t('auth.authMethod.useCodeInstead')}</Text>
-            </TouchableOpacity>
+            {process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN === 'true' ? (
+              <TouchableOpacity
+                onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
+                accessibilityRole="button"
+                accessibilityLabel={t('auth.authMethod.switchToOtp')}
+                accessibilityHint={t('auth.authMethod.switchToOtpHint')}
+                accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+              >
+                <Text style={styles.inlineLink}>{t('auth.authMethod.useCodeInstead')}</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </>
       ) : (

@@ -118,7 +118,12 @@ describe('SignInScreen', () => {
     mockSignOut.mockResolvedValue(undefined)
   })
 
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN
+  })
+
   it('renders all four mode x authMethod combinations', () => {
+    process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'true'
     const { getByLabelText, getAllByLabelText, queryByLabelText, getByText } = render(<SignInScreen />)
 
     // Default: signup + password (INITIAL_STATE.authMethod is 'password')
@@ -350,6 +355,25 @@ describe('SignInScreen', () => {
       delete process.env.EXPO_PUBLIC_SUPABASE_URL
       const { queryByText } = render(<SignInScreen />)
       expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+  })
+
+  describe('OTP sign-in gating', () => {
+    it('"use a code instead" is absent when EXPO_PUBLIC_ENABLE_OTP_SIGNIN is unset', () => {
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeNull()
+    })
+
+    it('"use a code instead" is present when EXPO_PUBLIC_ENABLE_OTP_SIGNIN is \'true\'', () => {
+      process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'true'
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeTruthy()
+    })
+
+    it('"use a code instead" is absent for any non-\'true\' value (strict equality, not truthy)', () => {
+      process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'false'
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeNull()
     })
   })
 })
