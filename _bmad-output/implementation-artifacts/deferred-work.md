@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: manual signup testing on hosted Supabase (2026-09-22)
+
+_Discovered while manually testing Stories 15.1-15.4 in the iOS Simulator, immediately after the SMTP/Confirm-Email stop-gap above unblocked signup itself: signup then failed a step later with "We couldn't save your consent record. Please try again."_
+
+- **CONFIRMED: zero Edge Functions were deployed on the hosted Supabase project.** `list_edge_functions` against `jhbtzsvlgglyfbrgmpsb` returned an empty list, while the codebase defines 9 under `supabase/functions/`: `consent-record`, `dpo-audit-log`, `dpo-erase-user`, `dpo-export-user`, `dpo-login`, `dpo-logout`, `dpo-panel`, `dpo-pending-requests`, `dpo-request-deletion`. `ConsentRecordService.recordConsent()` → `callEdgeFn('consent-record', ...)` → `client.functions.invoke()` was 404ing against the hosted URL, surfacing as the consent-write error. **This means the entire DPDPA compliance layer (consent recording, data export, account deletion, the DPO operator panel) was non-functional on hosted** — not just the one function that happened to be hit first by a normal signup flow.
+- **✅ Fixed for `consent-record` only (2026-09-22):** deployed `consent-record` to the hosted project (`status: ACTIVE`, verified via `list_edge_functions`) after confirming its only dependencies (`_shared/cors.ts`, `_shared/types.ts`) and that the `consent_records` table's schema matches exactly what it inserts. Confirmed working — signup completes end-to-end now.
+- **⚠️ Still not deployed to hosted (8 functions):** `dpo-audit-log`, `dpo-erase-user`, `dpo-export-user`, `dpo-login`, `dpo-logout`, `dpo-panel`, `dpo-pending-requests`, `dpo-request-deletion`. Unlike `consent-record`, several of these (`dpo-login`, `dpo-panel`) likely need additional secrets/env vars configured on the hosted project (not verified this session) beyond the auto-provided `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`. **Trigger to resolve:** deploy the remaining 8 before relying on any DPO/data-rights flow (account deletion, data export, the operator panel) against the hosted project — none of these have been tested end-to-end on hosted yet.
+
 ## Deferred from: code review of 15-1 through 15-4 (2026-09-22)
 
 _Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...story/15-1-hide-dev-sign-in-shortcut-hosted-supabase`. 5 patches applied inline to their respective story files, 4 deferred below, 6 dismissed as noise/verified-non-issues._
