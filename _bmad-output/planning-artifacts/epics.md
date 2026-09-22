@@ -2686,7 +2686,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.1: Rotate Hosted Dev/Test Account Credential
 
-**Status: review (rotated and verified live 2026-09-22).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
+**Status: done (rotated and verified live 2026-09-22; code review — 0 findings).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
 
 **Given** `test1@test.com` was confirmed as a real, active hosted account (Supabase MCP query, 2026-09-22 — signed in as recently as that same day), and the credential is a literal string in the shipped JS bundle, extractable and usable directly against the hosted Auth REST endpoint regardless of whether the in-app shortcut is visible
 **When** this story is implemented
@@ -2698,7 +2698,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.2: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
 
-**Status: review (implemented 2026-09-22, 19/19 turbo tasks green, 426/426 mobile tests).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation). Split from Story 15.1 (2026-09-22) — the remaining, no-longer-time-critical code half of the original combined story, now that Story 15.1's credential rotation has already closed the more serious (bundle-extraction) exposure.
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 2 patches applied: hostname-parsing fix incl. `localhost` support, and an `EXPO_PUBLIC_APP_VARIANT` AND-gate test; 2 deferred).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation). Split from Story 15.1 (2026-09-22) — the remaining, no-longer-time-critical code half of the original combined story, now that Story 15.1's credential rotation has already closed the more serious (bundle-extraction) exposure.
 
 **Given** the shortcut button today is gated solely on `(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview')`, with no check of which Supabase backend is configured, and both the EAS `preview` build profile and, as of 2026-09-22, local `.env.local` now set `EXPO_PUBLIC_SUPABASE_URL` to the hosted project (`https://jhbtzsvlgglyfbrgmpsb.supabase.co`)
 **When** this story is implemented
@@ -2724,7 +2724,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.3: Hide OTP Sign-In ("Use a Code Instead") Pending SMTP Provisioning
 
-**Status: review (implemented 2026-09-22, 19/19 turbo tasks green, 429/429 mobile tests).** ⚠️ User-facing behavior change — needs product sign-off before shipping beyond internal testing (see story file Completion Notes). Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the `useCodeInstead`/`usePasswordInstead` inline-link toggle, ~lines 492-531). Added 2026-09-22, directly from this session's `deferred-work.md` finding ("beta-readiness investigation into OTP/SMTP delivery") — the same file Story 15.2 already touches, hardening a different affordance on the same screen for the same underlying reason (hosted Supabase has no custom SMTP/domain provisioned).
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 0 patches, 1 deferred).** ⚠️ User-facing behavior change — needs product sign-off before shipping beyond internal testing (see story file Completion Notes). Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the `useCodeInstead`/`usePasswordInstead` inline-link toggle, ~lines 492-531). Added 2026-09-22, directly from this session's `deferred-work.md` finding ("beta-readiness investigation into OTP/SMTP delivery") — the same file Story 15.2 already touches, hardening a different affordance on the same screen for the same underlying reason (hosted Supabase has no custom SMTP/domain provisioned).
 
 **Given** the confirmed finding that email-identifier OTP ("use a code instead") uses the same GoTrue mailer as password reset (Story 10.3's blocker), and without custom SMTP the hosted project's built-in mailer only delivers to the project's Supabase organization team members — every other email address fails outright with "Email address not authorized," not just unreliably
 **When** a beta tester (not an org team member) taps "use a code instead" with an email identifier
@@ -2754,7 +2754,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.4: Password Visibility Toggle
 
-**Status: review (implemented 2026-09-22, 19/19 turbo tasks green, 431/431 mobile tests).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the password `TextInput`, ~line 496-507, inside `styles.passwordRow`). Added 2026-09-22 — requested directly, not discovered via the beta-distribution investigation like Stories 15.1-15.3. Confirmed via `grep`: `sign-in.tsx` is the only file in the app with a `secureTextEntry` field on `main` today, so scope is contained to this one screen. **Deviation from original AC:** `hi.json` was not updated — it has no `auth.password.*` section at all (pre-existing gap, matches Story 12.1 precedent); see story file for detail.
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 3 patches applied: visibility now resets on mode/authMethod/identifierType change, `accessibilityState`, `hitSlop`; 1 deferred).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the password `TextInput`, ~line 496-507, inside `styles.passwordRow`). Added 2026-09-22 — requested directly, not discovered via the beta-distribution investigation like Stories 15.1-15.3. Confirmed via `grep`: `sign-in.tsx` is the only file in the app with a `secureTextEntry` field on `main` today, so scope is contained to this one screen. **Deviation from original AC:** `hi.json` was not updated — it has no `auth.password.*` section at all (pre-existing gap, matches Story 12.1 precedent); see story file for detail.
 
 **Given** the password `TextInput` currently hardcodes `secureTextEntry` (always masked, no way for the user to verify what they typed before submitting)
 **When** this story is implemented

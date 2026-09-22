@@ -95,10 +95,16 @@ function isRateLimitedError(message: string): boolean {
 // Gates the dev/test sign-in shortcut (Story 15.2) — true only for known local/loopback
 // Supabase hosts, so the shortcut never renders against a real hosted backend regardless
 // of __DEV__ or build variant. Fails closed: an unset/empty URL returns false.
+const LOCAL_SUPABASE_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost']
+
 function isLocalSupabaseUrl(url: string | undefined): boolean {
   if (!url) return false
-  // eslint-disable-next-line i18next/no-literal-string
-  return url.includes('127.0.0.1') || url.includes('10.0.2.2')
+  try {
+    // eslint-disable-next-line i18next/no-literal-string
+    return LOCAL_SUPABASE_HOSTS.includes(new URL(url).hostname)
+  } catch {
+    return false
+  }
 }
 
 function classifyPasswordSignInError(message: string): string {
@@ -230,8 +236,14 @@ export default function SignInScreen() {
   }))
 
   // Pure presentational state (Story 15.4) — not wired into the reducer, since it has
-  // no bearing on validation, submission, or any reducer action.
+  // no bearing on validation, submission, or any reducer action. Reset on mode/authMethod/
+  // identifierType changes (review finding) so a revealed password never persists in
+  // plaintext across a signup<->signin switch, an identifier-type switch, or an
+  // OTP<->password round trip.
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  useEffect(() => {
+    setIsPasswordVisible(false)
+  }, [state.mode, state.authMethod, state.identifierType])
 
   // Guards the isAuthenticated transition below from re-entering on every render
   // (reducer/state updates are not synchronous enough to block a second effect
@@ -515,6 +527,8 @@ export default function SignInScreen() {
               accessibilityRole="button"
               accessibilityLabel={t(isPasswordVisible ? 'auth.password.hidePassword' : 'auth.password.showPassword')}
               accessibilityHint={t(isPasswordVisible ? 'auth.password.hidePasswordHint' : 'auth.password.showPasswordHint')}
+              accessibilityState={{ selected: isPasswordVisible }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons
                 name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}

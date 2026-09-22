@@ -336,9 +336,11 @@ describe('SignInScreen', () => {
 
   describe('dev/test sign-in shortcut', () => {
     const originalSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+    const originalAppVariant = process.env.EXPO_PUBLIC_APP_VARIANT
 
     afterEach(() => {
       process.env.EXPO_PUBLIC_SUPABASE_URL = originalSupabaseUrl
+      process.env.EXPO_PUBLIC_APP_VARIANT = originalAppVariant
     })
 
     it('is hidden when EXPO_PUBLIC_SUPABASE_URL points at a hosted Supabase project', () => {
@@ -347,10 +349,35 @@ describe('SignInScreen', () => {
       expect(queryByText('DEV: Sign in as test user')).toBeNull()
     })
 
+    it('is hidden when pointed at a hosted project even with EXPO_PUBLIC_APP_VARIANT explicitly set to preview (proves the AND-gate, not just incidental __DEV__ truthiness under Jest)', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://jhbtzsvlgglyfbrgmpsb.supabase.co'
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL is a generic *.supabase.co hostname', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://some-other-project.supabase.co'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
     it('is shown when EXPO_PUBLIC_SUPABASE_URL points at local Supabase', () => {
       process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321'
       const { queryByText } = render(<SignInScreen />)
       expect(queryByText('DEV: Sign in as test user')).toBeTruthy()
+    })
+
+    it('is shown when EXPO_PUBLIC_SUPABASE_URL points at localhost', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeTruthy()
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL merely contains a local-host substring without being one (e.g. in a query param)', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://hosted.supabase.co/?redirect=http://127.0.0.1:3000'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
     })
 
     it('is hidden (fail closed) when EXPO_PUBLIC_SUPABASE_URL is unset', () => {
@@ -392,6 +419,16 @@ describe('SignInScreen', () => {
       expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(false)
 
       fireEvent.press(getByLabelText('auth.password.hidePassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
+    })
+
+    it('re-masks a revealed password when switching between signup and signin (review finding: prevents a revealed password persisting in plaintext across a mode switch)', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+
+      fireEvent.press(getByLabelText('auth.password.showPassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(false)
+
+      fireEvent.press(getByLabelText('auth.mode.signIn'))
       expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
     })
   })

@@ -1,6 +1,6 @@
 # Story 15.3: Hide OTP Sign-In ("Use a Code Instead") Pending SMTP Provisioning
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -125,3 +125,10 @@ Claude Sonnet 5 (interactive session, 2026-09-22)
 - `apps/mobile/src/types/global.d.ts` — declared `EXPO_PUBLIC_ENABLE_OTP_SIGNIN`
 - `apps/mobile/app/(auth)/sign-in.tsx` — gated the "use a code instead" link
 - `apps/mobile/app/(auth)/sign-in.test.tsx` — fixed existing OTP test, added 3 new gating tests, added suite-level `afterEach` cleanup
+
+### Review Findings
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...story/15-1-hide-dev-sign-in-shortcut-hosted-supabase`. 0 patches, 1 deferred, 1 dismissed (this story's share of a combined 15.1-15.4 review)._
+
+- [x] [Review][Defer] AC #5(c) only tests `'false'` as the non-`'true'` value, not the `'1'` (truthy-numeric-string) example the AC itself names — both exercise the same strict-equality class of bug, so low value-add, but worth adding if this test block is touched again [`apps/mobile/app/(auth)/sign-in.test.tsx`] — deferred, low risk
+- Dismissed: hypothetical "stuck in OTP mode with flag off" concern (verified non-issue — `INITIAL_STATE.authMethod` is always `'password'`, confirmed by direct read of the reducer; the "switch to password" reverse link is unconditionally rendered whenever `authMethod !== 'password'`, so there is no reachable state where a user is stuck in OTP mode with no way back)

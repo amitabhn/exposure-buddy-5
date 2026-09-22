@@ -1,6 +1,6 @@
 # Story 15.4: Password Visibility Toggle
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -127,3 +127,12 @@ Claude Sonnet 5 (interactive session, 2026-09-22)
 - `apps/mobile/app/(auth)/sign-in.tsx` — added `isPasswordVisible` state, imported `Ionicons`, added the toggle button, changed `secureTextEntry`
 - `apps/mobile/app/(auth)/sign-in.test.tsx` — mocked `Ionicons`, added 2 new tests
 - `apps/mobile/src/i18n/locales/en.json` — added 4 new `auth.password.*` keys
+
+### Review Findings
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...story/15-1-hide-dev-sign-in-shortcut-hosted-supabase`. 3 patches, 1 deferred, 0 dismissed (this story's share of a combined 15.1-15.4 review)._
+
+- [x] [Review][Patch] `isPasswordVisible` is never reset when `state.mode`, `state.authMethod`, or `state.identifierType` change — a revealed password can silently persist in plaintext across a signup↔signin mode switch (the password *value* itself also survives that switch, so a revealed signup password stays visible after switching to signin), across an identifier-type switch, and across an OTP↔password round trip that unmounts/remounts the field. Verified by direct execution against the actual reducer. Fix: reset via `useEffect(() => setIsPasswordVisible(false), [state.mode, state.authMethod, state.identifierType])` [`apps/mobile/app/(auth)/sign-in.tsx:234`] — **Fixed exactly as suggested.** New regression test added covering the signup↔signin case.
+- [x] [Review][Patch] Password-visibility toggle has no `accessibilityState` reflecting show/hide state — only the changing `accessibilityLabel` text conveys it; add `accessibilityState={{ selected: isPasswordVisible }}` so assistive tech can discover the state more reliably [`apps/mobile/app/(auth)/sign-in.tsx:513-524`] — **Fixed.**
+- [x] [Review][Patch] Icon-only toggle button has no `hitSlop` — the touch target is smaller than the ~44pt recommended minimum for a button tapped frequently during password entry [`apps/mobile/app/(auth)/sign-in.tsx:513-524`] — **Fixed:** added `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}`.
+- [x] [Review][Defer] Toggling `secureTextEntry` on a controlled `TextInput` is a known RN/Android quirk that can reset cursor position — not addressed or tested by this story; worth a manual on-device check but not a functional break [`apps/mobile/app/(auth)/sign-in.tsx`] — deferred, platform quirk outside current scope

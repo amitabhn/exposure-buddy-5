@@ -1,6 +1,6 @@
 # Story 15.2: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -123,3 +123,13 @@ Claude Sonnet 5 (interactive session, 2026-09-22)
 
 - `apps/mobile/app/(auth)/sign-in.tsx` — added `isLocalSupabaseUrl` helper; updated shortcut's render condition
 - `apps/mobile/app/(auth)/sign-in.test.tsx` — added 3 tests covering hosted/local/unset `EXPO_PUBLIC_SUPABASE_URL` cases
+
+### Review Findings
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...story/15-1-hide-dev-sign-in-shortcut-hosted-supabase`. 2 patches, 2 deferred, 3 dismissed (this story's share of a combined 15.1-15.4 review)._
+
+- [x] [Review][Patch] `isLocalSupabaseUrl` uses raw substring matching instead of hostname parsing — false-positives on hosted URLs containing `127.0.0.1`/`10.0.2.2` as a substring (e.g. a query param), and false-negatives on `localhost`, a common local-Supabase/iOS-simulator value it currently doesn't recognize at all [`apps/mobile/app/(auth)/sign-in.tsx:98-102`] — **Fixed:** now parses `new URL(url).hostname` against an allowlist (`127.0.0.1`, `10.0.2.2`, `localhost`), fails closed on a malformed URL. 4 new tests added (localhost-shown, substring-in-query-param-hidden, plus the generic `*.supabase.co` and variant-AND-gate cases below).
+- [x] [Review][Patch] Story 15.2 AC #4(a)'s "regardless of `EXPO_PUBLIC_APP_VARIANT`" claim is untested — the existing test only varies `EXPO_PUBLIC_SUPABASE_URL`; since `__DEV__` defaults to `true` under the RN Jest preset, the AND-gate's other half is never put under test. Add a case that also sets `EXPO_PUBLIC_APP_VARIANT = 'preview'` alongside a hosted URL to actually prove the gate, not rely on incidental Jest defaults [`apps/mobile/app/(auth)/sign-in.test.tsx`] — **Fixed:** added the test; also added a generic `*.supabase.co` test, incidentally closing the previously-deferred AC #4(a) coverage gap too.
+- [x] [Review][Defer] Test file's env-var cleanup is scattered across two independent `afterEach` blocks (one global for `EXPO_PUBLIC_ENABLE_OTP_SIGNIN`, one scoped for `EXPO_PUBLIC_SUPABASE_URL`) — a real but non-urgent maintainability risk if more env-var-driven tests are added without their own cleanup [`apps/mobile/app/(auth)/sign-in.test.tsx`] — deferred, pre-existing pattern now established across 3 stories, worth a consolidation pass if it grows further
+- [x] [Review][Defer] ~~AC #4(a)'s "or any other `*.supabase.co` value" is only exercised with one literal hosted URL~~ — **resolved as a side effect of the patch pass above**, not left deferred: a generic `*.supabase.co` test was added alongside the `EXPO_PUBLIC_APP_VARIANT` patch [`apps/mobile/app/(auth)/sign-in.test.tsx`]
+- Dismissed: gate/client URL-source divergence concern (verified — `packages/supabase/src/client.ts` reads the identical `process.env['EXPO_PUBLIC_SUPABASE_URL']`, confirmed by direct read); LAN/physical-device coverage gap (matches documented scope — only `127.0.0.1`/`10.0.2.2` were ever declared in-scope local hosts); hardcoded real project ref in test fixture (style-only, not a defect, value isn't sensitive)

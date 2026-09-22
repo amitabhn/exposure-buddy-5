@@ -1,5 +1,14 @@
 # Deferred Work
 
+## Deferred from: code review of 15-1 through 15-4 (2026-09-22)
+
+_Code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `origin/main...story/15-1-hide-dev-sign-in-shortcut-hosted-supabase`. 5 patches applied inline to their respective story files, 4 deferred below, 6 dismissed as noise/verified-non-issues._
+
+- **Test file's env-var cleanup is scattered across independent `afterEach` blocks** (one global for `EXPO_PUBLIC_ENABLE_OTP_SIGNIN`, one scoped for `EXPO_PUBLIC_SUPABASE_URL`) in `apps/mobile/app/(auth)/sign-in.test.tsx` — real but non-urgent maintainability risk if more env-var-driven tests are added without their own cleanup. Worth a consolidation pass (a single shared `beforeEach`/`afterEach` snapshotting and restoring every `EXPO_PUBLIC_*` var this file touches) if it grows further.
+- **Story 15.2 AC #4(a)'s "or any other `*.supabase.co` value" is only exercised with one literal hosted URL**, not a second generic case — low value-add given `isLocalSupabaseUrl` is a simple substring check, but the AC's own wording implies broader coverage.
+- **Story 15.3 AC #5(c) only tests `'false'` as the non-`'true'` value, not the `'1'` (truthy-numeric-string) example the AC itself names** — both exercise the same strict-equality class of bug, so low value-add, but cheap to add if this test block is touched again.
+- **Toggling `secureTextEntry` on a controlled `TextInput` is a known RN/Android quirk that can reset cursor position** (`apps/mobile/app/(auth)/sign-in.tsx`, Story 15.4's new password-visibility toggle) — not addressed or tested; worth a manual on-device check but not a functional break.
+
 ## Deferred from: beta-readiness investigation into OTP/SMTP delivery (2026-09-22)
 
 _Surfaced while investigating whether beta testers could use "use a code instead" (OTP sign-in) given the hosted Supabase project has no custom SMTP/domain provisioned (the same root cause blocking Story 10.3's password-reset flag — see that story and `_bmad-output/planning-artifacts/epics.md`'s FR-AUTH-05 decision record)._
