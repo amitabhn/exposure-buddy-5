@@ -29,11 +29,21 @@ jest.mock('react-i18next', () => ({
 const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
 
+// Auto-fires the 'transitionEnd' listener synchronously by default so every existing test
+// (none of which are testing transition timing itself) behaves as if the screen transition
+// already completed. Tests that specifically cover the transition gate (Story 12.3 AC-B3)
+// override this per-test via mockAddListener.mockImplementation(...).
+const mockAddListener = jest.fn((event: string, callback: (e: { data: { closing: boolean } }) => void) => {
+  if (event === 'transitionEnd') callback({ data: { closing: false } })
+  return jest.fn()
+})
+
 jest.mock('expo-router', () => ({
   Stack: {
     Screen: () => null,
   },
   useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
+  useNavigation: () => ({ addListener: mockAddListener }),
 }))
 
 const mockUseAuth = jest.fn()
@@ -332,6 +342,62 @@ describe('LadderScreen', () => {
 
       expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('accessibility focus retry exhausted'))
+    })
+
+    describe('Screen-transition gate (root-caused 2026-09-21 via on-device VoiceOver/TalkBack testing)', () => {
+      // On-device testing found focus landing on the header back button on both platforms even
+      // though the ref-resolved AccessibilityInfo.setAccessibilityFocus call fired correctly —
+      // the OS's own automatic screen-change focus fires when the native push transition
+      // finishes, which is later than the retry loop's ~160ms window, so it silently overrides
+      // our earlier call. These tests cover the fix: waiting for 'transitionEnd' first.
+      let capturedTransitionEndCallback: ((e: { data: { closing: boolean } }) => void) | null
+
+      beforeEach(() => {
+        capturedTransitionEndCallback = null
+        mockAddListener.mockImplementation((event: string, callback: (e: { data: { closing: boolean } }) => void) => {
+          if (event === 'transitionEnd') capturedTransitionEndCallback = callback
+          return jest.fn()
+        })
+      })
+
+      it('does not set focus until the screen transition completes, even once loading and layout are ready', () => {
+        mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+        render(<LadderScreen />)
+        expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+        act(() => {
+          capturedTransitionEndCallback?.({ data: { closing: false } })
+        })
+
+        expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+      })
+
+      it('ignores a transitionEnd event where closing is true (screen being popped, not pushed in)', () => {
+        mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+        render(<LadderScreen />)
+
+        act(() => {
+          capturedTransitionEndCallback?.({ data: { closing: true } })
+        })
+        expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+        act(() => {
+          capturedTransitionEndCallback?.({ data: { closing: false } })
+        })
+        expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+      })
+
+      it('falls back to setting focus after a fixed delay if transitionEnd never fires', () => {
+        mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
+        render(<LadderScreen />)
+        expect(AccessibilityInfo.setAccessibilityFocus).not.toHaveBeenCalled()
+
+        act(() => {
+          jest.advanceTimersByTime(500)
+        })
+
+        expect(AccessibilityInfo.setAccessibilityFocus).toHaveBeenCalledWith(42)
+      })
     })
   })
 
