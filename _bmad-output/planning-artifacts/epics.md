@@ -2684,7 +2684,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.1: Rotate Hosted Dev/Test Account Credential
 
-**Status: done (2026-09-22).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
+**Status: review (rotated and verified live 2026-09-22).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
 
 **Given** `test1@test.com` was confirmed as a real, active hosted account (Supabase MCP query, 2026-09-22 — signed in as recently as that same day), and the credential is a literal string in the shipped JS bundle, extractable and usable directly against the hosted Auth REST endpoint regardless of whether the in-app shortcut is visible
 **When** this story is implemented
