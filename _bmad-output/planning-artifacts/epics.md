@@ -2754,7 +2754,7 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 
 ### Story 15.4: Password Visibility Toggle
 
-**Status: backlog.** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the password `TextInput`, ~line 496-507, inside `styles.passwordRow`). Added 2026-09-22 — requested directly, not discovered via the beta-distribution investigation like Stories 15.1-15.3. Confirmed via `grep`: `sign-in.tsx` is the only file in the app with a `secureTextEntry` field on `main` today, so scope is contained to this one screen.
+**Status: review (implemented 2026-09-22, 19/19 turbo tasks green, 431/431 mobile tests).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the password `TextInput`, ~line 496-507, inside `styles.passwordRow`). Added 2026-09-22 — requested directly, not discovered via the beta-distribution investigation like Stories 15.1-15.3. Confirmed via `grep`: `sign-in.tsx` is the only file in the app with a `secureTextEntry` field on `main` today, so scope is contained to this one screen. **Deviation from original AC:** `hi.json` was not updated — it has no `auth.password.*` section at all (pre-existing gap, matches Story 12.1 precedent); see story file for detail.
 
 **Given** the password `TextInput` currently hardcodes `secureTextEntry` (always masked, no way for the user to verify what they typed before submitting)
 **When** this story is implemented

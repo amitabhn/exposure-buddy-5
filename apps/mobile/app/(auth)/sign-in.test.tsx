@@ -11,6 +11,8 @@ jest.mock('react-i18next', () => ({
   }),
 }))
 
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons')
+
 const mockRouterReplace = jest.fn()
 const mockRouterPush = jest.fn()
 // A stable object reference, matching real expo-router's useRouter() — the
@@ -374,6 +376,23 @@ describe('SignInScreen', () => {
       process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'false'
       const { queryByLabelText } = render(<SignInScreen />)
       expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeNull()
+    })
+  })
+
+  describe('password visibility toggle', () => {
+    it('masks the password by default', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
+    })
+
+    it('reveals the password when the toggle is tapped, and re-masks it on a second tap', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+
+      fireEvent.press(getByLabelText('auth.password.showPassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(false)
+
+      fireEvent.press(getByLabelText('auth.password.hidePassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
     })
   })
 })

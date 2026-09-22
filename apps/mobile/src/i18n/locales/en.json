@@ -63,7 +63,11 @@
       "signInError": "Failed to sign in. Please try again.",
       "signUpError": "Failed to create your account. Please try again.",
       "signUpUnavailable": "We couldn't create your account with these details. Please try signing in instead, or use a different email or phone number.",
-      "rateLimited": "Too many attempts. Please wait a moment and try again."
+      "rateLimited": "Too many attempts. Please wait a moment and try again.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "showPasswordHint": "Reveals your typed password",
+      "hidePasswordHint": "Masks your typed password"
     },
     "safety": {
       "consentIntro": "We need your confirmation on two things before we create your account.",

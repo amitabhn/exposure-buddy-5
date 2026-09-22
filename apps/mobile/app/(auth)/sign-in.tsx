@@ -1,5 +1,6 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react'
+import { useReducer, useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import Ionicons from '@expo/vector-icons/Ionicons'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth, ConsentRecordService } from '@exposure-buddy/supabase'
@@ -227,6 +228,10 @@ export default function SignInScreen() {
     // eslint-disable-next-line i18next/no-literal-string
     mode: hasAuthedBefore ? 'signin' : 'signup',
   }))
+
+  // Pure presentational state (Story 15.4) — not wired into the reducer, since it has
+  // no bearing on validation, submission, or any reducer action.
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
   // Guards the isAuthenticated transition below from re-entering on every render
   // (reducer/state updates are not synchronous enough to block a second effect
@@ -498,13 +503,25 @@ export default function SignInScreen() {
               value={state.password}
               onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
               onBlur={handlePasswordBlur}
-              secureTextEntry
+              secureTextEntry={!isPasswordVisible}
               autoCapitalize="none"
               autoCorrect={false}
               editable={!state.isLoading}
               accessibilityLabel={t('auth.password.label')}
               accessibilityHint={t('auth.password.hint')}
             />
+            <TouchableOpacity
+              onPress={() => setIsPasswordVisible(v => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={t(isPasswordVisible ? 'auth.password.hidePassword' : 'auth.password.showPassword')}
+              accessibilityHint={t(isPasswordVisible ? 'auth.password.hidePasswordHint' : 'auth.password.showPasswordHint')}
+            >
+              <Ionicons
+                name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={color.content.secondary}
+              />
+            </TouchableOpacity>
             {process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN === 'true' ? (
               <TouchableOpacity
                 onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
