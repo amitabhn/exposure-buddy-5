@@ -9,6 +9,7 @@ declare namespace NodeJS {
     EXPO_PUBLIC_APP_VARIANT?: string
     EXPO_PUBLIC_POWERSYNC_URL?: string
     EXPO_PUBLIC_FETCH_TIMEOUT_MS?: string
+    EXPO_PUBLIC_ENABLE_OTP_SIGNIN?: string
   }
 }
 

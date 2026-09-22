@@ -1,5 +1,6 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react'
+import { useReducer, useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import Ionicons from '@expo/vector-icons/Ionicons'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { createSupabaseClient, useAuth, ConsentRecordService } from '@exposure-buddy/supabase'
@@ -89,6 +90,21 @@ function isRateLimitedError(message: string): boolean {
   const lower = message.toLowerCase()
   // eslint-disable-next-line i18next/no-literal-string
   return lower.includes('rate limit') || lower.includes('security purposes')
+}
+
+// Gates the dev/test sign-in shortcut (Story 15.2) — true only for known local/loopback
+// Supabase hosts, so the shortcut never renders against a real hosted backend regardless
+// of __DEV__ or build variant. Fails closed: an unset/empty URL returns false.
+const LOCAL_SUPABASE_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost']
+
+function isLocalSupabaseUrl(url: string | undefined): boolean {
+  if (!url) return false
+  try {
+    // eslint-disable-next-line i18next/no-literal-string
+    return LOCAL_SUPABASE_HOSTS.includes(new URL(url).hostname)
+  } catch {
+    return false
+  }
 }
 
 function classifyPasswordSignInError(message: string): string {
@@ -218,6 +234,16 @@ export default function SignInScreen() {
     // eslint-disable-next-line i18next/no-literal-string
     mode: hasAuthedBefore ? 'signin' : 'signup',
   }))
+
+  // Pure presentational state (Story 15.4) — not wired into the reducer, since it has
+  // no bearing on validation, submission, or any reducer action. Reset on mode/authMethod/
+  // identifierType changes (review finding) so a revealed password never persists in
+  // plaintext across a signup<->signin switch, an identifier-type switch, or an
+  // OTP<->password round trip.
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  useEffect(() => {
+    setIsPasswordVisible(false)
+  }, [state.mode, state.authMethod, state.identifierType])
 
   // Guards the isAuthenticated transition below from re-entering on every render
   // (reducer/state updates are not synchronous enough to block a second effect
@@ -489,7 +515,7 @@ export default function SignInScreen() {
               value={state.password}
               onChangeText={text => dispatch({ type: 'SET_PASSWORD', payload: text })}
               onBlur={handlePasswordBlur}
-              secureTextEntry
+              secureTextEntry={!isPasswordVisible}
               autoCapitalize="none"
               autoCorrect={false}
               editable={!state.isLoading}
@@ -497,14 +523,30 @@ export default function SignInScreen() {
               accessibilityHint={t('auth.password.hint')}
             />
             <TouchableOpacity
-              onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
+              onPress={() => setIsPasswordVisible(v => !v)}
               accessibilityRole="button"
-              accessibilityLabel={t('auth.authMethod.switchToOtp')}
-              accessibilityHint={t('auth.authMethod.switchToOtpHint')}
-              accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+              accessibilityLabel={t(isPasswordVisible ? 'auth.password.hidePassword' : 'auth.password.showPassword')}
+              accessibilityHint={t(isPasswordVisible ? 'auth.password.hidePasswordHint' : 'auth.password.showPasswordHint')}
+              accessibilityState={{ selected: isPasswordVisible }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text style={styles.inlineLink}>{t('auth.authMethod.useCodeInstead')}</Text>
+              <Ionicons
+                name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={color.content.secondary}
+              />
             </TouchableOpacity>
+            {process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN === 'true' ? (
+              <TouchableOpacity
+                onPress={() => { if (!isAuthMethodOrModeLocked) dispatch({ type: 'SET_AUTH_METHOD', payload: 'otp' }) }}
+                accessibilityRole="button"
+                accessibilityLabel={t('auth.authMethod.switchToOtp')}
+                accessibilityHint={t('auth.authMethod.switchToOtpHint')}
+                accessibilityState={{ disabled: isAuthMethodOrModeLocked }}
+              >
+                <Text style={styles.inlineLink}>{t('auth.authMethod.useCodeInstead')}</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </>
       ) : (
@@ -603,7 +645,8 @@ export default function SignInScreen() {
         <Text style={styles.privacyLinkText}>{t('legal.privacyNotice.title')}</Text>
       </TouchableOpacity>
 
-      {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') ? (
+      {(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview') &&
+      isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? (
         <TouchableOpacity
           style={[
             styles.button,

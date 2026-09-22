@@ -407,6 +407,19 @@ Users get a progressively polished experience across the app's core screens, dri
 
 ---
 
+### Epic 15: Auth Safety Hardening for Hosted-Backend Builds
+
+*(Added 2026-09-22, discovered as a direct consequence of parallel beta-distribution work (tracked separately as Epic 14, on its own not-yet-merged branch): `apps/mobile/(auth)/sign-in.tsx`'s "Sign in as Dev user" shortcut (Story 10.1 Task 5, hardcoded `test1@test.com` / `DevTest123!` one-tap credentials) is gated on `__DEV__ || EXPO_PUBLIC_APP_VARIANT === 'preview'` — a condition with no awareness of which Supabase backend is configured. Both the EAS `preview` profile and, as of this session, local `.env.local` now point at the **hosted** Supabase project rather than a local/ephemeral instance, so the shortcut currently ships live, reachable by any beta tester or local dev, against a real backend. Epic 2 (Authentication & Account Safety) is already marked done, so this is scoped as its own epic rather than reopened there — see `create-story`'s standing rule against adding stories to a completed epic. Takes the next open number after Epic 13 (dormant reservation); may end up adjacent to Epic 14 once both branches merge, whichever lands first.)*
+
+The dev/test sign-in shortcut never renders when the app is configured against the hosted Supabase project, regardless of `__DEV__` or build variant — closing an unintended credential-exposure path opened by pointing preview/dev builds at real infrastructure. **Extended 2026-09-22 (Story 15.3)** to also flag-gate the user-facing "use a code instead" (OTP) sign-in path, hidden pending custom SMTP provisioning on the hosted project — a distinct, user-facing concern from Stories 15.1/15.2's internal dev-shortcut focus, grouped into this epic because it was found via the same investigation and touches the same file. **Extended again 2026-09-22 (Story 15.4)** with a password-visibility toggle on the sign-in screen's password field — requested directly, not discovered via the beta-distribution investigation like 15.1-15.3, and a usability addition rather than a hardening fix; grouped into this epic per explicit direction since it touches the same field on the same screen.
+
+**FRs covered:** FR-DEVAUTH-01, FR-OTPGATE-01, FR-PWDVIS-01
+**Scope note:** This epic hardens the dev shortcut's visibility condition, rotates the hosted account's password (Story 15.1), flag-gates OTP sign-in pending SMTP (Story 15.3), and adds a password-visibility toggle (Story 15.4). It does not remove the dev shortcut itself (still valuable against a genuinely local/ephemeral Supabase instance) or audit for other `__DEV__`-gated affordances beyond what Stories 15.1-15.3 already cover — a broader audit is a natural future story in this epic if more such gaps surface.
+
+**Finding (2026-09-22, confirmed via Supabase MCP against the hosted project):** `test1@test.com` is a real, confirmed account on hosted Supabase — created 2026-05-26, has a password set, and was **signed in as recently as 2026-09-22 09:04 UTC** (the same day this shortcut's exposure was discovered). It currently has zero associated `fear_ladder_items`, `exposure_sessions`, or `consent_records` rows, so no personal/health data is exposed today — but the account is live and reachable by anyone who taps the shortcut or extracts the hardcoded credential from the shipped JS bundle (React Native bundles are not meaningfully obfuscated, so hiding the button alone does not stop a bundle-extraction attack — only the UI-visible path). This is why credential rotation, not just button-hiding, is now in scope.
+
+---
+
 ## Epic 1: Project Foundation & Design System
 
 All developers can build features with confidence: the Turborepo monorepo is live, the tech stack is validated (NativeWind v5 spike resolved or fallback ADR written, library evaluation complete), the design token system is authored with enforced typography restrictions, i18n and accessibility infrastructure is in place, motion and layout foundations are established, the PowerSync SyncAdapter interface is scaffolded, and the Supabase client with base user schema and first RLS policy are provisioned. CI gates, crash reporting, and environment secrets management are active before any feature work begins.
@@ -2658,3 +2671,115 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 **Given** every screen listed above has existing test coverage and none of their underlying logic changes
 **When** this story is implemented
 **Then** no test file needs functional changes — colour values are not asserted by any existing test (confirmed by grep: no test in this diff's scope asserts on a `StyleSheet` colour value or inline style). `pnpm turbo typecheck lint test` passes with zero test changes required, proving the change is colour-only as scoped
+
+---
+
+## Epic 15: Auth Safety Hardening for Hosted-Backend Builds
+
+*(Added 2026-09-22. See Epic List entry above for the discovery context — the dev/test sign-in shortcut's visibility condition has no awareness of which Supabase backend is configured, and both the EAS `preview` profile and local `.env.local` now point at the hosted project. Discovered via parallel beta-distribution work tracked separately as Epic 14, on its own not-yet-merged branch.)*
+
+**FR-DEVAUTH-01:** The dev/test one-tap sign-in shortcut on the sign-in screen never renders when the app is configured against a non-local (hosted) Supabase backend, regardless of `__DEV__` or `EXPO_PUBLIC_APP_VARIANT`.
+
+**FR-OTPGATE-01:** The "use a code instead" (OTP) sign-in/signup option is hidden behind `EXPO_PUBLIC_ENABLE_OTP_SIGNIN` (default off), since email-OTP delivery hard-fails for anyone outside the hosted Supabase project's organization team without custom SMTP, and phone-OTP's SMS delivery status is unverified. Added Story 15.3 (2026-09-22).
+
+**FR-PWDVIS-01:** The sign-in screen's password field has a visibility toggle (show/hide) at the end of the field, so users can verify what they've typed before submitting. Added Story 15.4 (2026-09-22), requested directly rather than discovered via investigation.
+
+### Story 15.1: Rotate Hosted Dev/Test Account Credential
+
+**Status: done (rotated and verified live 2026-09-22; code review — 0 findings).** The operational (non-code) half of the original combined story — split out from the code changes (now Story 15.2) once the rotation closed the urgent part of the exposure and the remaining work became ordinary code cleanup, no longer time-critical.
+
+**Given** `test1@test.com` was confirmed as a real, active hosted account (Supabase MCP query, 2026-09-22 — signed in as recently as that same day), and the credential is a literal string in the shipped JS bundle, extractable and usable directly against the hosted Auth REST endpoint regardless of whether the in-app shortcut is visible
+**When** this story is implemented
+**Then** the hosted account's password is rotated directly on the hosted Supabase project (NOT a code change — the hardcoded client string must stay `DevTest123!` for the local-Supabase case to keep working) to a value that is not `DevTest123!` and is not committed anywhere in the repo. Removing the shortcut or the account entirely remains out of scope (see Epic 15's scope note) — rotation, not removal, is the chosen fix, since the account has zero associated personal/health data and the shortcut has ongoing local-dev value.
+
+**✅ DONE 2026-09-22.** No Admin API MCP tool was available and a throwaway Edge Function would have left uncleanable residue, so the rotation was done via `execute_sql` using `extensions.crypt(new_password, extensions.gen_salt('bf'))` against `auth.users.encrypted_password` — a standard GoTrue-compatible bcrypt hash, not a hashing bypass. Verified live: the old `DevTest123!` credential now returns `400` from the hosted token endpoint. New password shared with the account owner out of band, not committed to the repo.
+
+---
+
+### Story 15.2: Hide Dev Sign-In Shortcut When Pointed at Hosted Supabase
+
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 2 patches applied: hostname-parsing fix incl. `localhost` support, and an `EXPO_PUBLIC_APP_VARIANT` AND-gate test; 2 deferred).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the "DEV: Sign in as test user" `TouchableOpacity`, lines ~606-634 as of this story's creation). Split from Story 15.1 (2026-09-22) — the remaining, no-longer-time-critical code half of the original combined story, now that Story 15.1's credential rotation has already closed the more serious (bundle-extraction) exposure.
+
+**Given** the shortcut button today is gated solely on `(__DEV__ || process.env.EXPO_PUBLIC_APP_VARIANT === 'preview')`, with no check of which Supabase backend is configured, and both the EAS `preview` build profile and, as of 2026-09-22, local `.env.local` now set `EXPO_PUBLIC_SUPABASE_URL` to the hosted project (`https://jhbtzsvlgglyfbrgmpsb.supabase.co`)
+**When** this story is implemented
+**Then** a new local helper (e.g. `isLocalSupabaseUrl(url: string | undefined): boolean`) is added in `sign-in.tsx`, returning `true` only for known local/loopback hosts — `127.0.0.1` (local dev) and `10.0.2.2` (Android emulator, per the `e2e` build profile's `EXPO_PUBLIC_SUPABASE_URL` in `eas.json`) — and `false` for everything else, including any `*.supabase.co` hostname or an unset/empty URL (fail closed — an unset URL must NOT show the shortcut)
+
+**Given** the button's current render condition is `(__DEV__ || variant === 'preview') ? <Button/> : null`
+**When** this story is implemented
+**Then** the condition becomes `(__DEV__ || variant === 'preview') && isLocalSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL) ? <Button/> : null` — the existing `__DEV__`/variant gate is preserved (unchanged behavior for genuinely local dev/preview builds against a local Supabase instance), and the new hosted-URL check is an additional, unconditional AND — never bypassable by either of the existing conditions alone
+
+**Given** the shortcut's `onPress` handler signs in with hardcoded credentials (`test1@test.com` / `DevTest123!`, now rotated on the hosted project per Story 15.1) against whatever `createSupabaseClient()` resolves to at call time
+**When** this story is implemented
+**Then** no code change is made to the `onPress` handler itself, the hardcoded credential string, or the `createSupabaseClient()` call — this story only changes whether the button renders in code, not what it does when pressed; the string stays as-is since it still needs to work against a local Supabase instance
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx` has no existing coverage of this button (confirmed: no test currently asserts on `DEV:`, `test1@test.com`, `__DEV__`, or `EXPO_PUBLIC_APP_VARIANT`) — meaning it has always rendered unconditionally in the Jest environment (`__DEV__` defaults to `true` under the RN Jest preset) with zero regression risk visible in CI today
+**When** this story is implemented
+**Then** new tests are added asserting: (a) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is mocked as the hosted URL (`https://jhbtzsvlgglyfbrgmpsb.supabase.co` or any other `*.supabase.co` value), regardless of `EXPO_PUBLIC_APP_VARIANT`; (b) the button is present when `EXPO_PUBLIC_SUPABASE_URL` is mocked as `http://127.0.0.1:54321` (matching today's already-passing implicit behavior, so this is a regression guard, not new functionality); (c) the button is absent when `EXPO_PUBLIC_SUPABASE_URL` is unset/undefined (fail-closed case). `pnpm turbo typecheck lint test` passes clean
+
+**Given** the already-distributed 2026-09-22 `preview` APK build (`bbd44f6d-afe2-4c41-8ef6-44cfb4963746`) still shows this button in the UI (though it's now harmless — Story 15.1 already rotated the credential it would have signed in with)
+**When** this story is picked up
+**Then** the dev-story agent should flag in its completion notes that a NEW preview build should be cut and redistributed to already-invited testers once this story ships, so the UI itself stops advertising a dev-only affordance to external testers — this is a deployment/communication follow-up, not a code AC, but must not be silently dropped
+
+---
+
+### Story 15.3: Hide OTP Sign-In ("Use a Code Instead") Pending SMTP Provisioning
+
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 0 patches, 1 deferred).** ⚠️ User-facing behavior change — needs product sign-off before shipping beyond internal testing (see story file Completion Notes). Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the `useCodeInstead`/`usePasswordInstead` inline-link toggle, ~lines 492-531). Added 2026-09-22, directly from this session's `deferred-work.md` finding ("beta-readiness investigation into OTP/SMTP delivery") — the same file Story 15.2 already touches, hardening a different affordance on the same screen for the same underlying reason (hosted Supabase has no custom SMTP/domain provisioned).
+
+**Given** the confirmed finding that email-identifier OTP ("use a code instead") uses the same GoTrue mailer as password reset (Story 10.3's blocker), and without custom SMTP the hosted project's built-in mailer only delivers to the project's Supabase organization team members — every other email address fails outright with "Email address not authorized," not just unreliably
+**When** a beta tester (not an org team member) taps "use a code instead" with an email identifier
+**Then** the request silently fails from the tester's perspective — this is a hard, guaranteed-broken path for anyone outside the org, not a flaky one, which is why it's being hidden rather than left as a "might not work" risk (same rationale Story 10.3 already applied to password reset)
+
+**Given** phone-identifier OTP SMS delivery status on the hosted project is confirmed UNVERIFIED (no available tool exposes the Twilio/SMS provider config; indirect signals — zero phone accounts, no recent SMS log activity — are inconclusive either way, per `deferred-work.md`), and the "use a code instead" toggle is a single switch that enables OTP for **both** identifier types and **both** signup and signin (confirmed in code: `state.authMethod` has no identifier-type dimension — the same link governs email-OTP and phone-OTP alike)
+**When** this story is implemented
+**Then** hiding "use a code instead" necessarily hides phone-OTP too, even though its SMS delivery status is unknown rather than confirmed-broken — accepted as the simpler, safer default for a closed beta rather than building identifier-type-specific gating for a path nobody has verified works. Document this tradeoff explicitly in the story so a future story can re-enable phone-OTP specifically once SMS delivery is verified, without needing to re-derive this reasoning
+
+**Given** the codebase has no existing feature-flag env var precedent merged to `main` (Story 10.3's `EXPO_PUBLIC_ENABLE_PASSWORD_RESET` exists only on the unmerged `feature/password-based-login` branch), and this needs to be re-enabled with a single flip once custom SMTP + a verified domain are provisioned (same trigger as Story 10.3 — see FR-AUTH-05's decision record)
+**When** this story is implemented
+**Then** a new env var `EXPO_PUBLIC_ENABLE_OTP_SIGNIN` is declared in `apps/mobile/src/types/global.d.ts` (added to the `NodeJS.ProcessEnv` interface alongside `EXPO_PUBLIC_SUPABASE_URL` etc.) and defaults to hidden/off when unset — i.e. the "use a code instead" link only renders when `process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN === 'true'`. This is a flag-gate, not a backend-URL check (unlike Story 15.2's `isLocalSupabaseUrl`) — deliberately, since "is this hosted Supabase" and "does this project have custom SMTP configured" are only correlated today, not the same fact; a URL-based check would keep hiding OTP even after SMTP is eventually provisioned on the hosted project, requiring the same kind of fix twice. A flag flips cleanly, once
+
+**Given** `state.authMethod` defaults to `'password'` (`INITIAL_STATE`) and `'otp'` is only ever reachable by dispatching `SET_AUTH_METHOD` from the "use a code instead" link's `onPress`
+**When** this story is implemented
+**Then** hiding the link (rendering `null` in its place when the flag is off) is sufficient on its own — `authMethod` can never become `'otp'` through any other path, so the reverse "use a password instead" link (only rendered when `authMethod === 'otp'`) and the OTP send-code submit-button branch both become correctly unreachable without needing their own separate guard. No changes to the reducer, `handleSendCode`, or `signInWithOtp` call itself — this story only changes what's reachable via the UI, not the underlying OTP logic (which stays intact for local/future use)
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx`'s existing test `'renders all four mode x authMethod combinations'` currently exercises OTP mode via `fireEvent.press(getByLabelText('auth.authMethod.switchToOtp'))`, which will no longer exist by default once this story ships (the flag is unset/off in the test environment, same as every other env var this session added tests for)
+**When** this story is implemented
+**Then** that existing test is updated to explicitly set `process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'true'` before rendering (with `afterEach` restore, matching the pattern Story 15.2 already established for `EXPO_PUBLIC_SUPABASE_URL`) — this is a required fix, not optional, since the story would otherwise ship with a broken pre-existing test. New tests are added asserting: (a) "use a code instead" is absent when the flag is unset; (b) it is present when the flag is `'true'`; (c) with the flag off, `getByLabelText('auth.authMethod.switchToOtp')` throws / `queryByLabelText` returns null. `pnpm turbo typecheck lint test` passes clean with zero regressions
+
+**Given** this hides a previously-available sign-in/signup path for real users, not just a dev-only affordance (unlike Story 15.2)
+**When** this story is picked up
+**Then** the dev-story agent should flag in its completion notes that this is a **user-facing behavior change** requiring product sign-off before shipping to any build beyond internal testing, distinct from Story 15.1/15.2's purely internal-risk framing — must not be silently dropped
+
+---
+
+### Story 15.4: Password Visibility Toggle
+
+**Status: done (implemented 2026-09-22, 19/19 turbo tasks green, 436/436 mobile tests; code review — 3 patches applied: visibility now resets on mode/authMethod/identifierType change, `accessibilityState`, `hitSlop`; 1 deferred).** Screen in scope: `apps/mobile/app/(auth)/sign-in.tsx` (the password `TextInput`, ~line 496-507, inside `styles.passwordRow`). Added 2026-09-22 — requested directly, not discovered via the beta-distribution investigation like Stories 15.1-15.3. Confirmed via `grep`: `sign-in.tsx` is the only file in the app with a `secureTextEntry` field on `main` today, so scope is contained to this one screen. **Deviation from original AC:** `hi.json` was not updated — it has no `auth.password.*` section at all (pre-existing gap, matches Story 12.1 precedent); see story file for detail.
+
+**Given** the password `TextInput` currently hardcodes `secureTextEntry` (always masked, no way for the user to verify what they typed before submitting)
+**When** this story is implemented
+**Then** a new local component-level `useState<boolean>(false)` (e.g. `isPasswordVisible`) is added — NOT wired into the existing `State`/`Action`/`reducer` triad, since it's pure presentational UI state with no bearing on validation, submission, or any reducer action; `secureTextEntry` becomes `!isPasswordVisible`
+
+**Given** `styles.passwordRow` is a `flexDirection: 'row'` container with `passwordInput` (`flex: 1`) as its first child, currently followed only by the conditional "use a code instead" link (Story 15.3)
+**When** this story is implemented
+**Then** a new icon-only `TouchableOpacity` is inserted as a sibling immediately after the `TextInput` and before the (still-conditional) "use a code instead" link — since `passwordInput` has `flex: 1`, this new button naturally sits flush against the end of the input, visually "at the end of the password field" as specified, regardless of whether the OTP link is also showing
+
+**Given** `@expo/vector-icons/Ionicons` is already an established dependency in this app (used for tab-bar icons in `apps/mobile/app/(app)/_layout.tsx`, with the existing `focused ? 'home' : 'home-outline'` filled/outline convention)
+**When** this story is implemented
+**Then** the toggle renders `<Ionicons name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'} size={20} color={color.content.secondary} />` — matching the existing outline-icon convention and using an already-available semantic token for color, not a new raw hex value. No new dependency is added
+
+**Given** project convention requires every interactive element to have a stable `accessibilityRole`, `accessibilityLabel`, and `accessibilityHint` (established throughout this screen — see the mode-switch and auth-method-switch buttons)
+**When** this story is implemented
+**Then** the toggle has `accessibilityRole="button"`, `accessibilityLabel={t(isPasswordVisible ? 'auth.password.hidePassword' : 'auth.password.showPassword')}`, and `accessibilityHint={t(isPasswordVisible ? 'auth.password.hidePasswordHint' : 'auth.password.showPasswordHint')}` — toggling on tap via `onPress={() => setIsPasswordVisible(v => !v)}`. Unlike the mode/auth-method switch buttons, this button is NOT disabled during `state.isLoading` — toggling visibility doesn't submit or mutate the password value, so there's no race or double-submit risk to guard against
+
+**Given** project convention requires every user-facing string to use `t()` (CI lint enforced) and Hindi entries duplicate English copy pending Story 9.9's full localisation pass (established precedent — see Story 12.2)
+**When** this story adds `auth.password.showPassword` ("Show password"), `auth.password.hidePassword` ("Hide password"), `auth.password.showPasswordHint` ("Reveals your typed password"), and `auth.password.hidePasswordHint` ("Masks your typed password") keys
+**Then** all four are added to both `apps/mobile/src/i18n/locales/en.json` and `hi.json`
+
+**Given** `apps/mobile/app/(auth)/sign-in.test.tsx` has no existing coverage of `secureTextEntry` or password visibility
+**When** this story is implemented
+**Then** new tests are added asserting: (a) the password field's `secureTextEntry` prop is `true` by default; (b) tapping the toggle (via its `accessibilityLabel`, initially `auth.password.showPassword`) flips `secureTextEntry` to `false`; (c) tapping it again flips back to `true`, with the `accessibilityLabel` toggling correctly between `auth.password.showPassword`/`auth.password.hidePassword` at each step. `pnpm turbo typecheck lint test` passes clean with no regressions
+
+**Given** this is a pure UI addition scoped to a single field on a single screen, with no interaction with the auth reducer, submission logic, or any other story in this epic
+**When** this story is picked up
+**Then** no cross-story coordination or product sign-off is required before shipping (unlike Story 15.3) — this is a straightforward usability improvement, not a behavior removal

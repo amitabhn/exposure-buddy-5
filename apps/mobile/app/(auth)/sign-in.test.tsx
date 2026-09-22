@@ -11,6 +11,8 @@ jest.mock('react-i18next', () => ({
   }),
 }))
 
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons')
+
 const mockRouterReplace = jest.fn()
 const mockRouterPush = jest.fn()
 // A stable object reference, matching real expo-router's useRouter() — the
@@ -118,7 +120,12 @@ describe('SignInScreen', () => {
     mockSignOut.mockResolvedValue(undefined)
   })
 
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN
+  })
+
   it('renders all four mode x authMethod combinations', () => {
+    process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'true'
     const { getByLabelText, getAllByLabelText, queryByLabelText, getByText } = render(<SignInScreen />)
 
     // Default: signup + password (INITIAL_STATE.authMethod is 'password')
@@ -325,5 +332,104 @@ describe('SignInScreen', () => {
     expect(mockSignOut).toHaveBeenCalledTimes(1)
     expect(getByText(/auth\.deletion\.accountPendingDeletion/)).toBeTruthy()
     expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
+  describe('dev/test sign-in shortcut', () => {
+    const originalSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+    const originalAppVariant = process.env.EXPO_PUBLIC_APP_VARIANT
+
+    afterEach(() => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = originalSupabaseUrl
+      process.env.EXPO_PUBLIC_APP_VARIANT = originalAppVariant
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL points at a hosted Supabase project', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://jhbtzsvlgglyfbrgmpsb.supabase.co'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is hidden when pointed at a hosted project even with EXPO_PUBLIC_APP_VARIANT explicitly set to preview (proves the AND-gate, not just incidental __DEV__ truthiness under Jest)', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://jhbtzsvlgglyfbrgmpsb.supabase.co'
+      process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL is a generic *.supabase.co hostname', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://some-other-project.supabase.co'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is shown when EXPO_PUBLIC_SUPABASE_URL points at local Supabase', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeTruthy()
+    })
+
+    it('is shown when EXPO_PUBLIC_SUPABASE_URL points at localhost', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeTruthy()
+    })
+
+    it('is hidden when EXPO_PUBLIC_SUPABASE_URL merely contains a local-host substring without being one (e.g. in a query param)', () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://hosted.supabase.co/?redirect=http://127.0.0.1:3000'
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+
+    it('is hidden (fail closed) when EXPO_PUBLIC_SUPABASE_URL is unset', () => {
+      delete process.env.EXPO_PUBLIC_SUPABASE_URL
+      const { queryByText } = render(<SignInScreen />)
+      expect(queryByText('DEV: Sign in as test user')).toBeNull()
+    })
+  })
+
+  describe('OTP sign-in gating', () => {
+    it('"use a code instead" is absent when EXPO_PUBLIC_ENABLE_OTP_SIGNIN is unset', () => {
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeNull()
+    })
+
+    it('"use a code instead" is present when EXPO_PUBLIC_ENABLE_OTP_SIGNIN is \'true\'', () => {
+      process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'true'
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeTruthy()
+    })
+
+    it('"use a code instead" is absent for any non-\'true\' value (strict equality, not truthy)', () => {
+      process.env.EXPO_PUBLIC_ENABLE_OTP_SIGNIN = 'false'
+      const { queryByLabelText } = render(<SignInScreen />)
+      expect(queryByLabelText('auth.authMethod.switchToOtp')).toBeNull()
+    })
+  })
+
+  describe('password visibility toggle', () => {
+    it('masks the password by default', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
+    })
+
+    it('reveals the password when the toggle is tapped, and re-masks it on a second tap', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+
+      fireEvent.press(getByLabelText('auth.password.showPassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(false)
+
+      fireEvent.press(getByLabelText('auth.password.hidePassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
+    })
+
+    it('re-masks a revealed password when switching between signup and signin (review finding: prevents a revealed password persisting in plaintext across a mode switch)', () => {
+      const { getByLabelText } = render(<SignInScreen />)
+
+      fireEvent.press(getByLabelText('auth.password.showPassword'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(false)
+
+      fireEvent.press(getByLabelText('auth.mode.signIn'))
+      expect(getByLabelText('auth.password.label').props.secureTextEntry).toBe(true)
+    })
   })
 })
