@@ -162,7 +162,11 @@ describe('SettingsScreen', () => {
     const originalAppVariant = process.env.EXPO_PUBLIC_APP_VARIANT
 
     afterEach(() => {
-      process.env.EXPO_PUBLIC_APP_VARIANT = originalAppVariant
+      if (originalAppVariant === undefined) {
+        delete process.env.EXPO_PUBLIC_APP_VARIANT
+      } else {
+        process.env.EXPO_PUBLIC_APP_VARIANT = originalAppVariant
+      }
     })
 
     it('renders version and build with no variant suffix under a production-like variant', async () => {
@@ -170,7 +174,9 @@ describe('SettingsScreen', () => {
       const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
       expect(
-        getByText('settings.about.versionLabel:{"version":"1.0.0","build":"42"}'),
+        getByText(
+          `settings.about.versionLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantSuffix: '' })}`,
+        ),
       ).toBeTruthy()
     })
 
@@ -178,20 +184,27 @@ describe('SettingsScreen', () => {
       process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
       const { getByText } = render(<SettingsScreen />)
       await act(async () => {})
+      const variantSuffix = `settings.about.variantSuffix:${JSON.stringify({ variant: 'preview' })}`
       expect(
         getByText(
-          'settings.about.versionLabel:{"version":"1.0.0","build":"42"}' +
-            'settings.about.variantSuffix:{"variant":"preview"}',
+          `settings.about.versionLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantSuffix })}`,
         ),
       ).toBeTruthy()
     })
 
     it('shows no variant suffix when EXPO_PUBLIC_APP_VARIANT is unset', async () => {
       delete process.env.EXPO_PUBLIC_APP_VARIANT
-      const { getByText } = render(<SettingsScreen />)
+      const { getByText, getByLabelText } = render(<SettingsScreen />)
       await act(async () => {})
       expect(
-        getByText('settings.about.versionLabel:{"version":"1.0.0","build":"42"}'),
+        getByText(
+          `settings.about.versionLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantSuffix: '' })}`,
+        ),
+      ).toBeTruthy()
+      expect(
+        getByLabelText(
+          `settings.about.versionAccessibilityLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantClause: '' })}`,
+        ),
       ).toBeTruthy()
     })
 
@@ -199,10 +212,10 @@ describe('SettingsScreen', () => {
       process.env.EXPO_PUBLIC_APP_VARIANT = 'preview'
       const { getByLabelText } = render(<SettingsScreen />)
       await act(async () => {})
+      const variantClause = `settings.about.variantClause:${JSON.stringify({ variant: 'preview' })}`
       expect(
         getByLabelText(
-          'settings.about.versionAccessibilityLabel:' +
-            '{"version":"1.0.0","build":"42","variantClause":", preview"}',
+          `settings.about.versionAccessibilityLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantClause })}`,
         ),
       ).toBeTruthy()
     })
@@ -213,8 +226,7 @@ describe('SettingsScreen', () => {
       await act(async () => {})
       expect(
         getByLabelText(
-          'settings.about.versionAccessibilityLabel:' +
-            '{"version":"1.0.0","build":"42","variantClause":""}',
+          `settings.about.versionAccessibilityLabel:${JSON.stringify({ version: '1.0.0', build: '42', variantClause: '' })}`,
         ),
       ).toBeTruthy()
     })

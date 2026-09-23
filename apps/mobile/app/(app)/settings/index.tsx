@@ -76,15 +76,15 @@ export default function SettingsScreen() {
   // as well as 'production' — otherwise the suffix would render with an undefined variant name.
   const showVariant = Boolean(appVariant) && appVariant !== 'production'
   const variantSuffix = showVariant ? t('settings.about.variantSuffix', { variant: appVariant }) : ''
-  const versionText =
-    t('settings.about.versionLabel', {
-      version: Application.nativeApplicationVersion,
-      build: Application.nativeBuildVersion,
-    }) + variantSuffix
+  const versionText = t('settings.about.versionLabel', {
+    version: Application.nativeApplicationVersion,
+    build: Application.nativeBuildVersion,
+    variantSuffix,
+  })
   // The accessibility label uses its own comma-joined clause rather than reusing the
   // visual "·"-punctuated variantSuffix, so screen readers get spoken-language phrasing
   // distinct from the on-screen text (not just a spliced-in visual separator).
-  const variantClause = showVariant ? `, ${appVariant}` : ''
+  const variantClause = showVariant ? t('settings.about.variantClause', { variant: appVariant }) : ''
   const versionAccessibilityLabel = t('settings.about.versionAccessibilityLabel', {
     version: Application.nativeApplicationVersion,
     build: Application.nativeBuildVersion,
