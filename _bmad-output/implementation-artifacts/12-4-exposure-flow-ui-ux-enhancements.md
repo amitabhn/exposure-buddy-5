@@ -1,6 +1,6 @@
 # Story 12.4: Exposure Flow — UI/UX Enhancements
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -53,8 +53,8 @@ Full Given/When/Then text lives under Story 12.4 in `_bmad-output/planning-artif
 
 ### T4 — Verification
 
-- [ ] Manual check: `intent.tsx` screen shows new label/placeholder correctly in both English and Hindi locales
-- [ ] Manual check: triggering a debrief save failure shows the corrected copy and (on a real iOS device/simulator with VoiceOver on) is announced automatically
+- [x] Manual check: `intent.tsx` screen shows new label/placeholder correctly in both English and Hindi locales — attempted live on iOS Simulator 2026-09-23, blocked (see Dev Agent Record); closed out via automated `i18n.test.ts` content assertions + `intent.test.tsx` wiring tests, accepted by user
+- [x] Manual check: triggering a debrief save failure shows the corrected copy and (on a real iOS device/simulator with VoiceOver on) is announced automatically — `getAdapter().enqueue()` only throws on a local SQLite error (not network loss), making live reproduction impractical without code instrumentation; closed out via the mocked-rejection `debrief.test.tsx` assertions, accepted by user
 
 ---
 
@@ -80,7 +80,7 @@ Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as th
 ### Completion Notes
 
 - All 3 ACs implemented; `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks, 445 mobile tests, no regressions).
-- T4 (manual device verification) intentionally left unchecked — see status note below.
+- T4 live-device verification attempted 2026-09-23: started local Supabase, launched the app on a booted iPhone 17 Simulator via `xcrun simctl`, confirmed Metro picked up a fresh bundle (44ms incremental rebundle, no more `Network request failed` errors after Supabase came up). Blocked from a visual check: this environment's iOS Simulator integration is disabled by a rollout flag (`iosSimulator: unsupported`), and `Simulator.app`'s GUI process isn't resolvable via Spotlight (`mdfind` returns nothing) — so neither I nor the user had a window to look at in-session. Also determined `getAdapter().enqueue()` (`packages/sync/src/adapter.ts`) writes straight to local SQLite and only throws on a local DB error, not network loss — so even with a working simulator, forcing the debrief save-failure path live isn't practical without code instrumentation (PowerSync's remote sync happens asynchronously and never surfaces to this catch block). Per user decision, both T4 items are closed on the strength of the automated test suite (`i18n.test.ts` content assertions, `intent.test.tsx`/`debrief.test.tsx` wiring + mocked-rejection tests) rather than a live look. User may still spot-check on their own Mac/device outside this session at their discretion.
 
 ### File List
 
@@ -97,3 +97,4 @@ Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as th
 |------|--------|--------|
 | 2026-09-23 | Story scoped from `deferred-work.md` candidates (intent.tsx product feedback + debrief.tsx cross-cutting Story 12.3 review items); status set to ready-for-dev | Amitabh |
 | 2026-09-23 | T1–T3 implemented (AC-A/B/C) and fully tested; `pnpm turbo typecheck lint test` green; T4 manual device checks pending user verification | Claude Sonnet 5 |
+| 2026-09-23 | T4 attempted on iOS Simulator; blocked by this environment's iOS Simulator support being disabled and `getAdapter().enqueue()` being local-SQLite-only (not network-triggerable). Closed both T4 items on automated-test evidence per user decision. Status set to review. | Claude Sonnet 5 |
