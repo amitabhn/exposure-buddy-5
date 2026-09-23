@@ -1,6 +1,6 @@
 # Story 12.4: Exposure Flow — UI/UX Enhancements
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -56,6 +56,39 @@ Full Given/When/Then text lives under Story 12.4 in `_bmad-output/planning-artif
 - [x] Manual check: `intent.tsx` screen shows new label/placeholder correctly in both English and Hindi locales — attempted live on iOS Simulator 2026-09-23, blocked (see Dev Agent Record); closed out via automated `i18n.test.ts` content assertions + `intent.test.tsx` wiring tests, accepted by user
 - [x] Manual check: triggering a debrief save failure shows the corrected copy and (on a real iOS device/simulator with VoiceOver on) is announced automatically — `getAdapter().enqueue()` only throws on a local SQLite error (not network loss), making live reproduction impractical without code instrumentation; closed out via the mocked-rejection `debrief.test.tsx` assertions, accepted by user
 
+### T5 — Code review follow-up: on-device Android verification
+
+- [ ] Physical-device TalkBack check on `debrief.tsx`'s save-failure path: confirm removing `accessibilityLiveRegion="polite"` (in favor of the imperative `AccessibilityInfo.announceForAccessibility` call alone) does not regress the announcement — i.e. the error is still announced exactly once, not zero or two times. Same on-device protocol Story 12.3 used for its AC-B3 verification. Resolves the decision-needed item below.
+
+### Review Findings
+
+_Code review (bmad-code-review, 2026-09-23): Blind Hunter + Edge Case Hunter + Acceptance Auditor, run against `ef7e977..HEAD` (this story's own 3 commits, since local `main` was stale/missing PR #72 — `main...HEAD` would have pulled in 57 unrelated commits). 1 decision-needed, 1 patch, 16 dismissed as noise (verified individually — see below). Decision-needed item resolved by user 2026-09-23: option (c) — get an actual on-device TalkBack verification before closing this story, rather than accepting the hypothesis or reverting the removal blind. Tracked as new T5 above; story stays `in-progress` until T5 passes._
+
+- [x] [Review][Decision] Android `accessibilityLiveRegion="polite"` removal is unverified and exceeds AC-C's additive scope [apps/mobile/app/session/debrief.tsx:90-95] — AC-C only asks to *add* the iOS `announceForAccessibility` call; it doesn't ask to remove Android's existing, previously-working live-region mechanism. T3's own checklist item ("verify Android doesn't double-announce before deciding") is checked `[x]`, but the Dev Agent Record admits this "can't be conclusively verified without a physical device" — the removal was made on an untested hypothesis, not a confirmed finding. **Resolved:** user chose to get an actual on-device TalkBack verification before closing this story (option c) — see new T5.
+
+- [x] [Review][Patch] No test guards the invariant the removal comment claims (`accessibilityLiveRegion` intentionally absent on `saveErrorText`) [apps/mobile/app/session/debrief.test.tsx] — fixed; added "does not set accessibilityLiveRegion on the save-failure text" asserting `errorText.props.accessibilityLiveRegion` is `undefined`; 22/22 debrief.test.tsx tests pass.
+
+<details><summary>16 findings verified and dismissed as noise (false premise, already handled by explicit spec/story decisions, or no realistic production trigger)</summary>
+
+- Claimed repeat-failure silent-announcement bug (React `Object.is` bailout on identical `saveError` string) — **false premise**: `handleSubmitReflection` calls `setSaveError(null)` synchronously at the top of every attempt (debrief.tsx:114, unchanged by this diff), so each retry cycles `null → error → null → error`, which are genuine transitions each time. Repeat failures do re-announce correctly.
+- No test for the "fail, retry, fail again" path — moot per the above; no known bug on that path.
+- `afterEach(() => jest.restoreAllMocks())` scoped to one describe block — verified only one `jest.spyOn` exists in the entire file (the one added by this diff); no other spy exists to be inadvertently affected.
+- `saveFailed` copy ("It's still here") asserts an unverified data-preservation guarantee — verified true: the catch block never clears `state.reflectionText`, so the text genuinely remains in the field.
+- `session.intent.enqueueFailed` left with the same "stored on device/will sync" claim this story just rewrote `saveFailed` to avoid — explicitly out of scope per the story text ("Only `session.debrief.saveFailed` is touched... remain the separately-logged fast-follow").
+- `hi.json` gets new English-only text — explicitly the story's stated convention ("keep that convention, don't attempt a real Hindi translation here").
+- New placeholder copy bakes in a specific self-efficacy statement — the exact wording is specified verbatim in AC-A itself; a critique of the AC's own copy choice, not a code defect.
+- `intent.test.tsx`/`debrief.test.tsx` wiring tests only assert on i18n keys (mocked `t()`), not real copy — explicitly disclosed and mitigated via `i18n.test.ts` content assertions per the Dev Agent Record's "Test coverage decision" section.
+- Comment claims "same pattern as GroundingPrompt/BreathingCoach" is unverifiable from the diff — verified accurate: `GroundingPrompt.tsx` uses imperative-only announcements with no `accessibilityLiveRegion` at all; `BreathingCoach.tsx` has `accessibilityLiveRegion` only on an unrelated `<Text>` (the timer), never on the same node as its imperative announcement.
+- New "does not call announceForAccessibility before any save failure" test lacks `act()`/`waitFor()` wrapping — verified no async work occurs at `DebriefScreen` mount; the synchronous assertion is safe.
+- Removing the `eslint-disable-next-line i18next/no-literal-string` comment alongside the prop it guarded — verified via a direct `eslint` run on all 4 changed source/test files: zero errors or warnings.
+- React 18 effect double-invoke (StrictMode) / Fast Refresh double-announcing — verified `StrictMode` is not used anywhere in the mobile app; Fast Refresh is dev-tooling behavior only, not a production risk.
+- `AccessibilityInfo.announceForAccessibility` throwing — no realistic trigger; it's a stable, always-available core React Native API with no documented failure mode.
+- T4's two "Manual check" subtasks marked `[x]` without the specified live/manual verification being performed — already transparently disclosed in the Dev Agent Record and explicitly accepted by the user ("Closed both T4 items on automated-test evidence per user decision," per the story's own Change Log).
+- T2's `debrief.test.tsx` assertion only proves the translation *key* renders, not the new copy text (due to the mocked `t()` identity function) — already disclosed in the "Test coverage decision" section; the actual copy-accuracy check lives in `i18n.test.ts` as designed.
+- Commit message ("close T4 on automated-test evidence") reads as self-certifying story closure — meta-commentary on the same T4/T2 disclosures above, not a distinct finding.
+
+</details>
+
 ---
 
 ## Dev Notes
@@ -88,7 +121,7 @@ Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as th
 - `apps/mobile/src/i18n/locales/hi.json` — modified (same three keys; `session.debrief.saveFailed` newly added)
 - `apps/mobile/app/session/debrief.tsx` — modified (AccessibilityInfo import, `useEffect` announcement, removed `accessibilityLiveRegion` from saveErrorText)
 - `apps/mobile/app/session/intent.test.tsx` — modified (added AC-A wiring tests)
-- `apps/mobile/app/session/debrief.test.tsx` — modified (added AC-C `announceForAccessibility` tests, replaced obsolete `accessibilityLiveRegion` assertion)
+- `apps/mobile/app/session/debrief.test.tsx` — modified (added AC-C `announceForAccessibility` tests, replaced obsolete `accessibilityLiveRegion` assertion; code-review patch: added test guarding `accessibilityLiveRegion` stays absent on the save-error text)
 - `apps/mobile/src/i18n/i18n.test.ts` — modified (added Story 12.4 locale-content assertions for AC-A/AC-B)
 
 ## Change Log
@@ -98,3 +131,4 @@ Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as th
 | 2026-09-23 | Story scoped from `deferred-work.md` candidates (intent.tsx product feedback + debrief.tsx cross-cutting Story 12.3 review items); status set to ready-for-dev | Amitabh |
 | 2026-09-23 | T1–T3 implemented (AC-A/B/C) and fully tested; `pnpm turbo typecheck lint test` green; T4 manual device checks pending user verification | Claude Sonnet 5 |
 | 2026-09-23 | T4 attempted on iOS Simulator; blocked by this environment's iOS Simulator support being disabled and `getAdapter().enqueue()` being local-SQLite-only (not network-triggerable). Closed both T4 items on automated-test evidence per user decision. Status set to review. | Claude Sonnet 5 |
+| 2026-09-23 | Code review (bmad-code-review: Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `ef7e977..HEAD`. 1 decision-needed resolved (Android `accessibilityLiveRegion="polite"` removal needs an actual on-device TalkBack pass, not just the untested double-announce hypothesis — tracked as new T5), 1 patch applied (added test guarding the invariant that `accessibilityLiveRegion` stays absent on the save-error text), 16 dismissed as noise (all individually verified — see Review Findings). 22/22 `debrief.test.tsx` tests pass. Status set to `in-progress` — T5's on-device TalkBack verification remains outstanding before this story can close. | Claude Sonnet 5 |

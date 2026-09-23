@@ -242,6 +242,16 @@ describe('DebriefScreen — Story 9.6 error paths', () => {
     expect(AccessibilityInfo.announceForAccessibility).not.toHaveBeenCalled()
   })
 
+  it('does not set accessibilityLiveRegion on the save-failure text (Story 12.4 AC-C — imperative announcement only, avoids double-announcing on Android)', async () => {
+    mockEnqueue.mockRejectedValue(new Error('network'))
+    const { getByLabelText, getByText } = render(<DebriefScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('session.debrief.done')) })
+    await waitFor(() => {
+      const errorText = getByText('session.debrief.saveFailed')
+      expect(errorText.props.accessibilityLiveRegion).toBeUndefined()
+    })
+  })
+
   it('shows retry button when enqueue rejects', async () => {
     mockEnqueue.mockRejectedValue(new Error('network'))
     const { getByLabelText } = render(<DebriefScreen />)
