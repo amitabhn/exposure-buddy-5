@@ -1,6 +1,6 @@
 # Story 12.4: Exposure Flow — UI/UX Enhancements
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,22 +34,22 @@ Full Given/When/Then text lives under Story 12.4 in `_bmad-output/planning-artif
 
 ### T1 — intent.tsx copy (AC: A)
 
-- [ ] Update `session.intent.intentionPrompt` in `en.json` and `hi.json`
-- [ ] Update `session.intent.intentionPlaceholder` in `en.json` and `hi.json` to the example-format hint
-- [ ] Confirm no other call site depends on the old prompt/placeholder wording (grep `intentionPrompt`, `intentionPlaceholder`)
-- [ ] Update/add tests in `apps/mobile/app/session/intent.test.tsx` asserting the new label text and accessibility label
+- [x] Update `session.intent.intentionPrompt` in `en.json` and `hi.json`
+- [x] Update `session.intent.intentionPlaceholder` in `en.json` and `hi.json` to the example-format hint
+- [x] Confirm no other call site depends on the old prompt/placeholder wording (grep `intentionPrompt`, `intentionPlaceholder`)
+- [x] Update/add tests in `apps/mobile/app/session/intent.test.tsx` asserting the new label text and accessibility label
 
 ### T2 — debrief.tsx saveFailed copy (AC: B)
 
-- [ ] Update `session.debrief.saveFailed` in `en.json` and `hi.json`
-- [ ] Update/add tests in `apps/mobile/app/session/debrief.test.tsx` asserting the new error copy renders on enqueue failure
+- [x] Update `session.debrief.saveFailed` in `en.json` and `hi.json`
+- [x] Update/add tests in `apps/mobile/app/session/debrief.test.tsx` asserting the new error copy renders on enqueue failure
 
 ### T3 — debrief.tsx iOS announcement (AC: C)
 
-- [ ] Import `AccessibilityInfo` from `react-native` in `debrief.tsx` (if not already imported)
-- [ ] Fire `AccessibilityInfo.announceForAccessibility(saveError)` at the point `saveError` is set in the `catch` block of `handleSubmitReflection` (or via a `useEffect` keyed on `saveError`, whichever keeps `accessibilityLiveRegion` and the imperative announcement from double-firing on Android — verify Android doesn't double-announce before deciding)
-- [ ] Add a test asserting `announceForAccessibility` is called with the error text when `enqueue` throws
-- [ ] `pnpm turbo typecheck lint test` green across all packages/apps
+- [x] Import `AccessibilityInfo` from `react-native` in `debrief.tsx` (if not already imported)
+- [x] Fire `AccessibilityInfo.announceForAccessibility(saveError)` at the point `saveError` is set in the `catch` block of `handleSubmitReflection` (or via a `useEffect` keyed on `saveError`, whichever keeps `accessibilityLiveRegion` and the imperative announcement from double-firing on Android — verify Android doesn't double-announce before deciding)
+- [x] Add a test asserting `announceForAccessibility` is called with the error text when `enqueue` throws
+- [x] `pnpm turbo typecheck lint test` green across all packages/apps
 
 ### T4 — Verification
 
@@ -65,8 +65,35 @@ Full Given/When/Then text lives under Story 12.4 in `_bmad-output/planning-artif
 - `AccessibilityInfo.announceForAccessibility` is the standard RN cross-platform imperative announcement API (works via `UIAccessibilityAnnouncementNotification` on iOS, and posts to the accessibility event stream on Android) — confirm during implementation whether pairing it with the existing `accessibilityLiveRegion="polite"` causes a double-announcement on Android, and if so, prefer the imperative call alone (drop the `accessibilityLiveRegion` prop) rather than keeping both.
 - This story does **not** touch `ladder.saveFailed`/`onboarding.*.saveFailed` — those remain the copy-wide-pass fast-follow already logged in `deferred-work.md`'s Story 12.3 review section.
 
+## Dev Agent Record
+
+### Implementation Plan
+
+- AC-A: changed `session.intent.intentionPrompt` and `session.intent.intentionPlaceholder` in `en.json`/`hi.json` only — confirmed via grep that `intent.tsx` is the only call site (visible label + `TextInput.accessibilityLabel`, both driven by `intentionPrompt`; placeholder drives `TextInput.placeholder`). No JSX changes needed.
+- AC-B: changed `session.debrief.saveFailed` in `en.json`. `hi.json` did not previously define this key at all (fell back to English via i18next's fallback language, unlike `intentionPrompt`/`intentionPlaceholder` which did duplicate English text) — added it to `hi.json` with the same English copy to match the story's stated convention going forward.
+- AC-C: added a `useEffect` in `debrief.tsx` keyed on `saveError` that calls `AccessibilityInfo.announceForAccessibility(saveError)` whenever `saveError` becomes truthy (mirrors the existing `GroundingPrompt`/`BreathingCoach` pattern in `packages/ui`, which already use imperative-only announcements with no `accessibilityLiveRegion` prop on the same node). Removed the `accessibilityLiveRegion="polite"` prop from the `saveErrorText` `<Text>` rather than keeping both — RN's Android live-region announcement and the imperative `announceForAccessibility` call are two independent paths to the same TalkBack event stream, and per the Dev Notes' explicit "prefer imperative alone" fallback, this avoids a plausible double-announcement on Android that can't be conclusively verified without a physical device.
+
+### Test coverage decision (T1/T2)
+
+Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as the identity function (`t: (key) => key`), a pre-existing pattern in this codebase. This means component-level tests can only assert on translation *keys*, not on translated copy — so the AC-A/AC-B copy-accuracy requirement ("new label text", "new error copy") is asserted at the content level in `src/i18n/i18n.test.ts` (new `Story 12.4` describe blocks), which imports the real `en.json`/`hi.json` and checks exact string values. `intent.test.tsx` and `debrief.test.tsx` were still updated per the task list: `intent.test.tsx` gained wiring tests confirming `intentionPrompt` drives both the visible label and `TextInput.accessibilityLabel`, and that `intentionPlaceholder` drives the `TextInput.placeholder`; `debrief.test.tsx` gained the `announceForAccessibility` assertions for AC-C and had its now-invalid `accessibilityLiveRegion="polite"` assertion replaced.
+
+### Completion Notes
+
+- All 3 ACs implemented; `pnpm turbo typecheck lint test` green across all packages/apps (19/19 tasks, 445 mobile tests, no regressions).
+- T4 (manual device verification) intentionally left unchecked — see status note below.
+
+### File List
+
+- `apps/mobile/src/i18n/locales/en.json` — modified (`session.intent.intentionPrompt`, `session.intent.intentionPlaceholder`, `session.debrief.saveFailed`)
+- `apps/mobile/src/i18n/locales/hi.json` — modified (same three keys; `session.debrief.saveFailed` newly added)
+- `apps/mobile/app/session/debrief.tsx` — modified (AccessibilityInfo import, `useEffect` announcement, removed `accessibilityLiveRegion` from saveErrorText)
+- `apps/mobile/app/session/intent.test.tsx` — modified (added AC-A wiring tests)
+- `apps/mobile/app/session/debrief.test.tsx` — modified (added AC-C `announceForAccessibility` tests, replaced obsolete `accessibilityLiveRegion` assertion)
+- `apps/mobile/src/i18n/i18n.test.ts` — modified (added Story 12.4 locale-content assertions for AC-A/AC-B)
+
 ## Change Log
 
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-09-23 | Story scoped from `deferred-work.md` candidates (intent.tsx product feedback + debrief.tsx cross-cutting Story 12.3 review items); status set to ready-for-dev | Amitabh |
+| 2026-09-23 | T1–T3 implemented (AC-A/B/C) and fully tested; `pnpm turbo typecheck lint test` green; T4 manual device checks pending user verification | Claude Sonnet 5 |

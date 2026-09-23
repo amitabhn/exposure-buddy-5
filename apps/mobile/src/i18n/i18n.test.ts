@@ -51,3 +51,38 @@ describe('hi.json partial merge — fallback safety', () => {
     expect(enJson.auth.otp.sendCode).toBe('Send code')
   })
 })
+
+describe('Story 12.4 — session.intent copy (AC-A)', () => {
+  it('en.json intentionPrompt asks the feeling/expectation check-in question', () => {
+    expect(enJson.session.intent.intentionPrompt).toBe(
+      'How are you feeling right now? What do you think will happen?'
+    )
+  })
+
+  it('en.json intentionPlaceholder is an example-format hint, not a restated question', () => {
+    expect(enJson.session.intent.intentionPlaceholder).toBe(
+      'e.g. Nervous my hands will shake, but I can handle it'
+    )
+  })
+
+  it('hi.json duplicates the English intentionPrompt/intentionPlaceholder per existing convention', () => {
+    const hi = hiJson as DeepPartial<typeof enJson>
+    expect(hi.session?.intent?.intentionPrompt).toBe(enJson.session.intent.intentionPrompt)
+    expect(hi.session?.intent?.intentionPlaceholder).toBe(enJson.session.intent.intentionPlaceholder)
+  })
+})
+
+describe('Story 12.4 — session.debrief.saveFailed copy accuracy (AC-B)', () => {
+  it('en.json saveFailed does not falsely claim the reflection is stored/synced', () => {
+    expect(enJson.session.debrief.saveFailed).not.toMatch(/stored on your device/)
+    expect(enJson.session.debrief.saveFailed).not.toMatch(/sync automatically/)
+    expect(enJson.session.debrief.saveFailed).toBe(
+      "We couldn't save your reflection yet. It's still here — tap Try again to save it."
+    )
+  })
+
+  it('hi.json duplicates the English saveFailed copy per existing convention', () => {
+    const hi = hiJson as DeepPartial<typeof enJson>
+    expect(hi.session?.debrief?.saveFailed).toBe(enJson.session.debrief.saveFailed)
+  })
+})
