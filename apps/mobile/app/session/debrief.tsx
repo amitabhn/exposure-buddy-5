@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ScrollView,
   Linking,
+  AccessibilityInfo,
 } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -74,6 +75,16 @@ export default function DebriefScreen() {
     isSubmitting: false,
   })
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // iOS has no equivalent to Android's accessibilityLiveRegion="polite" auto-announce, so fire
+  // the cross-platform imperative announcement here instead (same pattern as GroundingPrompt/
+  // BreathingCoach) — accessibilityLiveRegion is intentionally NOT also set on saveErrorText
+  // below, to avoid a double-announcement on Android.
+  useEffect(() => {
+    if (saveError) {
+      AccessibilityInfo.announceForAccessibility(saveError)
+    }
+  }, [saveError])
 
   // Read letter text once at mount — useState initializer prevents branch flipping on re-renders
   // after clearSessionIntention() fires inside handleSubmitReflection.
@@ -200,11 +211,7 @@ export default function DebriefScreen() {
             />
             {saveError ? (
               <View>
-                <Text
-                  // eslint-disable-next-line i18next/no-literal-string
-                  accessibilityLiveRegion="polite"
-                  style={styles.saveErrorText}
-                >{saveError}</Text>
+                <Text style={styles.saveErrorText}>{saveError}</Text>
                 <Pressable
                   onPress={handleSubmitReflection}
                   disabled={state.isSubmitting}

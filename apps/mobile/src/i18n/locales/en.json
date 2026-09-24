@@ -272,8 +272,8 @@
     "intent": {
       "title": "Before you begin",
       "sudsLabel": "How anxious do you feel right now?",
-      "intentionPrompt": "Would you like to write yourself a note?",
-      "intentionPlaceholder": "What do you expect to feel? What do you want to remember after?",
+      "intentionPrompt": "How are you feeling right now? What do you think will happen?",
+      "intentionPlaceholder": "e.g. Nervous my hands will shake, but I can handle it",
       "intentionRecommended": "Recommended when anxiety is 7 or above — it helps to have words to come back to.",
       "continue": "Continue",
       "enqueueFailed": "We couldn't start your session right now. It's stored on your device and will sync automatically.",
@@ -309,7 +309,7 @@
       "acknowledgement": "You faced what you were afraid of. That matters.",
       "acknowledgementNoImprovement": "You showed up. That takes real courage, even when it's hard.",
       "crisisHeading": "If you need support right now:",
-      "saveFailed": "We couldn't save your reflection. Your session data is stored on your device and will sync automatically.",
+      "saveFailed": "We couldn't save your reflection yet. It's still here — tap Try again to save it.",
       "tryAgain": "Try again"
     },
     "suds": {

@@ -83,6 +83,18 @@ describe('IntentScreen', () => {
     expect(continueBtn.props.accessibilityState?.disabled).toBe(false)
   })
 
+  it('intentionPrompt key drives both the visible label and the TextInput accessibilityLabel', () => {
+    const { getByText, getByLabelText } = render(<IntentScreen />)
+    expect(getByText('session.intent.intentionPrompt')).toBeTruthy()
+    expect(getByLabelText('session.intent.intentionPrompt')).toBeTruthy()
+  })
+
+  it('intentionPlaceholder key drives the TextInput placeholder', () => {
+    const { getByLabelText } = render(<IntentScreen />)
+    const input = getByLabelText('session.intent.intentionPrompt')
+    expect(input.props.placeholder).toBe('session.intent.intentionPlaceholder')
+  })
+
   it('shows intention recommended hint when predictedSuds >= 7', () => {
     useLocalSearchParams.mockReturnValue({
       fearItemId: 'item-uuid-1',
