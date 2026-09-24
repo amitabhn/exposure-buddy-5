@@ -233,6 +233,14 @@ jobs:
   # request); on a pull_request it only runs when the PR carries the `run-e2e` label —
   # add the label and re-run/push to opt a PR in. e2e-smoke needs this job, so it skips
   # automatically (GitHub's default skip-propagation) whenever this is skipped.
+  #
+  # Verification pass (2026-09-24, follow-up to #74): this PR is the no-op change used to
+  # exercise the gate end to end — confirm it's skipped by default, then skipped-again
+  # after adding the `run-e2e` label alone (labeling doesn't re-trigger `pull_request`,
+  # since the workflow's default types are opened/synchronize/reopened), then actually
+  # runs once a new commit lands with the label present. `workflow_dispatch` is also
+  # exercised as a safe proxy for "push to main still runs e2e unconditionally" — same
+  # `github.event_name != 'pull_request'` branch as `push`, without touching `main`.
   e2e-build-apk:
     name: "E2E Build APK"
     runs-on: ubuntu-latest
