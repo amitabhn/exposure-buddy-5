@@ -1,6 +1,6 @@
 # Story 12.4: Exposure Flow — UI/UX Enhancements
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -58,7 +58,7 @@ Full Given/When/Then text lives under Story 12.4 in `_bmad-output/planning-artif
 
 ### T5 — Code review follow-up: on-device Android verification
 
-- [ ] Physical-device TalkBack check on `debrief.tsx`'s save-failure path: confirm removing `accessibilityLiveRegion="polite"` (in favor of the imperative `AccessibilityInfo.announceForAccessibility` call alone) does not regress the announcement — i.e. the error is still announced exactly once, not zero or two times. Same on-device protocol Story 12.3 used for its AC-B3 verification. Resolves the decision-needed item below.
+- [x] Physical-device TalkBack check on `debrief.tsx`'s save-failure path: confirm removing `accessibilityLiveRegion="polite"` (in favor of the imperative `AccessibilityInfo.announceForAccessibility` call alone) does not regress the announcement — i.e. the error is still announced exactly once, not zero or two times. Same on-device protocol Story 12.3 used for its AC-B3 verification. Resolves the decision-needed item below. **PERFORMED 2026-09-24, PASSED.** Physical Redmi K20 Pro (same device as Story 12.3), TalkBack enabled, fresh EAS `development`-profile build (existing installed build had its JS embedded and never connected to Metro — see Dev Agent Record for the full trail). Reached the debrief save-failure state live and re-triggered it via "Try again" with TalkBack on — user confirmed the error is announced exactly once per failure, not zero or two times. AC-C's `accessibilityLiveRegion` removal holds on-device.
 
 ### Review Findings
 
@@ -132,3 +132,4 @@ Both `intent.test.tsx` and `debrief.test.tsx` mock `react-i18next`'s `t()` as th
 | 2026-09-23 | T1–T3 implemented (AC-A/B/C) and fully tested; `pnpm turbo typecheck lint test` green; T4 manual device checks pending user verification | Claude Sonnet 5 |
 | 2026-09-23 | T4 attempted on iOS Simulator; blocked by this environment's iOS Simulator support being disabled and `getAdapter().enqueue()` being local-SQLite-only (not network-triggerable). Closed both T4 items on automated-test evidence per user decision. Status set to review. | Claude Sonnet 5 |
 | 2026-09-23 | Code review (bmad-code-review: Blind Hunter + Edge Case Hunter + Acceptance Auditor) against `ef7e977..HEAD`. 1 decision-needed resolved (Android `accessibilityLiveRegion="polite"` removal needs an actual on-device TalkBack pass, not just the untested double-announce hypothesis — tracked as new T5), 1 patch applied (added test guarding the invariant that `accessibilityLiveRegion` stays absent on the save-error text), 16 dismissed as noise (all individually verified — see Review Findings). 22/22 `debrief.test.tsx` tests pass. Status set to `in-progress` — T5's on-device TalkBack verification remains outstanding before this story can close. | Claude Sonnet 5 |
+| 2026-09-24 | T5 performed and PASSED. The already-installed device build had its JS embedded (never connected to Metro — confirmed via zero bundle-request activity across two `pm clear` + relaunch cycles), so a fresh EAS `development`-profile Android build was kicked off and sideloaded onto the same physical Redmi K20 Pro Story 12.3 used. Along the way, discovered and fixed that `apps/mobile/.env.local` points at the hosted Supabase project despite its name (unrelated pre-existing gap, noted for awareness — not part of this story's scope); reset the hosted `test1@test.com` password via `execute_sql` (same technique as Story 15.1) to sign in. Reached the debrief screen live, forced a real save failure, and re-triggered it with TalkBack on — user confirmed exactly one announcement per failure, not zero or two. All temporary test instrumentation reverted; working tree clean. Status set to `done`. | Claude Sonnet 5 |
