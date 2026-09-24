@@ -265,6 +265,12 @@
       "disabledValue": "अक्षम",
       "am": "AM",
       "pm": "PM"
+    },
+    "about": {
+      "versionLabel": "{{version}} ({{build}}){{variantSuffix}}",
+      "variantSuffix": " · {{variant}}",
+      "variantClause": ", {{variant}}",
+      "versionAccessibilityLabel": "App version {{version}}, build {{build}}{{variantClause}}"
     }
   },
   "reminderSettings": {

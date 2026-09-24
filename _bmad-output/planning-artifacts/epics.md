@@ -407,6 +407,17 @@ Users get a progressively polished experience across the app's core screens, dri
 
 ---
 
+### Epic 14: App Build Versioning & Identification
+
+*(Added 2026-09-22, prompted by the start of ad hoc EAS `preview`-profile builds distributed to beta testers for feedback — there was no way for a tester or the team to tell which build a piece of feedback referred to. Takes the next open number after Epic 13, which remains a dormant reservation.)*
+
+Testers and the team can always identify exactly which build of the app is running: a semantic version plus an EAS-managed, auto-incrementing native build number, surfaced in the Settings screen.
+
+**FRs covered:** FR-VERSION-01
+**Scope note:** Covers a visible build identifier only — not release automation. Semver bumps to `app.config.ts`'s `version` field stay a manual, documented step; CI-driven auto-bumping and an in-app changelog/release-notes surface are both explicitly out of scope for this epic and would need their own story if picked up later.
+
+---
+
 ### Epic 15: Auth Safety Hardening for Hosted-Backend Builds
 
 *(Added 2026-09-22, discovered as a direct consequence of parallel beta-distribution work (tracked separately as Epic 14, on its own not-yet-merged branch): `apps/mobile/(auth)/sign-in.tsx`'s "Sign in as Dev user" shortcut (Story 10.1 Task 5, hardcoded `test1@test.com` / `DevTest123!` one-tap credentials) is gated on `__DEV__ || EXPO_PUBLIC_APP_VARIANT === 'preview'` — a condition with no awareness of which Supabase backend is configured. Both the EAS `preview` profile and, as of this session, local `.env.local` now point at the **hosted** Supabase project rather than a local/ephemeral instance, so the shortcut currently ships live, reachable by any beta tester or local dev, against a real backend. Epic 2 (Authentication & Account Safety) is already marked done, so this is scoped as its own epic rather than reopened there — see `create-story`'s standing rule against adding stories to a completed epic. Takes the next open number after Epic 13 (dormant reservation); may end up adjacent to Epic 14 once both branches merge, whichever lands first.)*
@@ -2671,6 +2682,50 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 **Given** every screen listed above has existing test coverage and none of their underlying logic changes
 **When** this story is implemented
 **Then** no test file needs functional changes — colour values are not asserted by any existing test (confirmed by grep: no test in this diff's scope asserts on a `StyleSheet` colour value or inline style). `pnpm turbo typecheck lint test` passes with zero test changes required, proving the change is colour-only as scoped
+
+---
+
+## Epic 14: App Build Versioning & Identification
+
+*(Added 2026-09-22. See Epic List entry above for the trigger — untracked ad hoc EAS `preview` builds going out to beta testers, with no way to identify which build a piece of feedback came from.)*
+
+**FR-VERSION-01:** The app displays its semantic version and native build number somewhere in-app, so a user or beta tester can always report exactly which build they saw an issue on.
+
+### Story 14.1: Surface App Version & Build Number in Settings
+
+**Status: done.** Screen in scope: `apps/mobile/app/(app)/settings/index.tsx`. Also touches `apps/mobile/eas.json` (build config) and `apps/mobile/package.json` (new dependency).
+
+**Given** `apps/mobile/eas.json`'s `cli` block has no `appVersionSource` set, and every recent EAS build (including the 2026-09-22 `preview` build) prints the warning `The field "cli.appVersionSource" is not set, but it will be required in the future`
+**When** this story is implemented
+**Then** `cli.appVersionSource` is set to `"remote"` in `eas.json` — EAS continues auto-incrementing Android `versionCode` / iOS `buildNumber` per build (today's implicit legacy behavior), but explicitly, silencing the warning and making the versioning scheme's build-number source of truth a documented decision rather than an implicit default
+
+**Given** `apps/mobile/app.config.ts` currently hardcodes `version: '1.0.0'` with no process for when or how it gets bumped
+**When** this story is implemented
+**Then** no bump automation is added (out of scope per the Epic 14 scope note) — instead, a short comment is added above the `version` field in `app.config.ts` documenting the convention: bump this field manually following semver (`MAJOR.MINOR.PATCH`) before any build intended for external distribution; the native build number is handled separately and automatically by EAS per the `appVersionSource` decision above
+
+**Given** the app has no existing way to read the installed build's native version/build number at runtime, and `expo-constants` (already a dependency) only exposes the config-time `version` string, not the EAS-managed native build number
+**When** this story is implemented
+**Then** the `expo-application` package is added as a dependency of `apps/mobile` and used to read `Application.nativeApplicationVersion` (semver, matches `app.config.ts`'s `version` at build time) and `Application.nativeBuildVersion` (the EAS-managed native build number — Android `versionCode` / iOS `buildNumber`)
+
+**Given** `SettingsScreen` (`apps/mobile/app/(app)/settings/index.tsx`) currently ends after the "Privacy" section with no build/version information anywhere
+**When** this story is implemented
+**Then** a new, non-interactive row is added at the bottom of the screen, below the "Privacy" section, showing `{version} ({build})` — e.g. `1.0.0 (42)` — labelled via a new `settings.about.versionLabel` i18n key ("App version"); the row is plain text (no `TouchableOpacity`), since there is nothing to tap — matching the existing `styles.row`/`styles.rowText` pattern used elsewhere on this screen
+
+**Given** the app already reads `EXPO_PUBLIC_APP_VARIANT` (`development` / `preview` / `production`) at runtime for other purposes, and testers specifically receive `preview`-profile builds
+**When** this story is implemented
+**Then** the variant is appended to the same row only when it is not `production` — e.g. `1.0.0 (42) · preview` — via a new `settings.about.variantSuffix` i18n key (`" · {{variant}}"`); production builds show only `{version} ({build})` with no suffix, so end users never see internal build-variant language
+
+**Given** the app's accessibility convention requires every meaningful row to have a stable, complete `accessibilityLabel` rather than relying on visually-adjacent text nodes
+**When** this story is implemented
+**Then** the new row has a single `accessibilityLabel` combining the full text (e.g. "App version 1.0.0, build 42, preview") via a dedicated `settings.about.versionAccessibilityLabel` i18n key with `{{version}}`/`{{build}}`/`{{variant}}` interpolation, distinct from the visible `versionLabel` text — following the same label-vs-display-text separation Story 12.1 established for the identifier field
+
+**Given** project convention requires every user-facing string to use `t()` (CI lint enforced)
+**When** this story adds `settings.about.versionLabel`, `settings.about.variantSuffix`, and `settings.about.versionAccessibilityLabel`
+**Then** all three are added to both `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated in `hi.json`, per the established convention — see Story 12.2)
+
+**Given** `apps/mobile/app/(app)/settings/index.test.tsx`'s existing mocks do not cover `expo-application`
+**When** this story is implemented
+**Then** a `jest.mock('expo-application', ...)` is added returning fixed `nativeApplicationVersion`/`nativeBuildVersion` test values, and a new test asserts the version row renders `{version} ({build})` in the default (production-like) mock environment, plus a second test asserting the ` · preview` suffix appears when `EXPO_PUBLIC_APP_VARIANT` is mocked as `preview`. `pnpm turbo typecheck lint test` passes clean with no regressions to the screen's existing tests
 
 ---
 
