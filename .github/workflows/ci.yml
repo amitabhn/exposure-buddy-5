@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    # Docs/planning-only pushes skip the whole workflow — nothing executable changed.
+    # Only takes effect when EVERY changed file matches one of these patterns.
+    paths-ignore:
+      - '**/*.md'
+      - '_bmad-output/**'
+      - 'docs/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '_bmad-output/**'
+      - 'docs/**'
   workflow_dispatch: {}
 
 env:
@@ -216,10 +226,20 @@ jobs:
   # ─── E2E APK build (Story 9.5) — build the release APK once, share to all shards ────
   # Split out from the emulator job so the ~37 min Gradle build runs once instead of per
   # shard. Uploads the APK as an artifact consumed by every e2e-smoke matrix shard.
+  #
+  # Label-gated (2026-09-24, CI duration analysis 2026-07-15): this job plus its 3
+  # e2e-smoke shards account for most of CI's ~70 min wall time. Runs unconditionally on
+  # push to main (protects the merge target) and on workflow_dispatch (explicit manual
+  # request); on a pull_request it only runs when the PR carries the `run-e2e` label —
+  # add the label and re-run/push to opt a PR in. e2e-smoke needs this job, so it skips
+  # automatically (GitHub's default skip-propagation) whenever this is skipped.
   e2e-build-apk:
     name: "E2E Build APK"
     runs-on: ubuntu-latest
     needs: [build]
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'run-e2e')
     steps:
       - uses: actions/checkout@v4
 
