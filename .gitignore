@@ -63,3 +63,6 @@ supabase/.temp/
 
 # BMad customisation overrides (local-only)
 _bmad/custom/
+
+# Personal working notes (local-only)
+NOTES.md
