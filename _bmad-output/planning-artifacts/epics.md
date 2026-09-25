@@ -221,6 +221,8 @@ FR-DPO-04: Epic 3 — All consent events via consent-record Edge Function exclus
 FR-DPO-05: Epic 3 — Self-hosted HTML DPO operator panel
 FR-DPO-06: Epic 3 — Append-only dpo_audit_log with DPO actions
 FR-DPO-07: Epic 3 — DPO interface deployed and verified before any personal data in production (hard go-live dependency)
+FR-BETA-01: POST-MVP — In-app free-text feedback capture tagged to the exact screen/context deferred; no MVP story. **Decision record (2026-09-25):** FR-BETA-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: scope/priority cut for the initial closed-beta cohort — informal channels (email/chat) are sufficient to collect tester feedback for now, and the structured in-app collection pipeline is not essential to validate the core ERP loop before launch. Epic 11 marked DEFERRED; no stories implemented.
+FR-BETA-02: POST-MVP — First-party-only feedback storage (no third-party form/SaaS) deferred alongside FR-BETA-01; no MVP story. See FR-BETA-01 decision record (2026-09-25) — the same Epic 11 deferral covers both FRs.
 
 **NFR Distribution:**
 
@@ -375,14 +377,16 @@ Users can create an account and sign in with an email or phone number **plus pas
 
 ---
 
-### Epic 11: Beta Feedback Collection
+### Epic 11: Beta Feedback Collection ~~[DEFERRED — post-MVP]~~
 
-*(Pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12 on 2026-07-09, then to Epic 13 on 2026-07-30; see `deferred-work.md`.)*
+*(Was pre-beta must-have, same tier as Epic 10. Epic 10 is claimed by Password-Based Login, not reserved for the ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation moved to Epic 12 on 2026-07-09, then to Epic 13 on 2026-07-30; see `deferred-work.md`.)*
+
+> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-01/FR-BETA-02 decision record in FR Coverage Map. Scope/priority cut — not needed for the initial closed-beta cohort; informal channels (email/chat) cover feedback collection until this is picked back up. No stories implemented.
 
 Beta testers get a low-friction, first-party way to report bugs and impressions tagged to the exact screen they were on — replacing ad hoc channels (WhatsApp, email, third-party forms) with structured feedback that writes directly to Supabase infrastructure already provisioned for the project. The entry point is available on every screen, including mid-exposure-session, and is gated behind an env flag so it never ships to production/GA builds.
 
-**FRs covered:** FR-BETA-01, FR-BETA-02
-**Planning note:** Closed-beta scope only. Unlike the Calm Me SOS overlay, the feedback entry point is deliberately NOT suppressed during an active ERP session — product decision, since testers need to report issues in the moment they occur.
+**FRs deferred:** FR-BETA-01, FR-BETA-02 — see decision record in FR Coverage Map
+**Planning note:** Closed-beta scope only. Unlike the Calm Me SOS overlay, the feedback entry point is deliberately NOT suppressed during an active ERP session — product decision, since testers need to report issues in the moment they occur. (Preserved for when this epic is picked back up.)
 
 ---
 
@@ -2456,11 +2460,15 @@ So that the audit trail stays trustworthy and re-erasure can't mask an operator 
 
 ---
 
-## Epic 11: Beta Feedback Collection
+## Epic 11: Beta Feedback Collection ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-01/FR-BETA-02 decision record in FR Coverage Map. Scope/priority cut — not needed for the initial closed-beta cohort. Neither story below has been implemented; ACs are preserved for when this is picked back up.
 
 Give beta testers a low-friction, first-party way to report bugs and impressions tied to the exact screen they were on. Feedback writes directly to Supabase — no third-party form or feedback SaaS is introduced, avoiding an additional DPDPA data-processor disclosure during closed beta.
 
-### Story 11.1: Feedback Table, RLS & Storage Bucket
+### Story 11.1: Feedback Table, RLS & Storage Bucket ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-02 decision record in FR Coverage Map. No story to implement.
 
 As a developer building the beta feedback pipeline,
 I want a Supabase table and storage bucket dedicated to feedback submissions with RLS policies that only allow authenticated users to insert their own rows,
@@ -2486,7 +2494,9 @@ So that feedback data is captured securely in first-party infrastructure with no
 
 ---
 
-### Story 11.2: In-App Feedback Capture — Entry Point, Screen Auto-Capture & Submission
+### Story 11.2: In-App Feedback Capture — Entry Point, Screen Auto-Capture & Submission ~~[DEFERRED — post-MVP]~~
+
+> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-01 decision record in FR Coverage Map. No story to implement.
 
 As a beta tester,
 I want a persistent feedback button available on every screen — including mid-exposure-session — that opens a lightweight form pre-tagged with the screen I'm on,
