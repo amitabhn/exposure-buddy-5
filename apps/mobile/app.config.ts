@@ -12,6 +12,11 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.exposurebuddy.app',
+    infoPlist: {
+      // App only uses standard HTTPS/TLS (Supabase, Sentry) — no custom/non-exempt
+      // encryption, so this skips the App Store Connect export-compliance question per build.
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: 'com.exposurebuddy.app',
