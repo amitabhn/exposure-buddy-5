@@ -1,4 +1,15 @@
-import type { ExpoConfig } from 'expo/config'
+import type { ConfigPlugin, ExpoConfig } from 'expo/config'
+import { withEntitlementsPlist } from 'expo/config-plugins'
+
+// Free/personal Apple ID teams can never provision the Push Notifications
+// capability, so `expo run:ios --device` fails signing on those accounts.
+// Set EXPO_LOCAL_DEVICE_BUILD=1 to strip aps-environment for local testing;
+// EAS builds (which use a paid team) are unaffected.
+const withoutPushEntitlement: ConfigPlugin = (cfg) =>
+  withEntitlementsPlist(cfg, (mod) => {
+    delete mod.modResults['aps-environment']
+    return mod
+  })
 
 const config: ExpoConfig = {
   name: 'Exposure Buddy',
@@ -27,6 +38,10 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
+    // Mod execution for a given mod type (e.g. entitlements) runs in reverse
+    // plugin-array order, so this must be listed first to run last — after
+    // expo-notifications adds aps-environment below.
+    ...(process.env.EXPO_LOCAL_DEVICE_BUILD === '1' ? [withoutPushEntitlement] : []),
     'expo-dev-client',
     'expo-router',
     'expo-localization',
