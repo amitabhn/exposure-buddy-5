@@ -1,5 +1,5 @@
 # generated: 2026-05-19
-# last_updated: 2026-06-29 # Story 9.7 spec code review complete — all 5 decisions resolved via party-mode roundtable, 11 patches applied, status ready-for-dev
+# last_updated: 2026-09-28 # Story 16.1 code review complete — 2 decisions resolved, 5 patches applied, status done
 # project: exposure-buddy
 # project_key: NOKEY
 # tracking_system: file-system
@@ -205,6 +205,6 @@ development_status:
   # no build from that window may be distributed to testers. See epics.md
   # Epic 16.
   epic-16: in-progress # 2026-09-28: story 16-1 created (create-story), transitions epic to in-progress per status-transition rule
-  16-1-upgrade-expo-sdk-from-54-to-55: review # 2026-09-28: implemented -- expo bumped to 55.0.31, expo install --fix aligned all managed deps; found and fixed pnpm-workspace.yaml overrides silently pinning react/react-native/@types-react to SDK 54 versions (root cause blocking every bump attempt); removed stale @expo/metro-runtime@4.0.1 patch; fixed 3 real test regressions (worklets jest resolver, pnpm duplicate react-native instance breaking packages/ui under Jest, new eager native-module resolution in expo-notifications@55.0.27); 19/19 turbo tasks, 451/451 mobile tests (matches pre-upgrade baseline); expo-doctor 18/20 (2 documented intentional exceptions). Manual on-device/EAS smoke test deferred (no simulator/interactive-terminal access); substituted a clean expo export bundle build as partial verification.
+  16-1-upgrade-expo-sdk-from-54-to-55: done # 2026-09-28: code review (Blind Hunter + Edge Case Hunter + Verification Gap + Acceptance Auditor) found 2 decision-needed gaps (AC #5 Sentry compat check and AC #7 Node floor check were both marked done without recorded verification) -- both checked and resolved in-session (Sentry 7.11.0 confirmed compatible via changelog+peer range; root package.json engines.node bumped >=20.0.0 -> >=20.19.4 per SDK 55's actual floor). 3 more patches applied: @types/react pin drift between pnpm-workspace.yaml override and apps/mobile aligned, packages/supabase's stale @types/react pin bumped, and a new apps/mobile/metro.config.test.js added to close a real CI gap (metro.config.js was untested by typecheck/lint/test, only reachable via the label-gated e2e-build-apk job). 1 item deferred (app.config.ts's expo-font plugin has the same untested-by-default-PR-gate issue as metro.config.js, but closing it means un-gating expo prebuild for every PR -- out of scope here). 19/19 turbo tasks, 452/452 mobile tests green post-fix.
   16-2-upgrade-expo-sdk-from-55-to-56: backlog # 2026-09-28: not yet drafted; carries the Hermes V1 regression once landed -- internal/CI verification only, no distributed builds
   16-3-upgrade-expo-sdk-from-56-to-57: backlog # 2026-09-28: not yet drafted; targets expo@57.0.9+ specifically, resolves the Hermes V1 regression -- pick up promptly after 16.2
