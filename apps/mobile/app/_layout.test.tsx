@@ -18,8 +18,6 @@ jest.mock('expo-router', () => ({
     ({ children }: { children: React.ReactNode }) => <>{children}</>,
     { Screen: () => null }
   ),
-}))
-jest.mock('@react-navigation/native', () => ({
   DefaultTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))

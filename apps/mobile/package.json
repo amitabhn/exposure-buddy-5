@@ -21,11 +21,6 @@
     }
   },
   "expo": {
-    "install": {
-      "exclude": [
-        "react-native-worklets"
-      ]
-    },
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
@@ -43,47 +38,46 @@
     "@exposure-buddy/sync": "workspace:*",
     "@exposure-buddy/ui": "workspace:*",
     "@journeyapps/react-native-quick-sqlite": "^2.5.2",
-    "@react-native-community/datetimepicker": "8.6.0",
-    "@react-navigation/native": "^7.0.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@rn-primitives/portal": "1.4.0",
     "@sentry/react-native": "~7.11.0",
-    "expo": "~55.0.31",
-    "expo-application": "~55.0.19",
-    "expo-constants": "~55.0.17",
-    "expo-dev-client": "^55.0.40",
-    "expo-font": "~55.0.8",
-    "expo-linking": "~55.0.17",
-    "expo-localization": "^55.0.19",
-    "expo-notifications": "~55.0.27",
-    "expo-router": "~55.0.18",
-    "expo-splash-screen": "~55.0.25",
-    "expo-status-bar": "~55.0.6",
+    "expo": "~57.0.25",
+    "expo-application": "~57.0.3",
+    "expo-constants": "~57.0.19",
+    "expo-dev-client": "^57.0.19",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.11",
+    "expo-localization": "^57.0.2",
+    "expo-notifications": "~57.0.21",
+    "expo-router": "~57.0.23",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
     "i18next": "^26.2.0",
-    "react": "19.2.0",
+    "react": "19.2.3",
     "react-i18next": "^17.0.8",
-    "react-native": "0.83.10",
+    "react-native": "0.86.3",
     "react-native-draggable-flatlist": "^4.0.3",
-    "react-native-gesture-handler": "~2.30.1",
-    "react-native-reanimated": "~4.2.1",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0",
-    "react-native-worklets": "~0.8.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "~4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-worklets": "~0.10.1",
     "tslib": "^2.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
-    "@expo/config-plugins": "~55.0.11",
+    "@expo/config-plugins": "~57.0.9",
     "@testing-library/react-native": "^13.0.0",
     "@types/jest": "^29.0.0",
     "@types/react": "~19.2.18",
     "@typescript-eslint/parser": "^8.59.4",
-    "babel-preset-expo": "~55.0.25",
+    "babel-preset-expo": "~57.0.13",
     "eslint": "^8.57.1",
     "eslint-plugin-i18next": "^6.1.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-native-a11y": "^3.5.1",
-    "jest-expo": "~55.0.22",
-    "react-test-renderer": "19.2.0",
-    "typescript": "^5.8.3"
+    "jest-expo": "~57.0.5",
+    "react-test-renderer": "19.2.3",
+    "typescript": "^6.0.3"
   }
 }

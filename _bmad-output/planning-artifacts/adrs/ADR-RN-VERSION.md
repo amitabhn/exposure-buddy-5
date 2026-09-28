@@ -16,16 +16,18 @@ The project requires a pinned React Native and Expo SDK version to be recorded a
 
 | Component | Version | Pin strategy |
 |-----------|---------|--------------|
-| React Native | `0.83.10` | Expo SDK 55 managed — do not upgrade independently |
-| Expo SDK | `55` | Pinned; upgrade only as a coordinated stack bump |
-| Expo Router | `~55.0.18` | File-based routing; tied to Expo SDK 55 |
+| React Native | `0.86.3` | Expo SDK 57 managed — do not upgrade independently |
+| Expo SDK | `57` | Pinned; upgrade only as a coordinated stack bump |
+| Expo Router | `~57.0.23` | File-based routing; tied to Expo SDK 57 |
 | NativeWind | `5.0.0-preview.3` | Pre-release; pin to exact version |
 | PowerSync SDK | `@powersync/react-native@1.34.0` | Pin to exact version |
 | Node runtime | `20+` | LTS minimum |
 
-React Native version is **not managed directly** — it is determined by the Expo SDK version. Expo SDK 55 ships React Native 0.83.10. Any React Native upgrade must go through an Expo SDK upgrade.
+React Native version is **not managed directly** — it is determined by the Expo SDK version. Expo SDK 57 ships React Native 0.86.3. Any React Native upgrade must go through an Expo SDK upgrade.
 
-**Updated 2026-09-28 (Story 16.1, Epic 16):** bumped from Expo SDK 54 / RN 0.81 to Expo SDK 55 / RN 0.83.10 — the first of three sequential SDK-hop stories toward SDK 57 (16.1: 54→55 — this update; 16.2: 55→56; 16.3: 56→57). See Epic 16 in `epics.md` for the full upgrade rationale, including the known accepted risk that Story 16.2 will transiently carry a Hermes V1 memory regression until Story 16.3 lands on `expo@57.0.9`+.
+**Updated 2026-09-28 (Story 16.1, Epic 16):** bumped from Expo SDK 54 / RN 0.81 to Expo SDK 55 / RN 0.83.10 — originally planned as the first of three sequential SDK-hop stories toward SDK 57.
+
+**Updated 2026-09-28 (Story 16.2, Epic 16 — final hop):** bumped directly from Expo SDK 55 / RN 0.83.10 to Expo SDK 57.0.25 / RN 0.86.3, skipping SDK 56 entirely, per the `expo-upgrade` skill's explicit guidance that SDK 56 and pre-`.0.9` SDK 57 releases carry a Hermes V1 memory regression affecting `react-native-worklets`/`react-native-reanimated`. Landing directly on `expo@57.0.25` (well above the `.0.9` floor) means this regression was never installed at any point — no transient risk window, unlike the originally planned 55→56→57 path. **Epic 16 (Expo SDK upgrade) is now complete; no further SDK hop is planned.** Expo Router's dependency on React Navigation was also removed at the SDK 56 boundary — `apps/mobile/app/_layout.tsx`'s `DefaultTheme`/`ThemeProvider` imports were migrated from `@react-navigation/native` to `expo-router` directly (the non-deprecated re-export), and the direct `@react-navigation/native` dependency was removed from `apps/mobile/package.json`.
 
 ---
 

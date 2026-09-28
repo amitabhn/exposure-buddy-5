@@ -77,7 +77,8 @@ describe('GroundingScreen', () => {
     render(<GroundingScreen />)
     expect(mockAddEventListener).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function))
     const handler = mockAddEventListener.mock.calls[0]?.[1]
-    expect(handler?.()).toBe(true)
+    // RN's HardwareBackPressEvent handler signature now takes an event arg (unused by this handler).
+    expect(handler?.({ type: 'hardwareBackPress', timeStamp: 0 })).toBe(true)
   })
 
   it('tapping Breathing pushes to /calm-me/breathing', () => {

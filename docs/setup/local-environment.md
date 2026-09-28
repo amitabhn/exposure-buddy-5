@@ -106,7 +106,7 @@ Story 2.4 introduced a duplicate `nav` key by accident — the second definition
 pnpm's strict isolation means `react-native-worklets` (a peer dep of `react-native-reanimated`) is not hoisted to where CocoaPods' node resolution can find it. The fix is already applied — `react-native-worklets` is declared as a direct dependency in `apps/mobile/package.json`. If you see this error after a `pnpm install` that removes it, re-add it:
 
 ```bash
-pnpm --filter exposure-buddy-mobile add react-native-worklets@~0.8.3
+pnpm --filter exposure-buddy-mobile add react-native-worklets@~0.10.1
 cd apps/mobile/ios && pod install
 ```
 

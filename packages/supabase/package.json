@@ -14,7 +14,7 @@
   "dependencies": {
     "@exposure-buddy/core": "workspace:*",
     "@supabase/supabase-js": "^2.106.1",
-    "expo-secure-store": "~14.0.0",
+    "expo-secure-store": "~57.0.4",
     "react-native-mmkv": "^3"
   },
   "peerDependencies": {
@@ -26,8 +26,8 @@
     "@types/react": "^19.2.0",
     "@typescript-eslint/parser": "^8.59.4",
     "eslint": "^8.57.0",
-    "react": "19.2.0",
-    "react-test-renderer": "19.2.0",
+    "react": "19.2.3",
+    "react-test-renderer": "19.2.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

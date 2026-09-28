@@ -104,7 +104,7 @@ function checkSafetyBoxes(getByLabelText: (label: string) => unknown) {
 // (both read auth.otp.emailLabel), so getByLabelText alone is ambiguous — filter
 // getAllByLabelText's matches down to the actual TextInput.
 function getIdentifierInput(getAllByLabelText: GetAllByLabelText): TestElement {
-  const input = getAllByLabelText('auth.otp.emailLabel').find(el => el.type === 'TextInput')
+  const input = getAllByLabelText('auth.otp.emailLabel').find(el => (el.type as unknown) === 'TextInput')
   if (!input) throw new Error('identifier TextInput not found')
   return input
 }
