@@ -435,6 +435,19 @@ The dev/test sign-in shortcut never renders when the app is configured against t
 
 ---
 
+### Epic 16: Expo SDK 57 Upgrade
+
+*(Added 2026-09-28, prompted by opening a dedicated upgrade branch/worktree (`chore/expo-sdk-57-upgrade`) ahead of any code changes — this epic formalizes that upgrade as planned, trackable work rather than an untracked branch. Takes the next open number after Epic 15; Epic 13 remains a dormant reservation.)*
+
+The mobile app runs on Expo SDK 57 — and the React Native, Expo Router, and other Expo-managed package versions it requires — with no functional or visual regression versus the current Expo SDK 54 baseline (`apps/mobile/package.json`: `expo ~54.0.0`, `react-native 0.81.5`, `expo-router ~6.0.23`).
+
+**FR-EXPOSDK-01:** The app builds, runs, and passes its full test/typecheck/lint suite on Expo SDK 57, with no user-visible regression in any existing screen or flow.
+
+**FRs covered:** FR-EXPOSDK-01
+**Scope note:** Covers the SDK/dependency upgrade itself and the regression verification needed to ship it safely — not new features enabled by the upgrade. This is a three-major-SDK-version jump (54 is current; 55 and 56 were never adopted), so per Expo's own upgrade guidance, stories in this epic should sequence through each intermediate SDK version (54→55, 55→56, 56→57) rather than attempting a single 54→57 jump in one story; the exact story breakdown is TBD when stories are drafted. Native-module or config-plugin incompatibilities surfaced mid-upgrade may warrant their own follow-up story rather than blocking this epic's completion.
+
+---
+
 ## Epic 1: Project Foundation & Design System
 
 All developers can build features with confidence: the Turborepo monorepo is live, the tech stack is validated (NativeWind v5 spike resolved or fallback ADR written, library evaluation complete), the design token system is authored with enforced typography restrictions, i18n and accessibility infrastructure is in place, motion and layout foundations are established, the PowerSync SyncAdapter interface is scaffolded, and the Supabase client with base user schema and first RLS policy are provisioned. CI gates, crash reporting, and environment secrets management are active before any feature work begins.
@@ -2862,3 +2875,13 @@ A living backlog of screen-level UI/UX improvements driven by real usage feedbac
 **Given** this is a pure UI addition scoped to a single field on a single screen, with no interaction with the auth reducer, submission logic, or any other story in this epic
 **When** this story is picked up
 **Then** no cross-story coordination or product sign-off is required before shipping (unlike Story 15.3) — this is a straightforward usability improvement, not a behavior removal
+
+---
+
+## Epic 16: Expo SDK 57 Upgrade
+
+*(Added 2026-09-28. See Epic List entry above for context — a dedicated upgrade branch/worktree (`chore/expo-sdk-57-upgrade`) was opened before any code changes were made; this epic formalizes that work.)*
+
+**FR-EXPOSDK-01:** The app builds, runs, and passes its full test/typecheck/lint suite on Expo SDK 57, with no user-visible regression in any existing screen or flow.
+
+No stories have been drafted yet. Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, `react-native 0.81.5`, `expo-router ~6.0.23`, `react 19.1.0`. Per Epic 16's scope note in the Epic List, this is a three-major-SDK-version jump (54 → 55 → 56 → 57) — story breakdown should sequence through each intermediate SDK version rather than a single 54→57 jump.

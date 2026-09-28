@@ -191,3 +191,11 @@ development_status:
   15-2-hide-dev-sign-in-shortcut-when-pointed-at-hosted-supabase: done # 2026-09-22: implemented (isLocalSupabaseUrl helper + gated render condition), 19/19 turbo tasks green, 436/436 mobile tests. Code review: 2 patches applied (hostname parsing incl. localhost support; added EXPO_PUBLIC_APP_VARIANT AND-gate test), 2 deferred (scattered env-var test cleanup, low-value coverage gap). Follow-up (not blocking): cut + redistribute a fresh preview build so testers stop seeing the now-inert button
   15-3-hide-otp-sign-in-pending-smtp-provisioning: done # 2026-09-22: implemented (EXPO_PUBLIC_ENABLE_OTP_SIGNIN flag, default off; gated "use a code instead"). Code review: 0 patches, 1 deferred (minor test-coverage gap), 1 dismissed (verified no "stuck in OTP mode" path exists). USER-FACING behavior change -- needs product sign-off before shipping beyond internal testing
   15-4-password-visibility-toggle: done # 2026-09-22: implemented (isPasswordVisible local state, Ionicons eye/eye-off toggle, 4 new en.json keys); hi.json intentionally not updated (pre-existing auth.password gap, matches Story 12.1 precedent). Code review: 3 patches applied (reset visibility on mode/authMethod/identifierType change -- real privacy/shoulder-surfing fix caught by Edge Case Hunter; added accessibilityState; added hitSlop), 1 deferred (Android secureTextEntry cursor-reset quirk)
+
+  # ─── Epic 16: Expo SDK 57 Upgrade ─────────────────────────────────────────
+  # Added 2026-09-28, prompted by opening a dedicated upgrade branch/worktree
+  # (chore/expo-sdk-57-upgrade) ahead of any code changes. Baseline as of
+  # creation: expo ~54.0.0, react-native 0.81.5, expo-router ~6.0.23 -- a
+  # three-major-SDK-version jump (54->55->56->57); see epics.md Epic 16 scope
+  # note on sequencing stories through each intermediate SDK version.
+  epic-16: backlog # 2026-09-28: epic created, no stories drafted yet
