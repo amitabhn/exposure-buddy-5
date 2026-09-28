@@ -195,7 +195,16 @@ development_status:
   # ─── Epic 16: Expo SDK 57 Upgrade ─────────────────────────────────────────
   # Added 2026-09-28, prompted by opening a dedicated upgrade branch/worktree
   # (chore/expo-sdk-57-upgrade) ahead of any code changes. Baseline as of
-  # creation: expo ~54.0.0, react-native 0.81.5, expo-router ~6.0.23 -- a
-  # three-major-SDK-version jump (54->55->56->57); see epics.md Epic 16 scope
-  # note on sequencing stories through each intermediate SDK version.
-  epic-16: backlog # 2026-09-28: epic created, no stories drafted yet
+  # creation: expo ~54.0.0, react-native 0.81.5, expo-router ~6.0.23. Done as
+  # 3 sequential stories (54->55, 55->56, 56->57) per Expo's general
+  # incremental-upgrade guidance -- explicit user decision 2026-09-28 after
+  # reviewing the tradeoff against a direct 54->57 jump. Known accepted risk:
+  # SDK 56 and pre-57.0.9 SDK 57 carry a Hermes V1 memory regression
+  # affecting react-native-worklets/react-native-reanimated (both used here)
+  # -- the app carries this regression between 16.2 landing and 16.3 landing;
+  # no build from that window may be distributed to testers. See epics.md
+  # Epic 16.
+  epic-16: in-progress # 2026-09-28: story 16-1 created (create-story), transitions epic to in-progress per status-transition rule
+  16-1-upgrade-expo-sdk-from-54-to-55: ready-for-dev # 2026-09-28: story file created via bmad-create-story; researched using the official expo-upgrade Claude Code skill (github.com/expo/skills). First of 3 sequential SDK-hop stories.
+  16-2-upgrade-expo-sdk-from-55-to-56: backlog # 2026-09-28: not yet drafted; carries the Hermes V1 regression once landed -- internal/CI verification only, no distributed builds
+  16-3-upgrade-expo-sdk-from-56-to-57: backlog # 2026-09-28: not yet drafted; targets expo@57.0.9+ specifically, resolves the Hermes V1 regression -- pick up promptly after 16.2

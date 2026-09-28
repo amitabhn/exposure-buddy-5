@@ -1,0 +1,122 @@
+# Story 16.1: Upgrade Expo SDK from 54 to 55
+
+Status: ready-for-dev
+
+<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+
+## Story
+
+As the engineering team maintaining the mobile app,
+I want the app upgraded from Expo SDK 54 to Expo SDK 55 (the first of three sequential SDK hops toward 57),
+so that we can isolate any regression to this specific SDK boundary before moving further, per Expo's general incremental-upgrade guidance.
+
+## Context
+
+Added 2026-09-28. Full epic rationale: `_bmad-output/planning-artifacts/epics.md` → "Epic 16: Expo SDK 57 Upgrade" / "Story 16.1". This is the first of three sequential stories planned for Epic 16 (16.1: 54→55, 16.2: 55→56, 16.3: 56→57).
+
+**Why incremental, not a direct 54→57 jump:** researching this story with the official `expo-upgrade` Claude Code skill (`github.com/expo/skills`) surfaced that SDK 56, and SDK 57 releases before `expo@57.0.9`, carry a Hermes V1 memory regression affecting `react-native-worklets`/`react-native-reanimated` — both direct dependencies of this app. A direct 54→57 jump would have avoided ever installing an affected version. The incremental path was chosen anyway (explicit decision, 2026-09-28) to match Expo's general "upgrade one SDK at a time" guidance and make it easier to isolate which SDK boundary introduces any given regression. **This means Story 16.2 (55→56) will land on a version carrying the known Hermes V1 regression — any build produced during that window must stay internal (CI/local verification only), never distributed to testers.** Story 16.3 (56→57.0.9+) resolves it. This story (16.1, the 54→55 hop) is unaffected — SDK 55 only carries the regression if Hermes V1 is explicitly opted into, which this story does not do (see AC #2 and the `expo-upgrade` skill's explicit guidance not to opt in/out of Hermes versions).
+
+**Scope boundary (do not exceed):** this story is the 54→55 SDK/dependency bump and its regression verification only. It does NOT continue on to SDK 56 or 57 (those are Stories 16.2/16.3), does NOT add new features enabled by newer SDKs, does NOT adopt React Compiler (a separate, independently-risky change — flag as a future story candidate, don't bundle it here), and does NOT touch `packages/ui`'s NativeWind status (this app already uses the StyleSheet fallback, unrelated to this upgrade).
+
+## Acceptance Criteria
+
+1. `apps/mobile/package.json`'s `expo` dependency is bumped to the latest stable `expo@55.x` release — confirm the exact version at implementation time — via `npx expo install expo@<resolved-55.x-version>` followed by `npx expo install --fix`. This aligns every Expo-managed dependency (`expo-router`, `expo-application`, `expo-constants`, `expo-dev-client`, `expo-font`, `expo-linking`, `expo-localization`, `expo-notifications`, `expo-splash-screen`, `expo-status-bar`, `@expo/config-plugins`, `babel-preset-expo`, `jest-expo`) to SDK 55-compatible versions automatically. Do not hand-pick any of these version numbers (matches the established convention from Story 14.1). Do NOT install SDK 56 or 57 as part of this story.
+2. Hermes V1 is left at whatever SDK 55's default is — this story does NOT opt in or out of Hermes V1 (per the `expo-upgrade` skill's explicit guidance: "Do not guide users to opt in to or out of Hermes V1... unsupported and has significant build and dependency-management caveats"). If `expo install --fix` or `expo-doctor` surfaces a Hermes-related prompt, the default is accepted, not overridden.
+3. SDK 55 requires the New Architecture unconditionally (Legacy Architecture support ended at SDK 54). This app has no `newArchEnabled` flag in `app.config.ts` today. Confirm the app is already running on the New Architecture (the RN 0.81/Expo SDK 54 default) — this is a verification step, not a code change. Document the confirmation method used (e.g. `expo-doctor` output, or a runtime `global._IS_FABRIC` check) in Completion Notes.
+4. `npx expo-doctor` is run post-upgrade and reports no unresolved issues. Any issue it flags is either fixed or explicitly triaged with a documented reason in this story's Completion Notes — not silently ignored.
+5. Three native dependencies that `expo install --fix` does NOT manage are individually checked for compatibility with SDK 55's bundled React Native version / New Architecture, and bumped only if required:
+   - `@sentry/react-native` (`~7.2.0`) — check Sentry's own RN compatibility matrix. Note: the Expo config plugin (`@sentry/react-native/expo`) is intentionally NOT used today (see `app.config.ts` comment — it requires a `sentry-cli` binary that doesn't build on EAS with pnpm); re-verify this constraint still holds for whatever Sentry version is selected, and do not re-add the plugin unless that underlying pnpm/EAS blocker is independently resolved (out of scope for this story).
+   - `@journeyapps/react-native-quick-sqlite` (`^2.5.2`) — the SQLite driver `@powersync/react-native@1.34.0` depends on (`packages/sync`). This gets particular scrutiny: per `ADR-RN-VERSION.md`'s existing Upgrade Policy, any change to the pinned `@powersync/react-native@1.34.0` version itself (as opposed to bumping just its SQLite driver) requires PowerSync's integration test suite to pass end-to-end (offline write → reconnect → assert single row) before merge — not just `pnpm turbo typecheck lint test`.
+   - `@rn-primitives/portal` (`1.4.0`) and `react-native-draggable-flatlist` (`^4.0.3`) — confirm no known New Architecture incompatibility via each package's release notes/issue tracker; bump only if required.
+6. `ADR-RN-VERSION.md`'s version-pin table is updated to the actually-installed post-upgrade versions — confirm the exact `react-native` version from `package.json` after `expo install --fix` runs rather than assuming one. Note in the ADR that this is the first of three sequential hops toward SDK 57 (cross-referencing Epic 16 and Stories 16.2/16.3), not the final target.
+7. `eas.json`'s `node: "22.13.0"` pin (all four build profiles) and `engines.node: ">=20.0.0"` (root and `apps/mobile` `package.json`) are re-checked against SDK 55's actual minimum Node requirement (`^20.19.4`/`^22.13.0`/`^24.3.0` per the SDK 55 changelog — confirm at implementation time). Bump the pins if they fall below the floor.
+8. This repo has no `android/`/`ios/` directories (Continuous Native Generation), no `expo.install.exclude` entries, and no `patches/` directory today — this remains true after the story. If `npx expo prebuild` is run locally for verification, its output directories are deleted afterward, not committed. If the upgrade newly requires an `expo.install.exclude` entry or a patch, it is documented in Completion Notes with the reason.
+9. `pnpm turbo typecheck lint test` passes clean across every package in the monorepo (not just `apps/mobile`) with zero regressions. This is the primary automated regression gate for this story.
+10. A manual on-device/EAS-build smoke test (sign-in, home screen load, start one ERP session — the core loop most likely to surface a Reanimated/gesture-handler or New Architecture regression) is attempted. Given confirmed prior environment limitations (no working iOS Simulator GUI in this environment; EAS build credential setup requires a real interactive terminal, not the `!`-passthrough shell), if this cannot be completed within the story, it is explicitly logged as a deferred verification step in Completion Notes — not silently skipped. Any build produced at this SDK 55 stop is safe to distribute if needed (the Hermes V1 regression only applies from SDK 56 onward, per the Context section above) — unlike the build that will come out of Story 16.2.
+11. No code change is made to continue on to SDK 56/57, adopt React Compiler, or touch any `expo-av`-adjacent code (this app has zero `expo-av` usage, confirmed via repo-wide search) — these are explicitly out of scope per the Context section above.
+
+## Tasks / Subtasks
+
+- [ ] Task 1 — Core Expo/dependency bump (AC: #1, #2)
+  - [ ] Confirm the current latest stable Expo SDK 55 release (check `https://expo.dev/changelog/sdk-55`)
+  - [ ] Run `npx expo install expo@<resolved-55.x-version>` then `npx expo install --fix` from `apps/mobile`
+  - [ ] Confirm no Hermes V1 opt-in/opt-out was introduced
+- [ ] Task 2 — New Architecture verification (AC: #3)
+  - [ ] Confirm the app is running on the New Architecture; document the method used
+- [ ] Task 3 — Diagnostics (AC: #4)
+  - [ ] Run `npx expo-doctor`; fix or document every flagged issue
+- [ ] Task 4 — Non-Expo-managed native dependency audit (AC: #5)
+  - [ ] Check `@sentry/react-native` compatibility; bump if required; re-verify the sentry-cli/pnpm/EAS plugin constraint still holds
+  - [ ] Check `@journeyapps/react-native-quick-sqlite` compatibility; if `@powersync/react-native`'s pin must change, run the PowerSync integration test suite per `ADR-RN-VERSION.md`
+  - [ ] Check `@rn-primitives/portal` and `react-native-draggable-flatlist` compatibility; bump only if required
+- [ ] Task 5 — Documentation updates (AC: #6)
+  - [ ] Update `ADR-RN-VERSION.md`'s version-pin table with actually-installed versions and the "first of three hops" note
+- [ ] Task 6 — Node/build config floor check (AC: #7)
+  - [ ] Confirm SDK 55's minimum Node requirement; bump `eas.json` and `engines.node` if needed
+- [ ] Task 7 — CNG/housekeeping checklist (AC: #8)
+  - [ ] Confirm no `android/`/`ios/` dirs, `expo.install.exclude`, or `patches/` were introduced (or document why one was needed)
+- [ ] Task 8 — Full regression suite (AC: #9)
+  - [ ] Run `pnpm turbo typecheck lint test`; fix any regression before proceeding
+- [ ] Task 9 — Manual smoke test or documented deferral (AC: #10)
+  - [ ] Attempt an EAS development/preview build and manual smoke test (sign-in → home → start one ERP session)
+  - [ ] If blocked by environment limitations, log the deferral explicitly in Completion Notes
+- [ ] Task 10 — Scope guard (AC: #11)
+  - [ ] Confirm no SDK 56/57 install, React Compiler, or expo-av-migration code was introduced incidentally during the bump
+
+## Dev Notes
+
+### Files being touched (current state, read in full during story creation)
+
+- **`apps/mobile/package.json`** — `expo ~54.0.0`, `react-native 0.81.5`, `expo-router ~6.0.23`, `react 19.1.0`; full current dependency list captured in this story's Context research. There is no top-level `expo` key in `package.json` today, so no `expo.install.exclude` field exists — confirm `expo install --fix` doesn't need to introduce one.
+- **`apps/mobile/eas.json`** — four build profiles (`development`, `preview`, `e2e`, `production`), all pin `"node": "22.13.0"`.
+- **`apps/mobile/app.config.ts`** — no `newArchEnabled` field present (New Architecture is already the RN 0.81/Expo SDK 54 default; SDK 55 requires it unconditionally, so its absence here is already correct — no change needed). Has a local config plugin `./plugins/withIosScene27Compat` and an intentionally-removed `@sentry/react-native/expo` plugin (see inline comment) — do not re-add the Sentry plugin as part of this story.
+- **`_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md`** — pins `React Native: 0.81` / `Expo SDK: 54` / `Expo Router: v4`; also references NativeWind and `react-native-mmkv`, both of which are **stale** (this project uses the StyleSheet fallback and `@journeyapps/react-native-quick-sqlite`, not NativeWind/MMKV) — pre-existing inaccuracies from before this story, not introduced by it. Do not fix those unrelated rows as part of this story (avoid unrelated scope creep) — only touch the React Native / Expo SDK / Expo Router rows and add the "first of three hops" note.
+- **`packages/sync/package.json`** — pins `@powersync/react-native@1.34.0` exactly (no `^`/`~`), per `ADR-RN-VERSION.md`'s explicit "exact pin, upgrade requires integration test suite" policy.
+- **`.github/workflows/ci.yml`** — `NODE_VERSION: '22'` (resolves to latest 22.x via `actions/setup-node`; re-verify against SDK 55's floor per AC #7).
+
+### Confirmed NOT applicable to this upgrade (checked during story creation, don't re-investigate)
+
+- **`expo-av`**: zero usage anywhere in `apps/mobile` (confirmed via repo-wide grep) — the `expo-av`→`expo-audio`/`expo-video` migration in the `expo-upgrade` skill's reference docs does not apply.
+- **Native Tabs**: the app's only tab navigator is `<Tabs>`/`<Tabs.Screen>` from `expo-router` (`apps/mobile/app/(app)/_layout.tsx`) — the standard JS-based tab navigator, not `expo-router/unstable-native-tabs`. This is a SDK 55-era migration guide anyway, not relevant to this hop.
+- **`@react-navigation/native` direct usage**: only `DefaultTheme`/`ThemeProvider` are imported (`apps/mobile/app/_layout.tsx`) — a standard peer-dependency usage pattern that `expo-router` itself relies on, not a hand-rolled navigator. The skill's `react-navigation-to-expo-router.md` migration guide (for apps using `@react-navigation/*` navigators directly, and specific to the SDK 56 hop) does not apply here.
+- **React 19 migration checklist** (`useContext`→`use`, `Context.Provider`→`Context`, `forwardRef` removal): this app is already on React 19.1.0 (landed with the SDK 54 upgrade) — this is a checklist for the 53→54 transition, already complete.
+
+### The `expo-upgrade` Claude Code skill
+
+Installed at `.claude/skills/expo-upgrade` (symlink to `.agents/skills/expo-upgrade/`) specifically to support this epic. Use its `SKILL.md` step-by-step process and reference docs (`references/new-architecture.md`, `references/react-compiler.md`, etc.) during implementation. Its housekeeping checklist (exclude entries, `patches/`, Metro/Babel config redundancy) is the source for AC #8. Its explicit Hermes V1 guidance ("do not guide users to opt in/out") is the source for AC #2.
+
+### Testing standard
+
+`pnpm turbo typecheck lint test` is this monorepo's standard gate (per every prior story in Epics 14/15). No new test files are expected from this story specifically — it's a dependency-version story, not a feature story — but any existing test that breaks due to a dependency's changed behavior must be fixed, not skipped or `.skip()`-marked.
+
+### Explicitly out of scope (do not implement)
+
+- Continuing on to SDK 56 or 57 — those are Stories 16.2 and 16.3, not this one.
+- React Compiler adoption (`experiments.reactCompiler: true`) — a separate, independently-risky change per the `expo-upgrade` skill's own housekeeping note ("recommended" but not required); candidate for its own future story in this epic.
+- Any Native Tabs migration, expo-av migration, or React Navigation→Expo Router migration — none apply to this codebase, and the latter two are SDK 55/56-era concerns anyway.
+- Fixing the pre-existing stale NativeWind/`react-native-mmkv` references in `ADR-RN-VERSION.md` — unrelated to this story's version-pin update.
+- Re-adding the `@sentry/react-native/expo` config plugin — blocked on an unrelated sentry-cli/pnpm/EAS issue, out of scope here.
+
+### Project Structure Notes
+
+- No new files are created by this story except `pnpm-lock.yaml` changes — all edits are to existing files (`apps/mobile/package.json`, `apps/mobile/eas.json` if the Node floor changes, `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md`) plus whatever `expo install --fix` resolves.
+- No conflicts with monorepo boundary rules (ARC-006/ARC-011/ARC-013) — `packages/core` and `packages/supabase` have no Expo/RN dependency exposure to begin with; `packages/sync`'s PowerSync pin is the one cross-package risk, explicitly covered by AC #5.
+
+### References
+
+- [Source: `_bmad-output/planning-artifacts/epics.md` § "Epic 16: Expo SDK 57 Upgrade" / "Story 16.1"]
+- [Source: `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md`]
+- [Source: `apps/mobile/package.json`, `apps/mobile/eas.json`, `apps/mobile/app.config.ts`]
+- [Source: `packages/sync/package.json` — `@powersync/react-native@1.34.0` exact pin]
+- [Source: `.claude/skills/expo-upgrade/SKILL.md` (installed 2026-09-28 from `github.com/expo/skills`) — Hermes V1 regression note and Hermes-version guidance]
+- [Source: Expo changelog `https://expo.dev/changelog/sdk-55`]
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
