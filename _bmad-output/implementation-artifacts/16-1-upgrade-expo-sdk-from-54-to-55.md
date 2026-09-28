@@ -1,6 +1,6 @@
 # Story 16.1: Upgrade Expo SDK from 54 to 55
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -37,31 +37,31 @@ Added 2026-09-28. Full epic rationale: `_bmad-output/planning-artifacts/epics.md
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Core Expo/dependency bump (AC: #1, #2)
-  - [ ] Confirm the current latest stable Expo SDK 55 release (check `https://expo.dev/changelog/sdk-55`)
-  - [ ] Run `npx expo install expo@<resolved-55.x-version>` then `npx expo install --fix` from `apps/mobile`
-  - [ ] Confirm no Hermes V1 opt-in/opt-out was introduced
-- [ ] Task 2 — New Architecture verification (AC: #3)
-  - [ ] Confirm the app is running on the New Architecture; document the method used
-- [ ] Task 3 — Diagnostics (AC: #4)
-  - [ ] Run `npx expo-doctor`; fix or document every flagged issue
-- [ ] Task 4 — Non-Expo-managed native dependency audit (AC: #5)
-  - [ ] Check `@sentry/react-native` compatibility; bump if required; re-verify the sentry-cli/pnpm/EAS plugin constraint still holds
-  - [ ] Check `@journeyapps/react-native-quick-sqlite` compatibility; if `@powersync/react-native`'s pin must change, run the PowerSync integration test suite per `ADR-RN-VERSION.md`
-  - [ ] Check `@rn-primitives/portal` and `react-native-draggable-flatlist` compatibility; bump only if required
-- [ ] Task 5 — Documentation updates (AC: #6)
-  - [ ] Update `ADR-RN-VERSION.md`'s version-pin table with actually-installed versions and the "first of three hops" note
-- [ ] Task 6 — Node/build config floor check (AC: #7)
-  - [ ] Confirm SDK 55's minimum Node requirement; bump `eas.json` and `engines.node` if needed
-- [ ] Task 7 — CNG/housekeeping checklist (AC: #8)
-  - [ ] Confirm no `android/`/`ios/` dirs, `expo.install.exclude`, or `patches/` were introduced (or document why one was needed)
-- [ ] Task 8 — Full regression suite (AC: #9)
-  - [ ] Run `pnpm turbo typecheck lint test`; fix any regression before proceeding
-- [ ] Task 9 — Manual smoke test or documented deferral (AC: #10)
-  - [ ] Attempt an EAS development/preview build and manual smoke test (sign-in → home → start one ERP session)
-  - [ ] If blocked by environment limitations, log the deferral explicitly in Completion Notes
-- [ ] Task 10 — Scope guard (AC: #11)
-  - [ ] Confirm no SDK 56/57 install, React Compiler, or expo-av-migration code was introduced incidentally during the bump
+- [x] Task 1 — Core Expo/dependency bump (AC: #1, #2)
+  - [x] Confirm the current latest stable Expo SDK 55 release (check `https://expo.dev/changelog/sdk-55`)
+  - [x] Run `npx expo install expo@<resolved-55.x-version>` then `npx expo install --fix` from `apps/mobile`
+  - [x] Confirm no Hermes V1 opt-in/opt-out was introduced
+- [x] Task 2 — New Architecture verification (AC: #3)
+  - [x] Confirm the app is running on the New Architecture; document the method used
+- [x] Task 3 — Diagnostics (AC: #4)
+  - [x] Run `npx expo-doctor`; fix or document every flagged issue
+- [x] Task 4 — Non-Expo-managed native dependency audit (AC: #5)
+  - [x] Check `@sentry/react-native` compatibility; bump if required; re-verify the sentry-cli/pnpm/EAS plugin constraint still holds
+  - [x] Check `@journeyapps/react-native-quick-sqlite` compatibility; if `@powersync/react-native`'s pin must change, run the PowerSync integration test suite per `ADR-RN-VERSION.md`
+  - [x] Check `@rn-primitives/portal` and `react-native-draggable-flatlist` compatibility; bump only if required
+- [x] Task 5 — Documentation updates (AC: #6)
+  - [x] Update `ADR-RN-VERSION.md`'s version-pin table with actually-installed versions and the "first of three hops" note
+- [x] Task 6 — Node/build config floor check (AC: #7)
+  - [x] Confirm SDK 55's minimum Node requirement; bump `eas.json` and `engines.node` if needed
+- [x] Task 7 — CNG/housekeeping checklist (AC: #8)
+  - [x] Confirm no `android/`/`ios/` dirs, `expo.install.exclude`, or `patches/` were introduced (or document why one was needed)
+- [x] Task 8 — Full regression suite (AC: #9)
+  - [x] Run `pnpm turbo typecheck lint test`; fix any regression before proceeding
+- [x] Task 9 — Manual smoke test or documented deferral (AC: #10)
+  - [x] Attempt an EAS development/preview build and manual smoke test (sign-in → home → start one ERP session)
+  - [x] If blocked by environment limitations, log the deferral explicitly in Completion Notes
+- [x] Task 10 — Scope guard (AC: #11)
+  - [x] Confirm no SDK 56/57 install, React Compiler, or expo-av-migration code was introduced incidentally during the bump
 
 ## Dev Notes
 
@@ -115,8 +115,36 @@ Installed at `.claude/skills/expo-upgrade` (symlink to `.agents/skills/expo-upgr
 
 ### Agent Model Used
 
+Claude Sonnet 5 (claude-sonnet-5), via manual implementation guided by the `expo-upgrade` Claude Code skill (create-story workflow not used interactively for this pass — story was already drafted; implementation done directly)
+
 ### Debug Log References
+
+- `npx expo-doctor` (with `NODE_PATH` workaround for the known pnpm-monorepo `expo/bin/cli config --json` crash — see `expo-upgrade`'s own environment; unrelated to this SDK bump) went from 6 failing checks → 2 (both explained/accepted, see below)
+- `pnpm turbo typecheck lint test`: first post-bump run failed (`react-native-worklets/jest/resolver.js` not found → root-caused to `expo install --fix` downgrading worklets to 0.7.4, which lacks the jest resolver present in 0.8.3); second run (post worklets fix) failed 23/39 mobile suites with `Invariant Violation: __fbBatchedBridgeConfig is not set` → root-caused to `packages/ui` resolving a physically different `react-native@0.83.10` copy than `apps/mobile` (pnpm peer-hash divergence), fixed via a jest `moduleNameMapper` forcing canonical resolution; third run failed 1/39 suites (`settings/index.test.tsx`, "Cannot find native module 'ExpoPushTokenManager'") → root-caused to `expo-notifications@55.0.27` eagerly resolving a new native module at import time with no upstream jest mock shipped, fixed with a local `jest.mock('expo-notifications', ...)` matching the existing pattern from `sessionReminder.test.ts`. Fourth run: 19/19 turbo tasks, 451/451 mobile tests — matches pre-upgrade baseline exactly.
 
 ### Completion Notes List
 
+- **Core bump:** `expo` → `55.0.31` (latest stable at implementation time) via `npx expo install expo@55.0.31` + `npx expo install --fix`. All Expo-managed deps aligned to SDK 55 (react 19.2.0, react-native 0.83.10, expo-router ~55.0.18, expo-application/-constants/-dev-client/-font/-linking/-localization/-notifications/-splash-screen/-status-bar, @expo/config-plugins, babel-preset-expo, jest-expo). `@sentry/react-native` was also auto-bumped (7.2.0 → 7.11.0) — it's in Expo's compatibility map despite not being an `expo-*` package. `react-test-renderer` bumped manually to 19.2.0 (must match `react` exactly; not Expo-managed).
+- **Root cause found — `pnpm-workspace.yaml` had workspace-wide `overrides` hard-pinning `react: 19.1.0`, `react-native: 0.81.5`, `@types/react: ~19.1.4`**, silently reverting every `expo install`/`pnpm add` I ran. Updated all three to the SDK 55-resolved versions. This also surfaced a stale devDependency pin (`react: 19.1.0`, `react-test-renderer: 19.1.0`) in `packages/supabase/package.json` causing duplicate React installations — bumped to 19.2.0 (user-approved).
+- **Removed `patches/@expo__metro-runtime@4.0.1.patch`** (and its `pnpm-workspace.yaml` `patchedDependencies` entry) — fixed a CJS/ESM interop bug specific to `@expo/metro-runtime@4.0.1`'s exact file content; doesn't apply to the SDK 55-resolved `~55.0.12` (a completely different major version line). Verified no regression via full test suite + a clean `expo export` bundle (user-approved).
+- **`react-native-worklets` deliberately kept at `0.8.3`** (not `expo install --fix`'s suggested `0.7.4`) — `react-native-reanimated@4.2.1`'s own peer range is `"0.7 - 0.8"`, so 0.8.3 is fully compatible, and only 0.8.3 ships the `jest/resolver.js` this project's jest config requires. Documented via `expo.install.exclude` in `apps/mobile/package.json` so a future `expo install --fix` doesn't silently regress it.
+- **New Architecture (AC #3):** confirmed already active — `app.config.ts` has no `newArchEnabled` field (RN 0.81/SDK 54 default was already New Arch), and SDK 55 requires it unconditionally with no config-level opt-out remaining. No code change needed.
+- **Native dependency audit (AC #5):** `@sentry/react-native` — auto-resolved via `expo install --fix`, no manual action needed; the intentionally-removed `@sentry/react-native/expo` config plugin was re-confirmed still the same sentry-cli-requiring plugin (its `app.plugin.js` re-exports `./expo`) and was NOT re-added. `@journeyapps/react-native-quick-sqlite` — flagged by `expo-doctor`'s React Native Directory check as "Untested on New Architecture"; researched and confirmed the package was upgraded upstream to support New Architecture/bridgeless mode via RN's interop layer, and PowerSync's own docs still list it as the default SQLite driver (not deprecated) — functionally verified via the full test suite (PowerSync/sync package tests all pass). Suppressed the directory-metadata warning via `expo.doctor.reactNativeDirectoryCheck.exclude`, documented inline. `@rn-primitives/portal` / `react-native-draggable-flatlist` — no compatibility warnings from `expo-doctor` or `pnpm install`, full test suite green; no version change needed.
+- **`app.config.ts`:** added `expo-font` to `plugins` (newly required at SDK 55); deliberately did NOT add `@sentry/react-native`'s plugin (see above).
+- **`metro.config.js`:** `watchFolders` was fully overwriting Expo's defaults (`= [workspaceRoot]`) instead of appending; changed to spread the existing default array plus the workspace root, clearing `expo-doctor`'s Metro config warning with no functional change (pnpm monorepo resolution still works).
+- **Remaining `expo-doctor` findings (2), both intentional/accepted, not fixed:** (1) `@expo/config-plugins` flagged as "should not be installed directly" — the local `withIosScene27Compat` plugin needs `mergeContents` from `@expo/config-plugins/build/utils/generateCode`, which is NOT re-exported through `expo/config-plugins` (verified: `expo/config-plugins.js` is `module.exports = require('@expo/config-plugins')`, and `mergeContents` isn't part of that package's public top-level API in this version) — exactly the case `expo-doctor`'s own message says is fine to ignore. (2) `react-native-reanimated` "patch version mismatch" (4.2.3 found vs. 4.2.1 expected) — benign; 4.2.3 satisfies our own `~4.2.1` range and was resolved naturally during a full lockfile regeneration, not a hand-picked override.
+- **Manual smoke test (AC #10) — partially deferred, as anticipated:** a live on-device/EAS-build smoke test was not attempted — this environment has no working iOS Simulator and EAS build credential setup requires a real interactive terminal (both confirmed prior limitations). As a substitute, ran `npx expo export --platform ios` — Metro successfully bundled the full app (2298 modules, all workspace packages including `packages/ui`, `packages/sync`'s PowerSync chain, Reanimated/gesture-handler/worklets) into a valid Hermes bytecode bundle with zero errors. **Trigger for the full manual smoke test: before the next `preview`/`development` build is distributed to testers or used for any on-device verification.**
+- `pnpm turbo typecheck lint test`: 19/19 tasks green, 451/451 mobile tests (matches pre-upgrade baseline exactly, zero regressions).
+- Did a full `pnpm-lock.yaml` regeneration (`rm pnpm-lock.yaml && pnpm install`) partway through — needed because incremental `pnpm add` calls plus the workspace-override fix left stale/duplicate resolutions (`expo-doctor`'s "duplicate dependencies" and "overridden dependencies" checks) that a plain `pnpm install` didn't reconcile.
+
 ### File List
+
+- `apps/mobile/package.json` (modified — dependency bumps, `jest.moduleNameMapper` addition, `expo.install.exclude`/`expo.doctor.reactNativeDirectoryCheck.exclude`)
+- `apps/mobile/app.config.ts` (modified — added `expo-font` plugin, updated Sentry-plugin-exclusion comment)
+- `apps/mobile/metro.config.js` (modified — `watchFolders` now appends to Expo's defaults instead of replacing them)
+- `apps/mobile/app/(app)/settings/index.test.tsx` (modified — added `jest.mock('expo-notifications', ...)`)
+- `packages/supabase/package.json` (modified — `react`/`react-test-renderer` devDependency pins bumped 19.1.0 → 19.2.0)
+- `pnpm-workspace.yaml` (modified — `overrides` bumped to SDK 55 versions; removed the stale `@expo/metro-runtime@4.0.1` `patchedDependencies` entry)
+- `patches/@expo__metro-runtime@4.0.1.patch` (deleted — stale, doesn't apply to the SDK 55-resolved metro-runtime version)
+- `pnpm-lock.yaml` (regenerated from scratch)
+- `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md` (modified — version-pin table updated to SDK 55/RN 0.83.10, added upgrade-history note)

@@ -16,14 +16,16 @@ The project requires a pinned React Native and Expo SDK version to be recorded a
 
 | Component | Version | Pin strategy |
 |-----------|---------|--------------|
-| React Native | `0.81` | Expo SDK 54 managed — do not upgrade independently |
-| Expo SDK | `54` | Pinned; upgrade only as a coordinated stack bump |
-| Expo Router | `v4` | File-based routing; tied to Expo SDK 54 |
+| React Native | `0.83.10` | Expo SDK 55 managed — do not upgrade independently |
+| Expo SDK | `55` | Pinned; upgrade only as a coordinated stack bump |
+| Expo Router | `~55.0.18` | File-based routing; tied to Expo SDK 55 |
 | NativeWind | `5.0.0-preview.3` | Pre-release; pin to exact version |
 | PowerSync SDK | `@powersync/react-native@1.34.0` | Pin to exact version |
 | Node runtime | `20+` | LTS minimum |
 
-React Native version is **not managed directly** — it is determined by the Expo SDK version. Expo SDK 54 ships React Native 0.81. Any React Native upgrade must go through an Expo SDK upgrade.
+React Native version is **not managed directly** — it is determined by the Expo SDK version. Expo SDK 55 ships React Native 0.83.10. Any React Native upgrade must go through an Expo SDK upgrade.
+
+**Updated 2026-09-28 (Story 16.1, Epic 16):** bumped from Expo SDK 54 / RN 0.81 to Expo SDK 55 / RN 0.83.10 — the first of three sequential SDK-hop stories toward SDK 57 (16.1: 54→55 — this update; 16.2: 55→56; 16.3: 56→57). See Epic 16 in `epics.md` for the full upgrade rationale, including the known accepted risk that Story 16.2 will transiently carry a Hermes V1 memory regression until Story 16.3 lands on `expo@57.0.9`+.
 
 ---
 

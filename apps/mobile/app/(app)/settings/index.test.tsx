@@ -12,6 +12,18 @@ jest.mock('expo-application', () => ({
   nativeBuildVersion: '42',
 }))
 
+// This screen imports src/notifications/sessionReminder.ts, which imports expo-notifications.
+// As of expo-notifications@55.0.27 (SDK 55), that import eagerly resolves the native
+// ExpoPushTokenManager module at load time (previously lazy), which throws in the Jest
+// environment with no mock shipped for it upstream. Mirrors the existing mock shape used in
+// sessionReminder.test.ts / usePushRegistration.test.ts / reminder-settings.test.tsx.
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  scheduleNotificationAsync: jest.fn().mockResolvedValue('notif-id'),
+  cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
+  SchedulableTriggerInputTypes: { DAILY: 'daily', CALENDAR: 'calendar' },
+}))
+
 const mockRouterPush = jest.fn()
 
 jest.mock('expo-router', () => ({
