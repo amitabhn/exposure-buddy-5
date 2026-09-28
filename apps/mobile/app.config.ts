@@ -1,4 +1,16 @@
 import type { ExpoConfig } from 'expo/config'
+import type { ConfigPlugin } from 'expo/config-plugins'
+import { withEntitlementsPlist } from 'expo/config-plugins'
+
+// Free/personal Apple ID teams can never provision the Push Notifications
+// capability, so `expo run:ios --device` fails signing on those accounts.
+// Set EXPO_LOCAL_DEVICE_BUILD=1 to strip aps-environment for local testing;
+// EAS builds (which use a paid team) are unaffected.
+const withoutPushEntitlement: ConfigPlugin = (cfg) =>
+  withEntitlementsPlist(cfg, (mod) => {
+    delete mod.modResults['aps-environment']
+    return mod
+  })
 
 const config: ExpoConfig = {
   name: 'Exposure Buddy',
@@ -27,6 +39,10 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
+    // Mod execution for a given mod type (e.g. entitlements) runs in reverse
+    // plugin-array order, so this must be listed first to run last — after
+    // expo-notifications adds aps-environment below.
+    ...(process.env.EXPO_LOCAL_DEVICE_BUILD === '1' ? [withoutPushEntitlement] : []),
     'expo-dev-client',
     'expo-router',
     'expo-localization',
@@ -36,7 +52,11 @@ const config: ExpoConfig = {
     // doesn't build on EAS with pnpm. Basic crash capturing via Sentry.init() in
     // src/error-handler.ts works without it. Re-add when sentry-cli issue resolved.
     './plugins/withIosScene27Compat',
-  ],
+    // ExpoConfig['plugins'] types only allow string/tuple entries, but @expo/config-plugins'
+    // withStaticPlugin resolver explicitly supports passing a plugin function directly
+    // (see its `typeof pluginResolve === 'function'` branch) — the cast below just matches
+    // what Expo's own runtime already does, it doesn't change behavior.
+  ] as unknown as ExpoConfig['plugins'],
   scheme: 'exposure-buddy',
   extra: {
     eas: {
