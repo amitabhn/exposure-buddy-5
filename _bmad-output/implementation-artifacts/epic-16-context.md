@@ -9,7 +9,11 @@ Move the mobile app from Expo SDK 54 to Expo SDK 57 (and the React Native / Expo
 ## Stories
 
 - Story 16.1: Upgrade Expo SDK from 54 to 55 — done
-- Story 16.2: Upgrade Expo SDK from 55 to 57 (direct jump, skips SDK 56) — draft
+- Story 16.2: Upgrade Expo SDK from 55 to 57 (direct jump, skips SDK 56) — done
+- Story 16.3: Fix iOS deployment target for Expo SDK 57 — draft (this story)
+- Story 16.4 (not yet drafted): Fix PowerSync/`@journeyapps/react-native-quick-sqlite` New Architecture runtime crash — split out of 16.3, see `deferred-work.md`
+
+**Reopened 2026-09-28:** Epic 16 was marked done after Story 16.2 landed, but the first real on-device/iOS-Simulator run since (this project previously lacked a working iOS Simulator) surfaced two regressions FR-EXPOSDK-01 ("no user-visible regression") requires closing: a broken iOS deployment target (this story) and a PowerSync runtime crash (deferred to 16.4). Neither was caught by `pnpm turbo typecheck lint test` or `expo-doctor` — both require an actual native build/run to surface.
 
 ## Requirements & Constraints
 
