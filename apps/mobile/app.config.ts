@@ -1,4 +1,5 @@
-import type { ConfigPlugin, ExpoConfig } from 'expo/config'
+import type { ExpoConfig } from 'expo/config'
+import type { ConfigPlugin } from 'expo/config-plugins'
 import { withEntitlementsPlist } from 'expo/config-plugins'
 
 // Free/personal Apple ID teams can never provision the Push Notifications
@@ -51,7 +52,11 @@ const config: ExpoConfig = {
     // doesn't build on EAS with pnpm. Basic crash capturing via Sentry.init() in
     // src/error-handler.ts works without it. Re-add when sentry-cli issue resolved.
     './plugins/withIosScene27Compat',
-  ],
+    // ExpoConfig['plugins'] types only allow string/tuple entries, but @expo/config-plugins'
+    // withStaticPlugin resolver explicitly supports passing a plugin function directly
+    // (see its `typeof pluginResolve === 'function'` branch) — the cast below just matches
+    // what Expo's own runtime already does, it doesn't change behavior.
+  ] as unknown as ExpoConfig['plugins'],
   scheme: 'exposure-buddy',
   extra: {
     eas: {
