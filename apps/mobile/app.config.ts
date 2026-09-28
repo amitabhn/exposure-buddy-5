@@ -24,6 +24,13 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.exposurebuddy.app',
+    // Expo SDK 57's core `Expo` CocoaPod requires iOS 16.4+ (confirmed via its
+    // podspec's `s.platforms` — see node_modules/expo/Expo.podspec) — without
+    // this, `pod install` fails dependency resolution and EAS Xcode builds fail
+    // with confusing Swift-version-mismatch errors. Re-check that podspec's
+    // `s.platforms`/`s.swift_version` against this value on every future Expo
+    // SDK bump — it silently drifts out of sync otherwise.
+    deploymentTarget: '16.4',
     infoPlist: {
       // App only uses standard HTTPS/TLS (Supabase, Sentry) — no custom/non-exempt
       // encryption, so this skips the App Store Connect export-compliance question per build.
