@@ -47,10 +47,14 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-localization',
     'expo-notifications',
+    'expo-font',
     '@react-native-community/datetimepicker',
-    // @sentry/react-native/expo plugin removed — requires sentry-cli binary which
-    // doesn't build on EAS with pnpm. Basic crash capturing via Sentry.init() in
-    // src/error-handler.ts works without it. Re-add when sentry-cli issue resolved.
+    // @sentry/react-native's plugin (app.plugin.js -> ./expo, same as the old
+    // @sentry/react-native/expo subpath) intentionally NOT added — requires
+    // sentry-cli binary which doesn't build on EAS with pnpm. Re-confirmed still
+    // the same plugin during the Epic 16 SDK 55 upgrade (Story 16.1). Basic crash
+    // capturing via Sentry.init() in src/error-handler.ts works without it.
+    // Re-add when sentry-cli issue resolved.
     './plugins/withIosScene27Compat',
     // ExpoConfig['plugins'] types only allow string/tuple entries, but @expo/config-plugins'
     // withStaticPlugin resolver explicitly supports passing a plugin function directly

@@ -6,8 +6,10 @@ const workspaceRoot = path.resolve(projectRoot, '../..')
 
 const config = getDefaultConfig(projectRoot)
 
-// Let Metro resolve packages from the monorepo root (pnpm workspace)
-config.watchFolders = [workspaceRoot]
+// Let Metro resolve packages from the monorepo root (pnpm workspace). Appended to
+// (not replacing) Expo's own default watchFolders — expo-doctor flags a
+// watchFolders override that drops the defaults.
+config.watchFolders = [...config.watchFolders, workspaceRoot]
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),

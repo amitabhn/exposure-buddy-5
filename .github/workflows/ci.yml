@@ -426,6 +426,10 @@ jobs:
       # -no-window mode to initialize its EGL context. ─────────────────────────────────
       - name: Start Xvfb (virtual display for SwiftShader renderer)
         run: |
+          # The runner image's baked-in apt index can point at a package version
+          # already rotated off the security mirror (404 on install) -- update
+          # first so apt resolves whatever version is actually live.
+          sudo apt-get update
           sudo apt-get install -y xvfb
           Xvfb :0 -screen 0 1280x720x24 &
           echo "DISPLAY=:0" >> "$GITHUB_ENV"
