@@ -148,7 +148,7 @@ development_status:
   # is claimed by Password-Based Login, not reserved for the
   # ADR-OFFLINE-DEGRADATION Decision 2 remediation trigger — that reservation
   # moved to Epic 13 (via Epic 12, 2026-07-09–2026-07-30), see deferred-work.md.
-  epic-11: deferred-post-mvp # 2026-09-25: scope/priority cut — not needed for the initial closed-beta cohort; informal channels (email/chat) cover feedback collection until this is picked back up. No stories implemented. See FR-BETA-01/02 decision record in epics.md FR Coverage Map.
+  epic-11: deferred-post-mvp # 2026-09-25: scope/priority cut — not needed for the initial closed-beta cohort; informal channels (email/chat) cover feedback collection until this is picked back up. No stories implemented. See FR-BETA-01/02 decision record in epics.md FR Coverage Map. Interim process: see beta-feedback-triage.md and .github/ISSUE_TEMPLATE/beta-feedback.yml.
   11-1-feedback-table-rls-and-storage-bucket: deferred-post-mvp # 2026-09-25: deferred with epic-11, see its note
   11-2-in-app-feedback-capture-entry-point-screen-auto-capture-and-submission: deferred-post-mvp # 2026-09-25: deferred with epic-11, see its note
   epic-11-retrospective: optional

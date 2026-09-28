@@ -2462,7 +2462,7 @@ So that the audit trail stays trustworthy and re-erasure can't mask an operator 
 
 ## Epic 11: Beta Feedback Collection ~~[DEFERRED — post-MVP]~~
 
-> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-01/FR-BETA-02 decision record in FR Coverage Map. Scope/priority cut — not needed for the initial closed-beta cohort. Neither story below has been implemented; ACs are preserved for when this is picked back up.
+> **Status: DEFERRED — post-MVP (2026-09-25).** See FR-BETA-01/FR-BETA-02 decision record in FR Coverage Map. Scope/priority cut — not needed for the initial closed-beta cohort. Neither story below has been implemented; ACs are preserved for when this is picked back up. Interim process while deferred: informal feedback is triaged via `_bmad-output/implementation-artifacts/beta-feedback-triage.md`, with a GitHub issue path via `.github/ISSUE_TEMPLATE/beta-feedback.yml`.
 
 Give beta testers a low-friction, first-party way to report bugs and impressions tied to the exact screen they were on. Feedback writes directly to Supabase — no third-party form or feedback SaaS is introduced, avoiding an additional DPDPA data-processor disclosure during closed beta.
 

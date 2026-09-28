@@ -1,0 +1,56 @@
+name: Beta tester feedback
+description: Something a beta tester reported on a distributed EAS build (bug, confusion, suggestion).
+title: "[Beta feedback] "
+labels: ["beta-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for feedback relayed from a beta tester (WhatsApp/email/Slack/etc.), not for issues you found yourself while developing.
+
+        Filing this issue is the "Capture" step of `_bmad-output/implementation-artifacts/beta-feedback-triage.md` — no separate Inbox entry needed. If the severity is **Crash / data loss / security** or **Privacy or personal data concern**, don't wait for a triage pass: escalate immediately per that doc, add the `beta-feedback-urgent` label to this issue, then come back and finish filing it.
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The exact build string from Settings → App version (e.g. "1.0.0 (42) · preview"). Ask the tester to check there if unknown.
+      placeholder: "1.0.0 (42) · preview"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What the tester reported, in their own words if possible. Include what they expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: If known. Otherwise leave blank — not every report will have clean repro steps.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (your best guess at triage time)
+      description: Mirrors the severity ladder in `_bmad-output/implementation-artifacts/beta-feedback-triage.md` — pick the closest match, triage will confirm. Picking either of the top two options? Add the `beta-feedback-urgent` label after submitting.
+      options:
+        - Crash / data loss / security
+        - Privacy or personal data concern (consent, data export/deletion, DPDPA)
+        - Blocks core flow (e.g. can't sign in, can't start a session)
+        - Annoying but workable
+        - Cosmetic / minor
+        - New feature request
+        - Not sure yet
+    validations:
+      required: true
