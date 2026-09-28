@@ -13,6 +13,7 @@ Everything you need before touching a story file.
 | Supabase CLI | latest | `brew install supabase/tap/supabase` |
 | Expo CLI | via project | `pnpm exec expo --version` |
 | Deno | 1.x (Epic 3+) | `brew install deno` |
+| Xcode (for iOS) | Swift 6.0-capable, targeting iOS 16.4+ | Required since Story 16.3 (Expo SDK 57) — the `Expo` CocoaPod itself requires this; check `node_modules/expo/Expo.podspec`'s `s.platforms`/`s.swift_version` on every SDK bump |
 
 ---
 
