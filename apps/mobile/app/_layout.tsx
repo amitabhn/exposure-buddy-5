@@ -1,6 +1,5 @@
-import { Stack } from 'expo-router'
+import { Stack, DefaultTheme, ThemeProvider } from 'expo-router'
 import type { ErrorBoundaryProps } from 'expo-router'
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { BackButton } from '../src/components/navigation/BackButton'
 import { CalmMeFab } from '../src/components/CalmMeFab'

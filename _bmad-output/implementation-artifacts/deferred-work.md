@@ -1057,3 +1057,15 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap + Acceptance Au
 - **`app.config.ts`'s new `expo-font` plugin entry has no automated verification path in the normal PR CI gate** — its plugin-resolution step (`expo prebuild`) only runs inside the `e2e-build-apk` job, which is label-gated (`run-e2e`) on ordinary PRs (2026-09-24 CI-duration decision) and only runs unconditionally on push to `main`. A misspelled/incompatible plugin name would type-check cleanly (`ExpoConfig['plugins']` types entries as plain strings) and only surface post-merge or on an explicitly `run-e2e`-labeled PR. Same root cause as the `metro.config.js` finding fixed in this same review. Closing it fully means un-gating `expo prebuild` for every PR — a broader CI-cost tradeoff out of scope for a one-line plugin addition. [`apps/mobile/app.config.ts:50`]
 
 [`_bmad-output/implementation-artifacts/16-1-upgrade-expo-sdk-from-54-to-55.md`]
+
+## Deferred from: code review of Story 16.2 (2026-09-28)
+
+_Code review (Blind Hunter + Edge Case Hunter + Verification Gap) against `story-16-2.diff` (baseline `2e9f77f`). 2 patches applied, 2 deferred below, 8 rejected as non-issues (see the story spec's Review Triage Log for the full disposition of all 12 findings)._
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-16-2-upgrade-expo-sdk-from-55-to-57.md`
+  summary: `apps/mobile/app/_layout.tsx`'s `ThemeProvider`/`DefaultTheme` (migrated this story from `@react-navigation/native` to `expo-router`) is never exercised against the real, un-mocked implementation — `_layout.test.tsx` mocks `ThemeProvider` away entirely, so a theme-context regression (e.g. wrong default header/background colors on any `Stack.Screen` without explicit `headerStyle`) would ship undetected through the normal, non-label-gated PR path.
+  evidence: Pre-existing pattern, not introduced by this story — the same file mocked `ThemeProvider` away identically before this diff (previously mocking `@react-navigation/native`). Confirmed via full-file read of `_layout.test.tsx`: no test renders the default-exported `RootLayout`, only the named `ErrorBoundary` export and unrelated sub-tree slices. The only job that would exercise the real tree (`e2e-build-apk`, via `expo prebuild`) is label-gated (`run-e2e`) on ordinary PRs.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-16-2-upgrade-expo-sdk-from-55-to-57.md`
+  summary: The new `expo-splash-screen` config-plugin entry in `apps/mobile/app.config.ts` (added this story because `expo install --fix` can't auto-patch a dynamic config) has no coverage in the default, non-labeled PR path — a misspelled/incompatible entry would type-check clean and only surface post-merge or on an explicitly `run-e2e`-labeled PR.
+  evidence: Identical root cause and identical disposition to the already-deferred `expo-font` plugin finding above (Story 16.1, same file, same mechanism — `expo prebuild` only runs in the label-gated `e2e-build-apk` job). Closing it fully means un-gating `expo prebuild` for every PR, a cost this project has already declined to take on once.

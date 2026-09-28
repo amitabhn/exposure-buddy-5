@@ -48,6 +48,7 @@ const config: ExpoConfig = {
     'expo-localization',
     'expo-notifications',
     'expo-font',
+    'expo-splash-screen',
     '@react-native-community/datetimepicker',
     // @sentry/react-native's plugin (app.plugin.js -> ./expo, same as the old
     // @sentry/react-native/expo subpath) intentionally NOT added — requires
