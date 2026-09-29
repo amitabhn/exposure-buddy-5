@@ -1,6 +1,12 @@
 # PowerSync sync rules — preparatory stub for Epic 6.
 # The stub adapter in apps/mobile/src/sync/adapter.ts makes this file preparatory only;
 # Epic 6 configures, deploys, and validates these rules against a live PowerSync instance.
+#
+# SUPERSEDED 2026-09-29 (Story 17.1): the actually-deployed sync config for the live
+# PowerSync Cloud instance is powersync/sync-config.yaml (Sync Streams, edition 3) —
+# this file is kept as historical/reference scope only and is NOT what production
+# devices sync against. Keep both in sync manually until one is retired; CI's
+# verify-sync-bucket-coverage.sh checks both.
 
 bucket_definitions:
   user_data:

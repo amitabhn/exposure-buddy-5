@@ -47,3 +47,5 @@ All Edge Functions are Deno TypeScript under `supabase/functions/`. They cannot 
 ## Workflow
 
 This project uses the BMad Method. Sprint status and story files are in `_bmad-output/implementation-artifacts/`. Planning artifacts (PRD, architecture, epics, UX spec) are in `_bmad-output/planning-artifacts/`.
+
+This project uses PowerSync. Load the powersync skill before any data, schema, or sync work.

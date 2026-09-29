@@ -38,6 +38,19 @@ EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key from supabase status>
 ```
 
+### PowerSync setup (optional — needed for real sync)
+
+Without this, the app runs fine local-first (writes/reads work on-device), but nothing syncs to another device or to Supabase — `fetchCredentials()` just no-ops when the URL is unset. To get real sync:
+
+1. Get the PowerSync instance URL. If you don't have it, ask whoever owns the PowerSync Cloud project (`powersync/cli.yaml` has the `instance_id`) — it follows the pattern `https://<instance-id>.powersync.journeyapps.com`.
+2. Add it to `apps/mobile/.env.local` alongside the Supabase vars above:
+   ```
+   EXPO_PUBLIC_POWERSYNC_URL=https://<instance-id>.powersync.journeyapps.com
+   ```
+3. Restart Metro (`--clear` if it doesn't pick up the new var) and sign in — PowerSync connects automatically once a Supabase session exists.
+
+For provisioning a new PowerSync instance or editing sync rules, see `powersync/` (CLI config: `service.yaml`, `sync-config.yaml`, `cli.yaml`) and `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md`'s PowerSync entry for the hosting decision record. Load the `powersync` Claude Code skill before any sync-config change — see `CLAUDE.md`.
+
 ---
 
 ## Per-session startup
