@@ -113,13 +113,19 @@ cd apps/mobile/ios && pod install
 
 ### App crashes on launch: `Could not resolve @journeyapps/react-native-quick-sqlite`
 
-`@powersync/react-native` requires `@journeyapps/react-native-quick-sqlite` as a peer dependency for its SQLite backend. The fix is already applied — it is declared as a direct dependency in `apps/mobile/package.json`. If you see this error, reinstall and rebuild:
+Historical gotcha, fixed in Story 16.4 (Epic 16). `@journeyapps/react-native-quick-sqlite` (PowerSync's old default SQLite driver) never registers its JS bridge under the New Architecture, so it crashed on every launch on Expo SDK 57 / RN 0.86.3. The fix: `@powersync/react-native` was bumped to `2.3.0`, whose built-in default driver is OP-SQLite (`@op-engineering/op-sqlite`) with real New Architecture support — `@journeyapps/react-native-quick-sqlite` is no longer a dependency anywhere in this repo. If you still see this exact error, you're likely on a stale `node_modules`/branch predating this fix; reinstall and rebuild:
 
 ```bash
-pnpm --filter exposure-buddy-mobile add "@journeyapps/react-native-quick-sqlite@^2.5.1"
+pnpm install
 cd apps/mobile/ios && pod install
 pnpm exec expo run:ios
 ```
+
+If instead you see a *different* native-module-registration error mentioning `@op-engineering/op-sqlite` (e.g. "op-sqlite" not found), first confirm it's declared as a direct dependency of `apps/mobile/package.json` — RN autolinking only sees direct deps, not transitive ones, so it must live there even though nothing in app code imports it.
+
+### `supabase start` fails with "dial unix /var/run/docker.sock: ... no such file or directory"
+
+Docker's daemon isn't running. If you don't have Docker Desktop installed, `colima` (a lightweight Docker daemon alternative) works fine for this — `colima start` sets up a working `docker` context in a few seconds, then `supabase start` runs normally. Note this only gets local Supabase running; it does not by itself provide a reachable PowerSync sync endpoint (`EXPO_PUBLIC_POWERSYNC_URL`) — see Story 9.1's Completion Notes for that separate, still-open gap.
 
 ---
 

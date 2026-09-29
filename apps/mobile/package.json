@@ -20,15 +20,6 @@
       "^react-native$": "<rootDir>/node_modules/react-native"
     }
   },
-  "expo": {
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "exclude": [
-          "@journeyapps/react-native-quick-sqlite"
-        ]
-      }
-    }
-  },
   "dependencies": {
     "@expo-google-fonts/dm-serif-display": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
@@ -37,7 +28,7 @@
     "@exposure-buddy/supabase": "workspace:*",
     "@exposure-buddy/sync": "workspace:*",
     "@exposure-buddy/ui": "workspace:*",
-    "@journeyapps/react-native-quick-sqlite": "^2.5.2",
+    "@op-engineering/op-sqlite": "18.2.5",
     "@react-native-community/datetimepicker": "9.1.0",
     "@rn-primitives/portal": "1.4.0",
     "@sentry/react-native": "~7.11.0",
