@@ -469,8 +469,8 @@ This project has never had a working PowerSync sync service, in any environment,
 
 Beta users can see evidence that they are making progress, recover cleanly from an interrupted session on any device, and hit fewer dead ends in the two moments that matter most — the distress-support screen and account creation.
 
-**FRs covered:** FR-PROG-01, FR-PROG-02 (both un-deferred here), FR-SESSRESUME-01, FR-AFFIRM-01, FR-SIGNUPERR-01, FR-NAMING-01
-**Scope note:** Five independent stories with no shared dependency — each can ship on its own. Sequenced by user-experience impact rather than cost: Story 18.1 (Progress tab) is by far the largest and is deliberately first, being the only one of the four that changes whether a user has any evidence the app is working for them; Stories 18.3 and 18.4 are small enough to land alongside it. **Explicitly out of scope:** anything gated on clinical sign-off. Story 18.2 keeps its existing neutral re-entry copy and does not introduce the "You're back. That took courage." line (backlog item 3.2, still awaiting clinical review), and Story 18.3 adds rotation entries without reopening affirmation *content* strategy. A second wave — backlog items 1.2 (drag-to-reorder), 1.5 (completed-ladder state) and 8.2 (in-app notification preferences) — is the natural follow-on but is not scoped here. **Story 18.5 was added 2026-09-29**, after the epic's original four, when recording the Insta Calm rename surfaced a screen-reader label that still carries the pre-rename name; it is the smallest story here and has no dependency on the other four.
+**FRs covered:** FR-PROG-01, FR-PROG-02 (both un-deferred here), FR-SESSRESUME-01, FR-AFFIRM-01, FR-SIGNUPERR-01, FR-NAMING-01, FR-GROUND-01
+**Scope note:** Six independent stories with no shared dependency — each can ship on its own. Sequenced by user-experience impact rather than cost: Story 18.1 (Progress tab) is by far the largest and is deliberately first, being the only one of the four that changes whether a user has any evidence the app is working for them; Stories 18.3 and 18.4 are small enough to land alongside it. **Explicitly out of scope:** anything gated on clinical sign-off. Story 18.2 keeps its existing neutral re-entry copy and does not introduce the "You're back. That took courage." line (backlog item 3.2, still awaiting clinical review), and Story 18.3 adds rotation entries without reopening affirmation *content* strategy. A second wave — backlog items 1.2 (drag-to-reorder), 1.5 (completed-ladder state) and 8.2 (in-app notification preferences) — is the natural follow-on but is not scoped here. **Story 18.5 was added 2026-09-29**, after the epic's original four, when recording the Insta Calm rename surfaced a screen-reader label that still carries the pre-rename name; it is the smallest story here and has no dependency on the other four. **Story 18.6 was added the same day** from backlog item 1.39 — making 5-4-3-2-1 grounding interactive rather than a read-and-tap tutorial. It is the second-largest story in the epic after 18.1 and the only one that changes a `packages/ui` component's public API.
 
 **Scoping correction (2026-09-29, found while writing this epic):** backlog item 1.13's premise — "the MVP re-entry lands on whatever screen routing evaluates to (typically home)" — is **stale and was not true at the time this epic was written**. A session-recovery modal already ships in `apps/mobile/app/(app)/_layout.tsx` (state at :42-52, gate at :172, modal at :197-215, `handleRecoveryResume` at :119-127 routing to `/session/active`). Story 18.2 is therefore scoped to the genuine *remaining* gap against UX spec F4, not to building re-entry from scratch — see its entry below. `post-mvp-backlog.md` item 1.13 has been corrected accordingly.
 
@@ -3062,6 +3062,8 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 **FR-NAMING-01:** Screen-reader users hear the same product name that sighted users see. The Insta Calm entry point announces itself as "Insta Calm", not by its pre-rename name.
 
+**FR-GROUND-01:** The 5-4-3-2-1 grounding exercise captures what the user actually notices at each sense step, rather than only instructing them to notice it.
+
 ### Story 18.1: Progress Tab — SUDS Trend, Session History & Arc
 
 **Status: backlog.** Re-homes **Story 8.5**, deferred 2026-06-21 as a closed-beta scope reduction (Epic 8 is `done`, so this is a new story here rather than an un-deferral in place). **Story 8.5's acceptance criteria are adopted in full and are deliberately not restated here** — its section of this document remains the single source of AC truth, per the "Full ACs are preserved in Story 8.5's section" convention its own deferral note establishes. The criteria below are *additional* to those, and do not narrow them.
@@ -3173,3 +3175,43 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** this is a string change rather than a focus-order or announcement-timing change
 **When** it is verified
 **Then** a single screen-reader spot check on one platform confirming the FAB announces "Insta Calm" is sufficient — deliberately lighter than the dual-platform on-device protocol Stories 12.3 and 12.4 required, since no focus or live-region behaviour is being altered — alongside `pnpm turbo typecheck lint test` green and the updated Maestro flow passing in CI
+
+### Story 18.6: Interactive 5-4-3-2-1 Grounding — Text Entry Per Sense
+
+**Status: backlog.** Added 2026-09-29 from backlog item 1.39. Today the exercise is display-only: `GroundingPrompt` (`packages/ui/src/components/GroundingPrompt.tsx`) takes `steps: { promptText: string }[]`, renders one prompt at a time, and advances on a "Got it" tap. There is no input anywhere, so a user can tap through all five steps without doing the exercise — and naming what you notice is the part that actually grounds you. Largest story in this epic after 18.1, and the only one that changes a `packages/ui` component's public API.
+
+**Given** each step currently renders a prompt and an advance button only
+**When** this story is implemented
+**Then** the step renders text fields beneath the prompt matching its count — 5 for see, 4 for hear, 3 for touch, 2 for smell, 1 for taste — each independently editable, so the user types what they actually notice rather than reading a reminder to notice it
+
+**Given** the counts are baked into the prompt *strings* ("Notice **5** things you can see around you") rather than held as data, and `GROUNDING_STEPS` (`packages/core/src/config/grounding-exercise.ts`) carries only `step` and `promptKey`
+**When** field rendering is implemented
+**Then** a `count` is added per step in that config and threaded through `GroundingPromptProps.steps`, keeping `packages/core` free of `react-native`/`expo-*`/`@supabase/*` imports per ARC-011; the prompt copy and the count must not be allowed to disagree, so deriving the rendered field count from the same source as the displayed number is required, not optional
+
+**Given** what the user types is free-text personal content, and this app treats such content as its most sensitive data
+**When** the persistence question is answered
+**Then** entries are **ephemeral** — component state only, never persisted, never synced through PowerSync, discarded on exit — unless there is an explicit product decision to the contrary recorded in the story file first. Persisting would make grounding entries a new personal-data category requiring a PowerSync schema change, an RLS policy, inclusion in `perform_user_erasure` and `dpo-export-user`, and its own DPDPA consent purpose — disproportionate compliance surface for a momentary attention aid that is not a journal
+
+**Given** this exercise is used at peak distress, reachable mid-exposure via Stop Exposure
+**When** advancement is wired up
+**Then** typing **never** gates progress — fields are optional and "Got it" / "I'm done" stay enabled whether or not anything has been entered. Requiring 15 filled fields to finish would turn a regulation aid into a chore and hand the user one more way to fail
+
+**Given** `/calm-me/grounding` is reached from two places with different emotional contracts — voluntarily from the Insta Calm hub (`apps/mobile/app/calm-me/index.tsx:122`) and mid-exposure from Stop Exposure (`apps/mobile/app/session/grounding.tsx:119`)
+**When** the interactive version is designed
+**Then** a decision is recorded on whether both entry points get identical interactivity or the session path gets a lighter treatment — typing five things while calm is a materially different proposition from typing them while trying to stop a panic response. This is the same context split already open as backlog item 6.5, so resolve them together rather than twice
+
+**Given** five stacked text inputs plus an on-screen keyboard is exactly the occlusion failure Story 9.5 hit in the onboarding e2e flow (fixed there with an explicit `hideKeyboard`)
+**When** the layout is built
+**Then** keyboard avoidance and scrolling are handled deliberately — not left to a default `View` — and verified on a small-screen device, with the advance button reachable without dismissing the keyboard first
+
+**Given** `GroundingPrompt` already announces "Step X of Y. {prompt}" imperatively via `AccessibilityInfo.announceForAccessibility` (lines 46-54), and adding focusable inputs introduces a focus/announcement race this project has been burned by before (Story 12.3's `transitionEnd` fix)
+**When** accessibility is implemented
+**Then** every field has its own label, focus order runs prompt → fields → advance button, and the step-change announcement does not steal or fight input focus; verified on-device with VoiceOver and TalkBack, matching the Story 12.3/12.4 dual-platform protocol rather than 18.5's lighter spot check, since focus behaviour genuinely changes here
+
+**Given** this adds a new surface where a distressed user types free text, and the crisis keyword detection engine (Story 3.1) already exists
+**When** the input is implemented
+**Then** an explicit decision is recorded on whether entries are run through that detector — the ephemeral, never-leaves-the-device design lowers the stakes, but a user typing something alarming mid-grounding is a realistic scenario that deserves a deliberate answer rather than an accidental one
+
+**Given** every user-facing string must use `t()` (CI lint enforced) and `GroundingPrompt` has existing unit tests
+**When** the story is completed
+**Then** field labels and placeholders are added to both `en.json` and `hi.json`, `GroundingPrompt`'s tests cover the new input rendering and the not-gated-on-input advance path, and `pnpm turbo typecheck lint test` is green
