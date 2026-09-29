@@ -214,3 +214,24 @@ development_status:
   # ─── Epic 17: PowerSync Sync Service Provisioning ─────────────────────────
   epic-17: done # 2026-09-29: only story (17.1) done. PowerSync Cloud now live for this project for the first time ever (traces to Story 9.1). See epics.md Epic 17.
   17-1-provision-powersync-sync-service: done # 2026-09-29: PowerSync Cloud instance provisioned and deployed (project "Exposure Buddy", Development instance, region in/ap-south-1) -- Supabase-side powersync_role + REPLICA IDENTITY FULL + publication created and verified; supabase/sync-rules.yaml converted to Sync Streams in powersync/sync-config.yaml (deploy validation caught and fixed a real aliasing bug); powersync status confirms all 5 tables replicating live, 0-byte lag. EXPO_PUBLIC_POWERSYNC_URL set in EAS development env + local .env.local. On-device: iOS verified fresh-device sync-down for real (2 pre-existing Supabase rows appeared on a device confirmed empty beforehand). Offline-write-then-reconnect half NOT verified -- Android device's PowerSync client stalled unresolved despite confirmed-healthy network/server; deferred per explicit human decision, see deferred-work.md. Code review (Blind Hunter + Edge Case Hunter + Verification Gap + Acceptance Auditor): 4 patches applied (ADR-RN-VERSION.md hosting-decision entry, docs/setup/local-environment.md PowerSync section + CLAUDE.md skill pointer, sync-rules.yaml supersession note + verify-sync-bucket-coverage.sh extended to cover both sync-config files, spec Implementation Notes backfilled), 1 high finding resolved as human-decided defer, 2 rejected (1 low, 1 false). See spec-17-1-provision-powersync-sync-service.md.
+
+  # ─── Epic 18: Post-MVP UX Improvements — Wave 1 ───────────────────────────
+  # Added 2026-09-29. A curated first wave of user-experience items pulled from
+  # post-mvp-backlog.md — the highest UX impact among items NOT blocked on
+  # clinical-advisor review (which gates ~10 other backlog items). Three of the
+  # four originate in epics that are already done (8 and 15), so they are
+  # re-homed here rather than reopening a completed epic — same precedent as
+  # Epics 15 and 17. Takes the next open number after Epic 17; Epic 13 remains
+  # a dormant reservation. Stories are independent — no shared dependency, any
+  # one can ship alone. Full ACs in epics.md Epic 18.
+  # NAMING: the "Calm Me" feature is now user-facing "Insta Calm" (renamed visually
+  # in Story 12.2, commit 9010fc3, fabLabel only). All code identifiers still say
+  # calmMe/calm-me (route, CalmMeFab, calmMeConfig.ts, calmMe.* i18n) and Epic 18
+  # does not rename them. See epics.md Epic 18 naming note.
+  epic-18: backlog # 2026-09-29: created, no stories started
+  18-1-progress-tab-suds-trend-session-history-and-arc: backlog # re-homes deferred Story 8.5 (Epic 8); adopts 8.5's ACs in full by reference plus 4 deltas. BLOCKER to resolve first: situation_text_snapshot does not exist in either schema — pick live join vs. migration before UI work
+  18-2-mid-session-re-entry-insta-calm-prompt-and-cross-device-recovery: backlog # 2026-09-29: scope is NARROWER than post-mvp-backlog item 1.13 implies — a recovery modal already ships in (app)/_layout.tsx:172-215. Real remaining gap: recovery state is device-local only (AuthProvider.tsx:217) so it is lost on reinstall/device switch; Insta Calm is passive (FAB) not prompted at re-entry; no staleness threshold on resumable sessions
+  18-3-insta-calm-affirmation-rotation: backlog # smallest story in the epic — CALM_ME_AFFIRMATIONS (packages/core/src/config/calmMeConfig.ts) is a single-entry array of i18n keys with an existing "add more entries here" extension-point comment; needs entries in both en.json and hi.json plus no-immediate-repeat selection
+  18-4-distinct-account-already-exists-message-on-password-signup: backlog # from backlog item 6.7, whose line refs are stale — classifyPasswordSignUpError is at sign-in.tsx:120-129 (not 104-112), no-session branch at :409-411 (not 384), verified 2026-09-29. Includes an explicit product decision on the account-enumeration tradeoff
+  18-5-insta-calm-rename-screen-reader-label-parity: backlog # 2026-09-29: added after the epic's original four. Story 12.2's rename (commit 9010fc3) changed only the visual calmMe.fabLabel ("INSTA\nCALM"); calmMe.fab -- the FAB accessibilityLabel at CalmMeFab.tsx:51 -- still announces the pre-rename name in BOTH locales (en "Calm Me", hi "मुझे शांत करें"). Smallest story in the epic. MUST also update apps/mobile/.maestro/backgrounded-recovery.yaml:104,108 which assert/tap on text: "Calm Me" -- same change, not a follow-up. Needs a localisation decision on whether "Insta Calm" stays Latin-script in hi.json
+  epic-18-retrospective: optional
