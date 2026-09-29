@@ -189,8 +189,8 @@ FR-CBT-03: POST-MVP — 5-field behavioural experiment deferred; no MVP story
 FR-SOM-01: Epic 7 (partial MVP) — box breathing and 5-4-3-2-1 covered; 4-7-8, Bhramari, Nadi Shodhana, body scan POST-MVP. **Decision record (2026-05-19):** FR-SOM-01 is an in-scope PRD feature partially deferred. Rationale: box breathing and 5-4-3-2-1 grounding cover the two highest-prevalence use cases at MVP (pre-exposure grounding and mid-session crisis); the remaining four techniques (4-7-8, Bhramari, Nadi Shodhana, body scan) require distinct animated visual guides and culturally resonant framing for Indian pranayama techniques that increase scope beyond MVP timeline. The 2-technique set is clinically sufficient for the MVP ERP session and Calm Me flows. Deferring the remaining 4 also cascades to FR-CHECKIN-01 deferral — check-in routing to somatic techniques is incomplete until the full set exists. Confirmed in post-MVP backlog as item 1.26.
 FR-SOM-02: Epic 7 (partial MVP) — visual-only pacing covered for box breathing and 5-4-3-2-1; remaining techniques POST-MVP (blocked by FR-SOM-01 remaining; see FR-SOM-01 decision record and backlog item 1.26)
 FR-CHECKIN-01: POST-MVP — daily SUDS check-in deferred; no MVP story. **Decision record (2026-05-19):** FR-CHECKIN-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the daily check-in depends on a complete somatic + CBT technique suite (FR-SOM-01 remaining, FR-CBT-01–03) to produce clinically meaningful routing; launching a check-in that can only route to box breathing and 5-4-3-2-1 is therapeutically incomplete. Confirmed in post-MVP backlog as item 1.21. FR-ADVERSE-02 (check-in crisis contacts) is blocked by this deferral (backlog item 1.22).
-FR-PROG-01: POST-MVP — SUDS trend graph (weekly + monthly) deferred; no MVP story. **Decision record (2026-06-21):** FR-PROG-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: Story 8.5 (the Achievements tab — trend graph, session history log, and SUDS arc detail) was deferred in full to reduce MVP scope for the closed-beta cohort, alongside Stories 8.3/8.4. The underlying `suds_readings`/`exposure_sessions` data continues to be captured at MVP (Epic 5/6) — no data is lost, only the in-app visualisation is deferred. Confirmed in post-mvp-backlog.md as item 1.35. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.5 marked DEFERRED.
-FR-PROG-02: POST-MVP — Chronological exposure history log deferred; no MVP story. See FR-PROG-01 decision record (2026-06-21) — same Story 8.5 deferral covers both FRs.
+FR-PROG-01: POST-MVP — SUDS trend graph (weekly + monthly) deferred; no MVP story. **Decision record (2026-06-21):** FR-PROG-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: Story 8.5 (the Achievements tab — trend graph, session history log, and SUDS arc detail) was deferred in full to reduce MVP scope for the closed-beta cohort, alongside Stories 8.3/8.4. The underlying `suds_readings`/`exposure_sessions` data continues to be captured at MVP (Epic 5/6) — no data is lost, only the in-app visualisation is deferred. Confirmed in post-mvp-backlog.md as item 1.35. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.5 marked DEFERRED. **Update 2026-09-29:** re-scoped into Epic 18 as Story 18.1 (backlog, not yet implemented) — this FR remains deferred until that story reaches done, at which point this record and the Requirements Inventory strikethrough are both updated.
+FR-PROG-02: POST-MVP — Chronological exposure history log deferred; no MVP story. See FR-PROG-01 decision record (2026-06-21) — same Story 8.5 deferral covers both FRs, and the same 2026-09-29 re-scope into Epic 18 Story 18.1 applies.
 FR-NOTIF-01: POST-MVP — Day 2 + Day 5 re-engagement push notifications deferred; no MVP story. **Decision record (2026-06-21):** FR-NOTIF-01 is an in-scope PRD feature deliberately deferred to post-MVP. Rationale: the cron-driven re-engagement Edge Function (two scheduled passes, idempotency tracking columns, push dispatch/prune handling) adds infrastructure and review surface that is not essential to validate the core ERP loop for a closed-beta cohort. Story 8.1's push token registration and shared `sendPushNotification` helper remain in place as the technical prerequisite for whenever this is picked back up. Confirmed in post-MVP backlog as item 1.34. Logged in `_bmad-output/implementation-artifacts/deferred-work.md`. Story 8.4 marked DEFERRED.
 FR-NOTIF-02: Epic 8 — No punitive language or streak mechanics
 FR-NOTIF-03: Epic 8 — User notification controls and opt-out
@@ -460,6 +460,19 @@ This project has never had a working PowerSync sync service, in any environment,
 ### Story 17.1: Provision PowerSync Sync Service & Deploy Sync Rules
 
 **Status: done (2026-09-29).** PowerSync Cloud provisioned (project "Exposure Buddy", Development instance, region `in`/ap-south-1 per the ADR decision) — installed the official `powersync-ja/agent-skills` skill and followed its CLI-first onboarding rather than hand-writing config. Supabase-side setup (dedicated `powersync_role`, `REPLICA IDENTITY FULL`, publication) created and verified via direct SQL queries. `supabase/sync-rules.yaml`'s legacy Sync Rules converted to Sync Streams in `powersync/sync-config.yaml` (`powersync deploy`'s own validation caught and fixed a real bug: a FROM-table alias would have synced `suds_readings` client-side under the wrong name). Deployed and confirmed live: `powersync status` shows all 5 tables replicating with 0-byte lag. On-device: iOS verified real fresh-device sync-down (2 pre-existing Supabase rows appeared on a device confirmed empty beforehand, cross-checked against the database) — the offline-write-then-reconnect half was not completed (an Android device's PowerSync client stalled unresolved despite confirmed-healthy network/server; deferred per explicit human decision, see `deferred-work.md`). Code review (Blind Hunter + Edge Case Hunter + Verification Gap + Acceptance Auditor): 4 patches applied (ADR-RN-VERSION.md hosting-decision entry, `docs/setup/local-environment.md` PowerSync section, `sync-rules.yaml` supersession note + CI's `verify-sync-bucket-coverage` extended to cover the deployed Sync Streams file too, spec Implementation Notes backfilled), 1 high finding resolved as human-decided defer, 2 rejected (1 low: an unrelated version bump bundled via explicit separate instruction; 1 false: a "schema-qualification drop" claim disproven against the skill's own documented convention).
+
+---
+
+### Epic 18: Post-MVP UX Improvements — Wave 1
+
+*(Added 2026-09-29. A curated first wave of user-experience items pulled from `post-mvp-backlog.md` — selected as the highest user-experience impact among items **not** blocked on clinical-advisor review, which currently gates roughly ten other backlog items across sections 1, 3 and 6. Epics 8 and 15 — where three of these four items originated — are already marked done, so per this project's standing rule against reopening a completed epic they are re-homed here; same precedent as Epics 15 and 17. Takes the next open number after Epic 17; Epic 13 remains a dormant reservation.)*
+
+Beta users can see evidence that they are making progress, recover cleanly from an interrupted session on any device, and hit fewer dead ends in the two moments that matter most — the distress-support screen and account creation.
+
+**FRs covered:** FR-PROG-01, FR-PROG-02 (both un-deferred here), FR-SESSRESUME-01, FR-AFFIRM-01, FR-SIGNUPERR-01, FR-NAMING-01
+**Scope note:** Five independent stories with no shared dependency — each can ship on its own. Sequenced by user-experience impact rather than cost: Story 18.1 (Progress tab) is by far the largest and is deliberately first, being the only one of the four that changes whether a user has any evidence the app is working for them; Stories 18.3 and 18.4 are small enough to land alongside it. **Explicitly out of scope:** anything gated on clinical sign-off. Story 18.2 keeps its existing neutral re-entry copy and does not introduce the "You're back. That took courage." line (backlog item 3.2, still awaiting clinical review), and Story 18.3 adds rotation entries without reopening affirmation *content* strategy. A second wave — backlog items 1.2 (drag-to-reorder), 1.5 (completed-ladder state) and 8.2 (in-app notification preferences) — is the natural follow-on but is not scoped here. **Story 18.5 was added 2026-09-29**, after the epic's original four, when recording the Insta Calm rename surfaced a screen-reader label that still carries the pre-rename name; it is the smallest story here and has no dependency on the other four.
+
+**Scoping correction (2026-09-29, found while writing this epic):** backlog item 1.13's premise — "the MVP re-entry lands on whatever screen routing evaluates to (typically home)" — is **stale and was not true at the time this epic was written**. A session-recovery modal already ships in `apps/mobile/app/(app)/_layout.tsx` (state at :42-52, gate at :172, modal at :197-215, `handleRecoveryResume` at :119-127 routing to `/session/active`). Story 18.2 is therefore scoped to the genuine *remaining* gap against UX spec F4, not to building re-entry from scratch — see its entry below. `post-mvp-backlog.md` item 1.13 has been corrected accordingly.
 
 ---
 
@@ -2014,7 +2027,7 @@ on `{ ok: true }` from `sendPushNotification`, `re_engagement_day5_notified_at` 
 
 ### Story 8.5: Achievements Tab — SUDS Trend, Session History & Arc ~~[DEFERRED — post-MVP]~~
 
-> **Status: DEFERRED — post-MVP (2026-06-21).** See FR-PROG-01/FR-PROG-02 decision record in FR Coverage Map. No MVP story. Scope reduction for the closed-beta cohort, alongside Stories 8.3 and 8.4. The underlying `suds_readings`/`exposure_sessions` data is captured regardless (Epic 5/6) — only the in-app visualisation (trend graph, history log, arc detail, and the "Progress" tab itself) is deferred. When this is picked back up: the `SudsArcChart` component (`packages/ui`, Epic 5) is already built and consumed by the debrief screen; no new migration is required for the trend graph or history log, but `situation_text_snapshot` referenced in the original AC text does not exist in the schema (neither Supabase nor PowerSync) — resolve via a live join to `fear_ladder_items.description` with a null-safe fallback, or a new migration, before implementing.
+> **Status: DEFERRED — post-MVP (2026-06-21).** See FR-PROG-01/FR-PROG-02 decision record in FR Coverage Map. No MVP story. Scope reduction for the closed-beta cohort, alongside Stories 8.3 and 8.4. The underlying `suds_readings`/`exposure_sessions` data is captured regardless (Epic 5/6) — only the in-app visualisation (trend graph, history log, arc detail, and the "Progress" tab itself) is deferred. When this is picked back up: the `SudsArcChart` component (`packages/ui`, Epic 5) is already built and consumed by the debrief screen; no new migration is required for the trend graph or history log, but `situation_text_snapshot` referenced in the original AC text does not exist in the schema (neither Supabase nor PowerSync) — resolve via a live join to `fear_ladder_items.description` with a null-safe fallback, or a new migration, before implementing. **Superseded 2026-09-29 by Story 18.1 (Epic 18), which re-homes this work and adopts the acceptance criteria below in full.** This section remains the single source of AC truth — Story 18.1 deliberately does not restate them, and adds only the deltas listed in its own entry. This story stays DEFERRED rather than being reactivated in place, since Epic 8 is `done` and this project does not reopen completed epics.
 
 As a user who has completed one or more exposure sessions,
 I want an Achievements tab with a SUDS trend graph across all my sessions and a full session history log,
@@ -3032,3 +3045,131 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Then** `ADR-RN-VERSION.md`'s Consequences section (or the new dedicated ADR) documents what running this now requires going forward (billing, an account owner, monitoring) so it isn't a silent, unowned dependency
 
 **Completion summary:** PowerSync Cloud provisioned (project "Exposure Buddy", Development instance, region `in`/ap-south-1). Supabase-side setup (`powersync_role`, `REPLICA IDENTITY FULL`, publication) created and verified via direct SQL. `sync-rules.yaml` converted to Sync Streams in `powersync/sync-config.yaml` — deploy validation caught and fixed a real aliasing bug before it shipped. `powersync status` confirms all 5 tables replicating live, 0-byte lag. iOS verified real fresh-device sync-down; the offline-write-then-reconnect half was deferred (an Android device's PowerSync client stalled unresolved despite confirmed-healthy network/server — see `deferred-work.md`). Code review: 4 patches applied, 1 high finding resolved as human-decided defer, 2 rejected.
+
+---
+
+## Epic 18: Post-MVP UX Improvements — Wave 1
+
+*(Added 2026-09-29 — see Epic List entry above for the selection rationale, the clinical-review exclusion, and the Story 18.2 scoping correction.)*
+
+**FR-SESSRESUME-01:** A user who leaves the app mid-exposure returns to their in-progress exposure with Insta Calm support offered at the moment of re-entry — and that recovery survives a reinstall or a switch to another device, since the session exists server-side regardless of what any one device remembers.
+
+**FR-AFFIRM-01:** The Insta Calm courage affirmation varies between visits rather than repeating one fixed line to every user on every visit.
+
+**Naming note (2026-09-29):** the feature formerly called **"Calm Me" is now "Insta Calm"** in user-facing copy. The rename landed visually in Story 12.2 (commit `9010fc3`) but touched only `calmMe.fabLabel` (`"INSTA\nCALM"`). Every internal identifier still uses the old name — route `/calm-me`, `CalmMeFab`, `CalmMeButton`, `calmMeConfig.ts`, `CALM_ME_AFFIRMATIONS`, and the whole `calmMe.*` i18n namespace — and this epic does **not** rename them. Stories below therefore say "Insta Calm" for the product and `calmMe`/`calm-me` for code symbols; that mismatch is intentional, not an error.
+
+**FR-SIGNUPERR-01:** A user attempting to create an account with an already-registered identifier is told that specifically, and is pointed at signing in instead — across every backend error shape that condition can produce.
+
+**FR-NAMING-01:** Screen-reader users hear the same product name that sighted users see. The Insta Calm entry point announces itself as "Insta Calm", not by its pre-rename name.
+
+### Story 18.1: Progress Tab — SUDS Trend, Session History & Arc
+
+**Status: backlog.** Re-homes **Story 8.5**, deferred 2026-06-21 as a closed-beta scope reduction (Epic 8 is `done`, so this is a new story here rather than an un-deferral in place). **Story 8.5's acceptance criteria are adopted in full and are deliberately not restated here** — its section of this document remains the single source of AC truth, per the "Full ACs are preserved in Story 8.5's section" convention its own deferral note establishes. The criteria below are *additional* to those, and do not narrow them.
+
+**Given** Story 8.5's AC text reads the courage ladder item name from `situation_text_snapshot`, a column that exists in neither the Supabase schema nor the PowerSync schema
+**When** this story is picked up
+**Then** that gap is resolved *before* any UI work begins — either a live join to `fear_ladder_items.description` with a null-safe fallback for deleted items, or a new migration adding the snapshot column — and the choice plus its rationale is recorded in the story file; implementing against the AC text as written is not possible
+
+**Given** Story 8.5's offline acceptance criterion was written on 2026-06-21, when this project had no working PowerSync sync service in any environment — a gap only closed by Story 17.1 on 2026-09-29
+**When** the offline and empty-state behaviour is verified
+**Then** it is verified against the live sync service rather than a local-replica-only assumption, and explicitly includes the case Story 8.5 could not have contemplated: a fresh install whose `exposure_sessions`/`suds_readings` rows exist server-side but have not yet synced down, which must render the empty state without showing an error
+
+**Given** `SudsArcChart` (`packages/ui`, Epic 5) is already built and consumed by the session debrief screen
+**When** the trend graph and arc detail view are implemented
+**Then** that component is reused rather than rebuilt — Story 8.5 is its second intended consumer, not a new build — and any prop-surface change it needs remains backwards-compatible with the debrief screen's existing usage
+
+**Given** FR-PROG-01 and FR-PROG-02 are currently recorded as deferred in three places — the Requirements Inventory (struck through), the FR Coverage Map decision records, and `post-mvp-backlog.md` item 1.35
+**When** this story reaches done
+**Then** all three are updated to reflect delivery, so the coverage map does not continue to claim a shipped feature is post-MVP
+
+### Story 18.2: Mid-Session Re-Entry — Insta Calm Prompt & Cross-Device Recovery
+
+**Status: backlog.** **Scope is narrower than backlog item 1.13 implies** — see the Epic List scoping correction. A recovery modal already ships: `sessionRecoveryData` gates it (`apps/mobile/app/(app)/_layout.tsx:172`), the modal renders at `:197-215` with copy `session.recovery.title` ("You have an unfinished session") / `.body`, and `handleRecoveryResume` (`:119-127`) routes to `/session/active`. This story closes what is genuinely still missing against UX spec F4.
+
+**Given** recovery state is read from device-local storage only (`packages/supabase/src/auth/AuthProvider.tsx:217` JSON-parses a locally persisted value; `setSessionInProgress` at `:319` writes it), while the authoritative `exposure_sessions` row with `status = 'started'` lives server-side
+**When** the app launches and no local recovery record is present
+**Then** recovery detection falls back to the user's most recent `status = 'started'` session read through the PowerSync replica — so a reinstall, a device switch, or cleared local storage no longer silently strands an open session that the backend still considers in progress
+
+**Given** UX spec F4 specifies that re-entry returns the user to the exposure state "with Calm Me prompt overlaid" (written before the Insta Calm rename), and today's Resume path routes to `/session/active` where `CalmMeFab` (`apps/mobile/src/components/CalmMeFab.tsx:36`) renders passively in the corner
+**When** the user resumes an interrupted session
+**Then** Insta Calm is actively offered at the moment of re-entry rather than only being passively available — a user returning at peak distress should not have to notice and interpret a floating action button
+
+**Given** a `status = 'started'` session can be arbitrarily old, and the recovery modal currently offers Resume for a session of any age
+**When** recovery is evaluated at launch
+**Then** a staleness threshold is defined and applied, beyond which resuming is not offered — the session is instead closed out or presented as End-only — and the threshold is recorded as an explicit product decision rather than an incidental constant; an exposure abandoned a week ago is not a session anyone should be invited to "resume where you left off"
+
+**Given** the re-entry copy "You're back. That took courage." is flagged for clinical review as backlog item 3.2, which has not happened
+**When** this story is implemented
+**Then** the existing neutral `session.recovery.*` copy is retained and that line is **not** introduced — copy changes in this flow wait for the clinical pass
+
+**Given** this story touches launch-time routing, which ARC-004's cold-start rule already constrains
+**When** the cross-device fallback query is added
+**Then** it never blocks or delays the existing auth/onboarding redirect gate (`apps/mobile/app/(app)/_layout.tsx:58-64`), and Story 9.7's cold-start performance budget is re-measured to confirm no regression
+
+### Story 18.3: Insta Calm Affirmation Rotation
+
+**Status: backlog.** From backlog item 6.4. `CALM_ME_AFFIRMATIONS` (`packages/core/src/config/calmMeConfig.ts` — old-name identifier, see the epic's naming note) is a single-entry array whose entries are i18n *keys*, not literal strings — the file already carries a `// Post-MVP rotation: add more entries here` comment marking this exact extension point.
+
+**Given** `CALM_ME_AFFIRMATIONS` contains exactly one key (`calmMe.affirmation.1`), so every user sees the identical affirmation on every Insta Calm visit
+**When** this story is implemented
+**Then** additional entries are added to the array, each with a matching key present in **both** `apps/mobile/src/i18n/locales/en.json` and `hi.json` (English copy duplicated into `hi.json` per the established convention), keeping the config's ARC-011 boundary intact — no `react-native`, `expo-*`, or `@supabase/*` imports enter `packages/core`
+
+**Given** a user in distress may open Insta Calm several times in one day
+**When** an affirmation is selected for display
+**Then** selection varies between consecutive visits rather than being random-with-replacement — a repeat on the very next visit is the specific failure this story exists to prevent — and if that requires remembering the last-shown index, it is persisted under a new `KV_KEYS` entry following the existing key-hygiene conventions from Story 9.4
+
+**Given** the affirmation is the first thing a distressed user reads on the Insta Calm screen
+**When** new entries are authored
+**Then** they match the register of the existing entry — grounded and ERP-consistent, explicitly not generic self-help affirmation language — and are flagged for tone review before wide release, though that review does not block this story from shipping to the closed beta
+
+**Given** `packages/core` is covered by Vitest with no React Native dependency
+**When** selection logic is added
+**Then** it is unit-tested in `packages/core` — including the no-immediate-repeat property and the single-entry case (which must still return that entry rather than failing to find an alternative)
+
+### Story 18.4: Distinct "Account Already Exists" Message on Password Sign-Up
+
+**Status: backlog.** From backlog item 6.7. **Line references in that backlog entry are stale** — `classifyPasswordSignUpError` is at `apps/mobile/app/(auth)/sign-in.tsx:120-129` (not 104-112) and the no-session branch is at `:409-411` (not 384). Verified 2026-09-29.
+
+**Given** `classifyPasswordSignUpError` (`sign-in.tsx:120-129`) collapses every non-rate-limited thrown `signUp()` error into the generic `auth.password.signUpError` ("Failed to create your account. Please try again."), which tells the user neither what went wrong nor what to do next
+**When** this story is implemented
+**Then** a duplicate-account branch is added that detects GoTrue's explicit rejection (`error_code: user_already_exists`, message "User already registered", HTTP 422 — the shape observed live during Story 12.1 manual verification) and routes it to clear copy naming the actual problem and pointing at signing in instead
+
+**Given** the adjacent no-session branch (`:409-411`) already surfaces better copy (`auth.password.signUpUnavailable`: "please try signing in instead, or use a different email or phone number") but is only reached when Supabase's email-enumeration protection resolves with no session and no error
+**When** both shapes of the same underlying condition occur
+**Then** they route to the same clear message — the user experience of "this identifier is already registered" must not depend on which of two backend behaviours happens to be active
+
+**Given** the code comment at `sign-in.tsx:123-126` asserts that "Any error thrown here is a genuine failure (network, rate-limit, etc.), not a duplicate" — which Story 12.1's live verification disproved
+**When** the duplicate branch is added
+**Then** that comment is corrected or removed, since leaving a factually wrong invariant in place is how the next reader re-introduces this bug
+
+**Given** Supabase's email-enumeration protection deliberately conceals whether an identifier is registered, and this story's whole purpose is to reveal exactly that
+**When** the copy is finalised
+**Then** the tradeoff is acknowledged as an explicit, recorded product decision rather than an incidental side effect — for an anxiety-focused health app the usability case is strong, but disclosing account existence is a real (if modest) enumeration surface, and this is the story where that gets decided rather than discovered later
+
+**Given** project convention requires every user-facing string to use `t()` (CI lint enforced)
+**When** any new i18n key is introduced
+**Then** it is added to both `en.json` and `hi.json`, and `apps/mobile/app/(auth)/sign-in.test.tsx` gains coverage for both the thrown-422 path and the no-session path, asserting both produce the duplicate-account copy
+
+### Story 18.5: Insta Calm Rename — Screen-Reader Label Parity
+
+**Status: backlog.** Added 2026-09-29, found while recording the Insta Calm rename (see the epic's naming note). The rename landed in Story 12.2 (commit `9010fc3`) on the *visual* label only — `calmMe.fabLabel` became `"INSTA\nCALM"` while `calmMe.fab`, the FAB's `accessibilityLabel` (`apps/mobile/src/components/CalmMeFab.tsx:51`), was left at the pre-rename name in both locales. Same class of defect as the label-vs-visual mismatches already patched by Stories 12.1 and 14.1.
+
+**Given** `calmMe.fab` is `"Calm Me"` in `en.json` while the visible label reads INSTA CALM, so a VoiceOver or TalkBack user is told a different product name than a sighted user sees
+**When** this story is implemented
+**Then** `calmMe.fab` announces the current product name — written naturally as "Insta Calm", **not** as "INSTA CALM" and not echoing the label's two-line all-caps treatment, following the Story 14.1 precedent that an accessibility label reads as speech rather than mirroring visual formatting
+
+**Given** `hi.json`'s `calmMe.fab` is `"मुझे शांत करें"` — a genuine Hindi translation of the old name, not an untranslated copy
+**When** the Hindi label is updated
+**Then** a localisation decision is made and recorded first: whether "Insta Calm" is a brand name that stays in Latin script across locales (consistent with `fabLabel`, which is already `"INSTA\nCALM"` in `hi.json`) or whether it takes a Hindi rendering — this is a product call, not a translator's default, and `fabLabel` having gone untranslated may have been incidental rather than decided
+
+**Given** `apps/mobile/.maestro/backgrounded-recovery.yaml` asserts and taps on `text: "Calm Me"` (lines 104 and 108) against this exact `accessibilityLabel`
+**When** the label changes
+**Then** that flow is updated in the same change — not as a follow-up — since `deferred-work.md` records four separate Maestro flows that silently went stale over 7+ weeks of dark E2E and were only caught once CI ran again; this story must not add a fifth
+
+**Given** the old name may survive in other user-facing copy beyond the FAB
+**When** this story is implemented
+**Then** a sweep confirms every remaining user-facing occurrence is updated or consciously left (note `calmMe.fabHint`, "Opens calming techniques and crisis support", contains no product name and needs no change), while **code identifiers are explicitly out of scope** — the route `/calm-me`, `CalmMeFab`, `CalmMeButton`, `calmMeConfig.ts`, `CALM_ME_AFFIRMATIONS` and the `calmMe.*` i18n namespace all keep their existing names, per the epic's naming note
+
+**Given** this is a string change rather than a focus-order or announcement-timing change
+**When** it is verified
+**Then** a single screen-reader spot check on one platform confirming the FAB announces "Insta Calm" is sufficient — deliberately lighter than the dual-platform on-device protocol Stories 12.3 and 12.4 required, since no focus or live-region behaviour is being altered — alongside `pnpm turbo typecheck lint test` green and the updated Maestro flow passing in CI
