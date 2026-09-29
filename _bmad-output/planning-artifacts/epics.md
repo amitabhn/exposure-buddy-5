@@ -444,7 +444,22 @@ The mobile app runs on Expo SDK 57 — and the React Native, Expo Router, and ot
 **FR-EXPOSDK-01:** The app builds, runs, and passes its full test/typecheck/lint suite on Expo SDK 57, with no user-visible regression in any existing screen or flow.
 
 **FRs covered:** FR-EXPOSDK-01
-**Scope note:** Covers the SDK/dependency upgrade itself and the regression verification needed to ship it safely — not new features enabled by the upgrade. This is a three-major-SDK-version jump (54 is current; 55 and 56 were never adopted). Originally planned as three sequential stories (54→55, 55→56, 56→57), per Expo's general incremental-upgrade guidance. **Revised 2026-09-28 (after Story 16.1 landed):** the official `expo-upgrade` Claude Code skill (github.com/expo/skills) explicitly recommends *against* the 55→56 hop — SDK 56, and SDK 57 releases before `expo@57.0.9`, carry a confirmed Hermes V1 memory regression affecting `react-native-worklets`/`react-native-reanimated` (both direct dependencies of this app), and the skill's own guidance is "skip SDK 56 and upgrade directly to SDK 57" (`expo@57.0.9`+ specifically, never below). Corroborated independently via Expo's own SDK 56 changelog. Story 16.2 was accordingly re-scoped from "55→56" to "55→57" directly, and the separate Story 16.3 was retired (folded into 16.2) — this avoids ever installing an SDK version carrying the regression, rather than accepting it as a transient risk. Native-module or config-plugin incompatibilities surfaced mid-upgrade may warrant their own follow-up story rather than blocking this epic's completion.
+**Scope note:** Covers the SDK/dependency upgrade itself and the regression verification needed to ship it safely — not new features enabled by the upgrade. This is a three-major-SDK-version jump (54 is current; 55 and 56 were never adopted). Originally planned as three sequential stories (54→55, 55→56, 56→57), per Expo's general incremental-upgrade guidance. **Revised 2026-09-28 (after Story 16.1 landed):** the official `expo-upgrade` Claude Code skill (github.com/expo/skills) explicitly recommends *against* the 55→56 hop — SDK 56, and SDK 57 releases before `expo@57.0.9`, carry a confirmed Hermes V1 memory regression affecting `react-native-worklets`/`react-native-reanimated` (both direct dependencies of this app), and the skill's own guidance is "skip SDK 56 and upgrade directly to SDK 57" (`expo@57.0.9`+ specifically, never below). Corroborated independently via Expo's own SDK 56 changelog. Story 16.2 was accordingly re-scoped from "55→56" to "55→57" directly, and the separate Story 16.3 was retired (folded into 16.2) — this avoids ever installing an SDK version carrying the regression, rather than accepting it as a transient risk. Native-module or config-plugin incompatibilities surfaced mid-upgrade may warrant their own follow-up story rather than blocking this epic's completion. **Epic complete as of Story 16.4 (2026-09-29, PR #85 merged) — all 4 stories done.**
+
+---
+
+### Epic 17: PowerSync Sync Service Provisioning
+
+*(Added 2026-09-29. Epic 9 — the epic that originally created this gap via Story 9.1 — is already marked done, so per this project's standing rule against reopening a completed epic, this is scoped as its own epic rather than added there; same precedent as Epic 15. Takes the next open number after Epic 16; Epic 13 remains a dormant reservation.)*
+
+This project has never had a working PowerSync sync service, in any environment, since Story 9.1 first flagged the gap ("no documented `sync-rules.yaml` deploy process exists"). Every screen reads/writes exclusively through PowerSync's local SQLite replica (`packages/sync`'s `useQuery`/`enqueue()`), so without a real sync endpoint: nothing written on one device ever reaches another device or Supabase, the durable outbox (`ps_crud`) never drains, and the `ADR-RN-VERSION.md`-mandated "offline write → reconnect → assert single row" integration scenario has never once been exercised for real. This was re-confirmed directly during Story 16.4 (2026-09-29): `EXPO_PUBLIC_POWERSYNC_URL` is absent from every EAS environment and every local `.env*`, and a live device test showed sign-in working while a pre-existing Supabase ladder item never appeared on a fresh install — exactly the failure mode this gap predicts.
+
+**FRs covered:** none directly — this is infrastructure underpinning the offline-sync behavior `ADR-OFFLINE-DEGRADATION.md` and `ADR-RN-VERSION.md` already assume is live.
+**Scope note:** Provisioning and verifying a real PowerSync sync service (PowerSync Cloud or self-hosted — see Story 17.1's Open Questions) and deploying `supabase/sync-rules.yaml` to it. Does not cover new sync-rules content (bucket definitions are Story 9.1's existing scope) or new UI/UX for sync state — purely closing the "no live sync endpoint exists" infrastructure gap.
+
+### Story 17.1: Provision PowerSync Sync Service & Deploy Sync Rules
+
+**Not yet drafted.** See `spec-17-1-provision-powersync-sync-service.md` — drafted via `bmad-build` 2026-09-29.
 
 ---
 
@@ -2984,6 +2999,32 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **When** this story is implemented
 **Then** it passes clean with zero regressions — this is a native-config-only change with no JS/TS surface, so no new automated test is expected, but the full suite is still run to confirm no incidental regression
 
-### Story 16.4: Fix PowerSync/`@journeyapps/react-native-quick-sqlite` New Architecture runtime crash
+## Epic 17: PowerSync Sync Service Provisioning
 
-**Not yet drafted.** Split out of Story 16.3 (see above) — open-ended investigation, not a small fix. PowerSync fails to initialize at runtime on Expo SDK 57 (RN 0.86.3): `@journeyapps/react-native-quick-sqlite@2.5.2` (the SQLite driver `@powersync/react-native@1.34.0` depends on, and already the latest version published upstream — no bump available) compiles successfully into the native binary but never registers to the JS bridge, throwing `Uncaught Error: Could not resolve @journeyapps/react-native-quick-sqlite` from `packages/sync`'s `createPowerSyncDatabase` on every app launch. This breaks all local/offline database access app-wide (ladder data, sessions — most of the app) for real users. Discovered 2026-09-28 via the same on-device Simulator run that surfaced Story 16.3's issue; neither Story 16.1's nor Story 16.2's code review caught it because both explicitly deferred a real on-device run, and the automated suite only ever exercises a Jest-mocked native module, never real native linking. Likely cause: RN 0.86.3's New Architecture defaults (possibly bridgeless mode) are incompatible with this package's native module registration mechanism — needs proper root-cause investigation (confirm the actual mechanism), evaluation of fix candidates (an alternative/newer SQLite driver PowerSync supports, a New Architecture interop/compat shim, or reporting upstream), and per `ADR-RN-VERSION.md`'s Upgrade Policy, any resulting change to the `@powersync/react-native`/driver pin requires the full PowerSync integration test suite to pass end-to-end before merge — not just `pnpm turbo typecheck lint test`. See `deferred-work.md` for the full finding. Draft this story via `bmad-build` once ready to scope the investigation properly.
+*(Added 2026-09-29 — see Epic List entry above for full context.)*
+
+### Story 17.1: Provision PowerSync Sync Service & Deploy Sync Rules
+
+**Draft (2026-09-29).** No PowerSync sync service (hosted or self-hosted) has ever been deployed for this project — `EXPO_PUBLIC_POWERSYNC_URL` is absent from every EAS environment and every local `.env*` file, confirmed directly during Story 16.4. Without it, `packages/sync/src/connector.ts`'s `fetchCredentials()` always returns `null`, so PowerSync never connects: the durable outbox never uploads, and no device ever receives another device's (or Supabase's existing) data. Preliminary research: PowerSync Cloud offers a no-credit-card Free plan and, as of this session, an India (`ap-south-1`) region — relevant given this project's DPDPA 2023 data-residency posture, though the hosted Supabase project itself is already in `ap-northeast-1` (Tokyo), a pre-existing condition this story doesn't reopen. Self-hosting (PowerSync's free, source-available Open Edition) is the alternative — a compute container reading Supabase's Postgres WAL directly, plus its own MongoDB-or-Postgres storage backend for sync buckets, i.e. real ongoing infrastructure to run and pay for, not a one-time setup.
+
+**Given** no PowerSync sync service exists for this project in any form
+**When** this story is implemented
+**Then** a hosting decision (PowerSync Cloud vs. self-hosted Open Edition) is made and documented in `ADR-RN-VERSION.md` (or a new dedicated ADR) with its rationale — this is a human decision (cost, ops burden, data-residency posture), not one a dev agent should make unilaterally; do not default to either option without explicit sign-off
+
+**Given** the hosting decision is made
+**When** this story is implemented
+**Then** a real PowerSync instance is provisioned (account/project created, region selected) and `supabase/sync-rules.yaml` is deployed to it, connected to the hosted Supabase project's Postgres via logical replication
+
+**Given** the instance is live
+**When** this story is implemented
+**Then** `EXPO_PUBLIC_POWERSYNC_URL` is set for at least the `development` EAS environment (and any others the hosting decision implies) and in a local `.env.local` pattern documented in `docs/setup/local-environment.md`
+
+**Given** `ADR-RN-VERSION.md`'s Upgrade Policy names "offline write → reconnect → assert single row" as the standard PowerSync verification scenario, and this exact scenario has never once been exercised for real in this project
+**When** this story is implemented
+**Then** that scenario is run for real on at least one device: a durable write (e.g. add a fear ladder item) made offline, then reconnect, then confirm exactly one corresponding row lands in Supabase and no duplicate is created — closing the verification gap Story 16.4 left open
+
+**Given** this is new production infrastructure with real ongoing cost/ops implications
+**When** this story is implemented
+**Then** `ADR-RN-VERSION.md`'s Consequences section (or the new dedicated ADR) documents what running this now requires going forward (billing, an account owner, monitoring) so it isn't a silent, unowned dependency Fix PowerSync/`@journeyapps/react-native-quick-sqlite` New Architecture runtime crash
+
+**Status: done (2026-09-29, PR #85 merged).** Root cause confirmed: `@journeyapps/react-native-quick-sqlite@2.5.2` never registers its JS bridge under RN 0.86.3's New Architecture — iOS-specific (Android's own `e2e-build-apk`/smoke CI, both before and after this fix, ran clean). Fix: migrated to `@powersync/react-native@2.3.0`, whose new built-in default driver is OP-SQLite (`@op-engineering/op-sqlite`) with real New Architecture support, entirely replacing the retired driver — zero application code changes required. Verified on all three available surfaces: a real iOS Simulator build/launch plus a full live sign-in, PR #85's CI (`E2E Build APK` + all 3 `E2E Smoke` shards on a real Android emulator), and a real Android device install (Redmi K20 Pro). One item intentionally not resolved by this story: the offline-write-then-reconnect scenario this story's own completion gate names — blocked by the pre-existing, project-wide absence of any deployed PowerSync sync service (see Epic 17, opened directly from this finding).
