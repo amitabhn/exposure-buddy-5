@@ -490,11 +490,13 @@ export default function LadderScreen() {
                   // the recovery modal renders, rather than starting a second session which
                   // would orphan the in-progress fear_ladder_items row.
                   if (sessionRecoveryData) {
+                    closeForm()
                     // eslint-disable-next-line i18next/no-literal-string
                     router.replace('/')
                     return
                   }
                   const sessionId = generateUUID()
+                  closeForm()
                   router.push(
                     // eslint-disable-next-line i18next/no-literal-string
                     `/session/technique?fearItemId=${editingItem.id}&sessionId=${sessionId}&description=${encodeURIComponent(editingItem.description)}&predictedSuds=${editingItem.predictedSuds}`

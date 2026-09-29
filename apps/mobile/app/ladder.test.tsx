@@ -518,24 +518,26 @@ describe('LadderScreen', () => {
       expect(getByRole('button', { name: `ladder.startSession, ${completedItem.description}` })).toBeTruthy()
     })
 
-    it('pressing Start session navigates to /session/technique', () => {
+    it('pressing Start session navigates to /session/technique and closes the edit modal', () => {
       mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: null })
       mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
-      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole, queryByRole } = render(<LadderScreen />)
       openEditModal(getAllByRole, baseItem.description)
       fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
       expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/session/technique'))
       expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining(`fearItemId=${baseItem.id}`))
+      expect(queryByRole('button', { name: /ladder\.startSession/ })).toBeNull()
     })
 
-    it('pressing Start session redirects to home when a session is already in progress (T7.2)', () => {
+    it('pressing Start session redirects to home when a session is already in progress (T7.2) and closes the edit modal', () => {
       mockUseAuth.mockReturnValue({ userId: 'user-123', sessionRecoveryData: { sessionId: 's1', fearItemId: 'item-1', preSuds: 5, description: 'test' } })
       mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
-      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      const { getAllByRole, getByRole, queryByRole } = render(<LadderScreen />)
       openEditModal(getAllByRole, baseItem.description)
       fireEvent.press(getByRole('button', { name: `ladder.startSession, ${baseItem.description}` }))
       expect(mockRouterReplace).toHaveBeenCalledWith('/')
       expect(mockRouterPush).not.toHaveBeenCalled()
+      expect(queryByRole('button', { name: /ladder\.startSession/ })).toBeNull()
     })
   })
 
