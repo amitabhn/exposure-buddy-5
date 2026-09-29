@@ -226,6 +226,22 @@ Open items before story creation:
 
 Whichever is chosen: technique content is user-facing copy, so it lands in `en.json` and `hi.json` under the CI-enforced `t()` convention, and instructional text for somatic/breathing practices needs clinical review plus India-context framing before shipping — the same review dependency as items 1.29 and 1.31.
 
+### 1.39 Interactive 5-4-3-2-1 Grounding — Text Entry Per Sense
+
+**What:** Make the 5-4-3-2-1 sensory grounding exercise genuinely interactive: show text fields below each prompt so the user types what they actually see, hear, touch, smell and taste, rather than reading an instruction and tapping "Got it". The number of fields matches the step (5 for see, 4 for hear, 3 for touch, 2 for smell, 1 for taste).
+**Source:** Product backlog (added 2026-09-29). **Scoped into Epic 18 as Story 18.6 the same day.**
+**Notes:** Today the exercise is display-only. `GroundingPrompt` (`packages/ui/src/components/GroundingPrompt.tsx`) takes `steps: { promptText: string }[]` — a pre-translated string per step and nothing else — renders one prompt at a time ("Notice 5 things you can see around you"), and advances on a "Got it" tap. There is no input anywhere in the flow, so the app never knows whether the user actually did the exercise or just tapped through it. Naming the thing you notice is what does the grounding work; reading a reminder to notice it is closer to a tutorial, which is the gap this item closes.
+
+Full acceptance criteria live in Epic 18 Story 18.6. The decisions that shape it:
+
+1. **Persistence — decide before designing anything.** What the user types is free-text personal content. The strong default is **ephemeral**: component state only, never persisted, never synced, discarded on exit. That keeps this out of DPDPA scope entirely. Persisting it would make grounding entries a new personal-data category needing a PowerSync schema change, RLS policy, inclusion in `perform_user_erasure` and `dpo-export-user`, and its own consent purpose — a disproportionate amount of compliance surface for what is a momentary attention aid, not a journal.
+2. **Typing must never gate advancement.** Requiring 15 filled fields to finish would be clinically wrong — this exercise is used at peak distress, where imposing a completion requirement makes it a chore and gives the user one more way to fail. Fields are optional; "Got it" / "I'm done" stay available whether or not anything is typed.
+3. **One screen, two emotional contexts.** `/calm-me/grounding` is reached both voluntarily from the Insta Calm hub (`apps/mobile/app/calm-me/index.tsx:122`) and mid-exposure via Stop Exposure (`apps/mobile/app/session/grounding.tsx:119`). Typing five things while calm is a different proposition from typing them while trying to stop a panic response. Decide whether interactivity is identical in both, or lighter in the session path — this is the same context split already flagged as item 6.5.
+4. **Keyboard occlusion is a known hazard here.** Five stacked inputs plus an on-screen keyboard on a small device is exactly the failure Story 9.5 hit in the onboarding e2e flow (fixed with an explicit `hideKeyboard`). Needs deliberate keyboard-avoidance and scroll handling, not a default `View`.
+5. **Structural change to the step config.** The counts are currently baked into the prompt *strings* ("Notice **5** things you can see"), not held as data — `GROUNDING_STEPS` (`packages/core/src/config/grounding-exercise.ts`) carries only `step` and `promptKey`. Rendering N fields requires a `count` per step, so both the config and `GroundingPromptProps` change.
+6. **Accessibility is not free here.** `GroundingPrompt` already announces "Step X of Y" imperatively via `AccessibilityInfo.announceForAccessibility` (lines 46-54). Adding focusable inputs means labelled fields, a sensible focus order, and making sure the step announcement doesn't fight input focus — a race this project has already been burned by once (Story 12.3's `transitionEnd` focus fix).
+7. **New free-text surface vs. crisis detection.** This adds a place where a distressed user types free text. Decide explicitly whether it runs through the crisis keyword detection engine (Story 3.1). If entries stay ephemeral and never leave the device the exposure is smaller, but someone typing something alarming mid-grounding is a realistic scenario worth a deliberate answer rather than an accidental one.
+
 ---
 
 ## 2. Phase 2 — Content & Therapeutic Tracks
