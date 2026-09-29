@@ -2,7 +2,7 @@
 title: 'Story 16.4: Fix PowerSync/@journeyapps/react-native-quick-sqlite New Architecture runtime crash'
 type: 'bugfix'
 created: '2026-09-29'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: '52ac083843fdbfceee64d3ebe487614252816c18'
@@ -56,7 +56,7 @@ context:
 - [x] `_bmad-output/planning-artifacts/adrs/ADR-RN-VERSION.md` -- update the PowerSync SDK version-pin table entry -- keep the ADR the source of truth, matching Stories 16.1–16.3's convention
 
 **Acceptance Criteria:**
-- **VERIFIED (iOS)** — Given a fresh install on Expo SDK 57 (RN 0.86.3), when the app launches, then PowerSync initializes with no native-module-registration error and local/offline database access works normally. **Android unverified — see Review Triage Log.**
+- **VERIFIED (iOS + Android)** — Given a fresh install on Expo SDK 57 (RN 0.86.3), when the app launches, then PowerSync initializes with no native-module-registration error and local/offline database access works normally. iOS: real Simulator build/launch, plus a full live sign-in → Home screen render against hosted Supabase (no crash). Android: PR #85 CI — `E2E Build APK` + all 3 `E2E Smoke` shards pass.
 - **NOT VERIFIED** — Given no network connectivity, when a durable write is made, then it succeeds locally without loss; when connectivity returns, then exactly one corresponding row appears in Supabase (the ADR's named scenario). Blocked by a pre-existing project-wide gap (no PowerSync sync endpoint ever deployed) — see deferred-work.md.
 - **VERIFIED** — Given `pnpm turbo typecheck lint test` runs after the dependency swap, then it passes with zero regressions
 
@@ -82,7 +82,7 @@ One pre-existing, unrelated runtime warning was observed in the device log: `WAR
 
 _Review pass 1 (2026-09-29): Blind Hunter + Edge Case Hunter + Verification Gap against the implementation diff._
 
-- **[HIGH — patch in progress]** The Boundaries section's "Never build iOS CI infra" decision cited Android's `e2e-build-apk` CI (PR #83) as proof Android is unaffected by this bug class — but PR #83 tested the *old* `@journeyapps/react-native-quick-sqlite` driver; this story's replacement, `@op-engineering/op-sqlite`, had never been built/linked/run on Android anywhere. This environment has no Android emulator/SDK to verify locally. **Resolution (human-decided):** open a real PR for this branch with the `run-e2e` label so GitHub's Android-emulator CI (`e2e-build-apk` + smoke shards, which exercise a real PowerSync write via `ladder-build.yaml`) verifies the new driver for real. Outcome recorded once CI completes.
+- **[HIGH — RESOLVED]** The Boundaries section's "Never build iOS CI infra" decision cited Android's `e2e-build-apk` CI (PR #83) as proof Android is unaffected by this bug class — but PR #83 tested the *old* `@journeyapps/react-native-quick-sqlite` driver; this story's replacement, `@op-engineering/op-sqlite`, had never been built/linked/run on Android anywhere. **Resolution:** PR #85 (this branch) opened with the `run-e2e` label; all 16 CI checks passed, including `E2E Build APK` (real Android Gradle build) and all 3 `E2E Smoke` shards (onboarding, core, session) — `core` exercises a real PowerSync write via `ladder-build.yaml` on a real Android emulator. The new driver is confirmed working on Android. See https://github.com/amitabhn/exposure-buddy-5/pull/85.
 - **[medium — patched]** Tasks & AC section marked the on-device verification task `[x]` despite its own parenthetical admitting the offline-write-reconnect scenario was not completed, and the AC list gave no per-criterion status — misleading at a glance. Fixed: split into two tasks (one checked/verified, one explicitly unchecked/not-verified) and annotated each AC with VERIFIED/NOT VERIFIED.
 - **[medium — patched]** `sprint-status.yaml`'s 16-4 note stated the offline-reconnect blocker as "no Docker Desktop installed" — contradicting this same review's own corrected finding (`colima start` unblocks it fine; the real blocker is no PowerSync sync endpoint ever being deployed for this project). Fixed: rewrote the note to match the corrected root cause and flag the Android open question.
 - **[low — patched]** The `colima start` unblocks-`supabase start` discovery wasn't recorded in `docs/setup/local-environment.md`'s troubleshooting section, where a future developer hitting this would look first. Fixed: added a new troubleshooting entry there.
