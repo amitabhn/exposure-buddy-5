@@ -13,7 +13,7 @@
   "dependencies": {
     "@exposure-buddy/core": "workspace:*",
     "@exposure-buddy/supabase": "workspace:*",
-    "@powersync/react-native": "1.34.0",
+    "@powersync/react-native": "2.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

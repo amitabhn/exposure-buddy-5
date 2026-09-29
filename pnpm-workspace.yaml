@@ -10,3 +10,7 @@ overrides:
   react-native: 0.86.3
   react: 19.2.3
   "@types/react": "~19.2.18"
+  # pnpm resolver quirk pins this stale otherwise despite every consumer requiring ^2.x —
+  # see deferred-work.md "Deferred from: implementation of 16-4-..." for details; revisit
+  # this override next time @powersync/* or pnpm itself is upgraded.
+  "@powersync/common": 2.3.0
