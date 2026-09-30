@@ -38,17 +38,23 @@ jest.mock('../../src/components/session/SudsScale', () => ({
 
 const mockClearSessionInProgress = jest.fn()
 const mockClearSessionIntention = jest.fn()
+const mockGetLastAffirmation = jest.fn()
+const mockSetLastAffirmation = jest.fn()
 const mockUseAuth = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
+const CALM_ME_AFFIRMATIONS_MOCK = ['calmMe.affirmation.1']
+
 jest.mock('@exposure-buddy/core', () => ({
   CALM_ME_AFFIRMATIONS: ['calmMe.affirmation.1'],
+  selectNextAffirmation: jest.fn((pool: string[]) => pool[0]),
 }))
 
 const { useLocalSearchParams } = require('expo-router')
+const { selectNextAffirmation } = require('@exposure-buddy/core')
 
 const sessionRecoveryData = {
   sessionId: 'session-uuid-1',
@@ -57,6 +63,12 @@ const sessionRecoveryData = {
   description: 'Test situation',
 }
 
+afterEach(() => {
+  // jest.clearAllMocks() in beforeEach only clears call history, not a previously-set
+  // mockReturnValue — reset explicitly so a stub set in one test can't leak into the next.
+  mockGetLastAffirmation.mockReturnValue(undefined)
+})
+
 beforeEach(() => {
   jest.clearAllMocks()
   mockEnqueue.mockResolvedValue(undefined)
@@ -64,6 +76,8 @@ beforeEach(() => {
     sessionRecoveryData: null,
     clearSessionInProgress: mockClearSessionInProgress,
     clearSessionIntention: mockClearSessionIntention,
+    getLastAffirmation: mockGetLastAffirmation,
+    setLastAffirmation: mockSetLastAffirmation,
   })
   useLocalSearchParams.mockReturnValue({})
 })
@@ -86,6 +100,17 @@ describe('CalmMeScreen — non-session layout', () => {
     fireEvent.press(getByLabelText('calmMe.technique.breathing'))
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/breathing')
   })
+
+  it('persists the selected affirmation key via setLastAffirmation on mount (Story 18.3)', () => {
+    render(<CalmMeScreen />)
+    expect(mockSetLastAffirmation).toHaveBeenCalledWith('calmMe.affirmation.1')
+  })
+
+  it('threads the shared persisted affirmation through as previousKey (Story 18.3 — cross-screen sharing)', () => {
+    mockGetLastAffirmation.mockReturnValue('calmMe.affirmation.7')
+    render(<CalmMeScreen />)
+    expect(selectNextAffirmation).toHaveBeenCalledWith(CALM_ME_AFFIRMATIONS_MOCK, 'calmMe.affirmation.7')
+  })
 })
 
 describe('CalmMeScreen — in-session layout', () => {
@@ -95,6 +120,8 @@ describe('CalmMeScreen — in-session layout', () => {
       sessionRecoveryData,
       clearSessionInProgress: mockClearSessionInProgress,
       clearSessionIntention: mockClearSessionIntention,
+      getLastAffirmation: mockGetLastAffirmation,
+      setLastAffirmation: mockSetLastAffirmation,
     })
   })
 
@@ -109,6 +136,8 @@ describe('CalmMeScreen — in-session layout', () => {
       sessionRecoveryData: null,
       clearSessionInProgress: mockClearSessionInProgress,
       clearSessionIntention: mockClearSessionIntention,
+      getLastAffirmation: mockGetLastAffirmation,
+      setLastAffirmation: mockSetLastAffirmation,
     })
     const { queryByLabelText } = render(<CalmMeScreen />)
     expect(queryByLabelText('calmMe.keepGoing')).toBeNull()
@@ -168,6 +197,8 @@ describe('CalmMeScreen — in-session layout', () => {
       sessionRecoveryData: { ...sessionRecoveryData, fearItemId: null },
       clearSessionInProgress: mockClearSessionInProgress,
       clearSessionIntention: mockClearSessionIntention,
+      getLastAffirmation: mockGetLastAffirmation,
+      setLastAffirmation: mockSetLastAffirmation,
     })
     const { getByLabelText, getByTestId } = render(<CalmMeScreen />)
     fireEvent.press(getByLabelText('calmMe.needToStop'))

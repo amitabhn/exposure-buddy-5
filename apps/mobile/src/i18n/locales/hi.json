@@ -295,7 +295,24 @@
     "exit": "बंद करें",
     "needToStop": "मुझे रुकना है",
     "yes": "हाँ",
-    "notNow": "अभी नहीं"
+    "notNow": "अभी नहीं",
+    "affirmation": {
+      "2": "This feels really hard right now, and you're still here.",
+      "3": "You don't have to make this feeling go away. You just have to let it be here for a moment.",
+      "4": "This is anxiety, not danger. Your body is doing its job a little too loudly.",
+      "5": "The wave rises, peaks, and comes down. You don't have to do anything to make it.",
+      "6": "You've been through this feeling before, and you've come through every time.",
+      "7": "You can feel this and still take one slow breath.",
+      "8": "Your heart is racing because your body is trying to protect you. It isn't a sign that something is wrong with you.",
+      "9": "You don't need to solve anything right now. The only task is the next breath.",
+      "10": "It's okay to feel scared. Feeling scared doesn't mean you're weak.",
+      "11": "Let your shoulders drop, just a little. Nothing else is needed.",
+      "12": "Thoughts are not facts. You can notice a thought without believing it.",
+      "13": "You're not alone in this. Many people feel exactly this, right now.",
+      "14": "You're allowed to take up space and take your time.",
+      "15": "You don't have to feel better to move through this. You can carry the discomfort with you.",
+      "16": "Whatever happens next, you already showed up for yourself by being here."
+    }
   },
   "breathing": {
     "inhale": "सांस अंदर लें...",

@@ -24,15 +24,20 @@ const mockAddEventListener = jest.spyOn(BackHandler, 'addEventListener')
 const mockClearSessionInProgress = jest.fn()
 const mockClearSessionIntention = jest.fn()
 const mockClearGroundingActive = jest.fn()
+const mockGetLastAffirmation = jest.fn()
+const mockSetLastAffirmation = jest.fn()
 const mockUseAuth = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
+const CALM_ME_AFFIRMATIONS_MOCK = ['calmMe.affirmation.1']
+
 jest.mock('@exposure-buddy/core', () => ({
   transition: jest.fn(() => ({ ok: true })),
   CALM_ME_AFFIRMATIONS: ['calmMe.affirmation.1'],
+  selectNextAffirmation: jest.fn((pool: string[]) => pool[0]),
 }))
 
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
@@ -42,7 +47,13 @@ jest.mock('../../src/sync/adapter', () => ({
 }))
 
 const { useLocalSearchParams } = require('expo-router')
-const { transition } = require('@exposure-buddy/core')
+const { transition, selectNextAffirmation } = require('@exposure-buddy/core')
+
+afterEach(() => {
+  // jest.clearAllMocks() only clears call history, not a previously-set mockReturnValue —
+  // reset explicitly so a stub set in one test can't leak into the next.
+  mockGetLastAffirmation.mockReturnValue(undefined)
+})
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -51,6 +62,8 @@ beforeEach(() => {
     clearSessionInProgress: mockClearSessionInProgress,
     clearSessionIntention: mockClearSessionIntention,
     clearGroundingActive: mockClearGroundingActive,
+    getLastAffirmation: mockGetLastAffirmation,
+    setLastAffirmation: mockSetLastAffirmation,
   })
   useLocalSearchParams.mockReturnValue({
     sessionId: 'session-uuid-1',
@@ -66,6 +79,17 @@ describe('GroundingScreen', () => {
   it('renders affirmation text from CALM_ME_AFFIRMATIONS', () => {
     const { getByText } = render(<GroundingScreen />)
     expect(getByText('calmMe.affirmation.1')).toBeTruthy()
+  })
+
+  it('persists the selected affirmation key via setLastAffirmation on mount (Story 18.3)', () => {
+    render(<GroundingScreen />)
+    expect(mockSetLastAffirmation).toHaveBeenCalledWith('calmMe.affirmation.1')
+  })
+
+  it('threads the shared persisted affirmation through as previousKey (Story 18.3 — cross-screen sharing)', () => {
+    mockGetLastAffirmation.mockReturnValue('calmMe.affirmation.7')
+    render(<GroundingScreen />)
+    expect(selectNextAffirmation).toHaveBeenCalledWith(CALM_ME_AFFIRMATIONS_MOCK, 'calmMe.affirmation.7')
   })
 
   it('no back button rendered (headerShown is false, forward-only screen)', () => {
@@ -191,6 +215,8 @@ describe('GroundingScreen — Story 9.6 error paths', () => {
       clearSessionInProgress: mockClearSessionInProgress,
       clearSessionIntention: mockClearSessionIntention,
       clearGroundingActive: mockClearGroundingActive,
+      getLastAffirmation: mockGetLastAffirmation,
+      setLastAffirmation: mockSetLastAffirmation,
     })
     useLocalSearchParams.mockReturnValue({
       sessionId: 'session-uuid-1',

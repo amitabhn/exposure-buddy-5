@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-rou
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
-import { transition, CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
+import { transition, CALM_ME_AFFIRMATIONS, selectNextAffirmation } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 import { color } from '@exposure-buddy/ui'
 
@@ -19,10 +19,23 @@ export default function GroundingScreen() {
     preSuds: string
   }>()
 
-  const { clearSessionInProgress, clearSessionIntention, clearGroundingActive } = useAuth()
+  const {
+    clearSessionInProgress,
+    clearSessionIntention,
+    clearGroundingActive,
+    getLastAffirmation,
+    setLastAffirmation,
+  } = useAuth()
   const [abandonError, setAbandonError] = useState<string | null>(null)
   const [isAbandoning, setIsAbandoning] = useState(false)
   const isAbandoningRef = useRef(false)
+  // Compute once per mount (not per render) and persist immediately so the "no immediate
+  // repeat" guarantee holds across the next visit to either this screen or calm-me/index.
+  const [affirmationKey] = useState(() => {
+    const key = selectNextAffirmation(CALM_ME_AFFIRMATIONS, getLastAffirmation())
+    setLastAffirmation(key)
+    return key
+  })
 
   useFocusEffect(
     useCallback(() => {
@@ -101,7 +114,7 @@ export default function GroundingScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
         {/* TODO post-MVP: consider distinct framing copy for grounding vs. Calm Me contexts */}
-        <Text style={styles.affirmation}>{t(CALM_ME_AFFIRMATIONS[0]!)}</Text>
+        <Text style={styles.affirmation}>{t(affirmationKey)}</Text>
 
         <View style={styles.techniquePicker}>
           <TouchableOpacity

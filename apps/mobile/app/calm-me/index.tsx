@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
-import { CALM_ME_AFFIRMATIONS } from '@exposure-buddy/core'
+import { CALM_ME_AFFIRMATIONS, selectNextAffirmation } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 
@@ -13,7 +13,20 @@ export default function CalmMeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { sessionRecoveryData, clearSessionInProgress, clearSessionIntention } = useAuth()
+  const {
+    sessionRecoveryData,
+    clearSessionInProgress,
+    clearSessionIntention,
+    getLastAffirmation,
+    setLastAffirmation,
+  } = useAuth()
+  // Compute once per mount (not per render) and persist immediately so the "no immediate
+  // repeat" guarantee holds across the next visit to either this screen or session/grounding.
+  const [affirmationKey] = useState(() => {
+    const key = selectNextAffirmation(CALM_ME_AFFIRMATIONS, getLastAffirmation())
+    setLastAffirmation(key)
+    return key
+  })
   // inSession is set by the FAB (root layout) at tap-time, where usePathname() can still
   // distinguish '/session/active' from elsewhere — by the time this screen mounts, the
   // active route is already '/calm-me' itself, so that check can't be repeated here.
@@ -104,7 +117,7 @@ export default function CalmMeScreen() {
           <Text style={styles.exitIcon}>✕</Text>
         </TouchableOpacity>
 
-        <Text style={styles.affirmation}>{t(CALM_ME_AFFIRMATIONS[0]!)}</Text>
+        <Text style={styles.affirmation}>{t(affirmationKey)}</Text>
 
         <View style={styles.techniquePicker}>
           <TouchableOpacity
