@@ -2,7 +2,7 @@
 title: 'Interactive 5-4-3-2-1 Grounding — Text Entry Per Sense'
 type: 'feature'
 created: '2026-09-30'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -56,11 +56,11 @@ baseline_commit: '0f076f3f16f750a51dd0e90f9a421f4e131c6119'
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `packages/core/src/config/grounding-exercise.ts` -- add `count` per step -- single source of truth, keeps prompt copy and rendered fields in sync
-- [ ] `packages/ui/src/components/GroundingPrompt.tsx` -- render N optional fields per step, ephemeral reset-per-step state, keyboard-avoiding scroll -- closes the display-only gap, no persistence path
-- [ ] `apps/mobile/app/calm-me/grounding.tsx` -- thread `count`/`fieldLabels`/`fieldPlaceholder` into `steps` -- wires the new API into the one screen serving both entry contexts
-- [ ] `en.json` + `hi.json` -- add `grounding541.fieldLabel`, `.fieldPlaceholder` -- CI-enforced `t()` convention
-- [ ] `apps/mobile/app/calm-me/grounding.test.tsx` -- cases: field count per step, non-gating advancement, values don't survive a step change
+- [x] `packages/core/src/config/grounding-exercise.ts` -- add `count` per step -- single source of truth, keeps prompt copy and rendered fields in sync
+- [x] `packages/ui/src/components/GroundingPrompt.tsx` -- render N optional fields per step, ephemeral reset-per-step state, keyboard-avoiding scroll -- closes the display-only gap, no persistence path
+- [x] `apps/mobile/app/calm-me/grounding.tsx` -- thread `count`/`fieldLabels`/`fieldPlaceholder` into `steps` -- wires the new API into the one screen serving both entry contexts
+- [x] `en.json` + `hi.json` -- add `grounding541.fieldLabel`, `.fieldPlaceholder` -- CI-enforced `t()` convention
+- [x] `apps/mobile/app/calm-me/grounding.test.tsx` -- cases: field count per step, non-gating advancement, values don't survive a step change
 
 **Acceptance Criteria:**
 - Given step 1, when rendered, then exactly 5 optional labeled fields appear beneath the prompt
@@ -71,9 +71,25 @@ baseline_commit: '0f076f3f16f750a51dd0e90f9a421f4e131c6119'
 
 ## Implementation Notes
 
+Matrix audit: rows 1 ("Normal use") and 2 ("No input") are covered by automated tests in `grounding.test.tsx` (ran, passed — see Verification below). Row 3 ("Small-screen + keyboard") has no automated equivalent, consistent with this spec's own Verification section listing it as a manual-only check (RN Testing Library can't simulate real keyboard occlusion); it, plus the VoiceOver/TalkBack focus-order check, remain outstanding manual verification before merge — no device/simulator access in this environment.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+- [blind-hunter] Completion screen's root `View` uses `styles.container`, which lost `backgroundColor` when it moved to the new `styles.outer` (applied only to the non-complete branch) — **false.** `GroundingPrompt` has exactly one consumer, `apps/mobile/app/calm-me/grounding.tsx`, whose own top-level `View` already sets `backgroundColor: color.surface.primary` (identical value) and fills the whole screen (`flex: 1`); the complete branch renders transparently over that identical-colored parent, so no visible regression occurs. Confirmed no other screen renders `GroundingPrompt` (`session/debrief.tsx`'s hit is a comment, not a render).
+- [edge-case-hunter] Same claim, filed independently at high confidence — **false**, same evidence as above.
+- [blind-hunter] `returnKeyType="next"` is set per field but no `onSubmitEditing`/ref chain advances focus, so the keyboard's "next" affordance is a no-op — **low.** Confirmed no focus-chain wiring exists. Rejected: unlikely to be noticed in everyday optional-field use, and a real fix (per-field refs + submit handlers) is more than a direct correction.
+- [edge-case-hunter] Same claim, filed independently — **low**, same disposition.
+- [blind-hunter] Crisis-keyword detection (`detectCrisisKeywords`) is not wired into the new free-text fields, with no interim mitigation — **out of scope.** The frozen Intent itself defers this explicitly ("Crisis-keyword detection on these fields is a deferred fast-follow — see `deferred-work.md`") and the Never list forbids wiring it in this story; already tracked in `deferred-work.md`. Rejected per the out-of-scope rule (intent itself excludes it).
+- [blind-hunter] No dedicated `packages/core` test asserts the `GROUNDING_STEPS` count sequence (5/4/3/2/1) or its relation to `GROUNDING_TOTAL_STEPS` — **low.** A regression would still be caught by `grounding.test.tsx`'s "each step shows fields sized to its own count" test (the sole consumer). Rejected: not spec-required, already covered indirectly, and a dedicated core-level test is additive, not a direct correction.
+- [blind-hunter] The test mock replaces real `t()` with a stub that never substitutes `en.json`/`hi.json`'s actual `{{index}}`/`{{count}}` placeholders, so a placeholder-name typo would pass CI silently — **low.** Verified true (checked `i18n.test.ts` — no test exercises real interpolation anywhere in the suite) and today's keys correctly match, so no live bug exists. Rejected: pre-existing whole-suite testing convention (every `t()` call is mocked this way, not novel to this story), and a real fix needs new real-i18next test infrastructure, more than a direct correction.
+- [blind-hunter] No invariant guard that `fieldLabels.length === count`; a future desync would silently produce `undefined` accessibility labels — **false.** Both arrays are always derived from the same `count` value in the same `grounding.tsx` object-literal construction (the sole call site), so the two can't desync today; adding a guard for a state the program can't currently reach contradicts this repo's no-premature-validation convention.
+- [blind-hunter] Field labels are generic ("Item 1 of 5") with no sense-specific wording, so "see" and "smell" steps announce identically to screen readers — **low.** This is exactly what the spec's own Code Map prescribes (`t('grounding541.fieldLabel', {index, count})`, one generic template); the frozen Boundaries only require each field have "its own accessible label" (satisfied — labels differ by position), not sense-specific wording. Rejected: spec-compliant as built; a real fix needs new per-sense i18n keys across 2 languages, more than a direct correction.
+- [blind-hunter] Fields are single-line (no `multiline`), so longer "what I notice" entries won't wrap — **low.** Real but minor; fields are optional short notice-cues per the spec's own framing. Rejected: unlikely to be hit in everyday use, and `multiline` changes `returnKeyType`/submit semantics enough that it's more than a direct correction.
+- [blind-hunter] Spec frontmatter (`in-progress`), the `sprint-status.yaml` narrative comment ("ready-for-dev"), and all-`[x]` Execution tasks with an empty Change/Triage Log don't reconcile — **rejected.** Same shape as the precedent finding in `spec-18-3-insta-calm-affirmation-rotation.md`: these sections populate during/after this review pass, so being empty/stale pre-review is expected, not a defect. Any fix here would mean editing this build's own spec/tracking metadata, which triage rejects outright.
+- [edge-case-hunter] `count` is typed as plain `number` with no bounds check; a caller passing a negative or non-integer count would make `Array(count)` throw or desync from `fieldLabels` — **false.** The only call site derives `count` straight from the literal `GROUNDING_STEPS` `as const` array (values 5/4/3/2/1), so a negative/fractional count is not a state the program can currently reach.
+- [edge-case-hunter / verification-gap] `fieldValues` is reset via a `useEffect` keyed on `[stepIndex, steps]`, which commits *after* the step-change render — for one commit, the outgoing step's `fieldValues` (old length/content) renders against the incoming step's shorter `fieldLabels`, so the extra field(s) get `accessibilityLabel={undefined}` and stale text is briefly visible; filed independently by both layers (verification-gap noted it for awareness without filing it as a formal gap) — **medium.** Real: confirmed the effect ordering in `GroundingPrompt.tsx:88-90` vs. the render at 183-184/207-219. Given this story's explicit focus on correct accessibility/focus behavior, routed to **patch**: render the field list against `currentStep.count` (always in sync with `fieldLabels`) instead of `fieldValues.length`, padding/truncating displayed values from the `fieldValues` array — removes the window entirely without adding new guards or public surface.
 
 ## Verification
 

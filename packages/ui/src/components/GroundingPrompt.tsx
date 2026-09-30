@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo } from 'react-native'
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  AccessibilityInfo,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from 'react-native'
 import Animated, {
   Easing,
   cancelAnimation,
@@ -10,7 +20,8 @@ import Animated, {
 import { color, groundingTokens, spacing } from '../tokens/theme'
 
 export interface GroundingPromptProps {
-  steps: { promptText: string }[] // ordered, pre-translated, 5 items
+  steps: { promptText: string; count: number; fieldLabels: string[] }[] // ordered, pre-translated, 5 items
+  fieldPlaceholder: string
   gotItLabel: string
   doneFinalLabel: string
   completeMessage: string
@@ -27,12 +38,27 @@ export const GroundingPrompt = React.forwardRef<
   React.ElementRef<typeof View>,
   GroundingPromptProps
 >(function GroundingPrompt(
-  { steps, gotItLabel, doneFinalLabel, completeMessage, doneLabel, againLabel, reduced, onComplete },
+  {
+    steps,
+    fieldPlaceholder,
+    gotItLabel,
+    doneFinalLabel,
+    completeMessage,
+    doneLabel,
+    againLabel,
+    reduced,
+    onComplete,
+  },
   ref,
 ) {
   const total = steps.length
   const [stepIndex, setStepIndex] = useState(0)
   const [complete, setComplete] = useState(false)
+  // Ephemeral, per-step field entries — never lifted out, persisted, or synced. Reset whenever
+  // stepIndex changes (including "Go again"'s reset to 0) so a new step never shows stale text.
+  const [fieldValues, setFieldValues] = useState<string[]>(() =>
+    Array(steps[0]?.count ?? 0).fill(''),
+  )
   // Guards against rapid double-tap advancing two steps (or firing onComplete twice) — a ref,
   // not state, so a second synchronous press in the same tick still sees the lock. Unlocked by
   // transitionTick below, which increments on every handler call regardless of whether
@@ -52,6 +78,16 @@ export const GroundingPrompt = React.forwardRef<
     const promptText = steps[stepIndex]?.promptText ?? ''
     AccessibilityInfo.announceForAccessibility(`Step ${stepIndex + 1} of ${total}. ${promptText}`)
   }, [stepIndex, complete, steps, total, completeMessage])
+
+  // Resets the ephemeral field entries every time the displayed step changes — this is the
+  // only place field state is written outside a field's own onChangeText. Deliberately does
+  // NOT depend on `complete`, so re-entering step 1 via "Go again" (stepIndex 0 -> 0, no
+  // change) still gets a fresh set: handleAgain always sets stepIndex to 0, and the mount
+  // initializer above already seeded step 0's array, but this effect also runs on mount and
+  // re-applies the same empty array, which is harmless.
+  useEffect(() => {
+    setFieldValues(Array(steps[stepIndex]?.count ?? 0).fill(''))
+  }, [stepIndex, steps])
 
   // AC #8, #10: cross-fade keyed on the displayed content (step index, or the completion view,
   // including the "Go again" reset — just another transition, not a special-cased snap).
@@ -77,6 +113,14 @@ export const GroundingPrompt = React.forwardRef<
   }, [transitionTick])
 
   const contentStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
+
+  function handleFieldChange(index: number, text: string) {
+    setFieldValues((prev) => {
+      const next = [...prev]
+      next[index] = text
+      return next
+    })
+  }
 
   function handleAdvance() {
     if (transitioningRef.current) return
@@ -136,34 +180,82 @@ export const GroundingPrompt = React.forwardRef<
 
   const isLastStep = stepIndex === total - 1
   const ctaLabel = isLastStep ? doneFinalLabel : gotItLabel
+  const currentStep = steps[stepIndex]
+  const fieldLabels = currentStep?.fieldLabels ?? []
+  const fieldCount = currentStep?.count ?? 0
 
   return (
-    <View ref={ref} style={styles.container}>
-      <Text style={styles.counter}>{`${stepIndex + 1} / ${total}`}</Text>
-      <Animated.View style={contentStyle}>
-        <Text style={styles.prompt}>{steps[stepIndex]?.promptText}</Text>
-      </Animated.View>
-      <TouchableOpacity
-        style={styles.cta}
-        onPress={handleAdvance}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    <View ref={ref} style={styles.outer}>
+      {/* No existing KeyboardAvoidingView usage elsewhere in the app to follow — this is the
+          first. `padding` on iOS shrinks the content area; Android has no reliable
+          shift/pan-and-scan equivalent via this API alone, so `height` here plus the
+          ScrollView below keeps the advance button reachable by scrolling either way without
+          dismissing the keyboard (keyboardShouldPersistTaps="handled"). */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Text style={styles.ctaLabel}>{ctaLabel}</Text>
-      </TouchableOpacity>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.counter}>{`${stepIndex + 1} / ${total}`}</Text>
+          <Animated.View style={contentStyle}>
+            <Text style={styles.prompt}>{currentStep?.promptText}</Text>
+          </Animated.View>
+          <View style={styles.fields}>
+            {/* Rendered against currentStep.count/fieldLabels (always in sync with each
+                other), not fieldValues.length — the reset effect below commits AFTER a
+                step-change render, so on that one render fieldValues can still be the
+                outgoing step's (longer or differently-valued) array. Reading
+                fieldValues[index] ?? '' means an out-of-range or not-yet-reset index
+                just renders empty instead of stale text or an undefined label. */}
+            {Array.from({ length: fieldCount }, (_, index) => (
+              <TextInput
+                // Index is a stable position key here: the array is always rebuilt to the
+                // current step's count on every step change, never reordered or filtered.
+                key={index}
+                style={styles.fieldInput}
+                value={fieldValues[index] ?? ''}
+                onChangeText={(text) => handleFieldChange(index, text)}
+                placeholder={fieldPlaceholder}
+                accessibilityLabel={fieldLabels[index]}
+                returnKeyType={index === fieldCount - 1 ? 'done' : 'next'}
+              />
+            ))}
+          </View>
+          <TouchableOpacity
+            style={styles.cta}
+            onPress={handleAdvance}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.ctaLabel}>{ctaLabel}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
-  container: {
+  outer: {
     flex: 1,
     width: '100%',
+    backgroundColor: color.surface.primary,
+  },
+  flex: {
+    flex: 1,
+  },
+  container: {
+    flexGrow: 1,
+    width: '100%',
     paddingHorizontal: spacing[6],
+    paddingVertical: spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: color.surface.primary,
     gap: 24,
   },
   counter: {
@@ -182,6 +274,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: color.content.primary,
     textAlign: 'center',
+  },
+  fields: {
+    width: '100%',
+    gap: 12,
+  },
+  fieldInput: {
+    width: '100%',
+    minHeight: groundingTokens.tapTarget,
+    borderWidth: 1,
+    borderColor: color.surface.secondary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: color.content.primary,
+    backgroundColor: color.surface.secondary,
   },
   ctaRow: {
     flexDirection: 'row',

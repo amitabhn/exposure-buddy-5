@@ -3,8 +3,17 @@ import { AccessibilityInfo } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, unknown>) =>
+      params ? `${key}:${JSON.stringify(params)}` : key,
+  }),
 }))
+
+// Matches the fieldLabel key's interpolation shape produced by the mocked t() above —
+// used to look up a given step's field by its accessible label.
+function fieldLabel(index: number, count: number): string {
+  return `grounding541.fieldLabel:${JSON.stringify({ index, count })}`
+}
 
 const mockRouterBack = jest.fn()
 
@@ -204,5 +213,83 @@ describe('GroundingScreen', () => {
     // stepIndex nor complete, so the unlock can't depend on those alone).
     fireEvent.press(getByLabelText('grounding541.done'))
     expect(mockRouterBack).toHaveBeenCalledTimes(2)
+  })
+
+  it('Story 18.6: step 1 renders exactly 5 optional labeled fields beneath the prompt', () => {
+    const { getAllByPlaceholderText, getByLabelText } = render(<GroundingScreen />)
+
+    expect(getAllByPlaceholderText('grounding541.fieldPlaceholder')).toHaveLength(5)
+    for (let i = 1; i <= 5; i++) {
+      expect(getByLabelText(fieldLabel(i, 5))).toBeTruthy()
+    }
+  })
+
+  it('Story 18.6: each step shows fields sized to its own count (4, 3, 2, then 1)', () => {
+    const { getByText, getAllByPlaceholderText, getByLabelText } = render(<GroundingScreen />)
+
+    fireEvent.press(getByText('grounding541.gotIt')) // -> step 2 ("hear"), count 4
+    expect(getAllByPlaceholderText('grounding541.fieldPlaceholder')).toHaveLength(4)
+    expect(getByLabelText(fieldLabel(4, 4))).toBeTruthy()
+
+    fireEvent.press(getByText('grounding541.gotIt')) // -> step 3 ("touch"), count 3
+    expect(getAllByPlaceholderText('grounding541.fieldPlaceholder')).toHaveLength(3)
+
+    fireEvent.press(getByText('grounding541.gotIt')) // -> step 4 ("smell"), count 2
+    expect(getAllByPlaceholderText('grounding541.fieldPlaceholder')).toHaveLength(2)
+
+    fireEvent.press(getByText('grounding541.gotIt')) // -> step 5 ("taste"), count 1
+    expect(getAllByPlaceholderText('grounding541.fieldPlaceholder')).toHaveLength(1)
+    expect(getByLabelText(fieldLabel(1, 1))).toBeTruthy()
+  })
+
+  it('Story 18.6: typing into some fields and leaving others empty does not gate "Got it"', () => {
+    const { getByText, getByLabelText } = render(<GroundingScreen />)
+
+    fireEvent.changeText(getByLabelText(fieldLabel(1, 5)), 'the lamp')
+    fireEvent.changeText(getByLabelText(fieldLabel(2, 5)), 'my hands')
+    // Fields 3, 4, 5 left empty.
+
+    fireEvent.press(getByText('grounding541.gotIt'))
+    expect(getByText('2 / 5')).toBeTruthy()
+    expect(getByText('grounding541.hear')).toBeTruthy()
+  })
+
+  it('Story 18.6: typing into every field still allows "I\'m done" to complete the exercise', () => {
+    const { getByText, getByLabelText } = render(<GroundingScreen />)
+    fireEvent.changeText(getByLabelText(fieldLabel(1, 5)), 'a')
+
+    for (let i = 0; i < 4; i++) {
+      fireEvent.press(getByText('grounding541.gotIt'))
+    }
+    fireEvent.changeText(getByLabelText(fieldLabel(1, 1)), 'sweetness')
+    fireEvent.press(getByText('grounding541.doneFinal'))
+
+    expect(getByText('grounding541.complete')).toBeTruthy()
+  })
+
+  it('Story 18.6: field values do not survive a step change — new step renders empty fields', () => {
+    const { getByText, getByLabelText } = render(<GroundingScreen />)
+
+    const firstField = getByLabelText(fieldLabel(1, 5))
+    fireEvent.changeText(firstField, 'the lamp')
+    expect(firstField.props.value).toBe('the lamp')
+
+    fireEvent.press(getByText('grounding541.gotIt')) // -> step 2 ("hear")
+    const nextStepField = getByLabelText(fieldLabel(1, 4))
+    expect(nextStepField.props.value).toBe('')
+  })
+
+  it('Story 18.6: field values do not survive "Go again" resetting back to step 1', () => {
+    const { getByText, getByLabelText } = render(<GroundingScreen />)
+
+    for (let i = 0; i < 4; i++) {
+      fireEvent.press(getByText('grounding541.gotIt'))
+    }
+    fireEvent.changeText(getByLabelText(fieldLabel(1, 1)), 'sweetness')
+    fireEvent.press(getByText('grounding541.doneFinal'))
+    fireEvent.press(getByText('grounding541.again'))
+
+    const resetField = getByLabelText(fieldLabel(1, 5))
+    expect(resetField.props.value).toBe('')
   })
 })

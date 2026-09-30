@@ -13,7 +13,14 @@ export default function GroundingScreen() {
 
   // Stable identity so GroundingPrompt's effects (keyed on `steps`) don't re-run every render.
   const steps = useMemo(
-    () => GROUNDING_STEPS.map(({ promptKey }) => ({ promptText: t(promptKey) })),
+    () =>
+      GROUNDING_STEPS.map(({ promptKey, count }) => ({
+        promptText: t(promptKey),
+        count,
+        fieldLabels: Array.from({ length: count }, (_, i) =>
+          t('grounding541.fieldLabel', { index: i + 1, count }),
+        ),
+      })),
     [t],
   )
 
@@ -35,6 +42,7 @@ export default function GroundingScreen() {
 
         <GroundingPrompt
           steps={steps}
+          fieldPlaceholder={t('grounding541.fieldPlaceholder')}
           gotItLabel={t('grounding541.gotIt')}
           doneFinalLabel={t('grounding541.doneFinal')}
           completeMessage={t('grounding541.complete')}
