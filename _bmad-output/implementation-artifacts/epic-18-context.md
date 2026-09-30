@@ -4,51 +4,53 @@
 
 ## Goal
 
-This epic is a curated first wave of post-MVP UX fixes, selected as the highest-impact items not blocked on clinical-advisor review (which currently gates roughly ten other backlog items). It closes real, specific gaps at two moments that matter most for an anxiety-focused app: recovering cleanly from an interrupted exposure session on any device, and hitting fewer dead ends at the distress-support screen and during account creation. Several items originated under Epics 8 and 15, which are already `done`; per this project's standing rule against reopening a completed epic, they are re-homed here rather than un-deferred in place. Note: a "Progress tab" story (SUDS trend/history/arc) was briefly scoped into this epic on 2026-09-29 as Story 18.1, then moved back to `post-mvp-backlog.md` the same day pending design decisions (layout, chart treatment, empty/offline states) — it is **not** part of this epic's active scope.
+Beta users can see evidence that they are making progress, recover cleanly from an interrupted session on any device, and hit fewer dead ends in the two moments that matter most — the distress-support screen and account creation. This is a curated first wave of user-experience fixes pulled from the post-MVP backlog, selected specifically because none of them are blocked on clinical-advisor review (which currently gates roughly ten other backlog items). Several stories re-home work discovered against already-`done` epics (8, 15), since this project's convention is to open a new epic rather than reopen a completed one.
 
 ## Stories
 
+- Story 18.1: Progress Tab — SUDS Trend, Session History & Arc (deferred back to post-mvp-backlog.md same day it was scoped in; not part of this epic's active scope — reference only)
 - Story 18.2: Mid-Session Re-Entry — Insta Calm Prompt & Cross-Device Recovery
 - Story 18.3: Insta Calm Affirmation Rotation
 - Story 18.4: Distinct "Account Already Exists" Message on Password Sign-Up
 - Story 18.5: Insta Calm Rename — Screen-Reader Label Parity
 - Story 18.6: Interactive 5-4-3-2-1 Grounding — Text Entry Per Sense
+- Story 18.7: Skip Onboarding for Existing Users After Reinstall
 
 ## Requirements & Constraints
 
-- A user who leaves the app mid-exposure must be able to return to it, with calming support offered at re-entry, and that recovery must survive a reinstall or device switch — the session's source of truth is server-side, not local device storage.
-- The calming-support affirmation shown to a distressed user must vary between visits instead of repeating one fixed line.
-- Account sign-up with an already-registered identifier must tell the user that specifically and point them at sign-in, regardless of which of two different backend error shapes produced it.
-- Screen-reader users must hear the current product name for the calming-support entry point, not a stale pre-rename name.
-- The 5-4-3-2-1 grounding exercise must capture what the user actually notices at each step, not merely instruct them to notice.
-- No item in this epic may depend on the clinical-advisor review that gates other backlog work.
-- Every user-facing string goes through i18n (CI-lint enforced), with entries added to both the English and Hindi locale files.
-- Free-text user input is treated as highly sensitive personal data; persisting any new category of it would trigger DPDPA consent-purpose, RLS, account-erasure, and data-export obligations — default to ephemeral/non-persisted unless a story explicitly records a decision otherwise.
-- Changes to launch-time routing must not delay the existing auth/onboarding redirect gate, and must be re-checked against the established cold-start performance budget.
-- Any E2E flow asserting on changed accessibility labels or copy must be updated in the same change — stale E2E flows going unnoticed for weeks is a recurring failure mode here.
+- Session recovery must work even when on-device state is gone (reinstall, device switch, cleared storage) — the authoritative signal is the server-side record, with local state as a fast-path cache only.
+- The Insta Calm affirmation must vary between visits rather than showing the same fixed line every time; no-immediate-repeat is the behavior that matters, not true randomness.
+- Every backend shape that means "this identifier is already registered" during sign-up must route to the same clear, actionable copy pointing the user at sign-in — not a generic failure message.
+- Screen-reader users must hear the same product name ("Insta Calm") sighted users see; no interactive element may announce a stale pre-rename name.
+- The 5-4-3-2-1 grounding exercise must capture what the user actually notices, not just instruct them to notice it — and typing must never gate advancing to the next step.
+- A user with existing account data (at least one courage-ladder item) must land on home after sign-in post-reinstall, not be routed back through onboarding.
+- Cold start must stay under the existing performance budget (<3s P90 on the 2GB RAM/Android 10+ target profile) — any new fallback check added by this epic must add zero latency to the common case and must never block the existing auth/onboarding redirect gate.
+- All interactive elements need accessible labels (WCAG 2.1 AA); accessibility labels read as natural speech, not a transcription of visual formatting (all-caps, line breaks).
+- Free-text personal data (grounding-exercise entries) defaults to ephemeral/component-state-only — persisting it would create a new personal-data category requiring RLS, erasure-job, and DPDPA-consent-purpose changes, which this epic does not take on unless a story explicitly decides otherwise.
+- Revealing account-existence during sign-up is a deliberate, recorded tradeoff against Supabase's email-enumeration protection — usability wins for this health app, but the tradeoff must be documented, not incidental.
+- Clinical-review-gated copy (e.g. the "You're back. That took courage." re-entry line) is explicitly out of scope for this epic; existing neutral copy stays until that review happens.
 
 ## Technical Decisions
 
-- "Calm Me" is renamed to "Insta Calm" in user-facing copy only. Code identifiers (route, component names, config file, i18n namespace) intentionally retain the old name and are out of scope for renaming — this mismatch between UI copy and code symbols is deliberate.
-- A session-recovery modal already exists, gated by locally-persisted state. The remaining gap is a server-side fallback (via the sync-replica data) for when no local recovery record is present, an actively-offered calming prompt at resume, and a defined staleness threshold beyond which resuming a very old session is no longer offered.
-- Re-entry UI copy changes are explicitly deferred to a separate clinical-review pass; existing neutral copy must be retained as-is.
-- Affirmation rotation must avoid an immediate repeat on consecutive visits (not pure random-with-replacement) and must handle the single-entry case without failing.
-- The duplicate-account-on-signup fix must unify two different backend response shapes (a thrown error vs. a silent no-session resolution) for the same condition into one consistent message, and must explicitly record the enumeration-disclosure tradeoff as a product decision.
-- The grounding exercise's per-sense item counts must be driven from a single shared config source rather than duplicated between prompt copy and rendered field count, so the two cannot drift out of sync.
-- Grounding text input must never gate advancement — fields stay optional and the advance action stays enabled regardless of input.
-- Prefer extending existing, already-built components over rebuilding equivalents.
+- Cold-start sequencing (existing ADR): MMKV sync reads (auth state, session-in-progress flag, last route) resolve before PowerSync init completes, so session-recovery/navigation decisions add zero latency to launch. Any new server-side fallback check (cross-device recovery, reinstall detection) must sit *behind* this existing path and never delay it — verified against the same cold-start budget.
+- Local-first-with-fallback pattern: when on-device state can't answer a question (recovery, onboarding status), fall back to a live query through the PowerSync replica rather than trusting local-only state; on failure/timeout/offline, fall back to the safer default (show onboarding, don't offer a stale resume) rather than hanging or erroring. One story establishes this pattern (`useActiveSessionRecoveryFallback`); a later story in this epic reuses it rather than reinventing it.
+- `packages/core` boundary is hard (CI-enforced): zero `react-native`/`expo-*`/`@supabase/*` imports. Config-driven logic added to `packages/core` (affirmation list, grounding step counts/selection) must stay pure TypeScript, unit-tested in Vitest.
+- MMKV access goes only through the typed `KV_KEYS` factory — raw string-literal keys are lint-banned. Any new persisted key (e.g. last-shown-affirmation index) follows this convention.
+- `fear_ladder_items` is readable under existing RLS and syncs via PowerSync, so an existence check against it reflects server truth shortly after sign-in without new backend work.
+- Every user-facing string goes through `t()` (CI lint enforced) with matching keys added to both `en.json` and `hi.json` — English copy duplicated into `hi.json` where no localization decision has been made yet.
+- Graceful-degradation principle applies throughout: never surface an error for incomplete or not-yet-synced data; fall to the safest available UI state instead.
 
 ## UX & Interaction Patterns
 
-- Calming support should be actively prompted at the moment of session resume, not merely passively available — a user returning at peak distress shouldn't have to notice and interpret a small persistent control.
-- Accessibility labels must read naturally as speech, not mirror visual formatting (e.g., not shouted all-caps, no visual line breaks).
-- Whether a renamed brand term stays in Latin script across all locales or gets a localized rendering is a product decision to make explicitly, not a default left to translation.
-- Interactive text-entry screens with an on-screen keyboard need deliberate keyboard-avoidance and scrolling handling; keyboard occlusion of controls is a known failure mode here. Focus order should run prompt → input fields → advance control, and step-change screen-reader announcements must not steal focus from an active input.
-- The grounding exercise is reached from two contexts with different emotional stakes — calm/voluntary browsing versus mid-crisis session-stop — whether both get identical interactivity or the crisis path gets a lighter treatment should be decided once, deliberately.
-- Verification depth should match risk: a lightweight single-platform spot check suffices for pure copy/label changes; full dual-platform screen-reader verification is required only when focus or announcement behavior actually changes.
+- Established re-entry pattern: returning to an interrupted exposure surfaces calming support actively at the moment of re-entry, not merely as a passively-available overlay/FAB a distressed user has to notice.
+- Zero-navigate safety principle: calming support must remain reachable without menu traversal from any screen, including mid-session.
+- Accessibility labels are written as natural speech, matching how a screen reader will say the product name — not a transcription of the visual label's casing or line breaks.
+- Verification depth scales with what changed: a pure string change gets a single one-platform screen-reader spot check; a change that alters focus order or introduces new focusable elements requires the fuller dual-platform (VoiceOver + TalkBack) protocol.
+- Distress-context inputs (grounding text entry) must never block progression — advance/skip controls stay enabled regardless of whether anything was entered.
 
 ## Cross-Story Dependencies
 
-- Story 18.2's cross-device recovery fallback depends on the real-time sync service being live in all environments (delivered by a preceding epic) and must be re-verified against the cold-start performance budget noted above.
-- Story 18.6 shares an open design question with unrelated backlog work about differing interactivity for the same exercise reached from two contexts — resolve both together.
-- Story 18.1 (Progress tab) is out of scope; do not assume its data-model or UI changes are available to any other story here.
+- Story 18.7 reuses the local-first-with-fallback query hook that Story 18.2 establishes for cross-device session recovery — implement or land 18.2's pattern before or alongside 18.7's onboarding-skip fallback.
+- Stories 18.3 and 18.4 are small and independent; they can land together but neither depends on the other.
+- Stories 18.5 and 18.6 are independent of every other story in this epic and of each other.
+- Story 18.1 is deferred out of this epic's active scope — no other story in this epic depends on it, and its `SudsArcChart` reuse note is preserved only for whenever it is re-scoped elsewhere.
