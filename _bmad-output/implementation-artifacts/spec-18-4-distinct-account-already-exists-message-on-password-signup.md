@@ -26,6 +26,7 @@ context: []
 - `isDuplicateAccountError` and its `DUPLICATE_ACCOUNT_ERROR_CODES` constant were placed next to `isRateLimitedError`, their sibling shared-detection helper, rather than immediately above `classifyPasswordSignUpError`.
 - Verification: `pnpm --filter exposure-buddy-mobile typecheck` clean, `pnpm --filter exposure-buddy-mobile lint` clean, `npx jest sign-in.test` → 25/25 passing (apps/mobile).
 - Reviewed by a Blind Hunter subagent (context-free, 8 findings); see Review Triage Log below.
+- **Manually verified on-device (2026-09-30):** iOS Simulator (iPhone 17 Pro), app rebuilt against local Supabase (Docker via colima; `.env.local` temporarily pointed `EXPO_PUBLIC_SUPABASE_URL` at `127.0.0.1:54321`, reverted after). Signed up with a fresh email (succeeded), then repeated the signup with the same email against local GoTrue's real `422 user_already_exists` response. Confirmed the UI now shows "We couldn't create your account with these details. Please try signing in instead, or use a different email or phone number." (`auth.password.signUpUnavailable`) instead of the old generic error — the primary bug this story fixes, hit via the actual thrown-error path (not just the unit-test mock). User-confirmed.
 
 ## Review Triage Log
 
