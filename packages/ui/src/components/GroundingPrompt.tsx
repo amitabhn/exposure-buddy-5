@@ -156,6 +156,15 @@ export const GroundingPrompt = React.forwardRef<
         </Animated.View>
         <View style={styles.ctaRow}>
           <TouchableOpacity
+            style={[styles.cta, styles.ctaSecondary]}
+            onPress={handleAgain}
+            accessibilityRole="button"
+            accessibilityLabel={againLabel}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.ctaLabel, styles.ctaSecondaryLabel]}>{againLabel}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.cta}
             onPress={handleDone}
             accessibilityRole="button"
@@ -163,15 +172,6 @@ export const GroundingPrompt = React.forwardRef<
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={styles.ctaLabel}>{doneLabel}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.cta, styles.ctaSecondary]}
-            onPress={handleAgain}
-            accessibilityRole="button"
-            accessibilityLabel={againLabel}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.ctaLabel}>{againLabel}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -303,11 +303,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaSecondary: {
-    backgroundColor: color.content.secondary,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: color.accent.courage,
   },
   ctaLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  ctaSecondaryLabel: {
+    color: color.accent.courage,
   },
 })
