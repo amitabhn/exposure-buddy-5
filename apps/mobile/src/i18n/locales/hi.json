@@ -323,7 +323,9 @@
   "grounding541": {
     "see": "अपने आस-पास 5 चीज़ें देखें",
     "hear": "4 आवाज़ें सुनें",
-    "gotIt": "समझ गया",
+    "fieldLabel": "Item {{index}} of {{count}}",
+    "fieldPlaceholder": "Optional — type what you notice",
+    "gotIt": "अगला",
     "doneFinal": "मैं पूरा कर चुका हूं",
     "done": "हो गया",
     "again": "फिर से करें"

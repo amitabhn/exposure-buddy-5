@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: spec-18-6 token-count split (2026-09-30)
+
+_Spec exceeded the 1600-token scope ceiling (~2850 tokens) at the Checkpoint 1 token-count gate. User chose to split rather than keep the full spec._
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-18-6-interactive-541-grounding-text-entry-per-sense.md`
+  summary: Wire `detectCrisisKeywords` (Story 3.1) into the new grounding-exercise text fields, with `GroundingPrompt` calling an `onCrisisDetected` callback (mirroring `FearItemForm.tsx`'s guard-ref pattern) and the screen rendering an inline persistent banner (mirroring `ladder.tsx:338-345`) whose CTA links to `/calm-me/helplines`.
+  evidence: Epics.md's Story 18.6 AC list requires "an explicit decision... on whether entries are run through that detector" — the decision (yes, reusing the existing pattern) was made and recorded in spec-18-6's first draft, but implementing it added enough Code Map/Boundaries/AC content to push the spec well past the token ceiling. Deferred as a fast-follow rather than dropped, since the underlying decision is already settled — only the implementation is deferred.
+
 ## Deferred from: manual signup testing on hosted Supabase (2026-09-22)
 
 _Discovered while manually testing Stories 15.1-15.4 in the iOS Simulator, immediately after the SMTP/Confirm-Email stop-gap above unblocked signup itself: signup then failed a step later with "We couldn't save your consent record. Please try again."_
