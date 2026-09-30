@@ -7,7 +7,7 @@ import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition } from '@exposure-buddy/core'
-import { color } from '@exposure-buddy/ui'
+import { color, CalmMeButton } from '@exposure-buddy/ui'
 import { consumeSessionResumedFlag, setResumeBannerVisible } from '../../src/state/sessionResumeFlag'
 
 // Pure-JS UUID v4 — same pattern as ladder.tsx (Hermes limitation: no crypto.randomUUID)
@@ -194,14 +194,11 @@ export default function ActiveScreen() {
           <View style={styles.resumeBanner}>
             <Text style={styles.resumeBannerHint}>{t('calmMe.fabHint')}</Text>
             <View style={styles.resumeBannerActions}>
-              <TouchableOpacity
-                style={styles.resumeBannerButton}
+              <CalmMeButton
                 onPress={handleInstaCalmFromBanner}
-                accessibilityRole="button"
+                label={t('calmMe.fabLabel')}
                 accessibilityLabel={t('calmMe.fab')}
-              >
-                <Text style={styles.resumeBannerButtonText}>{t('calmMe.fabLabel')}</Text>
-              </TouchableOpacity>
+              />
               <TouchableOpacity
                 style={styles.resumeBannerDismiss}
                 onPress={handleDismissResumeBanner}
@@ -360,13 +357,6 @@ const styles = StyleSheet.create({
   },
   resumeBannerHint: { fontSize: 14, color: color.content.secondary, lineHeight: 20 },
   resumeBannerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  resumeBannerButton: {
-    backgroundColor: color.accent.courage,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  resumeBannerButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600', fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
   resumeBannerDismiss: { paddingVertical: 10, paddingHorizontal: 8 },
   resumeBannerDismissText: { color: color.content.secondary, fontSize: 14, textDecorationLine: 'underline' },
   actions: { flex: 1, justifyContent: 'center', gap: 16 },

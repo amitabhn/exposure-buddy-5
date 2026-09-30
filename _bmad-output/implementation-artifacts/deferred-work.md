@@ -1130,3 +1130,13 @@ _Blind Hunter + Edge Case Hunter + Verification Gap review against the round-2 i
 - source_spec: `_bmad-output/implementation-artifacts/spec-18-2-mid-session-re-entry-insta-calm-prompt-and-cross-device-recovery.md`
   summary: `sessionResumeFlag.ts`'s reactive pub-sub (`setResumeBannerVisible`/`subscribeResumeBannerVisible`/`getResumeBannerVisible`) — the entire mechanism behind FAB suppression — is never exercised via its real implementation; both `CalmMeFab.test.tsx` and `active.test.tsx` mock the module entirely.
   evidence: A bug in the real pub-sub (e.g. the `if (bannerVisible === visible) return` early-exit, or the listener `add`/`delete` bookkeeping) breaking notification delivery would ship undetected. An 18-line, low-risk module — a direct unit test would close this cheaply but isn't blocking.
+
+---
+
+## Deferred from: code review of story-18-2 (2026-09-30)
+
+_Blind Hunter + Edge Case Hunter + Verification Gap Reviewer + Acceptance Auditor review against the `b8b805d..HEAD` diff. 4 patch findings and 8 rejected findings — see `### Review Findings` in the spec file. 1 item deferred below._
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-18-2-mid-session-re-entry-insta-calm-prompt-and-cross-device-recovery.md`
+  summary: No test exercises the real (unmocked) `sessionResumeFlag` pub-sub or the Resume→banner→FAB-suppression handoff at the actual module boundary.
+  evidence: Duplicates the two items immediately above (review pass 2, same file) — the Acceptance Auditor layer independently re-derived the same gap from a fresh read of the diff. Recorded here for completeness only; not new work beyond what's already deferred above.

@@ -154,6 +154,11 @@ describe('IntentScreen', () => {
           fearItemId: 'item-uuid-1',
           preSuds: 5,
           description: 'Test fear situation',
+          // Story 18.2: startedAt is the sole write-side source of the local-path 24h
+          // staleness timestamp (see AuthProvider.tsx's isSessionRecoveryFresh check) —
+          // asserted as a real ISO 8601 string, not just any value, so a future refactor
+          // that drops or malforms the field fails here instead of shipping silently.
+          startedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
         })
       )
     })
