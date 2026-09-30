@@ -24,6 +24,10 @@ export const KV_KEYS = {
   // Two-arg key: preference is per-user per-fear-item (not per-session), so sessionId would be wrong here.
   // Retained across sign-out (parallels SUDS_CALIBRATION policy); subject to DPDPA erasure on account deletion.
   SESSION_LAST_TECHNIQUE:       (userId: string, fearItemId: string) => `session:last_technique:${userId}:${fearItemId}`,
+  // Insta Calm affirmation rotation "no immediate repeat" state — the previously-shown
+  // affirmation's i18n key, not its content. Retained across sign-out (parallels
+  // SESSION_LAST_TECHNIQUE policy); non-sensitive rotation state, not DPDPA-scoped. (Story 18.3)
+  LAST_AFFIRMATION:             (userId: string) => `calm_me:last_affirmation:${userId}`,
   // Daily reminder time as an "HH:mm" 24-hour string (e.g. "08:00"), not a Date. (Story 8.2)
   SESSION_REMINDER_TIME:        (userId: string) => `notifications:reminder_time:${userId}`,
   SESSION_REMINDER_NOTIFICATION_ID: (userId: string) => `notifications:reminder_id:${userId}`,

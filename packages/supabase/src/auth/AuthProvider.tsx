@@ -49,6 +49,9 @@ interface AuthContextValue {
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
+  // Insta Calm affirmation rotation "no immediate repeat" helpers (Story 18.3)
+  getLastAffirmation: () => string | null
+  setLastAffirmation: (key: string) => void
   // Session reminder helpers (Story 8.2)
   getReminderTime: () => string | null
   setReminderTime: (time: string) => void
@@ -85,6 +88,8 @@ export const AuthContext = createContext<AuthContextValue>({
   getGroundingActiveAt: () => null,
   getLastUsedTechnique: () => null,
   setLastUsedTechnique: () => {},
+  getLastAffirmation: () => null,
+  setLastAffirmation: () => {},
   getReminderTime: () => null,
   setReminderTime: () => {},
   getReminderNotificationId: () => null,
@@ -411,6 +416,20 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
     store.set(KV_KEYS.SESSION_LAST_TECHNIQUE(userId, fearItemId), technique)
   }
 
+  function getLastAffirmation(): string | null {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return null
+    return store.getString(KV_KEYS.LAST_AFFIRMATION(userId)) ?? null
+  }
+
+  function setLastAffirmation(key: string): void {
+    const store = mmkvRef.current
+    const userId = authState.userId
+    if (!store || !userId) return
+    store.set(KV_KEYS.LAST_AFFIRMATION(userId), key)
+  }
+
   function getReminderTime(): string | null {
     const store = mmkvRef.current
     const userId = authState.userId
@@ -481,6 +500,8 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
       getGroundingActiveAt,
       getLastUsedTechnique,
       setLastUsedTechnique,
+      getLastAffirmation,
+      setLastAffirmation,
       getReminderTime,
       setReminderTime,
       getReminderNotificationId,

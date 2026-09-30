@@ -41,6 +41,9 @@ interface UseAuthResult {
   // Technique preference helpers (Story 6.1+)
   getLastUsedTechnique: (fearItemId: string) => TechniqueType | null
   setLastUsedTechnique: (fearItemId: string, technique: TechniqueType) => void
+  // Insta Calm affirmation rotation "no immediate repeat" helpers (Story 18.3)
+  getLastAffirmation: () => string | null
+  setLastAffirmation: (key: string) => void
   // Session reminder helpers (Story 8.2)
   getReminderTime: () => string | null
   setReminderTime: (time: string) => void
@@ -89,6 +92,9 @@ export function useAuth(): UseAuthResult {
     // Technique preference (AuthContext)
     getLastUsedTechnique: auth.getLastUsedTechnique,
     setLastUsedTechnique: auth.setLastUsedTechnique,
+    // Affirmation rotation (AuthContext)
+    getLastAffirmation: auth.getLastAffirmation,
+    setLastAffirmation: auth.setLastAffirmation,
     // Session reminder (AuthContext)
     getReminderTime: auth.getReminderTime,
     setReminderTime: auth.setReminderTime,
