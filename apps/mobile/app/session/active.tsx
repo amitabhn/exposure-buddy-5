@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, Modal } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,8 @@ import { getAdapter } from '../../src/sync/adapter'
 import { SudsScale } from '../../src/components/session/SudsScale'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition } from '@exposure-buddy/core'
-import { color } from '@exposure-buddy/ui'
+import { color, CalmMeButton } from '@exposure-buddy/ui'
+import { consumeSessionResumedFlag, setResumeBannerVisible } from '../../src/state/sessionResumeFlag'
 
 // Pure-JS UUID v4 — same pattern as ladder.tsx (Hermes limitation: no crypto.randomUUID)
 function generateUUID(): string {
@@ -29,6 +30,34 @@ export default function ActiveScreen() {
   }>()
 
   const { clearSessionInProgress, setGroundingActive } = useAuth()
+
+  // Story 18.2 — dismissible Insta Calm banner, shown only when this screen was reached via
+  // a real recovery Resume (local or cross-device fallback), never on a normal fresh session
+  // start. Lazy initializer consumes the one-shot flag exactly once, during this screen's
+  // initial render — see sessionResumeFlag.ts for why the flag must be set synchronously by
+  // handleRecoveryResume rather than via a useEffect there.
+  const [showResumeBanner, setShowResumeBanner] = useState(() => consumeSessionResumedFlag(sessionId))
+
+  // Publish visibility into the shared signal so the always-mounted global CalmMeFab can
+  // suppress itself specifically while this banner is shown, reappearing once dismissed.
+  // Not the same flag as above — this one is reactive and consumed by a sibling component.
+  // useLayoutEffect (not useEffect): the banner itself is already visible synchronously in
+  // this same initial render via showResumeBanner's lazy useState initializer, but a plain
+  // useEffect publishes after paint — leaving a one-commit window where CalmMeFab (subscribed
+  // via useSyncExternalStore) could still read stale `false` and render alongside the banner.
+  useLayoutEffect(() => {
+    setResumeBannerVisible(showResumeBanner)
+    return () => setResumeBannerVisible(false)
+  }, [showResumeBanner])
+
+  function handleInstaCalmFromBanner() {
+    // eslint-disable-next-line i18next/no-literal-string
+    router.push('/calm-me?inSession=1')
+  }
+
+  function handleDismissResumeBanner() {
+    setShowResumeBanner(false)
+  }
 
   // Initialised to 1: the pre-session reading written in intent.tsx already counts.
   const [sudsReadingsCount, setSudsReadingsCount] = useState(1)
@@ -160,6 +189,27 @@ export default function ActiveScreen() {
       <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>{t('session.active.title')}</Text>
         {description ? <Text style={styles.description}>{description}</Text> : null}
+
+        {showResumeBanner ? (
+          <View style={styles.resumeBanner}>
+            <Text style={styles.resumeBannerHint}>{t('calmMe.fabHint')}</Text>
+            <View style={styles.resumeBannerActions}>
+              <CalmMeButton
+                onPress={handleInstaCalmFromBanner}
+                label={t('calmMe.fabLabel')}
+                accessibilityLabel={t('calmMe.fab')}
+              />
+              <TouchableOpacity
+                style={styles.resumeBannerDismiss}
+                onPress={handleDismissResumeBanner}
+                accessibilityRole="button"
+                accessibilityLabel={t('calmMe.exit')}
+              >
+                <Text style={styles.resumeBannerDismissText}>{t('calmMe.exit')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.actions}>
           <TouchableOpacity
@@ -298,6 +348,17 @@ const styles = StyleSheet.create({
   // paddingRight reserves space for the Calm Me FAB (top-right, ~88pt footprint)
   title: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 12, paddingRight: 88 },
   description: { fontSize: 16, color: color.content.secondary, lineHeight: 24, marginBottom: 32 },
+  resumeBanner: {
+    backgroundColor: color.surface.secondary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  resumeBannerHint: { fontSize: 14, color: color.content.secondary, lineHeight: 20 },
+  resumeBannerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  resumeBannerDismiss: { paddingVertical: 10, paddingHorizontal: 8 },
+  resumeBannerDismissText: { color: color.content.secondary, fontSize: 14, textDecorationLine: 'underline' },
   actions: { flex: 1, justifyContent: 'center', gap: 16 },
   logButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   logButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },

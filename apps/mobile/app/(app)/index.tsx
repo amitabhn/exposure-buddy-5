@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CourageLadderEntryCard, LadderProgressBar, color, radius, spacing, typography } from '@exposure-buddy/ui'
-import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, type HomeScreenContext } from '@exposure-buddy/core'
+import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, isSessionRecoveryFresh, type HomeScreenContext } from '@exposure-buddy/core'
 import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSession'
 
@@ -29,6 +29,14 @@ export default function HomeScreen() {
   const { items, isLoading: ladderLoading } = useFearLadderItems(authState.userId)
   const { activeSession, isLoading: sessionLoading } = useActiveExposureSession(authState.userId)
   const isLoading = ladderLoading || sessionLoading
+
+  // Story 18.2 — apply the same 24h staleness rule as the recovery modal/fallback query to
+  // this cross-device signal before treating it as a valid progressing session. Scoped to
+  // this call site only, not useActiveExposureSession.ts itself — ladder.tsx also consumes
+  // that hook (to disable "remove" while any session, however old, references the item) and
+  // must keep seeing every 'started' row regardless of age.
+  const freshActiveSession =
+    activeSession && isSessionRecoveryFresh(activeSession.startedAt, Date.now()) ? activeSession : null
 
   useEffect(() => {
     // Guard on userId: the home screen can mount before onAuthStateChange populates
@@ -61,7 +69,7 @@ export default function HomeScreen() {
     hasAccount: true,
     hasLadder: items.length > 0,
     ladderComplete: items.length > 0 && items.every(item => item.status === 'completed'),
-    activeThread: activeSession
+    activeThread: freshActiveSession
       ? { exists: true, openCount: 0, openDurationHours: 0, userDeclaredIncomplete: false }
       : null,
     gapDays: 0,
@@ -103,10 +111,10 @@ export default function HomeScreen() {
   // already has description/preSuds), fall back to activeSession (PowerSync, cross-device) when
   // the recovery blob never reached this device. fearItemId can be null in either source (ladder
   // item deleted post-session-start, Story 6.2-C's ON DELETE SET NULL) — never crash on it.
-  const progressingSessionId = sessionRecoveryData ? sessionRecoveryData.sessionId : activeSession?.id ?? ''
+  const progressingSessionId = sessionRecoveryData ? sessionRecoveryData.sessionId : freshActiveSession?.id ?? ''
   const progressingFearItemId = sessionRecoveryData
     ? sessionRecoveryData.fearItemId
-    : activeSession?.fearItemId ?? null
+    : freshActiveSession?.fearItemId ?? null
   const progressingDescription = sessionRecoveryData ? sessionRecoveryData.description : ''
   const progressingPreSuds = sessionRecoveryData ? sessionRecoveryData.preSuds : 0
 

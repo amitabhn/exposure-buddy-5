@@ -26,6 +26,8 @@ export {
   deriveStateFromSession,
   isGroundingSignalFresh,
   GROUNDING_STALENESS_WINDOW_MS,
+  isSessionRecoveryFresh,
+  SESSION_RECOVERY_STALENESS_WINDOW_MS,
 } from './erp/session-state-machine'
 export { resolveHomeScreenState } from './erp/home-screen-state'
 export type { HomeScreenContext, HomeScreenState } from './erp/home-screen-state'

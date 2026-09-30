@@ -10,6 +10,12 @@
 # functional, as it is on every screen it is mounted on (app/_layout.tsx). The recovery
 # modal is NOT triggered by background/re-foreground (only by a cold kill + relaunch while
 # a session was in-flight). Verify this empirically during Task 1.
+#
+# Story 18.2 update: if the conditional "Resume session" branch below fires (the pre-existing
+# CI-emulator quirk noted at that step), active.tsx is now reached via a real Resume tap, so
+# the new dismissible Insta Calm banner shows and suppresses the global Calm Me FAB while
+# visible (by design). That branch now dismisses the banner first so the FAB-presence
+# assertions below hold on both the resume and normal paths — see the inline comment there.
 appId: com.exposurebuddy.app
 ---
 # ── Setup ─────────────────────────────────────────────────────────────────────────────────
@@ -68,6 +74,18 @@ appId: com.exposurebuddy.app
       - tapOn:
           text: "Resume session"
       - waitForAnimationToEnd
+      # Story 18.2 — a real Resume tap now shows the dismissible Insta Calm banner on
+      # active.tsx, which suppresses the global Calm Me FAB while visible (accessibilityLabel
+      # t('calmMe.exit') = "Close" on the banner's dismiss button). Dismiss it here so this
+      # branch converges with the normal (non-resume) path before the FAB-presence
+      # assertions further down — also exercises "dismiss banner → FAB reappears" for free.
+      - runFlow:
+          when:
+            visible: "Close"
+          commands:
+            - tapOn:
+                text: "Close"
+            - waitForAnimationToEnd
 - runFlow:
     when:
       visible: "I'm ready"
@@ -76,7 +94,9 @@ appId: com.exposurebuddy.app
           text: "I'm ready"
       - waitForAnimationToEnd
 
-# We are now on active.tsx
+# We are now on active.tsx — via either path, the Insta Calm banner (if it was shown) has
+# been dismissed above, so the global Calm Me FAB is present exactly as it was before Story
+# 18.2 on both paths.
 
 # ── Background and re-foreground the app (Task 8.3) ──────────────────────────────────────
 # Maestro backgroundApp command (verify exact syntax at implementation time against
@@ -99,7 +119,8 @@ appId: com.exposurebuddy.app
 # 1. active.tsx is still visible (not an error screen, not the home screen)
 - assertVisible: "Log how I'm feeling"
 
-# 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Calm Me")
+# 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Calm Me"). Holds on
+#    both the resume and normal paths — the Story 18.2 banner (if shown) was dismissed above.
 - assertVisible:
     text: "Calm Me"
 

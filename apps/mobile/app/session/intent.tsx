@@ -115,6 +115,7 @@ export default function IntentScreen() {
         fearItemId,
         preSuds: state.preSuds,
         description: description ?? '',
+        startedAt: now,
       }
       setSessionInProgress(recoveryData)
 

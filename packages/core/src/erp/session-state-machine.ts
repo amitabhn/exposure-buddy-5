@@ -80,6 +80,28 @@ export function isGroundingSignalFresh(groundingActiveAt: number | null, now: nu
   return now - groundingActiveAt < GROUNDING_STALENESS_WINDOW_MS
 }
 
+// ─── Session-recovery staleness (Story 18.2) ─────────────────────────────────
+// A `started` exposure session older than this is never offered for Resume —
+// applies uniformly to both the local MMKV recovery record and the cross-device
+// PowerSync fallback query. Staleness only suppresses the Resume offer; it never
+// mutates the underlying exposure_sessions row.
+export const SESSION_RECOVERY_STALENESS_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+// Pure freshness check — explicit `now` parameter (no internal Date.now() call) so
+// it's testable without wall-clock mocking, matching isGroundingSignalFresh's shape.
+// `startedAt` is optional/may be unparseable: pre-Story-18.2 MMKV blobs predate this
+// field entirely. Treated as fresh (not stale) when absent/unparseable — there is no
+// timestamp to judge staleness against, and this preserves pre-existing behavior
+// (today's local recovery path has no age limit at all) for blobs written before
+// this field existed, rather than silently dropping a legitimate in-progress session
+// on the first hydration after the app updates.
+export function isSessionRecoveryFresh(startedAt: string | undefined, now: number): boolean {
+  if (!startedAt) return true
+  const startedAtMs = Date.parse(startedAt)
+  if (Number.isNaN(startedAtMs)) return true
+  return now - startedAtMs < SESSION_RECOVERY_STALENESS_WINDOW_MS
+}
+
 // DB enum (exposure_sessions.status) — see "Vocabulary: two session-state
 // representations" in the Story 9.2 Dev Notes for why this differs from SessionState.
 export type PersistedSessionStatus = 'started' | 'completed' | 'abandoned'

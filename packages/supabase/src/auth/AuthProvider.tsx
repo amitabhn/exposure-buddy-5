@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
 import type { IDpoService, PendingDeletionRecord, SessionRecoveryData, TechniqueType } from '@exposure-buddy/core'
-import { KV_KEYS } from '@exposure-buddy/core'
+import { KV_KEYS, isSessionRecoveryFresh } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
 import {
@@ -211,10 +211,25 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         // Guard by userId — token refreshes must not re-read and overwrite in-flight state.
         if (store) {
           // Read in-progress session recovery data (Story 5.2+). Gated on auth per ADR-004.
-          // Guard by userId change to avoid re-reading on token refreshes.
+          // Story 18.2: a record whose startedAt is ≥24h old is treated as absent — same
+          // clear-and-ignore handling as the corrupt-JSON case below, so a stale local
+          // record doesn't block the cross-device PowerSync fallback query from finding a
+          // different, fresher session server-side (sessionRecoveryData must end up null).
+          // The staleness clear is gated to real sign-in events (not TOKEN_REFRESHED etc.,
+          // which this listener also receives with no other event-type guard) — otherwise a
+          // session still genuinely open on /session/active whose startedAt happens to cross
+          // 24h would get its local recovery record silently deleted by a background token
+          // refresh, making it permanently unresumable if the app were later killed.
           try {
             const raw = store.getString(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
-            setSessionRecoveryDataLocal(raw ? (JSON.parse(raw) as SessionRecoveryData) : null)
+            const parsed = raw ? (JSON.parse(raw) as SessionRecoveryData) : null
+            const isSignInEvent = _event === 'SIGNED_IN' || _event === 'INITIAL_SESSION'
+            if (parsed && isSignInEvent && !isSessionRecoveryFresh(parsed.startedAt, Date.now())) {
+              store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
+              setSessionRecoveryDataLocal(null)
+            } else {
+              setSessionRecoveryDataLocal(parsed)
+            }
           } catch {
             store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
             setSessionRecoveryDataLocal(null)

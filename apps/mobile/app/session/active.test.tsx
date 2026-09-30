@@ -47,6 +47,14 @@ jest.mock('@exposure-buddy/core', () => ({
   transition: jest.fn(() => ({ ok: true })),
 }))
 
+const mockConsumeSessionResumedFlag = jest.fn()
+const mockSetResumeBannerVisible = jest.fn()
+
+jest.mock('../../src/state/sessionResumeFlag', () => ({
+  consumeSessionResumedFlag: (...args: unknown[]) => mockConsumeSessionResumedFlag(...args),
+  setResumeBannerVisible: (...args: unknown[]) => mockSetResumeBannerVisible(...args),
+}))
+
 const { useLocalSearchParams } = require('expo-router')
 const { transition } = require('@exposure-buddy/core')
 
@@ -62,6 +70,8 @@ beforeEach(() => {
     description: 'Test situation',
     preSuds: '6',
   })
+  // Default: not reached via Resume — existing tests never see the banner.
+  mockConsumeSessionResumedFlag.mockReturnValue(false)
 })
 
 const ActiveScreen = require('./active').default
@@ -315,5 +325,72 @@ describe('ActiveScreen — Story 9.6 error paths', () => {
       expect(mockClearSessionInProgress).not.toHaveBeenCalled()
     })
     expect(mockRouterPush).not.toHaveBeenCalledWith(expect.stringContaining('/session/debrief'))
+  })
+})
+
+describe('ActiveScreen — Story 18.2 Insta Calm resume banner', () => {
+  it('does not show the banner when this screen was not reached via Resume', () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(false)
+    const { queryByLabelText } = render(<ActiveScreen />)
+    expect(queryByLabelText('calmMe.fab')).toBeNull()
+  })
+
+  it('shows the dismissible Insta Calm banner when reached via a real Resume tap', () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    const { getByLabelText } = render(<ActiveScreen />)
+    expect(getByLabelText('calmMe.fab')).toBeTruthy()
+  })
+
+  it('consumes the resume flag for this screen\'s own sessionId param', () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    render(<ActiveScreen />)
+    expect(mockConsumeSessionResumedFlag).toHaveBeenCalledWith('session-uuid-1')
+  })
+
+  it('does not auto-navigate away from /session/active when the banner is shown', () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    render(<ActiveScreen />)
+    expect(mockRouterPush).not.toHaveBeenCalled()
+  })
+
+  it('publishes banner-visible=true into the shared signal on mount when shown', async () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    render(<ActiveScreen />)
+    await waitFor(() => {
+      expect(mockSetResumeBannerVisible).toHaveBeenCalledWith(true)
+    })
+  })
+
+  it('publishes banner-visible=false into the shared signal when not shown', async () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(false)
+    render(<ActiveScreen />)
+    await waitFor(() => {
+      expect(mockSetResumeBannerVisible).toHaveBeenCalledWith(false)
+    })
+  })
+
+  it('tapping the banner\'s action navigates to /calm-me?inSession=1, reusing calmMe.* copy', async () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    const { getByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('calmMe.fab')) })
+    expect(mockRouterPush).toHaveBeenCalledWith('/calm-me?inSession=1')
+  })
+
+  it('dismissing the banner hides it and publishes visibility=false', async () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    const { getByLabelText, queryByLabelText } = render(<ActiveScreen />)
+    await act(async () => { fireEvent.press(getByLabelText('calmMe.exit')) })
+    expect(queryByLabelText('calmMe.fab')).toBeNull()
+    await waitFor(() => {
+      expect(mockSetResumeBannerVisible).toHaveBeenLastCalledWith(false)
+    })
+  })
+
+  it('publishes visibility=false on unmount (cleanup)', () => {
+    mockConsumeSessionResumedFlag.mockReturnValue(true)
+    const { unmount } = render(<ActiveScreen />)
+    mockSetResumeBannerVisible.mockClear()
+    unmount()
+    expect(mockSetResumeBannerVisible).toHaveBeenCalledWith(false)
   })
 })
