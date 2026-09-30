@@ -8,6 +8,7 @@ import { getAdapter } from '../../src/sync/adapter'
 import { PushRegistrationProvider } from '../../src/contexts/PushRegistrationContext'
 import { scheduleSessionReminder, cancelSessionReminder } from '../../src/notifications/sessionReminder'
 import { useActiveSessionRecoveryFallback } from '../../src/hooks/useActiveSessionRecoveryFallback'
+import { useOnboardingExistenceFallback } from '../../src/hooks/useOnboardingExistenceFallback'
 import { markSessionResumed } from '../../src/state/sessionResumeFlag'
 
 export default function AppLayout() {
@@ -22,6 +23,7 @@ export default function AppLayout() {
     setSessionInProgress,
     clearSessionInProgress,
     clearSessionIntention,
+    markOnboardingComplete,
     userId,
     getReminderTime,
     getReminderNotificationId,
@@ -69,17 +71,40 @@ export default function AppLayout() {
     }
   }, [isLoading, isAuthenticated, sessionRecoveryData, fallbackRecovery, setSessionInProgress])
 
+  // Story 18.7 — reinstall onboarding-skip fallback. `isOnboardingComplete` lives only in
+  // on-device MMKV, so a reinstall wipes it and the redirect gate below can't tell a
+  // returning existing account from a brand-new signup. This queries the PowerSync replica
+  // for existing fear_ladder_items rows — a hit proves onboarding already happened elsewhere.
+  // Called unconditionally (rules of hooks); `enabled` gates the query itself. Decision
+  // (2026-09-30): the fallback query is reactive and can resolve after the redirect gate's
+  // first pass already sent the user to onboarding — so this is optimistic redirect +
+  // self-correct, not a "wait for sync" gate. A hit calls markOnboardingComplete() (which
+  // flips isOnboardingComplete, satisfying the redirect gate's own condition) and explicitly
+  // replaces back into the app, correcting out of any onboarding screen already shown.
+  const isAwaitingOnboardingDecision = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
+  const { hasExistingAccountData } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
+  useEffect(() => {
+    if (isAwaitingOnboardingDecision && hasExistingAccountData) {
+      markOnboardingComplete()
+      router.replace('/(app)')
+    }
+  }, [isAwaitingOnboardingDecision, hasExistingAccountData, markOnboardingComplete, router])
+
   // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
   // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
   // Skip the onboarding gate in degraded mode (MMKV unavailable) — route authenticated
   // users directly to the app rather than trapping them in an uncompletable onboarding loop.
+  // Also skipped when the Story 18.7 fallback above has already confirmed existing account
+  // data in this same commit — markOnboardingComplete()'s state update hasn't flushed yet,
+  // so isOnboardingComplete here would still read stale (false); without this guard this
+  // effect would fire right after the one above and immediately redirect back to onboarding.
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
-    } else if (!isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded) {
+    } else if (isAwaitingOnboardingDecision && !hasExistingAccountData) {
       router.replace('/(onboarding)/welcome')
     }
-  }, [isLoading, isAuthenticated, isOnboardingComplete, isStorageDegraded, router])
+  }, [isLoading, isAuthenticated, isAwaitingOnboardingDecision, hasExistingAccountData, router])
 
   // AC4: reschedule the daily session reminder on every foreground while authenticated —
   // covers the device timezone changing without tracking timezone state directly, since
