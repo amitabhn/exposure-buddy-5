@@ -1140,3 +1140,11 @@ _Blind Hunter + Edge Case Hunter + Verification Gap Reviewer + Acceptance Audito
 - source_spec: `_bmad-output/implementation-artifacts/spec-18-2-mid-session-re-entry-insta-calm-prompt-and-cross-device-recovery.md`
   summary: No test exercises the real (unmocked) `sessionResumeFlag` pub-sub or the Resume→banner→FAB-suppression handoff at the actual module boundary.
   evidence: Duplicates the two items immediately above (review pass 2, same file) — the Acceptance Auditor layer independently re-derived the same gap from a fresh read of the diff. Recorded here for completeness only; not new work beyond what's already deferred above.
+
+---
+
+## Deferred from: Blind Hunter review of spec-18-4-distinct-account-already-exists-message-on-password-signup (2026-09-30)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-18-4-distinct-account-already-exists-message-on-password-signup.md`
+  summary: `hi.json`'s `auth` object has no `password` subsection at all, so `auth.password.signUpUnavailable` — the existing key Story 18.4 routes duplicate-account signup errors to — has no Hindi translation (falls back to the i18next missing-key behavior) for this and every other password-auth string.
+  evidence: Confirmed via direct inspection of `apps/mobile/src/i18n/locales/hi.json` — `auth.password` is absent entirely, unlike `en.json`'s full block (label, hint, submitSignUp/In, invalidCredentials, signInError, signUpError, signUpUnavailable, rateLimited, show/hidePassword + hints). Pre-existing gap from whenever password auth (Epic 10) shipped, not introduced or worsened by this story — this story reuses an existing key rather than adding one, so it has no new-key-pair obligation, but the underlying key was already unlocalized. Fixing requires translating the full `auth.password` block into Hindi, a localization decision beyond this story's scope.

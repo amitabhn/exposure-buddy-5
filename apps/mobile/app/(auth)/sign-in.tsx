@@ -92,6 +92,20 @@ function isRateLimitedError(message: string): boolean {
   return lower.includes('rate limit') || lower.includes('security purposes')
 }
 
+// GoTrue's error codes for a duplicate-identifier signup: `user_already_exists` is the
+// shape confirmed live (Story 12.1); `email_exists`/`phone_exists`/`identity_already_exists`
+// are sibling codes in the same auth-js ErrorCode union, covering identifier-specific or
+// future GoTrue responses for the same underlying condition. The message substring is a
+// fallback for when `code` is absent.
+// eslint-disable-next-line i18next/no-literal-string
+const DUPLICATE_ACCOUNT_ERROR_CODES = new Set(['user_already_exists', 'email_exists', 'phone_exists', 'identity_already_exists'])
+
+function isDuplicateAccountError(message: string, code: string | undefined): boolean {
+  if (code && DUPLICATE_ACCOUNT_ERROR_CODES.has(code)) return true
+  // eslint-disable-next-line i18next/no-literal-string
+  return message.toLowerCase().includes('already registered')
+}
+
 // Gates the dev/test sign-in shortcut (Story 15.2) — true only for known local/loopback
 // Supabase hosts, so the shortcut never renders against a real hosted backend regardless
 // of __DEV__ or build variant. Fails closed: an unset/empty URL returns false.
@@ -117,13 +131,17 @@ function classifyPasswordSignInError(message: string): string {
   return 'auth.password.signInError'
 }
 
-function classifyPasswordSignUpError(message: string): string {
+function classifyPasswordSignUpError(message: string, code?: string): string {
   // eslint-disable-next-line i18next/no-literal-string
   if (isRateLimitedError(message)) return 'auth.password.rateLimited'
-  // Supabase's email-enumeration protection means signUp() never throws for a
-  // duplicate, confirmed identifier — it resolves with no error and no session
-  // instead (handled separately via the !data.session check below). Any error
-  // thrown here is a genuine failure (network, rate-limit, etc.), not a duplicate.
+  // Supabase's email-enumeration protection means production's GoTrue resolves a
+  // duplicate, confirmed identifier with no error and no session instead (handled
+  // separately via the !data.session check below). Locally, GoTrue throws an
+  // explicit 422 user_already_exists error for the same underlying condition —
+  // route both shapes to the same "account already exists" copy so the user
+  // experience doesn't depend on which backend behavior is active.
+  // eslint-disable-next-line i18next/no-literal-string
+  if (isDuplicateAccountError(message, code)) return 'auth.password.signUpUnavailable'
   // eslint-disable-next-line i18next/no-literal-string
   return 'auth.password.signUpError'
 }
@@ -399,7 +417,7 @@ export default function SignInScreen() {
         const { data, error } = await supabase.auth.signUp(credentials)
 
         if (error) {
-          dispatch({ type: 'SUBMIT_ERROR', payload: classifyPasswordSignUpError(error.message) })
+          dispatch({ type: 'SUBMIT_ERROR', payload: classifyPasswordSignUpError(error.message, error.code) })
           return
         }
 
