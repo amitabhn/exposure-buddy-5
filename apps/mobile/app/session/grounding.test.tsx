@@ -105,19 +105,19 @@ describe('GroundingScreen', () => {
     expect(handler?.({ type: 'hardwareBackPress', timeStamp: 0 })).toBe(true)
   })
 
-  it('tapping Breathing pushes to /calm-me/breathing', () => {
+  it('tapping Breathe pushes to /calm-me/breathing', () => {
     const { getByLabelText } = render(<GroundingScreen />)
     fireEvent.press(getByLabelText('calmMe.technique.breathing'))
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/breathing')
   })
 
-  it('tapping 5-4-3-2-1 pushes to /calm-me/grounding', () => {
+  it('tapping Ground Yourself pushes to /calm-me/grounding', () => {
     const { getByLabelText } = render(<GroundingScreen />)
     fireEvent.press(getByLabelText('calmMe.technique.grounding'))
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/grounding')
   })
 
-  it('tapping Helplines pushes to /calm-me/helplines', () => {
+  it('tapping Get Support pushes to /calm-me/helplines', () => {
     const { getByLabelText } = render(<GroundingScreen />)
     fireEvent.press(getByLabelText('calmMe.technique.helplines'))
     expect(mockRouterPush).toHaveBeenCalledWith('/calm-me/helplines')
