@@ -119,16 +119,16 @@ appId: com.exposurebuddy.app
 # 1. active.tsx is still visible (not an error screen, not the home screen)
 - assertVisible: "Log how I'm feeling"
 
-# 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Calm Me"). Holds on
+# 2. The Calm Me FAB is present (accessibilityLabel: t('calmMe.fab') = "Insta Calm"). Holds on
 #    both the resume and normal paths — the Story 18.2 banner (if shown) was dismissed above.
 - assertVisible:
-    text: "Calm Me"
+    text: "Insta Calm"
 
 # 3. Verify the FAB is tappable (tap it and assert the calm-me screen opens)
 - tapOn:
-    text: "Calm Me"
+    text: "Insta Calm"
 - waitForAnimationToEnd
-# Calm-me screen shows "Calm Me" heading or accessible content — assert we navigated there
+# Calm-me screen shows "Insta Calm" heading or accessible content — assert we navigated there
 - assertVisible: "I can keep going"
 
 # 4. No error toast (session recovery modal must NOT be visible — it only appears after a

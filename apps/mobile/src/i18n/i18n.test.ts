@@ -86,3 +86,13 @@ describe('Story 12.4 — session.debrief.saveFailed copy accuracy (AC-B)', () =>
     expect(hi.session?.debrief?.saveFailed).toBe(enJson.session.debrief.saveFailed)
   })
 })
+
+describe('Story 18.5 — calmMe.fab accessibility label matches the Insta Calm rename', () => {
+  it('en.json calmMe.fab announces "Insta Calm" in natural speech', () => {
+    expect(enJson.calmMe.fab).toBe('Insta Calm')
+  })
+
+  it('hi.json duplicates the English calmMe.fab value per existing convention', () => {
+    expect(hiJson.calmMe.fab).toBe(enJson.calmMe.fab)
+  })
+})
