@@ -19,11 +19,23 @@ jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
+let mockBannerVisible = false
+const mockSubscribeResumeBannerVisible = jest.fn((listener: () => void) => {
+  void listener
+  return () => {}
+})
+
+jest.mock('../state/sessionResumeFlag', () => ({
+  getResumeBannerVisible: () => mockBannerVisible,
+  subscribeResumeBannerVisible: (listener: () => void) => mockSubscribeResumeBannerVisible(listener),
+}))
+
 import { CalmMeFab } from './CalmMeFab'
 
 beforeEach(() => {
   jest.clearAllMocks()
   mockUseAuth.mockReturnValue({ sessionRecoveryData: null })
+  mockBannerVisible = false
 })
 
 describe('CalmMeFab', () => {
@@ -84,5 +96,30 @@ describe('CalmMeFab', () => {
     const { getByRole } = render(<CalmMeFab />)
     const el = getByRole('button')
     expect(el.props.accessibilityHint).toBe('calmMe.fabHint')
+  })
+})
+
+describe('CalmMeFab — Story 18.2 suppressed while the resume banner is visible', () => {
+  it('renders null while the shared signal reports the banner visible, even on a regular screen', () => {
+    mockBannerVisible = true
+    mockUsePathname.mockReturnValue('/')
+    const { toJSON } = render(<CalmMeFab />)
+    expect(toJSON()).toBeNull()
+  })
+
+  it('renders null while the banner is visible on /session/active specifically', () => {
+    mockBannerVisible = true
+    mockUsePathname.mockReturnValue('/session/active')
+    mockUseAuth.mockReturnValue({ sessionRecoveryData: { sessionId: 's1', fearItemId: null, preSuds: 4, description: '' } })
+    const { toJSON } = render(<CalmMeFab />)
+    expect(toJSON()).toBeNull()
+  })
+
+  it('renders normally once the banner is no longer visible', () => {
+    mockBannerVisible = false
+    mockUsePathname.mockReturnValue('/session/active')
+    mockUseAuth.mockReturnValue({ sessionRecoveryData: { sessionId: 's1', fearItemId: null, preSuds: 4, description: '' } })
+    const { UNSAFE_root } = render(<CalmMeFab />)
+    expect(UNSAFE_root).toBeTruthy()
   })
 })

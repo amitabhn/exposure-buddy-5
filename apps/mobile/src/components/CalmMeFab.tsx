@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { usePathname, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CalmMeButton } from '@exposure-buddy/ui'
+import { getResumeBannerVisible, subscribeResumeBannerVisible } from '../state/sessionResumeFlag'
 
 // Global Calm Me FAB — mounted as a sibling to <Stack> in app/_layout.tsx so it persists
 // across every route. Hidden on '/calm-me' and its sub-routes (techniques, helplines) —
@@ -20,6 +21,11 @@ export function CalmMeFab() {
   // eslint-disable-next-line i18next/no-literal-string
   const isOnCalmMeRoute = pathname === '/calm-me' || pathname.startsWith('/calm-me/')
 
+  // Story 18.2 — suppressed specifically while the /session/active resume banner is
+  // visible (it offers the identical Insta Calm action), reappearing once the banner is
+  // dismissed so it stays available for the rest of the resumed session.
+  const isResumeBannerVisible = useSyncExternalStore(subscribeResumeBannerVisible, getResumeBannerVisible)
+
   // Resets the double-tap guard once the user has left the calm-me subtree (or never
   // reached it), so the FAB is tappable again on the next screen — without this, a single
   // tap would permanently disable the FAB for the rest of the app session.
@@ -28,6 +34,7 @@ export function CalmMeFab() {
   }, [isOnCalmMeRoute])
 
   if (isOnCalmMeRoute) return null
+  if (isResumeBannerVisible) return null
 
   // pathname here is the screen the FAB is tapped FROM — once /calm-me is pushed, that
   // screen's own usePathname() would just read '/calm-me', so this check must happen here,

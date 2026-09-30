@@ -7,6 +7,8 @@ import { useAuth, createSupabaseClient } from '@exposure-buddy/supabase'
 import { getAdapter } from '../../src/sync/adapter'
 import { PushRegistrationProvider } from '../../src/contexts/PushRegistrationContext'
 import { scheduleSessionReminder, cancelSessionReminder } from '../../src/notifications/sessionReminder'
+import { useActiveSessionRecoveryFallback } from '../../src/hooks/useActiveSessionRecoveryFallback'
+import { markSessionResumed } from '../../src/state/sessionResumeFlag'
 
 export default function AppLayout() {
   const { t } = useTranslation()
@@ -17,6 +19,7 @@ export default function AppLayout() {
     isOnboardingComplete,
     isStorageDegraded,
     sessionRecoveryData,
+    setSessionInProgress,
     clearSessionInProgress,
     clearSessionIntention,
     userId,
@@ -50,6 +53,21 @@ export default function AppLayout() {
       setRecoveryEndError(null)
     }
   }, [sessionRecoveryData])
+
+  // Story 18.2 — cross-device/reinstall recovery fallback. Runs (at the query level, via a
+  // bound WHERE-clause parameter) only when there's no local recovery record to show —
+  // covers both "never had one" and "local record was just cleared for staleness". This
+  // hook is called unconditionally (rules of hooks); `enabled` gates the query itself, not
+  // the hook call. Deliberately a separate effect from the auth/onboarding redirect gate
+  // below — the fallback query's timing must never affect that gate's own schedule.
+  const { fallbackRecovery } = useActiveSessionRecoveryFallback(
+    !isLoading && isAuthenticated && sessionRecoveryData === null
+  )
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && sessionRecoveryData === null && fallbackRecovery) {
+      setSessionInProgress(fallbackRecovery)
+    }
+  }, [isLoading, isAuthenticated, sessionRecoveryData, fallbackRecovery, setSessionInProgress])
 
   // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
   // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
@@ -119,6 +137,10 @@ export default function AppLayout() {
   function handleRecoveryResume() {
     if (!sessionRecoveryData) return
     setRecoveryModalDismissed(true)
+    // Set synchronously here, never via a useEffect — see sessionResumeFlag.ts's module
+    // comment. A deferred effect would run after render/commit, after ActiveScreen's
+    // initial render has already consumed the flag, so the banner would never show.
+    markSessionResumed(sessionRecoveryData.sessionId)
     const { sessionId, fearItemId, description, preSuds } = sessionRecoveryData
     router.push(
       // eslint-disable-next-line i18next/no-literal-string

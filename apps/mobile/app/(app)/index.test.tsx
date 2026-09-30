@@ -43,11 +43,17 @@ const mockResolveHomeScreenState = jest.fn()
 const mockIsGroundingSignalFresh = jest.fn()
 const mockResolveLowestPendingItem = jest.fn()
 
-jest.mock('@exposure-buddy/core', () => ({
-  resolveLowestPendingItem: (...args: unknown[]) => mockResolveLowestPendingItem(...args),
-  resolveHomeScreenState: (...args: unknown[]) => mockResolveHomeScreenState(...args),
-  isGroundingSignalFresh: (...args: unknown[]) => mockIsGroundingSignalFresh(...args),
-}))
+jest.mock('@exposure-buddy/core', () => {
+  const actual = jest.requireActual('@exposure-buddy/core')
+  return {
+    resolveLowestPendingItem: (...args: unknown[]) => mockResolveLowestPendingItem(...args),
+    resolveHomeScreenState: (...args: unknown[]) => mockResolveHomeScreenState(...args),
+    isGroundingSignalFresh: (...args: unknown[]) => mockIsGroundingSignalFresh(...args),
+    // Real implementation (Story 18.2) — the progressing-card staleness tests below rely on
+    // its actual 24h-boundary behavior, not a mock.
+    isSessionRecoveryFresh: actual.isSessionRecoveryFresh,
+  }
+})
 
 const mockUseFearLadderItems = jest.fn()
 jest.mock('../../src/hooks/useFearLadderItems', () => ({
@@ -314,7 +320,7 @@ describe('HomeScreen', () => {
     it('cross-device fallback: sessionRecoveryData null, activeSession populated — renders supporting-copy-only and navigates using activeSession fields', () => {
       mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
       mockUseActiveExposureSession.mockReturnValue({
-        activeSession: { id: 's2', fearItemId: 'b', startedAt: '2026-06-17T08:00:00.000Z' },
+        activeSession: { id: 's2', fearItemId: 'b', startedAt: new Date(Date.now() - 60_000).toISOString() },
         isLoading: false,
       })
       const { getByText, getByRole, queryByText } = render(<HomeScreen />)
@@ -327,12 +333,24 @@ describe('HomeScreen', () => {
     it('cross-device fallback handles a null activeSession.fearItemId without crashing', () => {
       mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
       mockUseActiveExposureSession.mockReturnValue({
-        activeSession: { id: 's3', fearItemId: null, startedAt: '2026-06-17T08:00:00.000Z' },
+        activeSession: { id: 's3', fearItemId: null, startedAt: new Date(Date.now() - 60_000).toISOString() },
         isLoading: false,
       })
       const { getByRole } = render(<HomeScreen />)
       fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
       expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=s3&fearItemId=&description=&preSuds=0')
+    })
+
+    it('Story 18.2: ignores a stale (>=24h) activeSession — never navigates using its fields', () => {
+      mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
+      const staleStartedAt = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's-stale', fearItemId: 'b', startedAt: staleStartedAt },
+        isLoading: false,
+      })
+      const { getByRole } = render(<HomeScreen />)
+      fireEvent.press(getByRole('button', { name: 'home.progressingState.cta' }))
+      expect(mockPush).toHaveBeenCalledWith('/session/active?sessionId=&fearItemId=&description=&preSuds=0')
     })
 
     it('handles a null sessionRecoveryData.fearItemId without crashing (primary path)', () => {
@@ -370,7 +388,7 @@ describe('HomeScreen', () => {
     it('AC 3: never renders expires_at in any form (cross-device fallback path)', () => {
       mockUseAuth.mockReturnValue({ ...defaultAuthValue, sessionRecoveryData: null })
       mockUseActiveExposureSession.mockReturnValue({
-        activeSession: { id: 's2', fearItemId: 'b', startedAt: '2026-06-17T08:00:00.000Z' },
+        activeSession: { id: 's2', fearItemId: 'b', startedAt: new Date(Date.now() - 60_000).toISOString() },
         isLoading: false,
       })
       const { queryByText } = render(<HomeScreen />)
@@ -445,11 +463,27 @@ describe('HomeScreen', () => {
         isLoading: false,
       })
       mockUseActiveExposureSession.mockReturnValue({
-        activeSession: { id: 's1', fearItemId: 'a', startedAt: '2026-06-17T08:00:00.000Z' },
+        // Fresh (<24h) startedAt — Story 18.2's real isSessionRecoveryFresh is in effect in
+        // this describe block, so a stale fixed-past date here would no longer reach 'progressing'.
+        activeSession: { id: 's1', fearItemId: 'a', startedAt: new Date().toISOString() },
         isLoading: false,
       })
       const { getByText } = render(<HomeScreen />)
       expect(getByText('home.progressingState.label')).toBeTruthy()
+    })
+
+    it("Story 18.2: a stale (>=24h) active session does NOT map to activeThread.exists -> falls back to 'morning' state", () => {
+      mockUseFearLadderItems.mockReturnValue({
+        items: [{ id: 'a', description: 'x', predictedSuds: 5, position: 1, status: 'pending', peakSuds: null }],
+        isLoading: false,
+      })
+      mockUseActiveExposureSession.mockReturnValue({
+        activeSession: { id: 's1', fearItemId: 'a', startedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() },
+        isLoading: false,
+      })
+      const { getByTestId, queryByText } = render(<HomeScreen />)
+      expect(getByTestId('courage-card')).toBeTruthy()
+      expect(queryByText('home.progressingState.label')).toBeNull()
     })
   })
 })

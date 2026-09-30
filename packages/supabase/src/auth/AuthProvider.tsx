@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
 import type { IDpoService, PendingDeletionRecord, SessionRecoveryData, TechniqueType } from '@exposure-buddy/core'
-import { KV_KEYS } from '@exposure-buddy/core'
+import { KV_KEYS, isSessionRecoveryFresh } from '@exposure-buddy/core'
 import { UserErasureRequestService } from '../functions'
 import { createSupabaseClient } from '../client'
 import {
@@ -212,9 +212,19 @@ export function AuthProvider({ children, mmkv, dpoService }: AuthProviderProps):
         if (store) {
           // Read in-progress session recovery data (Story 5.2+). Gated on auth per ADR-004.
           // Guard by userId change to avoid re-reading on token refreshes.
+          // Story 18.2: a record whose startedAt is ≥24h old is treated as absent — same
+          // clear-and-ignore handling as the corrupt-JSON case below, so a stale local
+          // record doesn't block the cross-device PowerSync fallback query from finding a
+          // different, fresher session server-side (sessionRecoveryData must end up null).
           try {
             const raw = store.getString(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
-            setSessionRecoveryDataLocal(raw ? (JSON.parse(raw) as SessionRecoveryData) : null)
+            const parsed = raw ? (JSON.parse(raw) as SessionRecoveryData) : null
+            if (parsed && !isSessionRecoveryFresh(parsed.startedAt, Date.now())) {
+              store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
+              setSessionRecoveryDataLocal(null)
+            } else {
+              setSessionRecoveryDataLocal(parsed)
+            }
           } catch {
             store.delete(KV_KEYS.SESSION_IN_PROGRESS(session.user.id))
             setSessionRecoveryDataLocal(null)

@@ -4,6 +4,8 @@ import {
   deriveStateFromSession,
   isGroundingSignalFresh,
   GROUNDING_STALENESS_WINDOW_MS,
+  isSessionRecoveryFresh,
+  SESSION_RECOVERY_STALENESS_WINDOW_MS,
 } from './session-state-machine'
 import type { SessionState } from './session-state-machine'
 
@@ -210,5 +212,38 @@ describe('isGroundingSignalFresh', () => {
   it('returns false for a timestamp past the staleness window (stale)', () => {
     const groundingActiveAt = NOW - (GROUNDING_STALENESS_WINDOW_MS + 1)
     expect(isGroundingSignalFresh(groundingActiveAt, NOW)).toBe(false)
+  })
+})
+
+// ── isSessionRecoveryFresh (Story 18.2) ─────────────────────────────────────────
+
+describe('isSessionRecoveryFresh', () => {
+  const NOW = 1_750_000_000_000 // arbitrary fixed epoch-ms instant
+
+  it('returns true when startedAt is undefined (pre-Story-18.2 MMKV blob, nothing to judge)', () => {
+    expect(isSessionRecoveryFresh(undefined, NOW)).toBe(true)
+  })
+
+  it('returns true when startedAt is unparseable', () => {
+    expect(isSessionRecoveryFresh('not-a-date', NOW)).toBe(true)
+  })
+
+  it('returns true for a fresh timestamp (just now)', () => {
+    expect(isSessionRecoveryFresh(new Date(NOW).toISOString(), NOW)).toBe(true)
+  })
+
+  it('returns true for a timestamp inside the 24h staleness window', () => {
+    const startedAt = new Date(NOW - (SESSION_RECOVERY_STALENESS_WINDOW_MS - 1)).toISOString()
+    expect(isSessionRecoveryFresh(startedAt, NOW)).toBe(true)
+  })
+
+  it('returns false for a timestamp exactly at the 24h staleness window boundary', () => {
+    const startedAt = new Date(NOW - SESSION_RECOVERY_STALENESS_WINDOW_MS).toISOString()
+    expect(isSessionRecoveryFresh(startedAt, NOW)).toBe(false)
+  })
+
+  it('returns false for a timestamp past the 24h staleness window (stale)', () => {
+    const startedAt = new Date(NOW - (SESSION_RECOVERY_STALENESS_WINDOW_MS + 1)).toISOString()
+    expect(isSessionRecoveryFresh(startedAt, NOW)).toBe(false)
   })
 })

@@ -74,6 +74,20 @@ _Note: Profile A column is N/A for metrics 2a, 2b, 3 — these are session/inter
 
 **Calm Me animation removal:** `animation: 'fade'` → `animation: 'none'` applied in `apps/mobile/app/calm-me/index.tsx` (Task 4.3, committed 2026-06-29). The cross-fade (~300–350 ms on Mali-G31) was the primary risk factor for the 200 ms tap-to-mount budget. With the animation removed, the budget is expected to be satisfied, but direct measurement is deferred pending auth resolution.
 
+### Story 18.2 re-measurement attempt (2026-09-30)
+
+Story 18.2 (mid-session re-entry / cross-device recovery) adds a PowerSync fallback query and a
+new effect to `(app)/_layout.tsx`, which is on the cold-start path for Profile B — re-measurement
+was attempted per that story's Verification task. **Still blocked**: no physical device or Android
+emulator is available in this development environment (same gap as the 2026-06-29 baseline above;
+no `adb`-reachable device to run `am start -W` against). No regression is expected from Story
+18.2's changes — the added fallback query and effect are gated to run only post-auth
+(`!isLoading && isAuthenticated && sessionRecoveryData === null`), after the point Profile B's
+cold-start budget is measured to (content-visible, home list rendered), and the query itself is a
+`LIMIT 1` lookup against a small local SQLite replica — but this is an expectation, not a
+measurement. Profile B TotalTime/content-visible re-measurement remains an open manual follow-up
+whenever a device/emulator becomes available.
+
 ## Measurement Procedure
 
 ### Cold start (Tasks 2.1–2.5)
