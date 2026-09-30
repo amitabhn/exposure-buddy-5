@@ -305,6 +305,65 @@ describe('SignInScreen', () => {
     expect(mockRouterReplace).not.toHaveBeenCalled()
   })
 
+  it('maps a thrown user_already_exists signUp error to the same duplicate-account copy as the no-session path', async () => {
+    mockSignUp.mockResolvedValue({
+      error: { message: 'User already registered', code: 'user_already_exists' },
+    })
+
+    const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
+    fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'dupe@test.com')
+    fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
+    checkSafetyBoxes(getByLabelText)
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('auth.password.submitSignUp'))
+    })
+
+    expect(getByText('auth.password.signUpUnavailable')).toBeTruthy()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
+  it('maps a duplicate-phone signUp error (phone_exists code) to the same duplicate-account copy', async () => {
+    mockSignUp.mockResolvedValue({
+      error: { message: 'Phone number already registered', code: 'phone_exists' },
+    })
+
+    const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
+    fireEvent.press(getByLabelText('auth.otp.phoneLabel'))
+    // Post-switch, the phone tab and the identifier TextInput share the label
+    // auth.otp.phoneLabel (same ambiguity as getIdentifierInput handles for email).
+    const phoneInput = getAllByLabelText('auth.otp.phoneLabel').find(el => (el.type as unknown) === 'TextInput')
+    if (!phoneInput) throw new Error('phone identifier TextInput not found')
+    fireEvent.changeText(phoneInput, '+919876543210')
+    fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
+    checkSafetyBoxes(getByLabelText)
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('auth.password.submitSignUp'))
+    })
+
+    expect(getByText('auth.password.signUpUnavailable')).toBeTruthy()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
+  it('falls back to message-text matching for a duplicate-account error with no error code', async () => {
+    mockSignUp.mockResolvedValue({
+      error: { message: 'A user with this email address has already registered.' },
+    })
+
+    const { getByLabelText, getAllByLabelText, getByText } = render(<SignInScreen />)
+    fireEvent.changeText(getIdentifierInput(getAllByLabelText), 'dupe@test.com')
+    fireEvent.changeText(getByLabelText('auth.password.label'), 'longenough1')
+    checkSafetyBoxes(getByLabelText)
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('auth.password.submitSignUp'))
+    })
+
+    expect(getByText('auth.password.signUpUnavailable')).toBeTruthy()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
   it('blocks and signs out a pendingDeletion account on password sign-in, matching otp-verification.tsx', async () => {
     mockSignInWithPassword.mockResolvedValue({ error: null })
 
