@@ -47,14 +47,14 @@ describe('GroundingScreen', () => {
     jest.restoreAllMocks()
   })
 
-  it('AC #1: step 1 shows "1 / 5", the "see" prompt, and the "Got it" CTA', () => {
+  it('AC #1: step 1 shows "1 / 5", the "see" prompt, and the "Next" CTA', () => {
     const { getByText } = render(<GroundingScreen />)
     expect(getByText('1 / 5')).toBeTruthy()
     expect(getByText('grounding541.see')).toBeTruthy()
     expect(getByText('grounding541.gotIt')).toBeTruthy()
   })
 
-  it('AC #2: "Got it" advances hear → touch → smell → taste in order, counter updating each time', () => {
+  it('AC #2: "Next" advances hear → touch → smell → taste in order, counter updating each time', () => {
     const { getByText } = render(<GroundingScreen />)
 
     fireEvent.press(getByText('grounding541.gotIt'))
@@ -74,7 +74,7 @@ describe('GroundingScreen', () => {
     expect(getByText('grounding541.taste')).toBeTruthy()
   })
 
-  it('AC #3: step 5 shows "5 / 5" and "I\'m done" CTA, not "Got it"', () => {
+  it('AC #3: step 5 shows "5 / 5" and "I\'m done" CTA, not "Next"', () => {
     const { getByText, queryByText } = render(<GroundingScreen />)
     advanceToStep5(getByText)
     expect(getByText('5 / 5')).toBeTruthy()
@@ -173,7 +173,7 @@ describe('GroundingScreen', () => {
     expect(getByText('grounding541.complete')).toBeTruthy()
   })
 
-  it('Double-tap guard: two synchronous taps on "Got it" advance only one step', () => {
+  it('Double-tap guard: two synchronous taps on "Next" advance only one step', () => {
     const { getByText, queryByText } = render(<GroundingScreen />)
     const button = getByText('grounding541.gotIt')
 
@@ -242,7 +242,7 @@ describe('GroundingScreen', () => {
     expect(getByLabelText(fieldLabel(1, 1))).toBeTruthy()
   })
 
-  it('Story 18.6: typing into some fields and leaving others empty does not gate "Got it"', () => {
+  it('Story 18.6: typing into some fields and leaving others empty does not gate "Next"', () => {
     const { getByText, getByLabelText } = render(<GroundingScreen />)
 
     fireEvent.changeText(getByLabelText(fieldLabel(1, 5)), 'the lamp')
