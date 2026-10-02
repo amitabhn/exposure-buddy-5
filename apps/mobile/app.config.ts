@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   // Bump manually following semver (MAJOR.MINOR.PATCH) before any build intended for
   // external distribution. Native build number is separate — EAS-remote-managed per
   // eas.json's cli.appVersionSource, auto-incremented on every build.
-  version: '1.0.1',
+  version: '1.0.2',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   ios: {
