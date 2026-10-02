@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { ActivityIndicator, AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import Ionicons from '@expo/vector-icons/Ionicons'
@@ -8,6 +8,7 @@ import { getAdapter } from '../../src/sync/adapter'
 import { PushRegistrationProvider } from '../../src/contexts/PushRegistrationContext'
 import { scheduleSessionReminder, cancelSessionReminder } from '../../src/notifications/sessionReminder'
 import { useActiveSessionRecoveryFallback } from '../../src/hooks/useActiveSessionRecoveryFallback'
+import { useOnboardingExistenceFallback } from '../../src/hooks/useOnboardingExistenceFallback'
 import { markSessionResumed } from '../../src/state/sessionResumeFlag'
 
 export default function AppLayout() {
@@ -22,6 +23,7 @@ export default function AppLayout() {
     setSessionInProgress,
     clearSessionInProgress,
     clearSessionIntention,
+    markOnboardingComplete,
     userId,
     getReminderTime,
     getReminderNotificationId,
@@ -69,17 +71,43 @@ export default function AppLayout() {
     }
   }, [isLoading, isAuthenticated, sessionRecoveryData, fallbackRecovery, setSessionInProgress])
 
+  // Story 18.7 — reinstall onboarding-skip fallback. `isOnboardingComplete` lives only in
+  // on-device MMKV, so a reinstall wipes it and the redirect gate below can't tell a
+  // returning existing account from a brand-new signup. This queries the PowerSync replica
+  // for existing fear_ladder_items rows — a hit proves onboarding already happened elsewhere.
+  // Called unconditionally (rules of hooks); `enabled` gates the query itself. Decision
+  // (revised on-device 2026-10-02, superseding the 2026-09-30 "optimistic redirect +
+  // self-correct"): redirecting to onboarding unmounts THIS layout (sibling route group), which
+  // tears the fallback query down before it can ever correct — and after a reinstall the replica
+  // is empty until PowerSync's first sync completes. So the onboarding redirect is HELD until
+  // the hook reports `isDecided` (hit, first sync done + query settled, or timeout), with a
+  // neutral spinner meanwhile. A hit calls markOnboardingComplete() (which flips
+  // isOnboardingComplete, satisfying the redirect gate's own condition).
+  const isAwaitingOnboardingDecision = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
+  const { hasExistingAccountData, isDecided } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
+  const isDecisionPending = isAwaitingOnboardingDecision && !isDecided
+  useEffect(() => {
+    if (isAwaitingOnboardingDecision && hasExistingAccountData) {
+      markOnboardingComplete()
+      router.replace('/(app)')
+    }
+  }, [isAwaitingOnboardingDecision, hasExistingAccountData, markOnboardingComplete, router])
+
   // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
   // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
   // Skip the onboarding gate in degraded mode (MMKV unavailable) — route authenticated
   // users directly to the app rather than trapping them in an uncompletable onboarding loop.
+  // Also skipped when the Story 18.7 fallback above has already confirmed existing account
+  // data in this same commit — markOnboardingComplete()'s state update hasn't flushed yet,
+  // so isOnboardingComplete here would still read stale (false); without this guard this
+  // effect would fire right after the one above and immediately redirect back to onboarding.
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
-    } else if (!isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded) {
+    } else if (isAwaitingOnboardingDecision && isDecided && !hasExistingAccountData) {
       router.replace('/(onboarding)/welcome')
     }
-  }, [isLoading, isAuthenticated, isOnboardingComplete, isStorageDegraded, router])
+  }, [isLoading, isAuthenticated, isAwaitingOnboardingDecision, isDecided, hasExistingAccountData, router])
 
   // AC4: reschedule the daily session reminder on every foreground while authenticated —
   // covers the device timezone changing without tracking timezone state directly, since
@@ -193,6 +221,16 @@ export default function AppLayout() {
   // recoveryModalDismissed hides the modal after Resume without clearing session data (Android safety).
   const showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null && !recoveryModalDismissed
 
+  // Held while the Story 18.7 existence decision is pending — avoids flashing the (empty) home
+  // tabs to a returning user mid-sync. All hooks above have already run; this is a plain return.
+  if (isDecisionPending) {
+    return (
+      <View style={pendingStyles.container}>
+        <ActivityIndicator />
+      </View>
+    )
+  }
+
   return (
     <PushRegistrationProvider userId={userId}>
       <Tabs screenOptions={{ headerShown: false }}>
@@ -272,6 +310,10 @@ export default function AppLayout() {
     </PushRegistrationProvider>
   )
 }
+
+const pendingStyles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' },
+})
 
 const recoveryStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },

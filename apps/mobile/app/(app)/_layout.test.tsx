@@ -32,18 +32,22 @@ const layoutAuthState = { userId: 'user-1' }
 const mockClearSessionInProgress = jest.fn()
 const mockSetSessionInProgress = jest.fn()
 const mockClearSessionIntention = jest.fn()
+const mockMarkOnboardingComplete = jest.fn()
 let mockSessionRecoveryData: { sessionId: string; fearItemId: string | null; description: string; preSuds: number; startedAt?: string } | null = null
+let mockIsOnboardingComplete = true
+let mockIsStorageDegraded = false
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
     isLoading: false,
     isAuthenticated: true,
-    isOnboardingComplete: true,
-    isStorageDegraded: false,
+    isOnboardingComplete: mockIsOnboardingComplete,
+    isStorageDegraded: mockIsStorageDegraded,
     sessionRecoveryData: mockSessionRecoveryData,
     setSessionInProgress: mockSetSessionInProgress,
     clearSessionInProgress: mockClearSessionInProgress,
     clearSessionIntention: mockClearSessionIntention,
+    markOnboardingComplete: mockMarkOnboardingComplete,
     userId: layoutAuthState.userId,
     getReminderTime: mockGetReminderTime,
     getReminderNotificationId: mockGetReminderNotificationId,
@@ -69,6 +73,12 @@ jest.mock('../../src/hooks/useActiveSessionRecoveryFallback', () => ({
   useActiveSessionRecoveryFallback: (...args: unknown[]) => mockUseActiveSessionRecoveryFallback(...args),
 }))
 
+const mockUseOnboardingExistenceFallback = jest.fn()
+
+jest.mock('../../src/hooks/useOnboardingExistenceFallback', () => ({
+  useOnboardingExistenceFallback: (...args: unknown[]) => mockUseOnboardingExistenceFallback(...args),
+}))
+
 const mockMarkSessionResumed = jest.fn()
 
 jest.mock('../../src/state/sessionResumeFlag', () => ({
@@ -85,10 +95,13 @@ jest.mock('../../src/notifications/sessionReminder', () => ({
 
 import AppLayout from './_layout'
 
-// File-wide default so every existing test (which doesn't care about the Story 18.2
-// fallback hook) keeps rendering as before — individual tests below override this.
+// File-wide default so every existing test (which doesn't care about the Story 18.2/18.7
+// fallback hooks) keeps rendering as before — individual tests below override this.
 beforeEach(() => {
   mockUseActiveSessionRecoveryFallback.mockReturnValue({ fallbackRecovery: null, isLoading: false })
+  mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
+  mockIsOnboardingComplete = true
+  mockIsStorageDegraded = false
 })
 
 function emitAppStateChange(state: 'active' | 'background' | 'inactive') {
@@ -307,6 +320,118 @@ describe('AppLayout — Story 18.2 cross-device recovery fallback', () => {
     await act(async () => {})
     // isAuthenticated + isOnboardingComplete are both true in this mock, so the gate has
     // nothing to redirect to — it must stay that way regardless of the fallback hit.
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+})
+
+describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockSessionRecoveryData = null
+    mockGetSession.mockResolvedValue(undefined)
+    mockGetReminderEnabled.mockReturnValue(false)
+    mockGetReminderTime.mockReturnValue(null)
+    mockUseActiveSessionRecoveryFallback.mockReturnValue({ fallbackRecovery: null, isLoading: false })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
+  })
+
+  afterEach(() => {
+    mockSessionRecoveryData = null
+    mockIsOnboardingComplete = true
+    mockIsStorageDegraded = false
+  })
+
+  it('enables the fallback hook (enabled=true) when not loading, authenticated, onboarding incomplete, and storage not degraded', () => {
+    mockIsOnboardingComplete = false
+    render(<AppLayout />)
+    expect(mockUseOnboardingExistenceFallback).toHaveBeenCalledWith(true)
+  })
+
+  it('disables the fallback hook (enabled=false) once onboarding is already complete (common case)', () => {
+    mockIsOnboardingComplete = true
+    render(<AppLayout />)
+    expect(mockUseOnboardingExistenceFallback).toHaveBeenCalledWith(false)
+  })
+
+  it('disables the fallback hook (enabled=false) when storage is degraded, even if onboarding is incomplete', () => {
+    mockIsOnboardingComplete = false
+    mockIsStorageDegraded = true
+    render(<AppLayout />)
+    expect(mockUseOnboardingExistenceFallback).toHaveBeenCalledWith(false)
+  })
+
+  it('reinstall, existing account: calls markOnboardingComplete and replaces back into the app on a fallback hit, never landing on onboarding', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
+    render(<AppLayout />)
+    await waitFor(() => {
+      expect(mockMarkOnboardingComplete).toHaveBeenCalled()
+    })
+    // Assert on the LAST call, not just "called at some point" — a stale-state redirect to
+    // onboarding firing after the '/(app)' replace in the same commit must not slip through.
+    expect(mockRouterReplace.mock.calls.at(-1)).toEqual(['/(app)'])
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  // The host layout unmounts when it redirects to onboarding, so a late hit can never
+  // self-correct from there — the redirect must be HELD until the decision is real.
+  it('holds the onboarding redirect while the decision is pending (replica empty, first sync not done)', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+  })
+
+  it('reinstall with a slow sync: a hit arriving while the redirect is held lands the user in the app and never routes to onboarding', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    const { rerender } = render(<AppLayout />)
+    await act(async () => {})
+
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
+    rerender(<AppLayout />)
+
+    await waitFor(() => {
+      expect(mockMarkOnboardingComplete).toHaveBeenCalled()
+    })
+    expect(mockRouterReplace.mock.calls.at(-1)).toEqual(['/(app)'])
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  it('new signup: once the decision resolves with no data (first sync done / timeout), the held redirect to onboarding fires', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    const { rerender } = render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
+    rerender(<AppLayout />)
+
+    await waitFor(() => {
+      expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+    })
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+  })
+
+  it('genuine new signup: does NOT call markOnboardingComplete when the fallback query finds zero rows, and onboarding proceeds untouched', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+    // The pre-existing redirect gate still sends an incomplete-onboarding user to welcome.
+    expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  it('already onboarded: the fallback effect never fires (hook disabled), regardless of a stale/mocked hit', async () => {
+    mockIsOnboardingComplete = true
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
     expect(mockRouterReplace).not.toHaveBeenCalled()
   })
 })
