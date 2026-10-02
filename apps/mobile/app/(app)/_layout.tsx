@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { ActivityIndicator, AppState, Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import Ionicons from '@expo/vector-icons/Ionicons'
@@ -76,13 +76,16 @@ export default function AppLayout() {
   // returning existing account from a brand-new signup. This queries the PowerSync replica
   // for existing fear_ladder_items rows — a hit proves onboarding already happened elsewhere.
   // Called unconditionally (rules of hooks); `enabled` gates the query itself. Decision
-  // (2026-09-30): the fallback query is reactive and can resolve after the redirect gate's
-  // first pass already sent the user to onboarding — so this is optimistic redirect +
-  // self-correct, not a "wait for sync" gate. A hit calls markOnboardingComplete() (which
-  // flips isOnboardingComplete, satisfying the redirect gate's own condition) and explicitly
-  // replaces back into the app, correcting out of any onboarding screen already shown.
+  // (revised on-device 2026-10-02, superseding the 2026-09-30 "optimistic redirect +
+  // self-correct"): redirecting to onboarding unmounts THIS layout (sibling route group), which
+  // tears the fallback query down before it can ever correct — and after a reinstall the replica
+  // is empty until PowerSync's first sync completes. So the onboarding redirect is HELD until
+  // the hook reports `isDecided` (hit, first sync done + query settled, or timeout), with a
+  // neutral spinner meanwhile. A hit calls markOnboardingComplete() (which flips
+  // isOnboardingComplete, satisfying the redirect gate's own condition).
   const isAwaitingOnboardingDecision = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
-  const { hasExistingAccountData } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
+  const { hasExistingAccountData, isDecided } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
+  const isDecisionPending = isAwaitingOnboardingDecision && !isDecided
   useEffect(() => {
     if (isAwaitingOnboardingDecision && hasExistingAccountData) {
       markOnboardingComplete()
@@ -101,10 +104,10 @@ export default function AppLayout() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
-    } else if (isAwaitingOnboardingDecision && !hasExistingAccountData) {
+    } else if (isAwaitingOnboardingDecision && isDecided && !hasExistingAccountData) {
       router.replace('/(onboarding)/welcome')
     }
-  }, [isLoading, isAuthenticated, isAwaitingOnboardingDecision, hasExistingAccountData, router])
+  }, [isLoading, isAuthenticated, isAwaitingOnboardingDecision, isDecided, hasExistingAccountData, router])
 
   // AC4: reschedule the daily session reminder on every foreground while authenticated —
   // covers the device timezone changing without tracking timezone state directly, since
@@ -218,6 +221,16 @@ export default function AppLayout() {
   // recoveryModalDismissed hides the modal after Resume without clearing session data (Android safety).
   const showRecoveryModal = !isLoading && isAuthenticated && sessionRecoveryData !== null && !recoveryModalDismissed
 
+  // Held while the Story 18.7 existence decision is pending — avoids flashing the (empty) home
+  // tabs to a returning user mid-sync. All hooks above have already run; this is a plain return.
+  if (isDecisionPending) {
+    return (
+      <View style={pendingStyles.container}>
+        <ActivityIndicator />
+      </View>
+    )
+  }
+
   return (
     <PushRegistrationProvider userId={userId}>
       <Tabs screenOptions={{ headerShown: false }}>
@@ -297,6 +310,10 @@ export default function AppLayout() {
     </PushRegistrationProvider>
   )
 }
+
+const pendingStyles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' },
+})
 
 const recoveryStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },

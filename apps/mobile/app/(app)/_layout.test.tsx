@@ -99,7 +99,7 @@ import AppLayout from './_layout'
 // fallback hooks) keeps rendering as before — individual tests below override this.
 beforeEach(() => {
   mockUseActiveSessionRecoveryFallback.mockReturnValue({ fallbackRecovery: null, isLoading: false })
-  mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false })
+  mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
   mockIsOnboardingComplete = true
   mockIsStorageDegraded = false
 })
@@ -332,7 +332,7 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
     mockGetReminderEnabled.mockReturnValue(false)
     mockGetReminderTime.mockReturnValue(null)
     mockUseActiveSessionRecoveryFallback.mockReturnValue({ fallbackRecovery: null, isLoading: false })
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
   })
 
   afterEach(() => {
@@ -362,7 +362,7 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
 
   it('reinstall, existing account: calls markOnboardingComplete and replaces back into the app on a fallback hit, never landing on onboarding', async () => {
     mockIsOnboardingComplete = false
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
     render(<AppLayout />)
     await waitFor(() => {
       expect(mockMarkOnboardingComplete).toHaveBeenCalled()
@@ -373,27 +373,52 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
     expect(mockRouterReplace).not.toHaveBeenCalledWith('/(onboarding)/welcome')
   })
 
-  it('async self-correct: a fallback hit that resolves AFTER the redirect gate already sent the user to onboarding still lands them back in the app', async () => {
+  // The host layout unmounts when it redirects to onboarding, so a late hit can never
+  // self-correct from there — the redirect must be HELD until the decision is real.
+  it('holds the onboarding redirect while the decision is pending (replica empty, first sync not done)', async () => {
     mockIsOnboardingComplete = false
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false })
-    const { rerender } = render(<AppLayout />)
-    await waitFor(() => {
-      expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
-    })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+  })
 
-    // The reactive PowerSync query resolves later, after PowerSync finishes syncing down.
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false })
+  it('reinstall with a slow sync: a hit arriving while the redirect is held lands the user in the app and never routes to onboarding', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    const { rerender } = render(<AppLayout />)
+    await act(async () => {})
+
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
     rerender(<AppLayout />)
 
     await waitFor(() => {
       expect(mockMarkOnboardingComplete).toHaveBeenCalled()
     })
     expect(mockRouterReplace.mock.calls.at(-1)).toEqual(['/(app)'])
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  it('new signup: once the decision resolves with no data (first sync done / timeout), the held redirect to onboarding fires', async () => {
+    mockIsOnboardingComplete = false
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+    const { rerender } = render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
+    rerender(<AppLayout />)
+
+    await waitFor(() => {
+      expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+    })
+    expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
   })
 
   it('genuine new signup: does NOT call markOnboardingComplete when the fallback query finds zero rows, and onboarding proceeds untouched', async () => {
     mockIsOnboardingComplete = false
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
     render(<AppLayout />)
     await act(async () => {})
     expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
@@ -403,7 +428,7 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
 
   it('already onboarded: the fallback effect never fires (hook disabled), regardless of a stale/mocked hit', async () => {
     mockIsOnboardingComplete = true
-    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false })
+    mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
     render(<AppLayout />)
     await act(async () => {})
     expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
