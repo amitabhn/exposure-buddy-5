@@ -474,6 +474,16 @@ Beta users can see evidence that they are making progress, recover cleanly from 
 
 **Scoping correction (2026-09-29, found while writing this epic):** backlog item 1.13's premise — "the MVP re-entry lands on whatever screen routing evaluates to (typically home)" — is **stale and was not true at the time this epic was written**. A session-recovery modal already ships in `apps/mobile/app/(app)/_layout.tsx` (state at :42-52, gate at :172, modal at :197-215, `handleRecoveryResume` at :119-127 routing to `/session/active`). Story 18.2 is therefore scoped to the genuine *remaining* gap against UX spec F4, not to building re-entry from scratch — see its entry below. `post-mvp-backlog.md` item 1.13 has been corrected accordingly.
 
+
+### Epic 19: Beta Feedback Fixes — Onboarding Ladder, Practice Relaxation & Courage Ladder
+
+*(Added 2026-10-05. Routed from the seven product-owner feedback items in `beta-feedback-triage.md`. Re-homed here because Epics 4, 5, 7 and 12 are done.)*
+
+Beta users get an onboarding ladder step that goes back correctly, a Practice Relaxation flow that opens the technique they chose, a courage ladder that clearly separates finished from unfinished items, a first-launch pointer to Insta Calm, and a reviewed SUDS input.
+
+**FRs covered:** FR-ONBOARD-NAV-01, FR-RELAX-01, FR-LADDER-DONE-01, FR-INSTACALM-DISCOVER-01, FR-SUDS-INPUT-01.
+**Scope note:** Five stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only.
+
 ---
 
 ## Epic 1: Project Foundation & Design System
@@ -3243,3 +3253,104 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** the Maestro e2e smoke suite (Story 9.5) runs each flow against a fresh `supabase db reset` state and has no existing "pre-seeded existing user, fresh app install" scenario
 **When** this story is scoped
 **Then** Maestro coverage is explicitly out of scope, matching Story 18.4's precedent — unit test coverage is the bar. Adding this scenario to the smoke suite would need new backend-seeding infrastructure disproportionate to this fix; it is a candidate for a future story if judged worthwhile
+
+
+## Epic 19: Beta Feedback Fixes — Onboarding Ladder, Practice Relaxation & Courage Ladder
+
+*(Added 2026-10-05 — routed from the seven product-owner feedback items logged in `beta-feedback-triage.md` on 2026-10-05. Takes the next open number after Epic 18; Epic 13 remains a dormant reservation. Epics 4, 5, 7 and 12 are done, so fixes are re-homed here rather than reopening completed epics — same precedent as Epics 15, 17 and 18.)*
+
+**FR-ONBOARD-NAV-01:** The onboarding Courage Ladder step behaves like every other step: its deferral action is worded as a deferral, and the OS back control returns the user to the immediately previous step.
+
+**FR-RELAX-01:** "Practice Relaxation" is a relaxation entry point, not an exposure entry point — choosing a technique opens that technique, never an exposure session. Techniques not yet built say so plainly and let the user go back.
+
+**FR-LADDER-DONE-01:** Completed courage ladder items remain visible but are visually and positionally separated from the unfinished ones.
+
+**FR-INSTACALM-DISCOVER-01:** A first-time user is shown where Insta Calm is and what it is for.
+
+**FR-SUDS-INPUT-01:** The pre-session SUDS input is the right control for the job — decided by review, not assumption.
+
+**Naming note:** user-facing "Insta Calm" = code `calmMe`/`calm-me` (see Epic 18's naming note). **Screen note:** "Practice Relaxation" is the Home action (`apps/mobile/app/(app)/index.tsx:104`) that routes to `/session/technique` (`apps/mobile/app/session/technique.tsx`), whose Continue pushes to `/session/intent` — the exposure flow. Stories are independent unless noted; 19.2 should land before 19.3.
+
+### Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation
+
+**Status: backlog.** Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
+
+**Given** the empty-ladder CTA reads "Skip" (`onboarding.fearLadder.skipCta`)
+**When** this story is implemented
+**Then** it reads "Do this later" in `en.json`, with `hi.json` updated per the established convention, and the accessibility label follows the visible label; the CTA's behaviour is unchanged
+
+**Given** pressing the OS back button on the ladder step takes the user to step 1 instead of the previous step
+**When** the cause is diagnosed (suspect: stack history/`router.replace` usage across onboarding steps, or a back handler in `_layout.tsx`)
+**Then** OS back (Android hardware/gesture and iOS swipe-back) returns to the immediately previous onboarding step, from every onboarding step, and a regression test covers the ladder → previous-step case
+
+**Given** the crisis banner pushes `/(onboarding)/crisis` from this screen
+**When** the user presses back from crisis
+**Then** they return to the ladder with their in-progress items intact
+
+### Story 19.2: Practice Relaxation Opens the Selected Technique
+
+**Status: backlog.** Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
+
+**Given** selecting a technique under Practice Relaxation and continuing starts an exposure item from the ladder
+**When** this story is implemented
+**Then** the Home "Practice Relaxation" action no longer enters the exposure-session flow; it opens a relaxation-technique picker that is decoupled from `fearItemId`/`sessionId`, and no `exposure_sessions` row is created by it
+
+**Given** the technique options
+**When** the user selects one
+**Then** it opens the corresponding technique screen — Breathing opens Box Breathing, 5-4-3-2-1 opens Grounding — reusing the existing screens rather than duplicating them
+
+**Given** a listed technique has no implemented screen
+**When** the user selects it
+**Then** a "Coming soon" screen is shown with a clear way back, with copy added to `en.json` and `hi.json`; no dead end and no crash
+
+**Given** `/session/technique` is still used by the real exposure flow (technique chosen as part of an exposure session)
+**When** the Home action is rerouted
+**Then** that in-session use is unchanged, and tests cover both entry points
+
+### Story 19.3: Courage Ladder — Completed Items Sink and Grey Out
+
+**Status: backlog.** Feedback item 4. Screens: `apps/mobile/app/ladder.tsx`, `src/hooks/useFearLadderItems.ts`; Home's lowest-pending-item selection (`(app)/index.tsx:104`) must keep working.
+
+**Given** a ladder item has been completed
+**When** the ladder is shown
+**Then** completed items render after all unfinished items, greyed out, still visible and legible (contrast kept accessible), and with a non-colour cue (e.g. "Done" label/check) so greying is not the only signal, including for screen readers
+
+**Given** ordering is currently by difficulty/rank
+**When** completed items are moved down
+**Then** the unfinished items keep their relative order, the sort is a pure function in `packages/core` with unit tests (ARC-011 boundary intact), and no stored ranks are rewritten — it is a display ordering
+
+**Given** the user taps a completed item
+**When** the tap is handled
+**Then** the behaviour is decided and recorded in the story (re-practice vs. read-only) rather than left incidental
+
+### Story 19.4: Highlight Insta Calm on First Launch After Install
+
+**Status: backlog.** Feedback item 5. Components: `apps/mobile/src/components/CalmMeFab.tsx`, `app/calm-me/index.tsx`.
+
+**Given** the app is opened for the first time after an install
+**When** the user reaches the first screen where the Insta Calm button shows
+**Then** the button is highlighted with a short explanation of what it is and when to use it, dismissible, and shown once
+
+**Given** "first time after install" is device-local state
+**When** the seen flag is persisted
+**Then** it uses a new `KV_KEYS` entry (MMKV, wiped on reinstall as intended) following Story 9.4's key conventions, and the interplay with Story 18.7 (reinstall by an existing account) is decided and recorded — an existing user reinstalling sees it again; that is accepted unless the story says otherwise
+
+**Given** a user in distress may meet the highlight
+**When** it is displayed
+**Then** it never blocks the button itself or crisis/helpline access, copy is neutral and non-therapeutic in tone (non-clinical-advice positioning), is localised in `en.json`/`hi.json`, and is announced to screen readers
+
+### Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider
+
+**Status: backlog.** Feedback item 7. This is a **review story: the deliverable is a recorded decision first, an implementation only if the decision is "change".** Components: `apps/mobile/src/components/session/SudsScale.tsx`, `onboarding/SudsCalibrationWidget.tsx`, pre-session intent screen.
+
+**Given** the pre-session SUDS rating uses numbered boxes
+**When** the review is done
+**Then** the story file records a comparison — speed of entry at a distressed moment, precision, accessibility (screen-reader adjustable semantics, touch-target size), consistency with the other SUDS surfaces — and a decision with rationale
+
+**Given** SUDS is also captured elsewhere (calibration, mid-session, debrief)
+**When** the decision is made
+**Then** it explicitly covers whether all surfaces change together, so the app doesn't ship two different SUDS controls
+
+**Given** the decision is "slider"
+**When** implemented
+**Then** it keeps the 0–10 integer scale and existing stored values, requires no migration, is accessible via adjustable semantics, and updates tests; if "keep boxes", the story closes with the rationale only
