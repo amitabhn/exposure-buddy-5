@@ -41,6 +41,8 @@ baseline_commit: '8c51e0e6e4fbe26bde64dcfcc7584ade2604a9a9'
 - `apps/mobile/app/(onboarding)/_layout.tsx` -- onboarding stack definition
 - `apps/mobile/src/i18n/locales/en.json` / `hi.json` -- `onboarding.fearLadder.skipCta`
 - `apps/mobile/.maestro/setup/_onboarding-clickthrough.yaml` -- Maestro clickthrough asserting on the CTA text
+- `apps/mobile/.maestro/onboarding.yaml` -- asserts the fear-item description field label (AC 4)
+- `apps/mobile/src/components/onboarding/FearItemForm.tsx` -- renders `onboarding.fearLadder.descriptionLabel` as label and accessibility label (no code change)
 - `apps/mobile/app/(onboarding)/ladder.test.tsx`, `assessment.test.tsx` -- Jest coverage
 
 ## Tasks & Acceptance
@@ -50,10 +52,12 @@ baseline_commit: '8c51e0e6e4fbe26bde64dcfcc7584ade2604a9a9'
 1. **Given** the empty-ladder CTA reads "Skip" **When** this story is implemented **Then** it reads "Do this later" in `en.json`, `hi.json` is updated per the established convention, the accessibility label follows the visible label, and the CTA's behaviour is unchanged.
 2. **Given** pressing the OS back button on the ladder step takes the user to step 1 instead of the previous step **When** the cause is diagnosed **Then** OS back (Android hardware/gesture and iOS swipe-back) returns to the immediately previous onboarding step, from every onboarding step, and a regression test covers the ladder → previous-step case.
 3. **Given** the crisis banner pushes `/(onboarding)/crisis` from this screen **When** the user presses back from crisis **Then** they return to the ladder with their in-progress items intact.
+4. **Added scope (2026-10-05, requested by the product owner during review):** **Given** the onboarding "Build your Courage Ladder" screen copy **When** this story is implemented **Then** the subtitle reads "Add situations that make you anxious, then arrange them from least to most scary." (was "Add **the** situations…") and the description field label — visible text and accessibility label — reads "Describe a situation that makes you anxious" (was "Describe the situation"), in both `en.json` and `hi.json` (`onboarding.fearLadder.subtitle`, `onboarding.fearLadder.descriptionLabel`). `hi.json` keeps English for these keys, as before. The Maestro onboarding flow asserting the field label is updated in the same change.
 
 **Tasks:**
 - [x] Reword `skipCta` in `en.json` and `hi.json`; confirm accessibility label derives from it
 - [x] Update Maestro clickthrough text assertions
+- [x] AC 4 copy: update `onboarding.fearLadder.subtitle` and `descriptionLabel` in `en.json`/`hi.json`; update `onboarding.yaml` label assertions (not yet checked on device or via a Maestro run)
 - [x] Diagnose back-nav root cause: `assessment → ladder` used `router.replace`, dropping assessment from the stack
 - [x] Switch `assessment → ladder` and `ladder → complete` to `router.push`; update Jest tests (assert `push`, `replace` not called)
 - [x] Verify on device — Android done 2026-10-05 (Redmi K20 Pro, EAS preview build of ae2fc9b); iOS not done. See Device Verification below

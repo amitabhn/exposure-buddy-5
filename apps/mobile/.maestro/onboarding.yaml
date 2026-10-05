@@ -176,10 +176,10 @@ appId: com.exposurebuddy.app
 # Description must NOT match any string in CRISIS_KEYWORDS (packages/core/src/crisis/keywords.ts)
 - scrollUntilVisible:
     element:
-      text: "Describe the situation"
+      text: "Describe a situation that makes you anxious"
     direction: DOWN
 - tapOn:
-    text: "Describe the situation"
+    text: "Describe a situation that makes you anxious"
 - eraseText: 50
 - inputText: "Riding the elevator alone"
 - hideKeyboard
