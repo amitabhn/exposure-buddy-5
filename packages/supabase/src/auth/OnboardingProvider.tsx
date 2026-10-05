@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { MMKV } from 'react-native-mmkv'
 import { KV_KEYS } from '@exposure-buddy/core'
 import { AuthContext } from './AuthProvider'
@@ -102,12 +102,15 @@ export function OnboardingProvider({ children, mmkv }: OnboardingProviderProps):
     setIsOnboardingCompleteLocal(true)
   }
 
-  function setOnboardingProgressStep(step: number): void {
+  // Stable identity: onboarding screens call this from effects keyed on it. A fresh function per
+  // render made a screen kept mounted under a pushed one (OS-back stack) re-fire its mount effect
+  // and overwrite the newer step (e.g. ladder rewriting 4 → 3 beneath `complete`).
+  const setOnboardingProgressStep = useCallback((step: number): void => {
     const store = mmkvRef.current
     if (!store || !userId) return
     setOnboardingProgress(store, userId, { step })
     setOnboardingProgressStepLocal(step)
-  }
+  }, [userId])
 
   function setSudsCalibration(value: number): void {
     const store = mmkvRef.current
