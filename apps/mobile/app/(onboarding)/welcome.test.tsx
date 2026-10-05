@@ -81,6 +81,7 @@ describe('WelcomeScreen', () => {
     })
     render(<WelcomeScreen />)
     expect(mockReplace).not.toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('navigates to assessment when onboardingProgressStep is 2', () => {
@@ -91,10 +92,11 @@ describe('WelcomeScreen', () => {
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     render(<WelcomeScreen />)
-    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/assessment')
+    expect(mockPush.mock.calls).toEqual([['/(onboarding)/assessment']])
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  it('navigates to ladder when onboardingProgressStep is 3', () => {
+  it('rebuilds assessment → ladder stack when onboardingProgressStep is 3', () => {
     mockUseAuth.mockReturnValue({
       isLoading: false,
       onboardingProgressStep: 3,
@@ -102,10 +104,11 @@ describe('WelcomeScreen', () => {
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     render(<WelcomeScreen />)
-    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/ladder')
+    expect(mockPush.mock.calls).toEqual([['/(onboarding)/assessment'], ['/(onboarding)/ladder']])
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  it('navigates to complete when onboardingProgressStep is 4', () => {
+  it('rebuilds assessment → ladder → complete stack when onboardingProgressStep is 4', () => {
     mockUseAuth.mockReturnValue({
       isLoading: false,
       onboardingProgressStep: 4,
@@ -113,7 +116,12 @@ describe('WelcomeScreen', () => {
       setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     render(<WelcomeScreen />)
-    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/complete')
+    expect(mockPush.mock.calls).toEqual([
+      ['/(onboarding)/assessment'],
+      ['/(onboarding)/ladder'],
+      ['/(onboarding)/complete'],
+    ])
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
   it('stays on welcome when onboardingProgressStep is > 4 (route not yet created)', () => {
@@ -125,6 +133,7 @@ describe('WelcomeScreen', () => {
     })
     render(<WelcomeScreen />)
     expect(mockReplace).not.toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('shows Alert and stays on welcome when onboardingProgressReadFailed is true', () => {

@@ -15,6 +15,9 @@ jest.mock('expo-router', () => ({
   Stack: {
     Screen: () => null,
   },
+  useFocusEffect: (cb: () => void) => {
+    require('react').useEffect(cb, [])
+  },
 }))
 
 const mockSetOnboardingProgressStep = jest.fn()
@@ -72,7 +75,7 @@ describe('LadderScreen', () => {
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
   })
 
-  it('Skip button is shown and enabled with 0 items', () => {
+  it('Do-this-later button is shown and enabled with 0 items', () => {
     const { getByRole } = render(<LadderScreen />)
     const button = getByRole('button', { name: 'onboarding.fearLadder.skipCta' })
     expect(button.props.disabled).toBeFalsy()
@@ -136,13 +139,35 @@ describe('LadderScreen', () => {
     })
   })
 
-  it('pressing Skip with 0 items calls setOnboardingProgressStep(4) and navigates to complete with count 0', async () => {
+  it('pressing Do this later with 0 items calls setOnboardingProgressStep(4) and navigates to complete with count 0', async () => {
     const { getByRole } = render(<LadderScreen />)
     fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.skipCta' }))
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
       expect(mockPush).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '0' } })
+      expect(mockReplace).not.toHaveBeenCalled()
     })
+  })
+
+  it('double-pressing Do this later pushes complete only once', async () => {
+    const { getByRole } = render(<LadderScreen />)
+    const button = getByRole('button', { name: 'onboarding.fearLadder.skipCta' })
+    fireEvent.press(button)
+    fireEvent.press(button)
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('crisis banner link pushes the crisis screen (ladder stays beneath it)', async () => {
+    const { getByTestId, getByRole } = render(<LadderScreen />)
+    fireEvent.press(getByTestId('form-crisis'))
+    await waitFor(() => {
+      expect(getByRole('button', { name: 'onboarding.overwhelmed.cta' })).toBeTruthy()
+    })
+    fireEvent.press(getByRole('button', { name: 'onboarding.overwhelmed.cta' }))
+    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/crisis')
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
   it('pressing Next with 1 item calls setOnboardingProgressStep(4) and navigates to complete', async () => {
@@ -159,6 +184,7 @@ describe('LadderScreen', () => {
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
       expect(mockPush).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
+      expect(mockReplace).not.toHaveBeenCalled()
     })
   })
 })

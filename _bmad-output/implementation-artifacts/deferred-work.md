@@ -1167,3 +1167,9 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-18-5-insta-calm-rename-screen-reader-label-parity.md`
   summary: `apps/mobile/.maestro/backgrounded-recovery.yaml`'s comment "Calm-me screen shows '{name}' heading or accessible content — assert we navigated there" is inaccurate — the calm-me screen renders with `headerShown: false` and has no heading; the assertion that follows it actually checks the unrelated `"I can keep going"` button label.
   evidence: Pre-existing — the comment was equally inaccurate before this story (it said "Calm Me heading" then, referring to the same non-existent heading); this story only swapped the quoted product name in passing. Low value, cheap to fix (rewrite the comment) next time this file is touched for an unrelated reason.
+
+## Deferred from: code review of spec-19-1 (2026-10-05)
+
+- OS-back fix verified only by mocked router calls; no real-stack test or Maestro back step, and "Not verified on device" — do the manual Android + iOS check (or add a Maestro back-from-ladder step).
+- Persisted onboarding progress step stays 4 after back from `complete` to ladder (ladder's `setOnboardingProgressStep(3)` effect runs on mount only); resume then lands on `complete` without `count`.
+- No test that assessment Next works again after returning from ladder (`isSubmittingRef` reset).

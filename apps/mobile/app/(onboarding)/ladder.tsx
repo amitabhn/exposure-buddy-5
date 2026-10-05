@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
-import { useRouter, Stack } from 'expo-router'
+import { useRouter, Stack, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -43,6 +43,15 @@ export default function LadderScreen() {
   const isAddingRef = useRef(false)
   const isSwappingRef = useRef(false)
   const [isSwapping, setIsSwapping] = useState(false)
+
+  const isNavigatingRef = useRef(false)
+
+  // Re-arm when the user comes back from `complete` via OS back (push keeps this screen mounted).
+  useFocusEffect(
+    useCallback(() => {
+      isNavigatingRef.current = false
+    }, []),
+  )
 
   useEffect(() => {
     setOnboardingProgressStep(3)
@@ -144,7 +153,8 @@ export default function LadderScreen() {
   }
 
   async function handleNext() {
-    if (!userId) return
+    if (!userId || isNavigatingRef.current) return
+    isNavigatingRef.current = true
     setOnboardingProgressStep(4)
     router.push({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
   }

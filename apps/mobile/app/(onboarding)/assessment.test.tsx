@@ -15,6 +15,9 @@ jest.mock('expo-router', () => ({
   Stack: {
     Screen: () => null,
   },
+  useFocusEffect: (cb: () => void) => {
+    require('react').useEffect(cb, [])
+  },
 }))
 
 const mockSetOnboardingProgressStep = jest.fn()
@@ -101,6 +104,17 @@ describe('AssessmentScreen', () => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
       expect(mockPush).toHaveBeenCalledWith('/(onboarding)/ladder')
       expect(mockReplace).not.toHaveBeenCalled()
+    })
+  })
+
+  it('double-pressing Next pushes ladder only once', async () => {
+    const { getByTestId, getByRole } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    const next = getByRole('button')
+    fireEvent.press(next)
+    fireEvent.press(next)
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledTimes(1)
     })
   })
 })

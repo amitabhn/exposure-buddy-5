@@ -26,14 +26,13 @@ export default function WelcomeScreen() {
 
     if (onboardingProgressStep !== null && onboardingProgressStep >= 2) {
       // Resume to saved step
-      if (onboardingProgressStep === 2) {
-        router.replace('/(onboarding)/assessment')
-      } else if (onboardingProgressStep === 3) {
-        router.replace('/(onboarding)/ladder')
-      } else if (onboardingProgressStep === 4) {
-        router.replace('/(onboarding)/complete')
-      }
+      // Rebuild the stack with push (welcome stays beneath) so OS back from each
+      // resumed step returns to the immediately previous step, as in a fresh run.
       // Steps 5+ — stay on welcome (no route exists; steps > 4 not used at MVP)
+      if (onboardingProgressStep > 4) return
+      router.push('/(onboarding)/assessment')
+      if (onboardingProgressStep >= 3) router.push('/(onboarding)/ladder')
+      if (onboardingProgressStep === 4) router.push('/(onboarding)/complete')
     }
   }, [isLoading, onboardingProgressStep, onboardingProgressReadFailed, router, t])
 

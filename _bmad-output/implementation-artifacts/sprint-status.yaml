@@ -243,7 +243,7 @@ development_status:
   # beta-feedback-triage.md. Full ACs in epics.md Epic 19. 19.2 is the
   # severity-2 bug (Practice Relaxation starts an exposure item) — do it first.
   epic-19: in-progress
-  19-1-onboarding-courage-ladder-do-this-later-and-back-navigation: review # 2026-10-05: label -> "Do this later" (en/hi + Maestro clickthrough); back bug root cause = assessment->ladder used router.replace, dropping assessment from the stack (back landed on welcome); fixed with push for assessment->ladder and ladder->complete. Onboarding jest 80/80, tsc + eslint clean. Not verified on device.
+  19-1-onboarding-courage-ladder-do-this-later-and-back-navigation: done # 2026-10-05: label -> "Do this later" (en/hi + Maestro clickthrough); back bug root cause = assessment->ladder used router.replace, dropping assessment from the stack (back landed on welcome); fixed with push for assessment->ladder and ladder->complete. Onboarding jest 80/80, tsc + eslint clean. Not verified on device.
   19-2-practice-relaxation-opens-the-selected-technique: backlog
   19-3-courage-ladder-completed-items-sink-and-grey-out: backlog
   19-4-highlight-insta-calm-on-first-launch-after-install: backlog
