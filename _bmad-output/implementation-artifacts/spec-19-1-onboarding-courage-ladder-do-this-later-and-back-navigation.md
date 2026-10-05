@@ -56,15 +56,15 @@ baseline_commit: '8c51e0e6e4fbe26bde64dcfcc7584ade2604a9a9'
 - [x] Update Maestro clickthrough text assertions
 - [x] Diagnose back-nav root cause: `assessment → ladder` used `router.replace`, dropping assessment from the stack
 - [x] Switch `assessment → ladder` and `ladder → complete` to `router.push`; update Jest tests (assert `push`, `replace` not called)
-- [ ] Verify on device (Android + iOS) — not yet done
-- [ ] Verify crisis → back → ladder preserves in-progress items (AC 3) — no test in the implementation commit
+- [x] Verify on device — Android done 2026-10-05 (Redmi K20 Pro, EAS preview build of ae2fc9b); iOS not done. See Device Verification below
+- [x] Verify crisis → back → ladder preserves in-progress items (AC 3) — verified on Android device; Jest test added for the crisis push
 - [x] Audit remaining onboarding transitions (welcome resume rebuilt with push — see Review Findings) (welcome → … → assessment, complete) for `replace` misuse (AC 2 "every onboarding step")
 
 **Verification:** onboarding Jest suite, `tsc`, ESLint clean; manual OS-back check on each onboarding step.
 
 ### Review Findings
 
-_Code review 2026-10-05 — layers: Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor (full mode). 0 decision-needed (1 resolved → patch), 3 patch, 3 defer, 9 rejected._
+_Code review 2026-10-05 — layers: Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor (full mode). 0 decision-needed (1 resolved → patch), 4 patch (1 found on-device), 3 defer, 9 rejected._
 
 - [x] [Review][Patch] Rebuild the stack on resume (decision: option a) — `welcome.tsx:30-34` resumes via `router.replace`, dropping welcome and leaving no back target. On resume at step 3 push assessment then ladder; at step 4 push assessment, ladder, then complete (with `count` param unavailable, as today), so OS back returns to the immediately previous step. Update welcome tests. [welcome.tsx:30]
 - [x] [Review][Patch] Double-tap now stacks duplicate screens — `ladder.tsx:146-150` `handleNext` has no in-flight guard, and `assessment.tsx:55-58` resets `isSubmittingRef` just before `router.push`. With `replace` a double tap was harmless; with `push` it stacks two `complete`/`ladder` screens, so OS back lands on a duplicate. Add a navigation guard to both handlers (keep the ref set through the push) + test. [ladder.tsx:146, assessment.tsx:55]
@@ -72,6 +72,25 @@ _Code review 2026-10-05 — layers: Blind Hunter, Edge Case Hunter, Verification
 - [x] [Review][Defer] OS-back behaviour verified only by mocked router calls — no real-stack/expo-router test or Maestro back step; story status note says "Not verified on device" — deferred: perform the manual Android + iOS back check per the spec's Verification line (or add a Maestro back-from-ladder step); settles whether the `push` fix works on the real stack.
 - [x] [Review][Defer] Persisted progress step stays 4 after back from `complete` to ladder — the `useEffect` at `ladder.tsx:47-49` only runs on mount, so closing the app then resumes to `complete` (no `count` param) — deferred: low impact, resume lands on a valid screen; revisit with the decision above.
 - [x] [Review][Defer] No test that assessment Next works again after returning from ladder (`isSubmittingRef` reset) — deferred: code resets the flag; unpinned but low risk.
+
+- [x] [Review][Patch] (found on-device) `setOnboardingProgressStep` clobbered the saved step under push navigation — `OnboardingProvider.setOnboardingProgressStep` was a plain function recreated every render, so the ladder's `useEffect([setOnboardingProgressStep])` re-fired while kept mounted under `complete` and rewrote step 4 → 3 (assessment likewise 3 → 2). A force-stop on `complete` then resumed onto the ladder. Fixed by `useCallback([userId])` in `packages/supabase/src/auth/OnboardingProvider.tsx` (commit 251f0ee); regression test `packages/supabase/__tests__/auth/onboardingProvider.setterIdentity.test.tsx` (fails on the pre-fix provider, passes after). **Fix not yet re-verified on device** — needs a new EAS build.
+
+### Device Verification (Android, 2026-10-05)
+
+Build: EAS `preview` APK of `ae2fc9b` (does NOT include 251f0ee). Device: Redmi K20 Pro, hosted Supabase, fresh app data + throwaway accounts.
+
+| Check | Result |
+|---|---|
+| Back: assessment → welcome; ladder → assessment | Pass |
+| Empty-ladder CTA reads "Do this later" | Pass (visual; TalkBack and Hindi not checked) |
+| "Do this later" → `complete` → back → ladder | Pass |
+| Crisis link → back → ladder with added item intact | Pass |
+| Double tap on "Do this later" → one back lands on ladder (no duplicate `complete`) | Pass (adb taps are not truly simultaneous) |
+| Resume at step 3 (force-stop on ladder): ladder → assessment → welcome | Pass |
+| Resume at step 4 (force-stop on `complete`) | **Fail** — resumed onto ladder; cause fixed in 251f0ee, unverified |
+| Android swipe-back gesture; iOS | Not checked |
+
+Notes: the crisis screen is a placeholder ("Crisis Resources — Epic 5") in this build — outside this story. `complete` shows "You've added 1 situations" (pluralisation, pre-existing).
 
 **Rejected:**
 - `complete` exit leaves onboarding screens on the stack — false: `complete.tsx:18` `replace('/')` plus the layout's `isOnboardingComplete → replace('/(app)')` effect (`_layout.tsx:13-17`); welcome→assessment was already `push`, so nothing new.
