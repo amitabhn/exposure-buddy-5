@@ -146,7 +146,7 @@ export default function LadderScreen() {
   async function handleNext() {
     if (!userId) return
     setOnboardingProgressStep(4)
-    router.replace({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
+    router.push({ pathname: '/(onboarding)/complete', params: { count: String(items.length) } })
   }
 
   const canSkip = items.length === 0

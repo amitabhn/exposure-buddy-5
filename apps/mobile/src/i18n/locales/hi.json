@@ -84,7 +84,7 @@
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
       "nextCta": "Next",
-      "skipCta": "छोड़ें"
+      "skipCta": "बाद में करें"
     },
     "crisisDetected": {
       "banner": "लगता है अभी आप बहुत कठिन वक्त से गुज़र रहे हैं। आपको यह अकेले नहीं झेलना है — नीचे सहायता ढूँढें।"

@@ -55,7 +55,7 @@ export default function AssessmentScreen() {
     }
     isSubmittingRef.current = false
     setIsSubmitting(false)
-    router.replace('/(onboarding)/ladder')
+    router.push('/(onboarding)/ladder')
   }
 
   return (

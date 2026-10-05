@@ -3273,7 +3273,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation
 
-**Status: backlog.** Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
+**Status: review.** Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
 
 **Given** the empty-ladder CTA reads "Skip" (`onboarding.fearLadder.skipCta`)
 **When** this story is implemented

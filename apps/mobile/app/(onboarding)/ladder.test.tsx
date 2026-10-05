@@ -141,7 +141,7 @@ describe('LadderScreen', () => {
     fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.skipCta' }))
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '0' } })
+      expect(mockPush).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '0' } })
     })
   })
 
@@ -158,7 +158,7 @@ describe('LadderScreen', () => {
 
     await waitFor(() => {
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
+      expect(mockPush).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
     })
   })
 })

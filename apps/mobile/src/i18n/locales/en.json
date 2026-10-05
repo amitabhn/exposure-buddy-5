@@ -178,7 +178,7 @@
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
       "nextCta": "Next",
-      "skipCta": "Skip"
+      "skipCta": "Do this later"
     },
     "crisisDetected": {
       "banner": "It sounds like what you're facing feels very heavy right now. You don't have to manage this alone — tap below to find support."

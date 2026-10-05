@@ -87,7 +87,7 @@ describe('AssessmentScreen', () => {
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(2)
   })
 
-  it('pressing Next when value set calls setSudsCalibration, setOnboardingProgressStep(3), and replaces to ladder', async () => {
+  it('pressing Next when value set calls setSudsCalibration, setOnboardingProgressStep(3), and pushes to ladder (so OS back returns to the assessment)', async () => {
     const { getByTestId, getByRole } = render(<AssessmentScreen />)
 
     // Simulate widget selecting value 7
@@ -99,7 +99,8 @@ describe('AssessmentScreen', () => {
     await waitFor(() => {
       expect(mockSetSudsCalibration).toHaveBeenCalledWith(7)
       expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
-      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/ladder')
+      expect(mockPush).toHaveBeenCalledWith('/(onboarding)/ladder')
+      expect(mockReplace).not.toHaveBeenCalled()
     })
   })
 })
