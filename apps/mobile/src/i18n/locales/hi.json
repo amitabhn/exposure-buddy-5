@@ -91,11 +91,12 @@
     },
     "complete": {
       "title": "You're ready to climb!",
-      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "encouragement": "Let's start with the first step.",
       "titleSoft": "Your ladder is ready.",
       "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready.",
       "cta": "Start your journey",
-      "itemCount": "You've added {{count}} situations to your Courage Ladder"
+      "itemCount_one": "You've added {{count}} situation to your Courage Ladder",
+      "itemCount_other": "You've added {{count}} situations to your Courage Ladder"
     }
   },
   "ladder": {
