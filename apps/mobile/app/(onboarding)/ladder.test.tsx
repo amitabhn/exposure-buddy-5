@@ -50,6 +50,12 @@ jest.mock('../../src/components/onboarding/FearItemForm', () => {
 
 const mockEnqueue = jest.fn().mockResolvedValue(undefined)
 
+type StoredItem = { id: string; description: string; predictedSuds: number; peakSuds: number | null; position: number; status: 'pending' | 'completed' }
+let mockStoredItems: StoredItem[] = []
+jest.mock('../../src/hooks/useFearLadderItems', () => ({
+  useFearLadderItems: () => ({ items: mockStoredItems, isLoading: false }),
+}))
+
 jest.mock('../../src/sync/adapter', () => ({
   getAdapter: () => ({ enqueue: mockEnqueue }),
 }))
@@ -59,6 +65,7 @@ import LadderScreen from './ladder'
 describe('LadderScreen', () => {
   beforeEach(() => {
     mockFocusCallbacks.length = 0
+    mockStoredItems = []
     jest.clearAllMocks()
     let callCount = 0
     jest.spyOn(Math, 'random').mockImplementation(() => (callCount++ % 32) * 0.03125)
@@ -78,6 +85,55 @@ describe('LadderScreen', () => {
   it('on mount calls setOnboardingProgressStep(3)', () => {
     render(<LadderScreen />)
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
+  })
+
+  describe('resumed onboarding — items already saved for the account', () => {
+    const stored = (id: string, description: string, position: number): StoredItem =>
+      ({ id, description, predictedSuds: 5, peakSuds: null, position, status: 'pending' })
+
+    it('shows saved items, hides the add form, and offers Next instead of "Do this later"', () => {
+      mockStoredItems = [stored('a', 'Crowded lift', 1)]
+      const { getByText, queryByTestId, queryByRole, getByRole } = render(<LadderScreen />)
+      expect(getByText('Crowded lift')).toBeTruthy()
+      expect(queryByTestId('form-add')).toBeNull()
+      expect(queryByRole('button', { name: 'onboarding.fearLadder.skipCta' })).toBeNull()
+      expect(getByRole('button', { name: 'onboarding.fearLadder.nextCta' })).toBeTruthy()
+    })
+
+    it('numbers the next added item after the saved ones, not from 1', async () => {
+      mockStoredItems = [stored('a', 'Crowded lift', 1), stored('b', 'Phone call', 2)]
+      const { getByRole, getByTestId } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.addAnother' }))
+      fireEvent.press(getByTestId('form-add'))
+      await waitFor(() => expect(mockEnqueue).toHaveBeenCalled())
+      expect(mockEnqueue.mock.calls[0][2]).toMatchObject({ position: 3 })
+    })
+
+    it('passes the saved count to complete', async () => {
+      mockStoredItems = [stored('a', 'Crowded lift', 1)]
+      const { getByRole } = render(<LadderScreen />)
+      fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.nextCta' }))
+      await waitFor(() => expect(mockPush).toHaveBeenCalled())
+      expect(mockPush).toHaveBeenCalledWith({ pathname: '/(onboarding)/complete', params: { count: '1' } })
+    })
+
+    it('picks up saved items that arrive after mount (reactive query lag)', () => {
+      const { getByText, queryByText, rerender } = render(<LadderScreen />)
+      expect(queryByText('Late item')).toBeNull()
+      mockStoredItems = [stored('late', 'Late item', 1)]
+      rerender(<LadderScreen />)
+      expect(getByText('Late item')).toBeTruthy()
+    })
+
+    it('does not duplicate an item the user just added once it shows up in the saved rows', async () => {
+      const { getByTestId, getAllByText, rerender } = render(<LadderScreen />)
+      fireEvent.press(getByTestId('form-add'))
+      await waitFor(() => expect(mockEnqueue).toHaveBeenCalled())
+      const added = mockEnqueue.mock.calls[0][2] as { id: string; description: string; position: number }
+      mockStoredItems = [stored(added.id, added.description, added.position)]
+      rerender(<LadderScreen />)
+      expect(getAllByText(added.description)).toHaveLength(1)
+    })
   })
 
   it('on re-focus (OS back from complete) rewinds the persisted step to 3, not leaving it at 4', async () => {

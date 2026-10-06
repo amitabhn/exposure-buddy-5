@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
 import { FearItemForm } from '../../src/components/onboarding/FearItemForm'
 import { getAdapter } from '../../src/sync/adapter'
+import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 
 const MIN_ITEMS = 3
 const NUDGE_THRESHOLD = 8
@@ -45,6 +46,26 @@ export default function LadderScreen() {
   const [isSwapping, setIsSwapping] = useState(false)
 
   const isNavigatingRef = useRef(false)
+
+  // Rows already saved for this account — present when onboarding is resumed after a relaunch.
+  // The local list only ever grew from the form, so without this a resumed ladder looked empty:
+  // saved items were hidden, the next item reused position 1, and "Do this later" was offered.
+  // Merge-only (add rows whose id isn't local yet) so it never overwrites in-flight local edits
+  // or duplicates an item the user just added, and it tolerates the reactive query arriving late.
+  const { items: storedItems } = useFearLadderItems(userId)
+  useEffect(() => {
+    const localIds = new Set(itemsRef.current.map((i) => i.id))
+    const missing = storedItems.filter((row) => !localIds.has(row.id))
+    if (missing.length === 0) return
+    const wasEmpty = itemsRef.current.length === 0
+    const merged = [
+      ...itemsRef.current,
+      ...missing.map(({ id, description, predictedSuds, position }) => ({ id, description, predictedSuds, position })),
+    ].sort((a, b) => a.position - b.position)
+    itemsRef.current = merged
+    setItems(merged)
+    if (wasEmpty) setShowForm(false)
+  }, [storedItems])
 
   // Runs on every focus, not just mount: push keeps this screen mounted under `complete`, so on OS
   // back it must re-arm the navigation guard AND rewind the persisted step to 3 — otherwise a
