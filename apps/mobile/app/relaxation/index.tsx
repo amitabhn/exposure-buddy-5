@@ -46,7 +46,7 @@ export default function RelaxationPickerScreen() {
         }}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>{t('relaxation.title')}</Text>
+        <Text style={styles.heading}>{t('relaxation.heading')}</Text>
         {RELAXATION_TECHNIQUES.map((technique) => (
           <TouchableOpacity
             key={technique.key}

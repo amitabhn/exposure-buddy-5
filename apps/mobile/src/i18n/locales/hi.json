@@ -341,6 +341,7 @@
   },
   "relaxation": {
     "title": "Practice Relaxation",
+    "heading": "Relaxation Techniques",
     "techniques": {
       "boxBreathing": {
         "label": "Box Breathing",
