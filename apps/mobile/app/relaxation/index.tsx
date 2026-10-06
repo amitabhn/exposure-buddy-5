@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   heading: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 20 },
   card: {
     borderWidth: 1,
-    borderColor: color.surface.secondary,
+    borderColor: color.content.secondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
