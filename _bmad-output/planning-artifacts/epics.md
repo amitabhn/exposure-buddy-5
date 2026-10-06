@@ -482,7 +482,7 @@ Beta users can see evidence that they are making progress, recover cleanly from 
 Beta users get an onboarding ladder step that goes back correctly, a Practice Relaxation flow that opens the technique they chose, a courage ladder that clearly separates finished from unfinished items, a first-launch pointer to Insta Calm, and a reviewed SUDS input.
 
 **FRs covered:** FR-ONBOARD-NAV-01, FR-RELAX-01, FR-LADDER-DONE-01, FR-INSTACALM-DISCOVER-01, FR-SUDS-INPUT-01.
-**Scope note:** Five stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only.
+**Scope note:** Eleven stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only; 19.6–19.11 are defects, verification gaps and tech debt found during 19.1's device verification on 2026-10-06 (not beta feedback items, no FRs of their own).
 
 ---
 
@@ -3354,3 +3354,92 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** the decision is "slider"
 **When** implemented
 **Then** it keeps the 0–10 integer scale and existing stored values, requires no migration, is accessible via adjustable semantics, and updates tests; if "keep boxes", the story closes with the rationale only
+
+### Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's Android device verification; not a beta feedback item and no FR of its own — a defect against the reorder behaviour of Story 6.2 (AC 2/3). Component: `packages/sync/src/connector.ts` (`uploadData`, `groupReorderPairs`).
+
+**Given** a user adds two courage ladder items and reorders them before PowerSync has uploaded either insert (offline, or simply quickly — the onboarding ladder does exactly this)
+**When** `uploadData` runs on a batch containing the two inserts and the reorder pair
+**Then** the reorder is applied only after the inserts it refers to — today `uploadData` sends every reorder pair first and the remaining writes after, so `swap_ladder_positions` fails with "one or both items not found" (HTTP 400), the error is classed non-retryable and the swap is dropped, and the server order silently diverges from what the user arranged
+
+**Given** the batch's write order matters
+**When** the fix is chosen
+**Then** the story records the approach — preserve `ps_crud` order, or run reorder pairs after the non-reorder writes of the same batch — and why, and it holds for a pair whose items were inserted in an earlier batch, in the same batch, or whose insert is still failing and being retried
+
+**Given** a reorder whose items genuinely no longer exist (deleted before upload)
+**When** the pair is processed
+**Then** the existing non-retryable handling is kept for that case only — it must not be what swallows the "inserts not uploaded yet" case — and a regression test in `packages/sync` reproduces the failing order (inserts + swap in one batch) and fails against the current code
+
+**Given** a reorder is lost today when its inserts are blocked behind a failing upload
+**When** this story is scoped
+**Then** it notes its relationship to the user_onboarding_metadata upload failure (a 403 on the write-once table that retries forever and stalls the whole queue, see `deferred-work.md`) and does not attempt to fix that here
+
+### Story 19.7: Upload Queue Does Not Stall on a Write the Server Will Never Accept
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification; recorded in `deferred-work.md`. Component: `packages/sync/src/connector.ts` (`uploadData`).
+
+**Given** the upload queue is processed in order and a failing write is retried
+**When** the server rejects a write permanently (a constraint violation such as `uq_user_position`, or an RLS denial like the `user_onboarding_metadata` 403 fixed by migration 0034)
+**Then** that write cannot hold every later write behind it indefinitely — today only `swap_ladder_positions` errors are classed non-retryable, so any other permanent rejection retries forever and nothing after it syncs; the PowerSync guidance is that a 4xx from `uploadData` blocks the queue permanently
+
+**Given** errors must be told apart
+**When** the policy is chosen
+**Then** the story records which responses are permanent (validation / constraint / RLS) versus transient (network, 5xx, expired token), what happens to a dropped write (logged with enough context to diagnose, surfaced to Sentry without personal data per the DPDPA constraints, and not silently lost where a retry could still help), and the interaction with Story 19.6's ordering
+
+**Given** a stuck write was observed not to retry until the app was relaunched
+**When** the story is scoped
+**Then** it checks whether PowerSync's retry timer stalls after a thrown upload error and, if so, fixes or documents it; a regression test in `packages/sync` reproduces a permanently rejected write ahead of valid ones and fails against the current code
+
+### Story 19.8: No Sign-In Flash on Cold Start for a Signed-In User
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification. Components: `apps/mobile/app/_layout.tsx` / `(auth)/sign-in`, `packages/supabase` `AuthProvider`.
+
+**Given** a user with a valid saved session cold-starts the app
+**When** the session is being restored (about 3 seconds on the test device)
+**Then** the sign-in screen is not shown — a neutral loading state is — so a tap cannot land on "Sign in" or "Create account" just before the redirect
+
+**Given** ARC-004 forbids redirecting while `isLoading`
+**When** the fix is made
+**Then** it holds that rule, does not delay the sign-in screen for a genuinely signed-out user beyond what the session read needs, and has a test that the sign-in controls are not rendered while the session is loading
+
+### Story 19.9: Diagnose Why Server Rows Are Not Downloaded in the Dev-Client Session, Then Verify the 18.7 Reinstall Fallback on a Device
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification. Components: `packages/sync`, `apps/mobile/src/hooks/useOnboardingExistenceFallback.ts`, `apps/mobile/app/(app)/_layout.tsx`.
+
+**Given** a server-side `fear_ladder_items` row existed for the signed-in account
+**When** the Android development client signed in after an app-data clear (and again after a relaunch)
+**Then** the root cause of the row never reaching the local replica is found and recorded — candidates include PowerSync not connecting in that session, a stalled first checkpoint, or the 10-second decision timeout elapsing before the first sync — and fixed if it is ours
+
+**Given** the cause is understood
+**When** the reinstall scenario is re-run on a device with an account that has server-side ladder items and no saved onboarding step
+**Then** the app skips onboarding and lands on Home (Story 18.7 behaviour), and the result is recorded in Story 19.1's device-verification table; if first sync can legitimately exceed the 10-second window, the story decides how the fallback should behave rather than silently sending an existing user through onboarding again
+
+### Story 19.10: Complete Story 19.1's Remaining Device and Automation Verification
+
+**Status: backlog.** Closes the gaps listed in Story 19.1's spec. Components: `apps/mobile/.maestro/`, `apps/mobile/app/(onboarding)/`.
+
+**Given** Story 19.1 was verified on one Android device only
+**When** this story runs
+**Then** OS back is checked on iOS (swipe-back) and as the Android swipe-back gesture; the "Do this later" label and the new ladder copy are checked with TalkBack and in Hindi; resume at `complete` is checked, including pressing back through the rebuilt stack; and results are added to the 19.1 device-verification table
+
+**Given** the Maestro onboarding flows assert the new strings but have never run
+**When** they are run (locally with Maestro installed, or in CI)
+**Then** `onboarding.yaml` and `_onboarding-clickthrough.yaml` pass, and a back-from-ladder step is added if the flows can express it
+
+**Given** a review deferral from 19.1 is still open
+**When** tests are added
+**Then** there is a test that assessment's Next works again after returning from the ladder (the `isSubmittingRef` re-arm in `assessment.tsx`)
+
+### Story 19.11: Local RLS Test Suite Passes on a Fresh Postgres 17 Stack
+
+**Status: backlog.** Found 2026-10-06 when the local Supabase volume was rebuilt. Component: `packages/supabase/__tests__/rls/dpo_operators.test.ts`, `supabase/config.toml`.
+
+**Given** the local stack was recreated (the old volume held Postgres 15 data while the server image was 17.6)
+**When** the RLS suite is run against it
+**Then** `dpo_operators` "[-] unauthenticated (anon) read is blocked" and "[-] authenticated regular user read is blocked" pass — they currently get no error where a denial is expected — or the story shows they were already failing and why
+
+**Given** `config.toml` pins `major_version = 15` yet the local image started Postgres 17
+**When** the story is scoped
+**Then** the intended local Postgres version is decided, `config.toml` and `docs/setup/local-environment.md` agree with it, and the recovery steps for the version-mismatch volume error are documented where a developer will find them
+
