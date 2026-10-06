@@ -3273,7 +3273,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation
 
-**Status: review.** Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
+**Status: done** (code complete and device-verified on Android; PR #100 open, not yet merged). Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
 
 **Given** the empty-ladder CTA reads "Skip" (`onboarding.fearLadder.skipCta`)
 **When** this story is implemented
@@ -3286,6 +3286,30 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** the crisis banner pushes `/(onboarding)/crisis` from this screen
 **When** the user presses back from crisis
 **Then** they return to the ladder with their in-progress items intact
+
+**Added scope (2026-10-05, product owner, during review):** the onboarding ladder subtitle reads "Add situations that make you anxious, then arrange them from least to most scary." and the description field label (visible text and accessibility label) reads "Describe a situation that makes you anxious", in both `en.json` and `hi.json`; the Maestro onboarding flow asserts the new label
+
+**Added scope (2026-10-06, found while device-testing the above — see the spec's Post-review fixes):**
+
+**Given** screens stay mounted under a pushed one, so the saved onboarding step can drift from the screen shown
+**When** the user goes back (OS back or edge-swipe) and later relaunches
+**Then** the persisted step follows the visible screen (saved on focus, not only on mount) and the relaunch resumes there, with the stack rebuilt so back still returns one step at a time
+
+**Given** the Story 18.7 reinstall fallback treats any saved ladder row as "already onboarded elsewhere", and the onboarding ladder itself writes real rows
+**When** a user relaunches mid-onboarding
+**Then** the fallback runs only when no onboarding step is saved, so they resume onboarding instead of landing on Home; a reinstall (MMKV wiped, no saved step) is unchanged
+
+**Given** an onboarding ladder is resumed after a relaunch
+**When** the account already has saved ladder items
+**Then** the ladder shows them (merged in by id, tolerant of a late query), the next item continues after their positions, the count passed to `complete` is right, and "Do this later" is not offered while items exist
+
+**Given** the `complete` screen shows an item count and an encouragement line
+**When** the count is one, and when the encouragement would repeat the count line
+**Then** the count reads "1 situation" (singular/plural keys), and the encouragement no longer repeats "You've built your Courage Ladder"
+
+**Given** the connector uploads `user_onboarding_metadata` with `ON CONFLICT (user_id) DO UPDATE` but the table had no UPDATE policy
+**When** a user repeats the assessment on an account that already has a row
+**Then** the write succeeds (owner-only UPDATE policy, migration `0034`, latest calibration wins) instead of returning 403 and stalling the whole upload queue
 
 ### Story 19.2: Practice Relaxation Opens the Selected Technique
 
@@ -3411,7 +3435,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **When** the fix is made
 **Then** it holds that rule, does not delay the sign-in screen for a genuinely signed-out user beyond what the session read needs, and has a test that the sign-in controls are not rendered while the session is loading
 
-### Story 19.9: Diagnose Why Server Rows Are Not Downloaded in the Dev-Client Session, Then Verify the 18.7 Reinstall Fallback on a Device
+### Story 19.9: An Existing Account Reinstalling Is Not Sent Through Onboarding Again When the First Sync Is Slow (Plus the Dev-Client Download Finding)
 
 **Status: reopened 2026-10-06 — the slow/offline first-sync case is untested-then-failed.** Found during Story 19.1's device verification. **Done so far:** the Story 18.7 fallback is verified on a device — on the EAS `preview` build, a cleared-data sign-in on an account with a server-side ladder item lands on Home within ~10 s. The earlier failures were specific to the Android Expo dev client, where PowerSync stays at `connecting` and never downloads (the PowerSync URL is bundled, `fetchCredentials` returns a valid token, and the service streams the data to a direct request); this is recorded in `docs/setup/local-environment.md` and `deferred-work.md`. Why the dev client cannot stream is not diagnosed and no app change was needed. Components: `packages/sync`, `apps/mobile/src/hooks/useOnboardingExistenceFallback.ts`, `apps/mobile/app/(app)/_layout.tsx`.
 
