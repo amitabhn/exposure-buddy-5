@@ -97,6 +97,11 @@ jest.mock('../../src/notifications/sessionReminder', () => ({
 
 import AppLayout from './_layout'
 
+// The first render in this file is cold (heavy module graph) and has exceeded Jest's 5 s default
+// on the GitHub runner, failing the first test deterministically (CI run 37460921690, twice) while
+// it takes ~1.5 s locally even with --no-cache. Give the whole suite headroom rather than a single test.
+jest.setTimeout(20000)
+
 // File-wide default so every existing test (which doesn't care about the Story 18.2/18.7
 // fallback hooks) keeps rendering as before — individual tests below override this.
 beforeEach(() => {
