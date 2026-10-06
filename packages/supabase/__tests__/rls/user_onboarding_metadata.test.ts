@@ -127,6 +127,97 @@ describe.skipIf(skipIfNoSupabase)('user_onboarding_metadata table RLS', () => {
     expect(data).toHaveLength(0)
   })
 
+  // Migration 0034 — the connector's upsert (ON CONFLICT (user_id) DO UPDATE) needs an UPDATE policy.
+  // Without it a repeated assessment 403s and PowerSync retries it forever, stalling the upload queue.
+  it('[+] authenticated user can update their own row (latest calibration wins)', async () => {
+    if (!userAId) throw new Error('Test setup failed: userAId undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    const { data, error } = await clientA
+      .from('user_onboarding_metadata')
+      .update({ suds_calibration_value: 8 })
+      .eq('user_id', userAId)
+      .select()
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1)
+    expect(data![0]!.suds_calibration_value).toBe(8)
+  })
+
+  it('[+] connector upsert (onConflict user_id, new client-generated id) converges onto the existing row', async () => {
+    if (!userAId) throw new Error('Test setup failed: userAId undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    // The exact call connector.ts makes for a second assessment write: a fresh id, same user_id.
+    const { error } = await clientA.from('user_onboarding_metadata').upsert(
+      { id: crypto.randomUUID(), user_id: userAId, suds_calibration_value: 9, completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    )
+    expect(error).toBeNull()
+
+    const { data } = await serviceClient.from('user_onboarding_metadata').select('*').eq('user_id', userAId)
+    expect(data).toHaveLength(1)
+    expect(data![0]!.suds_calibration_value).toBe(9)
+  })
+
+  it('[-] cross-user UPDATE is blocked and leaves the other user\'s row unchanged', async () => {
+    if (!userAId || !userBId) throw new Error('Test setup failed: user IDs undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    // USING filters user B's row out of A's view: 0 rows affected, no error.
+    const { data, error } = await clientA
+      .from('user_onboarding_metadata')
+      .update({ suds_calibration_value: 1 })
+      .eq('user_id', userBId)
+      .select()
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+
+    const { data: row } = await serviceClient.from('user_onboarding_metadata').select('*').eq('user_id', userBId)
+    expect(row![0]!.suds_calibration_value).toBe(7)
+  })
+
+  it('[-] cannot reassign a row to another user (WITH CHECK)', async () => {
+    if (!userAId || !userBId) throw new Error('Test setup failed: user IDs undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    const { error } = await clientA
+      .from('user_onboarding_metadata')
+      .update({ user_id: userBId })
+      .eq('user_id', userAId)
+    expect(error).not.toBeNull()
+
+    const { data } = await serviceClient.from('user_onboarding_metadata').select('*').eq('user_id', userAId)
+    expect(data).toHaveLength(1)
+  })
+
+  it('[-] cross-user upsert (user_id of another user) is rejected', async () => {
+    if (!userAId || !userBId) throw new Error('Test setup failed: user IDs undefined')
+    const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await clientA.auth.signInWithPassword({ email: TEST_USER_A_EMAIL, password: TEST_PASSWORD })
+
+    const { error } = await clientA.from('user_onboarding_metadata').upsert(
+      { id: crypto.randomUUID(), user_id: userBId, suds_calibration_value: 0, completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    )
+    expect(error).not.toBeNull()
+
+    const { data: row } = await serviceClient.from('user_onboarding_metadata').select('*').eq('user_id', userBId)
+    expect(row![0]!.suds_calibration_value).toBe(7)
+  })
+
+  it('[-] unauthenticated UPDATE affects nothing', async () => {
+    if (!userAId) throw new Error('Test setup failed: userAId undefined')
+    const anonClient = createClient<Database>(LOCAL_URL, ANON_KEY)
+    await anonClient.from('user_onboarding_metadata').update({ suds_calibration_value: 0 }).eq('user_id', userAId)
+
+    const { data } = await serviceClient.from('user_onboarding_metadata').select('*').eq('user_id', userAId)
+    expect(data![0]!.suds_calibration_value).not.toBe(0)
+  })
+
   it('[-] DELETE is denied for authenticated user on their own row', async () => {
     if (!userAId) throw new Error('Test setup failed: userAId undefined')
     const clientA = createClient<Database>(LOCAL_URL, ANON_KEY)
