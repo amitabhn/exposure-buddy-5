@@ -74,10 +74,48 @@ _Code review 2026-10-05 — layers: Blind Hunter, Edge Case Hunter, Verification
 - [x] [Review][Patch] Double-tap now stacks duplicate screens — `ladder.tsx:146-150` `handleNext` has no in-flight guard, and `assessment.tsx:55-58` resets `isSubmittingRef` just before `router.push`. With `replace` a double tap was harmless; with `push` it stacks two `complete`/`ladder` screens, so OS back lands on a duplicate. Add a navigation guard to both handlers (keep the ref set through the push) + test. [ladder.tsx:146, assessment.tsx:55]
 - [x] [Review][Patch] Harden ladder tests — `ladder.test.tsx` ladder→complete tests don't assert `mockReplace` was not called (unlike `assessment.test.tsx`), titles at ~lines 75/139 still say "Skip", and there is no test that the crisis banner/link pushes `/(onboarding)/crisis` (AC 3 coverage). [ladder.test.tsx]
 - [x] [Review][Defer] OS-back behaviour verified only by mocked router calls — no real-stack/expo-router test or Maestro back step; story status note says "Not verified on device" — deferred: perform the manual Android + iOS back check per the spec's Verification line (or add a Maestro back-from-ladder step); settles whether the `push` fix works on the real stack.
-- [x] [Review][Defer] Persisted progress step stays 4 after back from `complete` to ladder — the `useEffect` at `ladder.tsx:47-49` only runs on mount, so closing the app then resumes to `complete` (no `count` param) — deferred: low impact, resume lands on a valid screen; revisit with the decision above.
+- [x] [Review][Defer] Persisted progress step stays 4 after back from `complete` to ladder — the `useEffect` at `ladder.tsx:47-49` only runs on mount, so closing the app then resumes to `complete` (no `count` param) — deferred: low impact, resume lands on a valid screen; revisit with the decision above. **RESOLVED 2026-10-06 (1367292):** ladder/assessment/complete now persist their step in `useFocusEffect`, so OS back rewinds the saved step.
 - [x] [Review][Defer] No test that assessment Next works again after returning from ladder (`isSubmittingRef` reset) — deferred: code resets the flag; unpinned but low risk.
 
 - [x] [Review][Patch] (found on-device) `setOnboardingProgressStep` clobbered the saved step under push navigation — `OnboardingProvider.setOnboardingProgressStep` was a plain function recreated every render, so the ladder's `useEffect([setOnboardingProgressStep])` re-fired while kept mounted under `complete` and rewrote step 4 → 3 (assessment likewise 3 → 2). A force-stop on `complete` then resumed onto the ladder. Fixed by `useCallback([userId])` in `packages/supabase/src/auth/OnboardingProvider.tsx` (commit 251f0ee); regression test `packages/supabase/__tests__/auth/onboardingProvider.setterIdentity.test.tsx` (fails on the pre-fix provider, passes after). **Fix not yet re-verified on device** — needs a new EAS build.
+
+### Post-review fixes (2026-10-06)
+
+Found while re-testing on device after the last review round; committed locally, not yet device-verified.
+
+- **Persisted step vs visible screen (1367292).** The deferred "step stays 4 after back from `complete`" item, plus the same defect one screen earlier (back from ladder left the step at 3). `ladder.tsx` / `assessment.tsx` moved their step write from a mount effect to `useFocusEffect`; `complete.tsx` now writes 4 on focus so a stack rebuilt on resume doesn't leave the ladder's 3 as the saved step.
+- **Mid-onboarding relaunch skipped to Home (1367292).** Root cause: the Story 18.7 reinstall fallback (`(app)/_layout.tsx` + `useOnboardingExistenceFallback`) treats any `fear_ladder_items` row as "already onboarded elsewhere", but the onboarding ladder writes real rows. Add one item, force-stop, relaunch → `markOnboardingComplete()` + Home, skipping `complete` and the crisis-flag handling. The fallback now runs only when no onboarding step is saved (a reinstall wipes MMKV, so that case is unchanged); a user with a saved step is sent to `welcome`, which resumes at that step. 10 new Jest tests; they fail against the previous code.
+- **Resumed ladder hid saved items (found on device once the fallback fix made this reachable).** The onboarding ladder's list only grew from the form, so resuming at step 3 after a relaunch showed an empty ladder: saved items hidden, the next item reused position 1, `complete` got a wrong count, and "Do this later" was offered. `ladder.tsx` now merges the account's saved rows in via `useFearLadderItems` (merge-only by id, tolerant of late query results). 5 new Jest tests (4 fail without the change).
+- **`complete` copy (c44caad).** "You've added 1 situations" → `itemCount_one` / `itemCount_other`; dropped the duplicated "You've built your Courage Ladder." from `encouragement` (also untrue on the zero-item path). `i18n.test.ts` key pattern now allows `_one` / `_other` plural suffixes; new tests use a real i18next instance.
+- **Observed, not fixed (out of scope):** on cold start a user with a valid session sees the sign-in screen for ~3 s before the session restores and the app redirects — taps in that window land on sign-in controls. Candidate follow-up.
+
+### Device Verification (Android, 2026-10-06)
+
+Build: EAS `preview` APK of `e22d7d0` (does NOT include 1367292 or c44caad). Device: Redmi K20 Pro, hosted Supabase, existing signed-in account.
+
+| Check | Result |
+|---|---|
+| Copy: "Do this later", subtitle "Add situations that make you anxious, then arrange them from least to most scary.", label "Describe a situation that makes you anxious" (AC 1, 4) | Pass |
+| Back: ladder → assessment → welcome, one step per press (AC 2) | Pass |
+| Crisis link → back → ladder with added item intact (AC 3) | Pass |
+| Ladder → `complete` (double tap on Next) → one back lands on ladder, item intact | Pass |
+| Cold relaunch after adding an item and backing out of `complete` | **Landed on Home** (not onboarding) — cause: Story 18.7 fallback; fixed in 1367292, unverified |
+| Cold-start sign-in flash (~3 s) before session restore | Observed — not part of this story |
+
+Still unchecked: 1367292 / c44caad on device (needs a new EAS build), iOS swipe-back, Android swipe-back gesture, TalkBack, Hindi.
+
+### Device Verification (Android dev client, 2026-10-06)
+
+Build: EAS `development` client of `db36d6c` with Metro serving the working tree (so it includes the resumed-ladder change). Device: Redmi K20 Pro, hosted Supabase, app data cleared then signed in fresh.
+
+| Check | Result |
+|---|---|
+| `complete` copy: "You've added 1 situation…", no repeated line (c44caad) | Pass |
+| Ladder → `complete` → back → force-stop → cold relaunch resumes at the ladder, not `complete` (1367292, step rewind) | Pass |
+| Same relaunch with a saved ladder item resumes onboarding instead of landing on Home (1367292, fallback gate) | Pass |
+| Resumed ladder lists the saved item with Next / Add another (resumed-ladder change) | Pass — before the change it showed an empty form |
+
+Still unchecked: iOS swipe-back, Android swipe-back gesture, TalkBack, Hindi.
 
 ### Device Verification (Android, 2026-10-05)
 
@@ -94,7 +132,7 @@ Build: EAS `preview` APK of `ae2fc9b` (does NOT include 251f0ee). Device: Redmi 
 | Resume at step 4 (force-stop on `complete`) | **Fail** — resumed onto ladder; cause fixed in 251f0ee, unverified |
 | Android swipe-back gesture; iOS | Not checked |
 
-Notes: the crisis screen is a placeholder ("Crisis Resources — Epic 5") in this build — outside this story. `complete` shows "You've added 1 situations" (pluralisation, pre-existing).
+Notes: the crisis screen is a placeholder ("Crisis Resources — Epic 5") in this build — outside this story. `complete` shows "You've added 1 situations" (pluralisation, pre-existing). Fixed in c44caad.
 
 **Rejected:**
 - `complete` exit leaves onboarding screens on the stack — false: `complete.tsx:18` `replace('/')` plus the layout's `isOnboardingComplete → replace('/(app)')` effect (`_layout.tsx:13-17`); welcome→assessment was already `push`, so nothing new.
