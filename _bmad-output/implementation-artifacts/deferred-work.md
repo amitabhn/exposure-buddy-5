@@ -1180,3 +1180,13 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - **A poison write can block the upload queue indefinitely.** Beyond the case above, `uploadData` has no dead-letter path for a write the server will never accept; only `swap_ladder_positions` errors are classed non-retryable. Candidate story.
 - **Story 18.7 reinstall fallback — slow first sync sends an existing user through onboarding again (Story 19.9 reopened, 2026-10-06).** Reproduced on the preview build: sign in on cleared data, cut the network ~6 s later; after the 10 s hold the user lands on welcome, and redoing onboarding adds a position-1 item that violates `uq_user_position` against the server's position 1 — retried every ~5 s, never uploaded, queue stalled. Compounds with Story 19.7. The earlier note follows: the fast-sync case passes.
 - **Story 18.7 reinstall fallback — resolved 2026-10-06 (Story 19.9).** Verified on the EAS preview build: cleared data + sign-in on an account with a server-side ladder item lands on Home in ~10 s. The earlier failures came from the Android Expo dev client, where PowerSync stays at `connecting` and never downloads (URL bundled, token valid, service healthy). Why the dev client cannot stream is undiagnosed — open as a developer-experience issue; documented in `docs/setup/local-environment.md`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
+  summary: A ladder drag of more than one slot enqueues only a two-item swap while the optimistic list shifts every in-between item, so local and server order diverge.
+  evidence: Pre-existing in `ladder.tsx` `handleDragEnd`; Story 19.6 owns reorder upload behaviour.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
+  summary: Unverified (possibly medium): a cross-group drop on the real DraggableFlatList may not snap back, because the snap-back relies on a new `items` array identity.
+  evidence: Jest mocks the list. Settle by dragging an unfinished row below a completed one on a device.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
+  summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
+  evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3.

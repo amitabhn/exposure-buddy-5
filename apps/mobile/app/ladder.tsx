@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ElementRef } from 'react'
+import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator, Alert } from 'react-native'
 import { Stack, useRouter, useNavigation } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,7 @@ import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatli
 import { useAuth } from '@exposure-buddy/supabase'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { color, radius } from '@exposure-buddy/ui'
-import { detectCrisisKeywords } from '@exposure-buddy/core'
+import { detectCrisisKeywords, sortLadderForDisplay } from '@exposure-buddy/core'
 import type { FearLadderItem } from '@exposure-buddy/core'
 import { getAdapter } from '../src/sync/adapter'
 import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
@@ -29,6 +29,11 @@ function generateUUID(): string {
   })
 }
 
+// Non-colour cue for completed rows, shown beside the "Done" label (decorative: the row's
+// accessibility label already names the status).
+// eslint-disable-next-line i18next/no-literal-string
+const CHECK_MARK = '✓'
+
 export default function LadderScreen() {
   const { t } = useTranslation()
   const router = useRouter()
@@ -38,6 +43,9 @@ export default function LadderScreen() {
   const { items: remoteItems, isLoading: ladderLoading } = useFearLadderItems(userId)
   const { activeSession, isLoading: sessionLoading } = useActiveExposureSession(userId)
   const [items, setItems] = useState<FearLadderItem[]>([...remoteItems].sort((a, b) => a.position - b.position))
+  // `items` stays in stored position order; the list shows unfinished items first, completed after
+  // (Story 19.3). The sort is display-only — it never changes a stored position.
+  const displayItems = useMemo(() => sortLadderForDisplay(items), [items])
   const [crisisDetected, setCrisisDetected] = useState(false)
 
   // Form state
@@ -291,10 +299,29 @@ export default function LadderScreen() {
 
   function handleDragEnd({ data: reorderedData, from, to }: { data: FearLadderItem[]; from: number; to: number }) {
     if (from === to) return
-    const updatedItems = reorderedData.map((item, index) => ({ ...item, position: index + 1 }))
-    setItems(updatedItems)  // optimistic
-    const movedItem = updatedItems[to]
-    const displacedItem = updatedItems[from]
+    // Unfinished rows occupy [0, unfinishedCount), completed rows the rest. A drag stays inside its
+    // group: a drop across the boundary is ignored, and a fresh `items` array makes the list snap back.
+    const unfinishedCount = displayItems.filter(item => item.status !== 'completed').length
+    const groupStart = from < unfinishedCount ? 0 : unfinishedCount
+    const groupEnd = from < unfinishedCount ? unfinishedCount : displayItems.length
+    if (to < groupStart || to >= groupEnd) {
+      setItems(prev => [...prev])
+      return
+    }
+    // Re-use the group's own stored position values (ascending) so the other group's positions
+    // are never touched and no rank is renumbered by display index.
+    const groupPositions = displayItems.slice(groupStart, groupEnd).map(item => item.position)
+    const reorderedGroup = reorderedData
+      .slice(groupStart, groupEnd)
+      .map((item, index) => ({ ...item, position: groupPositions[index] ?? item.position }))
+    const newPositionById = new Map(reorderedGroup.map(item => [item.id, item.position]))
+    setItems(prev =>
+      prev
+        .map(item => ({ ...item, position: newPositionById.get(item.id) ?? item.position }))
+        .sort((a, b) => a.position - b.position),
+    )  // optimistic
+    const movedItem = reorderedGroup[to - groupStart]
+    const displacedItem = reorderedGroup[from - groupStart]
     if (!movedItem || !displacedItem) return
     // eslint-disable-next-line i18next/no-literal-string
     getAdapter().enqueue('fear_ladder_items', 'reorder_positions', {
@@ -360,7 +387,7 @@ export default function LadderScreen() {
 
         {/* Drag-to-reorder list */}
         <DraggableFlatList
-          data={items}
+          data={displayItems}
           keyExtractor={(item) => item.id}
           onDragEnd={handleDragEnd}
           contentContainerStyle={styles.listContent}
@@ -370,7 +397,7 @@ export default function LadderScreen() {
               <ScaleDecorator>
                 <TouchableOpacity
                   ref={index === 0 ? firstInteractiveRef : null}
-                  style={[styles.itemRow, isActive && styles.itemRowDragging]}
+                  style={[styles.itemRow, item.status === 'completed' && styles.itemRowDone, isActive && styles.itemRowDragging]}
                   onLongPress={drag}
                   onPress={() => openEditForm(item)}
                   accessibilityRole="button"
@@ -380,7 +407,7 @@ export default function LadderScreen() {
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Text style={styles.dragHandle}>⠿</Text>
                   <View style={styles.itemContent}>
-                    <Text style={styles.itemDescription}>{item.description}</Text>
+                    <Text style={[styles.itemDescription, item.status === 'completed' && styles.itemDescriptionDone]}>{item.description}</Text>
                     <Text style={styles.itemMeta}>
                       {t('ladder.sudsPrefix')}
                       {clampSuds(item.predictedSuds)}
@@ -388,7 +415,10 @@ export default function LadderScreen() {
                     </Text>
                   </View>
                   <View style={badgeStyle(item.status)}>
-                    <Text style={badgeTextStyle(item.status)}>{statusLabel(item.status)}</Text>
+                    <Text style={badgeTextStyle(item.status)}>
+                      {item.status === 'completed' ? `${CHECK_MARK} ` : ''}
+                      {statusLabel(item.status)}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               </ScaleDecorator>
@@ -540,9 +570,13 @@ const styles = StyleSheet.create({
   // #E3EAE7 (resting card border) has no equivalent in packages/ui's 8 semantic tokens —
   // same documented token gap as sign-in.tsx's #9AAEA7 (Story 12.1)
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#ffffff', borderRadius: radius.card, borderWidth: 1, borderColor: '#E3EAE7', padding: 16, marginBottom: 8 },
+  // Completed rows: muted fill + secondary-green text (#4A6B62 on #EBF0EE ≈ 4.9:1), not opacity,
+  // so the text stays legible
+  itemRowDone: { backgroundColor: color.surface.secondary },
   itemRowDragging: { backgroundColor: '#ffffff', elevation: 8, shadowColor: color.content.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
   itemContent: { flex: 1 },
   itemDescription: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, lineHeight: 22 },
+  itemDescriptionDone: { color: color.content.secondary },
   itemMeta: { fontSize: 12, color: color.content.secondary, marginTop: 4 },
   // #9AAEA7 (muted drag-handle colour) — same documented token gap as sign-in.tsx (Story 12.1)
   dragHandle: { fontSize: 16, color: '#9AAEA7', paddingHorizontal: 2, lineHeight: 16 },

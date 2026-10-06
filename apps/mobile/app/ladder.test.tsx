@@ -2,12 +2,17 @@ import React from 'react'
 import { AccessibilityInfo, Alert } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
+// `mock` prefix lets the hoisted factory reference it; tests call the screen's onDragEnd through it
+const mockDragEnd: { current: ((e: { data: any[]; from: number; to: number }) => void) | null } = { current: null }
+
 jest.mock('react-native-draggable-flatlist', () => {
   const MockReact = require('react')
   const { FlatList } = require('react-native')
   return {
     __esModule: true,
-    default: ({ data, renderItem, keyExtractor }: any) => (
+    default: ({ data, renderItem, keyExtractor, onDragEnd }: any) => {
+      mockDragEnd.current = onDragEnd
+      return (
       <FlatList
         data={data}
         keyExtractor={keyExtractor}
@@ -15,7 +20,8 @@ jest.mock('react-native-draggable-flatlist', () => {
           renderItem({ item, drag: jest.fn(), isActive: false, getIndex: () => index })
         }
       />
-    ),
+      )
+    },
     ScaleDecorator: ({ children }: any) => children,
   }
 })
@@ -73,6 +79,7 @@ jest.mock('../src/components/navigation/BackButton', () => ({
 const mockDetectCrisisKeywords = jest.fn<boolean, [string]>(() => false)
 
 jest.mock('@exposure-buddy/core', () => ({
+  sortLadderForDisplay: jest.requireActual('../../../packages/core/src/selectors/fearLadder').sortLadderForDisplay,
   detectCrisisKeywords: (text: string) => mockDetectCrisisKeywords(text),
 }))
 
@@ -132,6 +139,80 @@ describe('LadderScreen', () => {
     const secondItemButton = buttons.find(b => b.props.accessibilityLabel?.startsWith('Item B,'))
     expect(firstItemButton).toBeTruthy()
     expect(secondItemButton).toBeTruthy()
+  })
+
+  describe('completed items (Story 19.3)', () => {
+    const mk = (id: string, position: number, status: string) =>
+      ({ id, description: `Item ${id}`, predictedSuds: 5, position, status })
+    const mixed = [mk('1', 1, 'completed'), mk('2', 2, 'pending'), mk('3', 3, 'completed'), mk('4', 4, 'pending')]
+    const labels = (getAllByRole: ReturnType<typeof render>['getAllByRole']) =>
+      getAllByRole('button')
+        .map(b => b.props.accessibilityLabel as string | undefined)
+        .filter((l): l is string => !!l && l.startsWith('Item '))
+        .map(l => l.slice(0, 6))
+
+    it('shows unfinished items first, completed after', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      expect(labels(getAllByRole)).toEqual(['Item 2', 'Item 4', 'Item 1', 'Item 3'])
+    })
+
+    it('marks completed rows with a check mark and the Done status, announced in the label', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole, getAllByText } = render(<LadderScreen />)
+      expect(getAllByText(/✓/)).toHaveLength(2)
+      expect(findItemButton(getAllByRole, 'Item 1')?.props.accessibilityLabel).toContain('ladder.statusCompleted')
+      expect(findItemButton(getAllByRole, 'Item 2')?.props.accessibilityLabel).not.toContain('ladder.statusCompleted')
+    })
+
+    it('tapping a completed item opens the edit sheet with Start session', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole, getByRole } = render(<LadderScreen />)
+      fireEvent.press(findItemButton(getAllByRole, 'Item 1')!)
+      expect(getByRole('button', { name: 'ladder.startSession, Item 1' })).toBeTruthy()
+    })
+
+    it('dragging within the unfinished group reuses that group\'s own positions', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      // display order: 2, 4, 1, 3 -> drag Item 2 below Item 4
+      act(() => { mockDragEnd.current!({ data: [mixed[3]!, mixed[1]!, mixed[0]!, mixed[2]!], from: 0, to: 1 }) })
+      expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'reorder_positions', expect.objectContaining({
+        itemAId: '2', itemANewPosition: 4, itemBId: '4', itemBNewPosition: 2,
+      }))
+      // optimistic update: the unfinished rows swap, completed rows stay put
+      expect(labels(getAllByRole)).toEqual(['Item 4', 'Item 2', 'Item 1', 'Item 3'])
+    })
+
+    it('dragging within the completed group reuses that group\'s own positions', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      // drag Item 1 (display index 2) below Item 3 (index 3)
+      act(() => { mockDragEnd.current!({ data: [mixed[1]!, mixed[3]!, mixed[2]!, mixed[0]!], from: 2, to: 3 }) })
+      expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'reorder_positions', expect.objectContaining({
+        itemAId: '1', itemANewPosition: 3, itemBId: '3', itemBNewPosition: 1,
+      }))
+      expect(labels(getAllByRole)).toEqual(['Item 2', 'Item 4', 'Item 3', 'Item 1'])
+    })
+
+    it('dragging works when every item is completed (group starts at index 0)', () => {
+      const allDone = [mk('1', 1, 'completed'), mk('2', 2, 'completed')]
+      mockUseFearLadderItems.mockReturnValue({ items: allDone, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      act(() => { mockDragEnd.current!({ data: [allDone[1]!, allDone[0]!], from: 0, to: 1 }) })
+      expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'reorder_positions', expect.objectContaining({
+        itemAId: '1', itemANewPosition: 2, itemBId: '2', itemBNewPosition: 1,
+      }))
+      expect(labels(getAllByRole)).toEqual(['Item 2', 'Item 1'])
+    })
+
+    it('ignores a drop across the group boundary', () => {
+      mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      act(() => { mockDragEnd.current!({ data: [mixed[3]!, mixed[0]!, mixed[1]!, mixed[2]!], from: 1, to: 2 }) })
+      expect(mockEnqueue).not.toHaveBeenCalled()
+      expect(labels(getAllByRole)).toEqual(['Item 2', 'Item 4', 'Item 1', 'Item 3'])
+    })
   })
 
   it('renders status labels for each item', () => {
