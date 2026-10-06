@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -46,16 +46,15 @@ export default function LadderScreen() {
 
   const isNavigatingRef = useRef(false)
 
-  // Re-arm when the user comes back from `complete` via OS back (push keeps this screen mounted).
+  // Runs on every focus, not just mount: push keeps this screen mounted under `complete`, so on OS
+  // back it must re-arm the navigation guard AND rewind the persisted step to 3 — otherwise a
+  // relaunch after going back would resume at `complete`.
   useFocusEffect(
     useCallback(() => {
       isNavigatingRef.current = false
-    }, []),
+      setOnboardingProgressStep(3)
+    }, [setOnboardingProgressStep]),
   )
-
-  useEffect(() => {
-    setOnboardingProgressStep(3)
-  }, [setOnboardingProgressStep])
 
   function handleCrisisDetected() {
     if (!crisisFlagWrittenRef.current) {

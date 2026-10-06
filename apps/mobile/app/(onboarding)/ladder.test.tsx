@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react-native'
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -16,11 +16,15 @@ jest.mock('expo-router', () => ({
     Screen: () => null,
   },
   useFocusEffect: (cb: () => void) => {
-    require('react').useEffect(cb, [])
+    require('react').useEffect(() => {
+      mockFocusCallbacks.push(cb)
+      return cb()
+    }, [])
   },
 }))
 
 const mockSetOnboardingProgressStep = jest.fn()
+const mockFocusCallbacks: Array<() => void> = []
 const mockSetCrisisFlaggedInOnboarding = jest.fn()
 const mockUseAuth = jest.fn()
 
@@ -54,6 +58,7 @@ import LadderScreen from './ladder'
 
 describe('LadderScreen', () => {
   beforeEach(() => {
+    mockFocusCallbacks.length = 0
     jest.clearAllMocks()
     let callCount = 0
     jest.spyOn(Math, 'random').mockImplementation(() => (callCount++ % 32) * 0.03125)
@@ -73,6 +78,16 @@ describe('LadderScreen', () => {
   it('on mount calls setOnboardingProgressStep(3)', () => {
     render(<LadderScreen />)
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(3)
+  })
+
+  it('on re-focus (OS back from complete) rewinds the persisted step to 3, not leaving it at 4', async () => {
+    const { getByRole } = render(<LadderScreen />)
+    fireEvent.press(getByRole('button', { name: 'onboarding.fearLadder.skipCta' }))
+    await waitFor(() => expect(mockSetOnboardingProgressStep).toHaveBeenLastCalledWith(4))
+
+    // OS back from `complete`: the kept-mounted ladder regains focus
+    act(() => { mockFocusCallbacks.forEach((cb) => cb()) })
+    expect(mockSetOnboardingProgressStep).toHaveBeenLastCalledWith(3)
   })
 
   it('Do-this-later button is shown and enabled with 0 items', () => {

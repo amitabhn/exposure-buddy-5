@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react-native'
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -16,11 +16,15 @@ jest.mock('expo-router', () => ({
     Screen: () => null,
   },
   useFocusEffect: (cb: () => void) => {
-    require('react').useEffect(cb, [])
+    require('react').useEffect(() => {
+      mockFocusCallbacks.push(cb)
+      return cb()
+    }, [])
   },
 }))
 
 const mockSetOnboardingProgressStep = jest.fn()
+const mockFocusCallbacks: Array<() => void> = []
 const mockSetSudsCalibration = jest.fn()
 const mockUseAuth = jest.fn()
 
@@ -53,6 +57,7 @@ import AssessmentScreen from './assessment'
 
 describe('AssessmentScreen', () => {
   beforeEach(() => {
+    mockFocusCallbacks.length = 0
     jest.clearAllMocks()
     jest.spyOn(Math, 'random').mockReturnValue(0.5)
     mockUseAuth.mockReturnValue({
@@ -88,6 +93,17 @@ describe('AssessmentScreen', () => {
   it('on mount calls setOnboardingProgressStep(2)', () => {
     render(<AssessmentScreen />)
     expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(2)
+  })
+
+  it('on re-focus (OS back from the ladder) rewinds the persisted step to 2, not leaving it at 3', async () => {
+    const { getByTestId, getByRole } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button'))
+    await waitFor(() => expect(mockSetOnboardingProgressStep).toHaveBeenLastCalledWith(3))
+
+    // OS back from the ladder: the kept-mounted assessment regains focus
+    act(() => { mockFocusCallbacks.forEach((cb) => cb()) })
+    expect(mockSetOnboardingProgressStep).toHaveBeenLastCalledWith(2)
   })
 
   it('pressing Next when value set calls setSudsCalibration, setOnboardingProgressStep(3), and pushes to ladder (so OS back returns to the assessment)', async () => {
