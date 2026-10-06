@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
-import { useRouter, Stack } from 'expo-router'
+import { useRouter, Stack, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
@@ -25,10 +25,15 @@ export default function AssessmentScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSubmittingRef = useRef(false)
 
-  // Save progress to MMKV on mount so resume logic routes here if app is closed
-  useEffect(() => {
-    setOnboardingProgressStep(2)
-  }, [setOnboardingProgressStep])
+  // push (not replace) keeps this screen on the stack, so on every focus (including OS back from
+  // the ladder) the guard must re-arm — otherwise a double tap on Next stacks duplicate ladder
+  // screens — and the persisted step must rewind to 2 so a relaunch resumes here, not at the ladder.
+  useFocusEffect(
+    useCallback(() => {
+      isSubmittingRef.current = false
+      setOnboardingProgressStep(2)
+    }, [setOnboardingProgressStep]),
+  )
 
   async function handleNext() {
     if (selectedValue === null || isSubmittingRef.current) return
@@ -53,9 +58,9 @@ export default function AssessmentScreen() {
       setIsSubmitting(false)
       return
     }
-    isSubmittingRef.current = false
+    // isSubmittingRef stays set until focus returns — blocks a second tap before navigation lands
     setIsSubmitting(false)
-    router.replace('/(onboarding)/ladder')
+    router.push('/(onboarding)/ladder')
   }
 
   return (

@@ -74,8 +74,8 @@
       "ladderNudge": "यह एक अच्छी सूची है — ज़्यादातर लोगों को 10–15 स्थितियाँ पर्याप्त लगती हैं।",
       "ladderNudgeDismiss": "समझ गया",
       "title": "Build your Courage Ladder",
-      "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
-      "descriptionLabel": "Describe the situation",
+      "subtitle": "Add situations that make you anxious, then arrange them from least to most scary.",
+      "descriptionLabel": "Describe a situation that makes you anxious",
       "descriptionPlaceholder": "e.g. Riding the elevator alone",
       "predictedSudsLabel": "How anxious would you feel? (0–10)",
       "addCta": "Add to ladder",
@@ -84,18 +84,19 @@
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
       "nextCta": "Next",
-      "skipCta": "छोड़ें"
+      "skipCta": "बाद में करें"
     },
     "crisisDetected": {
       "banner": "लगता है अभी आप बहुत कठिन वक्त से गुज़र रहे हैं। आपको यह अकेले नहीं झेलना है — नीचे सहायता ढूँढें।"
     },
     "complete": {
       "title": "You're ready to climb!",
-      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "encouragement": "Let's start with the first step.",
       "titleSoft": "Your ladder is ready.",
       "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready.",
       "cta": "Start your journey",
-      "itemCount": "You've added {{count}} situations to your Courage Ladder"
+      "itemCount_one": "You've added {{count}} situation to your Courage Ladder",
+      "itemCount_other": "You've added {{count}} situations to your Courage Ladder"
     }
   },
   "ladder": {

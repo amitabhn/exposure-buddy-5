@@ -18,9 +18,13 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
   Stack: { Screen: () => null },
   useLocalSearchParams: () => mockUseLocalSearchParams(),
+  useFocusEffect: (cb: () => void) => {
+    require('react').useEffect(cb, [])
+  },
 }))
 
 const mockMarkOnboardingComplete = jest.fn()
+const mockSetOnboardingProgressStep = jest.fn()
 const mockUseAuth = jest.fn()
 
 jest.mock('@exposure-buddy/supabase', () => ({
@@ -35,8 +39,14 @@ describe('CompleteScreen', () => {
     mockUseAuth.mockReturnValue({
       crisisFlaggedInOnboarding: false,
       markOnboardingComplete: mockMarkOnboardingComplete,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     mockUseLocalSearchParams.mockReturnValue({ count: '5' })
+  })
+
+  it('on focus persists step 4, so a stack rebuilt on resume does not leave the ladder\'s 3 as the saved step', () => {
+    render(<CompleteScreen />)
+    expect(mockSetOnboardingProgressStep).toHaveBeenCalledWith(4)
   })
 
   it('renders title (non-crisis path)', () => {
@@ -48,6 +58,7 @@ describe('CompleteScreen', () => {
     mockUseAuth.mockReturnValue({
       crisisFlaggedInOnboarding: true,
       markOnboardingComplete: mockMarkOnboardingComplete,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     const { getByText } = render(<CompleteScreen />)
     expect(getByText('onboarding.complete.titleSoft')).toBeTruthy()
@@ -62,6 +73,7 @@ describe('CompleteScreen', () => {
     mockUseAuth.mockReturnValue({
       crisisFlaggedInOnboarding: true,
       markOnboardingComplete: mockMarkOnboardingComplete,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     const { queryByText } = render(<CompleteScreen />)
     expect(queryByText('onboarding.complete.itemCount:5')).toBeNull()
@@ -84,6 +96,7 @@ describe('CompleteScreen', () => {
     mockUseAuth.mockReturnValue({
       crisisFlaggedInOnboarding: true,
       markOnboardingComplete: mockMarkOnboardingComplete,
+      setOnboardingProgressStep: mockSetOnboardingProgressStep,
     })
     const { getByText } = render(<CompleteScreen />)
     expect(getByText('onboarding.overwhelmed.cta')).toBeTruthy()

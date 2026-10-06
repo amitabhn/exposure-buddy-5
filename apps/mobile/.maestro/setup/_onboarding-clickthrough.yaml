@@ -29,10 +29,10 @@ appId: com.exposurebuddy.app
 # (canSkip is true when items.length === 0; accessibilityLabel is t('onboarding.fearLadder.skipCta'))
 - scrollUntilVisible:
     element:
-      text: "Skip"
+      text: "Do this later"
     direction: DOWN
 - tapOn:
-    text: "Skip"
+    text: "Do this later"
 - waitForAnimationToEnd
 
 # complete.tsx — "Start your journey" (calls markOnboardingComplete(), writes MMKV)

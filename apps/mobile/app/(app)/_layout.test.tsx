@@ -36,6 +36,7 @@ const mockMarkOnboardingComplete = jest.fn()
 let mockSessionRecoveryData: { sessionId: string; fearItemId: string | null; description: string; preSuds: number; startedAt?: string } | null = null
 let mockIsOnboardingComplete = true
 let mockIsStorageDegraded = false
+let mockOnboardingProgressStep: number | null = null
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
@@ -43,6 +44,7 @@ jest.mock('@exposure-buddy/supabase', () => ({
     isAuthenticated: true,
     isOnboardingComplete: mockIsOnboardingComplete,
     isStorageDegraded: mockIsStorageDegraded,
+    onboardingProgressStep: mockOnboardingProgressStep,
     sessionRecoveryData: mockSessionRecoveryData,
     setSessionInProgress: mockSetSessionInProgress,
     clearSessionInProgress: mockClearSessionInProgress,
@@ -95,6 +97,11 @@ jest.mock('../../src/notifications/sessionReminder', () => ({
 
 import AppLayout from './_layout'
 
+// The first render in this file is cold (heavy module graph) and has exceeded Jest's 5 s default
+// on the GitHub runner, failing the first test deterministically (CI run 37460921690, twice) while
+// it takes ~1.5 s locally even with --no-cache. Give the whole suite headroom rather than a single test.
+jest.setTimeout(20000)
+
 // File-wide default so every existing test (which doesn't care about the Story 18.2/18.7
 // fallback hooks) keeps rendering as before — individual tests below override this.
 beforeEach(() => {
@@ -102,6 +109,7 @@ beforeEach(() => {
   mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
   mockIsOnboardingComplete = true
   mockIsStorageDegraded = false
+  mockOnboardingProgressStep = null
 })
 
 function emitAppStateChange(state: 'active' | 'background' | 'inactive') {
@@ -424,6 +432,58 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
     expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
     // The pre-existing redirect gate still sends an incomplete-onboarding user to welcome.
     expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  // Relaunch mid-onboarding: the onboarding ladder writes real fear_ladder_items rows, so the
+  // replica has a hit — but the saved step proves this device is mid-onboarding, not reinstalled.
+  describe('mid-onboarding relaunch (saved onboarding step present)', () => {
+    afterEach(() => {
+      mockOnboardingProgressStep = null
+    })
+
+    it.each([1, 2, 3, 4])('step %i: disables the fallback hook (enabled=false)', (step) => {
+      mockIsOnboardingComplete = false
+      mockOnboardingProgressStep = step
+      render(<AppLayout />)
+      expect(mockUseOnboardingExistenceFallback).toHaveBeenCalledWith(false)
+      expect(mockUseOnboardingExistenceFallback).not.toHaveBeenCalledWith(true)
+    })
+
+    it('does NOT mark onboarding complete or route to the app when a ladder row exists, and resumes via welcome', async () => {
+      mockIsOnboardingComplete = false
+      mockOnboardingProgressStep = 3
+      mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: true, isLoading: false, isDecided: true })
+      render(<AppLayout />)
+      await waitFor(() => {
+        expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+      })
+      expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+      expect(mockRouterReplace).not.toHaveBeenCalledWith('/(app)')
+    })
+
+    it('redirects to welcome immediately without waiting for the existence decision', async () => {
+      mockIsOnboardingComplete = false
+      mockOnboardingProgressStep = 4
+      mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: false })
+      render(<AppLayout />)
+      await waitFor(() => {
+        expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+      })
+    })
+
+    it('keeps the home tabs unrendered (spinner) while redirecting', () => {
+      mockIsOnboardingComplete = false
+      mockOnboardingProgressStep = 3
+      const { toJSON } = render(<AppLayout />)
+      expect(JSON.stringify(toJSON())).toContain('ActivityIndicator')
+    })
+
+    it('does not apply when onboarding is already complete (stale step is ignored)', () => {
+      mockIsOnboardingComplete = true
+      mockOnboardingProgressStep = 3
+      render(<AppLayout />)
+      expect(mockRouterReplace).not.toHaveBeenCalledWith('/(onboarding)/welcome')
+    })
   })
 
   it('already onboarded: the fallback effect never fires (hook disabled), regardless of a stale/mocked hit', async () => {

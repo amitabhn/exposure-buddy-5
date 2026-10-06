@@ -59,7 +59,29 @@ _Empty — log new feedback here as it arrives, newest at the top._
 
 ## Routed
 
-_Empty — entries move here once triaged and routed, most recent first._
+_Most recent first._
+
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Onboarding → Build your Courage Ladder**
+  Feedback: Change the "Skip" button to "Do this later".
+  Severity: 3 — Routed to: Epic 19, Story 19.1 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Onboarding → Build your Courage Ladder**
+  Feedback: Bug — clicking the OS back button takes the user back to step 1 instead of the previous step.
+  Severity: 2 — Routed to: Epic 19, Story 19.1 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Practice Relaxation**
+  Feedback: Bug — after any option is selected, it starts an exposure item from the ladder.
+  Severity: 2 — Routed to: Epic 19, Story 19.2 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Courage Ladder**
+  Feedback: Once an item is done on the courage ladder, move it to the bottom and grey it out so it's visible but doesn't get confused with the unfinished ones.
+  Severity: 3 — Routed to: Epic 19, Story 19.3 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Home / first launch after install**
+  Feedback: Highlight the Insta Calm button and its use when the app is opened for the first time after an install.
+  Severity: 3 — Routed to: Epic 19, Story 19.4 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Practice Relaxation**
+  Feedback: The options should open the corresponding technique screen (e.g. Breathing should open Box Breathing). If a technique isn't implemented yet, just say "Coming soon" and give the option to go back.
+  Severity: 3 — Routed to: Epic 19, Story 19.2 (epics.md; sprint-status.yaml)
+- **[2026-10-05 logged / 2026-10-05 routed] Source: direct (product owner) — Reporter: Amitabh — Screen: Pre-session (SUDS rating)**
+  Feedback: When the user is asked for a SUDS rating, review whether the numbered boxes should be changed to a slider.
+  Severity: 3 — Routed to: Epic 19, Story 19.5 (epics.md; sprint-status.yaml)
 
 <!--
 - **[YYYY-MM-DD logged / YYYY-MM-DD routed] Source: <channel> — Screen: <screen/route>**

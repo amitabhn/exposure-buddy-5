@@ -1,10 +1,12 @@
+import i18next from 'i18next'
 import enJson from './locales/en.json'
 import hiJson from './locales/hi.json'
 import { PRIVACY_NOTICE_LAST_UPDATED } from '../constants/legal'
 
 // Numeric segments (e.g. calmMe.affirmation.1) are allowed for rotation-style lists
 // (Story 7.1's CALM_ME_AFFIRMATIONS) — every other segment still requires lowercase-first camelCase.
-const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.([a-z][a-zA-Z0-9]*|[0-9]+))+$/
+// The final segment may carry an i18next plural suffix (_one / _other), e.g. itemCount_one.
+const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.([a-z][a-zA-Z0-9]*|[0-9]+))+(_(one|other))?$/
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([key, value]) => {
@@ -94,5 +96,35 @@ describe('Story 18.5 — calmMe.fab accessibility label matches the Insta Calm r
 
   it('hi.json duplicates the English calmMe.fab value per existing convention', () => {
     expect(hiJson.calmMe.fab).toBe(enJson.calmMe.fab)
+  })
+})
+
+describe('onboarding.complete copy', () => {
+  const t = i18next.createInstance()
+  beforeAll(async () => {
+    await t.init({ lng: 'en', resources: { en: { translation: enJson } }, interpolation: { escapeValue: false } })
+  })
+
+  it('itemCount is singular for 1 and plural otherwise', () => {
+    expect(t.t('onboarding.complete.itemCount', { count: 1 })).toBe("You've added 1 situation to your Courage Ladder")
+    expect(t.t('onboarding.complete.itemCount', { count: 2 })).toBe("You've added 2 situations to your Courage Ladder")
+  })
+
+  it('encouragement does not repeat the "built your Courage Ladder" claim made by the count line', () => {
+    expect(enJson.onboarding.complete.encouragement).not.toMatch(/built your Courage Ladder/i)
+    expect(enJson.onboarding.complete.itemCount_other).toMatch(/Courage Ladder/)
+  })
+
+  it('hi.json duplicates the English copy per existing convention', () => {
+    const hi = hiJson as DeepPartial<typeof enJson>
+    // Defined first: toBe(undefined vs undefined) would otherwise pass if a key were missing.
+    expect(enJson.onboarding.complete.itemCount_one).toBeDefined()
+    expect(enJson.onboarding.complete.itemCount_other).toBeDefined()
+    expect(hi.onboarding?.complete?.itemCount_one).toBeDefined()
+    expect(hi.onboarding?.complete?.itemCount_other).toBeDefined()
+    expect(hi.onboarding?.complete?.encouragement).toBeDefined()
+    expect(hi.onboarding?.complete?.itemCount_one).toBe(enJson.onboarding.complete.itemCount_one)
+    expect(hi.onboarding?.complete?.itemCount_other).toBe(enJson.onboarding.complete.itemCount_other)
+    expect(hi.onboarding?.complete?.encouragement).toBe(enJson.onboarding.complete.encouragement)
   })
 })

@@ -142,6 +142,10 @@ Docker's daemon isn't running. If you don't have Docker Desktop installed, `coli
 
 ---
 
+### PowerSync never downloads in the Expo dev client (Android) — verify sync on a release build
+
+On the Android development client served by Metro, `PowerSyncDatabase.connect()` gets as far as `fetchCredentials` (which returns the right endpoint and a valid token) and then stays at `connecting: true` forever, with no `downloadError` and nothing in the logs. Uploads still work (they go through the Supabase client), but nothing is ever downloaded, so anything that depends on the local replica — the Story 18.7 reinstall fallback, a freshly signed-in device showing server data — looks broken. The same account on the EAS `preview` APK downloads within seconds, and the PowerSync service accepts the same token and streams the data (checked with a direct `POST /sync/stream`). Found during Story 19.1/19.9 verification (2026-10-06); the cause inside the dev client is not diagnosed. Verify anything download-dependent on a `preview` or production build, not the dev client. Also: `uiautomator dump` can hang while the app shows a spinner, so wrap it in `timeout`.
+
 ## Epic 3+ — Edge Functions (Deno)
 
 Edge Functions run under **Deno**, not Node. The import system, standard library, and globals differ.

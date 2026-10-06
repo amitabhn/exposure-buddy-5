@@ -1,5 +1,6 @@
+import { useCallback } from 'react'
 import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
+import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
@@ -10,7 +11,15 @@ export default function CompleteScreen() {
   const { count } = useLocalSearchParams<{ count?: string }>()
   const itemCount = count !== undefined ? parseInt(count, 10) : null
   const showCount = itemCount !== null && !isNaN(itemCount) && itemCount > 0
-  const { crisisFlaggedInOnboarding, markOnboardingComplete } = useAuth()
+  const { crisisFlaggedInOnboarding, markOnboardingComplete, setOnboardingProgressStep } = useAuth()
+
+  // A stack rebuilt on resume (welcome pushes assessment → ladder → complete) leaves the ladder's
+  // focus write of 3 as the last one; re-assert 4 so the persisted step matches this screen.
+  useFocusEffect(
+    useCallback(() => {
+      setOnboardingProgressStep(4)
+    }, [setOnboardingProgressStep]),
+  )
 
   function handleStartJourney() {
     // MUST precede router.replace — flips isOnboardingComplete before (app) layout mounts

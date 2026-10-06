@@ -474,6 +474,16 @@ Beta users can see evidence that they are making progress, recover cleanly from 
 
 **Scoping correction (2026-09-29, found while writing this epic):** backlog item 1.13's premise — "the MVP re-entry lands on whatever screen routing evaluates to (typically home)" — is **stale and was not true at the time this epic was written**. A session-recovery modal already ships in `apps/mobile/app/(app)/_layout.tsx` (state at :42-52, gate at :172, modal at :197-215, `handleRecoveryResume` at :119-127 routing to `/session/active`). Story 18.2 is therefore scoped to the genuine *remaining* gap against UX spec F4, not to building re-entry from scratch — see its entry below. `post-mvp-backlog.md` item 1.13 has been corrected accordingly.
 
+
+### Epic 19: Beta Feedback Fixes — Onboarding Ladder, Practice Relaxation & Courage Ladder
+
+*(Added 2026-10-05. Routed from the seven product-owner feedback items in `beta-feedback-triage.md`. Re-homed here because Epics 4, 5, 7 and 12 are done.)*
+
+Beta users get an onboarding ladder step that goes back correctly, a Practice Relaxation flow that opens the technique they chose, a courage ladder that clearly separates finished from unfinished items, a first-launch pointer to Insta Calm, and a reviewed SUDS input.
+
+**FRs covered:** FR-ONBOARD-NAV-01, FR-RELAX-01, FR-LADDER-DONE-01, FR-INSTACALM-DISCOVER-01, FR-SUDS-INPUT-01.
+**Scope note:** Twelve stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only; 19.6–19.12 are defects, verification gaps and tech debt found during 19.1's device verification and PR CI on 2026-10-06 (not beta feedback items, no FRs of their own).
+
 ---
 
 ## Epic 1: Project Foundation & Design System
@@ -3243,3 +3253,249 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** the Maestro e2e smoke suite (Story 9.5) runs each flow against a fresh `supabase db reset` state and has no existing "pre-seeded existing user, fresh app install" scenario
 **When** this story is scoped
 **Then** Maestro coverage is explicitly out of scope, matching Story 18.4's precedent — unit test coverage is the bar. Adding this scenario to the smoke suite would need new backend-seeding infrastructure disproportionate to this fix; it is a candidate for a future story if judged worthwhile
+
+
+## Epic 19: Beta Feedback Fixes — Onboarding Ladder, Practice Relaxation & Courage Ladder
+
+*(Added 2026-10-05 — routed from the seven product-owner feedback items logged in `beta-feedback-triage.md` on 2026-10-05. Takes the next open number after Epic 18; Epic 13 remains a dormant reservation. Epics 4, 5, 7 and 12 are done, so fixes are re-homed here rather than reopening completed epics — same precedent as Epics 15, 17 and 18.)*
+
+**FR-ONBOARD-NAV-01:** The onboarding Courage Ladder step behaves like every other step: its deferral action is worded as a deferral, and the OS back control returns the user to the immediately previous step.
+
+**FR-RELAX-01:** "Practice Relaxation" is a relaxation entry point, not an exposure entry point — choosing a technique opens that technique, never an exposure session. Techniques not yet built say so plainly and let the user go back.
+
+**FR-LADDER-DONE-01:** Completed courage ladder items remain visible but are visually and positionally separated from the unfinished ones.
+
+**FR-INSTACALM-DISCOVER-01:** A first-time user is shown where Insta Calm is and what it is for.
+
+**FR-SUDS-INPUT-01:** The pre-session SUDS input is the right control for the job — decided by review, not assumption.
+
+**Naming note:** user-facing "Insta Calm" = code `calmMe`/`calm-me` (see Epic 18's naming note). **Screen note:** "Practice Relaxation" is the Home action (`apps/mobile/app/(app)/index.tsx:104`) that routes to `/session/technique` (`apps/mobile/app/session/technique.tsx`), whose Continue pushes to `/session/intent` — the exposure flow. Stories are independent unless noted; 19.2 should land before 19.3.
+
+### Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation
+
+**Status: done** (code complete and device-verified on Android; PR #100 open, not yet merged). Feedback items 1 and 2. Screen: `apps/mobile/app/(onboarding)/ladder.tsx` (skip CTA at `:152`/`:270-273`, key `onboarding.fearLadder.skipCta`; stack in `(onboarding)/_layout.tsx`).
+
+**Given** the empty-ladder CTA reads "Skip" (`onboarding.fearLadder.skipCta`)
+**When** this story is implemented
+**Then** it reads "Do this later" in `en.json`, with `hi.json` updated per the established convention, and the accessibility label follows the visible label; the CTA's behaviour is unchanged
+
+**Given** pressing the OS back button on the ladder step takes the user to step 1 instead of the previous step
+**When** the cause is diagnosed (suspect: stack history/`router.replace` usage across onboarding steps, or a back handler in `_layout.tsx`)
+**Then** OS back (Android hardware/gesture and iOS swipe-back) returns to the immediately previous onboarding step, from every onboarding step, and a regression test covers the ladder → previous-step case
+
+**Given** the crisis banner pushes `/(onboarding)/crisis` from this screen
+**When** the user presses back from crisis
+**Then** they return to the ladder with their in-progress items intact
+
+**Added scope (2026-10-05, product owner, during review):** the onboarding ladder subtitle reads "Add situations that make you anxious, then arrange them from least to most scary." and the description field label (visible text and accessibility label) reads "Describe a situation that makes you anxious", in both `en.json` and `hi.json`; the Maestro onboarding flow asserts the new label
+
+**Added scope (2026-10-06, found while device-testing the above — see the spec's Post-review fixes):**
+
+**Given** screens stay mounted under a pushed one, so the saved onboarding step can drift from the screen shown
+**When** the user goes back (OS back or edge-swipe) and later relaunches
+**Then** the persisted step follows the visible screen (saved on focus, not only on mount) and the relaunch resumes there, with the stack rebuilt so back still returns one step at a time
+
+**Given** the Story 18.7 reinstall fallback treats any saved ladder row as "already onboarded elsewhere", and the onboarding ladder itself writes real rows
+**When** a user relaunches mid-onboarding
+**Then** the fallback runs only when no onboarding step is saved, so they resume onboarding instead of landing on Home; a reinstall (MMKV wiped, no saved step) is unchanged
+
+**Given** an onboarding ladder is resumed after a relaunch
+**When** the account already has saved ladder items
+**Then** the ladder shows them (merged in by id, tolerant of a late query), the next item continues after their positions, the count passed to `complete` is right, and "Do this later" is not offered while items exist
+
+**Given** the `complete` screen shows an item count and an encouragement line
+**When** the count is one, and when the encouragement would repeat the count line
+**Then** the count reads "1 situation" (singular/plural keys), and the encouragement no longer repeats "You've built your Courage Ladder"
+
+**Given** the connector uploads `user_onboarding_metadata` with `ON CONFLICT (user_id) DO UPDATE` but the table had no UPDATE policy
+**When** a user repeats the assessment on an account that already has a row
+**Then** the write succeeds (owner-only UPDATE policy, migration `0034`, latest calibration wins) instead of returning 403 and stalling the whole upload queue
+
+### Story 19.2: Practice Relaxation Opens the Selected Technique
+
+**Status: backlog.** Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
+
+**Given** selecting a technique under Practice Relaxation and continuing starts an exposure item from the ladder
+**When** this story is implemented
+**Then** the Home "Practice Relaxation" action no longer enters the exposure-session flow; it opens a relaxation-technique picker that is decoupled from `fearItemId`/`sessionId`, and no `exposure_sessions` row is created by it
+
+**Given** the technique options
+**When** the user selects one
+**Then** it opens the corresponding technique screen — Breathing opens Box Breathing, 5-4-3-2-1 opens Grounding — reusing the existing screens rather than duplicating them
+
+**Given** a listed technique has no implemented screen
+**When** the user selects it
+**Then** a "Coming soon" screen is shown with a clear way back, with copy added to `en.json` and `hi.json`; no dead end and no crash
+
+**Given** `/session/technique` is still used by the real exposure flow (technique chosen as part of an exposure session)
+**When** the Home action is rerouted
+**Then** that in-session use is unchanged, and tests cover both entry points
+
+### Story 19.3: Courage Ladder — Completed Items Sink and Grey Out
+
+**Status: backlog.** Feedback item 4. Screens: `apps/mobile/app/ladder.tsx`, `src/hooks/useFearLadderItems.ts`; Home's lowest-pending-item selection (`(app)/index.tsx:104`) must keep working.
+
+**Given** a ladder item has been completed
+**When** the ladder is shown
+**Then** completed items render after all unfinished items, greyed out, still visible and legible (contrast kept accessible), and with a non-colour cue (e.g. "Done" label/check) so greying is not the only signal, including for screen readers
+
+**Given** ordering is currently by difficulty/rank
+**When** completed items are moved down
+**Then** the unfinished items keep their relative order, the sort is a pure function in `packages/core` with unit tests (ARC-011 boundary intact), and no stored ranks are rewritten — it is a display ordering
+
+**Given** the user taps a completed item
+**When** the tap is handled
+**Then** the behaviour is decided and recorded in the story (re-practice vs. read-only) rather than left incidental
+
+### Story 19.4: Highlight Insta Calm on First Launch After Install
+
+**Status: backlog.** Feedback item 5. Components: `apps/mobile/src/components/CalmMeFab.tsx`, `app/calm-me/index.tsx`.
+
+**Given** the app is opened for the first time after an install
+**When** the user reaches the first screen where the Insta Calm button shows
+**Then** the button is highlighted with a short explanation of what it is and when to use it, dismissible, and shown once
+
+**Given** "first time after install" is device-local state
+**When** the seen flag is persisted
+**Then** it uses a new `KV_KEYS` entry (MMKV, wiped on reinstall as intended) following Story 9.4's key conventions, and the interplay with Story 18.7 (reinstall by an existing account) is decided and recorded — an existing user reinstalling sees it again; that is accepted unless the story says otherwise
+
+**Given** a user in distress may meet the highlight
+**When** it is displayed
+**Then** it never blocks the button itself or crisis/helpline access, copy is neutral and non-therapeutic in tone (non-clinical-advice positioning), is localised in `en.json`/`hi.json`, and is announced to screen readers
+
+### Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider
+
+**Status: backlog.** Feedback item 7. This is a **review story: the deliverable is a recorded decision first, an implementation only if the decision is "change".** Components: `apps/mobile/src/components/session/SudsScale.tsx`, `onboarding/SudsCalibrationWidget.tsx`, pre-session intent screen.
+
+**Given** the pre-session SUDS rating uses numbered boxes
+**When** the review is done
+**Then** the story file records a comparison — speed of entry at a distressed moment, precision, accessibility (screen-reader adjustable semantics, touch-target size), consistency with the other SUDS surfaces — and a decision with rationale
+
+**Given** the numbered-box SUDS control has a legend ("No distress / Moderate / Extreme distress")
+**When** the system font scale is 200%
+**Then** the legend labels neither run together nor clip (observed on Android 2026-10-06 during Story 19.1's verification: the labels collide and "Extreme distress" is cut off), whichever control the review decides on
+
+**Given** SUDS is also captured elsewhere (calibration, mid-session, debrief)
+**When** the decision is made
+**Then** it explicitly covers whether all surfaces change together, so the app doesn't ship two different SUDS controls
+
+**Given** the decision is "slider"
+**When** implemented
+**Then** it keeps the 0–10 integer scale and existing stored values, requires no migration, is accessible via adjustable semantics, and updates tests; if "keep boxes", the story closes with the rationale only
+
+### Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's Android device verification; not a beta feedback item and no FR of its own — a defect against the reorder behaviour of Story 6.2 (AC 2/3). Component: `packages/sync/src/connector.ts` (`uploadData`, `groupReorderPairs`).
+
+**Given** a user adds two courage ladder items and reorders them before PowerSync has uploaded either insert (offline, or simply quickly — the onboarding ladder does exactly this)
+**When** `uploadData` runs on a batch containing the two inserts and the reorder pair
+**Then** the reorder is applied only after the inserts it refers to — today `uploadData` sends every reorder pair first and the remaining writes after, so `swap_ladder_positions` fails with "one or both items not found" (HTTP 400), the error is classed non-retryable and the swap is dropped, and the server order silently diverges from what the user arranged
+
+**Given** the batch's write order matters
+**When** the fix is chosen
+**Then** the story records the approach — preserve `ps_crud` order, or run reorder pairs after the non-reorder writes of the same batch — and why, and it holds for a pair whose items were inserted in an earlier batch, in the same batch, or whose insert is still failing and being retried
+
+**Given** a reorder whose items genuinely no longer exist (deleted before upload)
+**When** the pair is processed
+**Then** the existing non-retryable handling is kept for that case only — it must not be what swallows the "inserts not uploaded yet" case — and a regression test in `packages/sync` reproduces the failing order (inserts + swap in one batch) and fails against the current code
+
+**Given** the loss is visible to the user (reproduced offline on the preview build 2026-10-06: two items added and reordered with no network; on reconnect both uploaded in their original order and the device's order flipped back to the server's)
+**When** the fix is made
+**Then** the order the user arranged is what the server ends up with, and the device never visibly reverts it
+
+**Given** a reorder is lost today when its inserts are blocked behind a failing upload
+**When** this story is scoped
+**Then** it notes its relationship to the user_onboarding_metadata upload failure (a 403 on the write-once table that retries forever and stalls the whole queue, see `deferred-work.md`) and does not attempt to fix that here
+
+### Story 19.7: Upload Queue Does Not Stall on a Write the Server Will Never Accept
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification; recorded in `deferred-work.md`. Component: `packages/sync/src/connector.ts` (`uploadData`).
+
+**Given** the upload queue is processed in order and a failing write is retried
+**When** the server rejects a write permanently (a constraint violation such as `uq_user_position`, or an RLS denial like the `user_onboarding_metadata` 403 fixed by migration 0034)
+**Then** that write cannot hold every later write behind it indefinitely — today only `swap_ladder_positions` errors are classed non-retryable, so any other permanent rejection retries forever and nothing after it syncs; the PowerSync guidance is that a 4xx from `uploadData` blocks the queue permanently
+
+**Given** errors must be told apart
+**When** the policy is chosen
+**Then** the story records which responses are permanent (validation / constraint / RLS) versus transient (network, 5xx, expired token), what happens to a dropped write (logged with enough context to diagnose, surfaced to Sentry without personal data per the DPDPA constraints, and not silently lost where a retry could still help), and the interaction with Story 19.6's ordering
+
+**Given** a stuck write was observed not to retry until the app was relaunched
+**When** the story is scoped
+**Then** it checks whether PowerSync's retry timer stalls after a thrown upload error and, if so, fixes or documents it; a regression test in `packages/sync` reproduces a permanently rejected write ahead of valid ones and fails against the current code
+
+### Story 19.8: No Sign-In Flash on Cold Start for a Signed-In User
+
+**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification. Components: `apps/mobile/app/_layout.tsx` / `(auth)/sign-in`, `packages/supabase` `AuthProvider`.
+
+**Given** a user with a valid saved session cold-starts the app
+**When** the session is being restored (about 3 seconds on the test device)
+**Then** the sign-in screen is not shown — a neutral loading state is — so a tap cannot land on "Sign in" or "Create account" just before the redirect
+
+**Given** ARC-004 forbids redirecting while `isLoading`
+**When** the fix is made
+**Then** it holds that rule, does not delay the sign-in screen for a genuinely signed-out user beyond what the session read needs, and has a test that the sign-in controls are not rendered while the session is loading
+
+### Story 19.9: An Existing Account Reinstalling Is Not Sent Through Onboarding Again When the First Sync Is Slow (Plus the Dev-Client Download Finding)
+
+**Status: reopened 2026-10-06 — the slow/offline first-sync case is untested-then-failed.** Found during Story 19.1's device verification. **Done so far:** the Story 18.7 fallback is verified on a device — on the EAS `preview` build, a cleared-data sign-in on an account with a server-side ladder item lands on Home within ~10 s. The earlier failures were specific to the Android Expo dev client, where PowerSync stays at `connecting` and never downloads (the PowerSync URL is bundled, `fetchCredentials` returns a valid token, and the service streams the data to a direct request); this is recorded in `docs/setup/local-environment.md` and `deferred-work.md`. Why the dev client cannot stream is not diagnosed and no app change was needed. Components: `packages/sync`, `apps/mobile/src/hooks/useOnboardingExistenceFallback.ts`, `apps/mobile/app/(app)/_layout.tsx`.
+
+**Given** a server-side `fear_ladder_items` row existed for the signed-in account (reproduced twice on 2026-10-06 — once with a row inserted directly, once with a row this same app had just uploaded — and the PowerSync URL is confirmed present in the dev bundle, so a missing env var is ruled out)
+**When** the Android development client signed in after an app-data clear (and again after a relaunch)
+**Then** the root cause of the row never reaching the local replica is found and recorded — candidates include PowerSync not connecting in that session, a stalled first checkpoint, or the 10-second decision timeout elapsing before the first sync — and fixed if it is ours
+
+**Given** the cause is understood
+**When** the reinstall scenario is re-run on a device with an account that has server-side ladder items and no saved onboarding step
+**Then** the app skips onboarding and lands on Home (Story 18.7 behaviour), and the result is recorded in Story 19.1's device-verification table; if first sync can legitimately exceed the 10-second window, the story decides how the fallback should behave rather than silently sending an existing user through onboarding again
+
+**Reopened — Given** the existence check holds the onboarding redirect for at most 10 seconds (`SYNC_WAIT_TIMEOUT_MS`) and then lets the user through
+**When** an existing account signs in on cleared data and the first sync does not finish in that window (reproduced on the preview build by cutting the network ~6 s after sign-in)
+**Then** the user is not silently sent through onboarding again — observed 2026-10-06: they landed on the welcome screen, and continuing produced a position-1 ladder item that collides with the account's existing position 1 (`uq_user_position`), so the write retried every ~5 s and never uploaded while the device showed 3 items against the server's 2; the story decides and records the behaviour, with candidates: show a "couldn't check your account — retry" state instead of onboarding on timeout; keep the decision hook mounted (or re-run it) so a late sync still routes an existing user to Home; or confirm existence over the Supabase REST API at timeout when online, independent of PowerSync
+
+**Given** the chosen behaviour
+**When** it is implemented
+**Then** it is covered by a test of the timeout path and re-verified on a device by cutting the network after sign-in; its interaction with Story 19.7 (a stalled write) is noted
+
+### Story 19.10: Complete Story 19.1's Remaining Device and Automation Verification
+
+**Status: backlog.** Closes the gaps listed in Story 19.1's spec. Components: `apps/mobile/.maestro/`, `apps/mobile/app/(onboarding)/`.
+
+**Given** Story 19.1 was verified on one Android device only
+**When** this story runs
+**Then** OS back is checked on iOS (swipe-back) — the Android edge-swipe gesture was already verified in Story 19.1 on 2026-10-06; the "Do this later" label and the new ladder copy are checked with TalkBack and in Hindi; results are added to the 19.1 device-verification table
+
+**Given** the Maestro onboarding flows assert the new strings but have never run
+**When** they are run (locally with Maestro installed, or in CI)
+**Then** `onboarding.yaml` and `_onboarding-clickthrough.yaml` pass, and a back-from-ladder step is added if the flows can express it
+
+**Given** a review deferral from 19.1 is still open
+**When** tests are added
+**Then** there is a test that assessment's Next works again after returning from the ladder (the `isSubmittingRef` re-arm in `assessment.tsx`)
+
+### Story 19.11: Local RLS Test Suite Passes on a Fresh Postgres 17 Stack
+
+**Status: backlog.** Found 2026-10-06 when the local Supabase volume was rebuilt. Component: `packages/supabase/__tests__/rls/dpo_operators.test.ts`, `supabase/config.toml`.
+
+**Given** the local stack was recreated (the old volume held Postgres 15 data while the server image was 17.6)
+**When** the RLS suite is run against it
+**Then** `dpo_operators` "[-] unauthenticated (anon) read is blocked" and "[-] authenticated regular user read is blocked" pass — they currently get no error where a denial is expected — or the story shows they were already failing and why
+
+**Given** `config.toml` pins `major_version = 15` yet the local image started Postgres 17
+**When** the story is scoped
+**Then** the intended local Postgres version is decided, `config.toml` and `docs/setup/local-environment.md` agree with it, and the recovery steps for the version-mismatch volume error are documented where a developer will find them
+
+### Story 19.12: Maestro Core and Session Shards Pass Again (Broken on `main` Since Story 18.7)
+
+**Status: backlog.** Found 2026-10-06 in PR #100's CI (run 37460921690); the failure is **not** from that PR — `main` is red on the same shards. Components: `apps/mobile/.maestro/` (`setup/ensureOnboarded.yaml`, `setup/_onboarding-clickthrough.yaml`, `setup/reachDebrief.yaml`, `backgrounded-recovery.yaml`, `ladder-build.yaml`), `.github/workflows/ci.yml`, possibly `apps/mobile/app/(app)/_layout.tsx` and `useOnboardingExistenceFallback`.
+
+**Given** the last green `main` CI was 2026-09-30 (`458d7c3`) and the first red was the merge of PR #98, Story 18.7 (`6aecb65`, 2026-10-02) — `E2E Smoke (core)` and `E2E Smoke (session)` have failed on every `main` run since, and on PR #100, while `E2E Smoke (onboarding)` passes
+**When** each shard runs its two flows in sequence
+**Then** the failure is diagnosed and recorded — the signature is identical every time: the first flow in a shard passes (`ladder-build`, `debrief`) and the second fails with "Element not found: Text matching regex: Add your first situation" (`exposure-loop`, `backgrounded-recovery`; on one `main` run `debrief` was the failing second flow) — and the flow after the first one is the one that starts with the shared test user (`test1@test.com`) already holding server-side onboarding metadata and ladder items from the first flow
+
+**Given** Story 18.7 added the reinstall fallback, which holds the onboarding redirect for up to 10 s while it checks the local replica, and CI has no PowerSync endpoint
+**When** `ensureOnboarded.yaml` signs in on cleared state and conditionally runs the onboarding clickthrough only `when: visible: "Your journey starts here"`
+**Then** the story establishes whether the hold (a welcome screen that appears later than the flow waits), existing server-side data, or something else is why the Home empty-state button never appears, and fixes the flows (or the app, if the app is wrong) so the second flow in each shard passes; candidate fixes include waiting for the welcome or Home screen explicitly instead of relying on the animation wait, and giving each flow its own test user
+
+**Given** the CI e2e jobs are label-gated on pull requests, so a regression like this reached `main` unnoticed until the next push run
+**When** the fix lands
+**Then** `main` CI is green on all three shards, and the story records whether the gating should change (for example, a scheduled or required e2e run) so a Maestro regression cannot sit on `main` for days
+

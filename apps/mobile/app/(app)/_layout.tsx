@@ -18,6 +18,7 @@ export default function AppLayout() {
     isLoading,
     isAuthenticated,
     isOnboardingComplete,
+    onboardingProgressStep,
     isStorageDegraded,
     sessionRecoveryData,
     setSessionInProgress,
@@ -83,9 +84,17 @@ export default function AppLayout() {
   // the hook reports `isDecided` (hit, first sync done + query settled, or timeout), with a
   // neutral spinner meanwhile. A hit calls markOnboardingComplete() (which flips
   // isOnboardingComplete, satisfying the redirect gate's own condition).
-  const isAwaitingOnboardingDecision = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
+  //
+  // The fallback is for a wiped device (reinstall), where MMKV holds no onboarding progress. A
+  // saved onboarding step means this user is mid-onboarding on THIS device, so ladder rows they
+  // just added during onboarding must not be read as "already onboarded elsewhere" — that would
+  // skip the rest of onboarding on a relaunch. Such users go straight back to welcome, which
+  // resumes at the saved step.
+  const isIncompleteOnboarding = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
+  const isMidOnboarding = isIncompleteOnboarding && onboardingProgressStep !== null
+  const isAwaitingOnboardingDecision = isIncompleteOnboarding && onboardingProgressStep === null
   const { hasExistingAccountData, isDecided } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
-  const isDecisionPending = isAwaitingOnboardingDecision && !isDecided
+  const isDecisionPending = isMidOnboarding || (isAwaitingOnboardingDecision && !isDecided)
   useEffect(() => {
     if (isAwaitingOnboardingDecision && hasExistingAccountData) {
       markOnboardingComplete()
@@ -104,10 +113,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/sign-in')
+    } else if (isMidOnboarding) {
+      router.replace('/(onboarding)/welcome')
     } else if (isAwaitingOnboardingDecision && isDecided && !hasExistingAccountData) {
       router.replace('/(onboarding)/welcome')
     }
-  }, [isLoading, isAuthenticated, isAwaitingOnboardingDecision, isDecided, hasExistingAccountData, router])
+  }, [isLoading, isAuthenticated, isMidOnboarding, isAwaitingOnboardingDecision, isDecided, hasExistingAccountData, router])
 
   // AC4: reschedule the daily session reminder on every foreground while authenticated —
   // covers the device timezone changing without tracking timezone state directly, since

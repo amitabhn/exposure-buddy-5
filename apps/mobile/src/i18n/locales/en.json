@@ -168,8 +168,8 @@
       "ladderNudge": "That's a solid ladder — most people find 10–15 situations gives enough range.",
       "ladderNudgeDismiss": "Got it",
       "title": "Build your Courage Ladder",
-      "subtitle": "Add the situations that make you anxious, then arrange them from least to most scary.",
-      "descriptionLabel": "Describe the situation",
+      "subtitle": "Add situations that make you anxious, then arrange them from least to most scary.",
+      "descriptionLabel": "Describe a situation that makes you anxious",
       "descriptionPlaceholder": "e.g. Riding the elevator alone",
       "predictedSudsLabel": "How anxious would you feel? (0–10)",
       "addCta": "Add to ladder",
@@ -178,18 +178,19 @@
       "moveDown": "Move down",
       "sudsDisplay": "Predicted anxiety: {{value}}/10",
       "nextCta": "Next",
-      "skipCta": "Skip"
+      "skipCta": "Do this later"
     },
     "crisisDetected": {
       "banner": "It sounds like what you're facing feels very heavy right now. You don't have to manage this alone — tap below to find support."
     },
     "complete": {
       "title": "You're ready to climb!",
-      "encouragement": "You've built your Courage Ladder. Let's start with the first step.",
+      "encouragement": "Let's start with the first step.",
       "titleSoft": "Your ladder is ready.",
       "encouragementSoft": "Take your time. Your ladder will be here whenever you're ready.",
       "cta": "Start your journey",
-      "itemCount": "You've added {{count}} situations to your Courage Ladder"
+      "itemCount_one": "You've added {{count}} situation to your Courage Ladder",
+      "itemCount_other": "You've added {{count}} situations to your Courage Ladder"
     }
   },
   "home": {
