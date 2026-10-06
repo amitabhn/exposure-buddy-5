@@ -3313,7 +3313,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.2: Practice Relaxation Opens the Selected Technique
 
-**Status: backlog.** Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
+**Status: review** (implemented and device-verified; PR open). Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
 
 **Given** selecting a technique under Practice Relaxation and continuing starts an exposure item from the ladder
 **When** this story is implemented
