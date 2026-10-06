@@ -3,16 +3,16 @@ import { AccessibilityInfo, Alert } from 'react-native'
 import { render, fireEvent, act } from '@testing-library/react-native'
 
 // `mock` prefix lets the hoisted factory reference it; tests call the screen's onDragEnd through it
+const mockListMounts = { count: 0 }
 const mockDragEnd: { current: ((e: { data: any[]; from: number; to: number }) => void) | null } = { current: null }
 
 jest.mock('react-native-draggable-flatlist', () => {
   const MockReact = require('react')
   const { FlatList } = require('react-native')
-  return {
-    __esModule: true,
-    default: ({ data, renderItem, keyExtractor, onDragEnd }: any) => {
-      mockDragEnd.current = onDragEnd
-      return (
+  function MockDraggableFlatList({ data, renderItem, keyExtractor, onDragEnd }: any) {
+    MockReact.useEffect(() => { mockListMounts.count += 1 }, [])
+    mockDragEnd.current = onDragEnd
+    return (
       <FlatList
         data={data}
         keyExtractor={keyExtractor}
@@ -20,8 +20,11 @@ jest.mock('react-native-draggable-flatlist', () => {
           renderItem({ item, drag: jest.fn(), isActive: false, getIndex: () => index })
         }
       />
-      )
-    },
+    )
+  }
+  return {
+    __esModule: true,
+    default: MockDraggableFlatList,
     ScaleDecorator: ({ children }: any) => children,
   }
 })
@@ -209,9 +212,12 @@ describe('LadderScreen', () => {
     it('ignores a drop across the group boundary', () => {
       mockUseFearLadderItems.mockReturnValue({ items: mixed, isLoading: false })
       const { getAllByRole } = render(<LadderScreen />)
+      const before = mockListMounts.count
       act(() => { mockDragEnd.current!({ data: [mixed[3]!, mixed[0]!, mixed[1]!, mixed[2]!], from: 1, to: 2 }) })
       expect(mockEnqueue).not.toHaveBeenCalled()
       expect(labels(getAllByRole)).toEqual(['Item 2', 'Item 4', 'Item 1', 'Item 3'])
+      // the real list keeps its dropped order until remounted, so a rejected drop must remount it
+      expect(mockListMounts.count).toBe(before + 1)
     })
   })
 

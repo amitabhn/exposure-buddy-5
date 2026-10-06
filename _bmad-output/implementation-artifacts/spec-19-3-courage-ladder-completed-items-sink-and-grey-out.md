@@ -72,6 +72,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 - Cross-group drop: `setItems(prev => [...prev])` forces a new `displayItems` reference so the list snaps back.
 - Muted style: `surface.secondary` fill with `content.secondary` text (measured 5.1:1), no opacity.
 - Verified: core Vitest 100/100, mobile Jest 574/574 (45 suites), `pnpm turbo typecheck lint` clean. `packages/core` was rebuilt (`dist`) so the mobile app resolves the new export.
+- Device verification (2026-10-06, Redmi K20 Pro, Android dev client on this branch): three items added; one completed through a real session (Breathing, Complete exposure, debrief). Ladder then showed the two unfinished items first and the completed one last, greyed with "✓ Done"; Home's next step was the lowest pending item and read "1 of 3 steps climbed". Tapping the completed row opened the edit sheet with Start session. Drag within the unfinished group swapped them and left the completed row alone. **Cross-group drop (found on device):** with the first version (`setItems(prev => [...prev])`) the real list did not snap back — the unfinished row stayed below the completed one, so deferred finding 4 was real. Fixed by remounting the list (`key={listResetKey}`, bumped on a rejected drop); re-verified on the device: the row returns to its place. Test items removed through the app afterwards; the one completed session's `exposure_sessions` row remains on the account. Not verified on device: dragging within the completed group (needs two completed items; covered by Jest), iOS, TalkBack, Hindi.
 
 ## Spec Change Log
 
@@ -84,7 +85,7 @@ Layers run 2026-10-06 as subagents: Blind Hunter (13 findings), Edge Case Hunter
 | 1 | Blind, Edge | A drag of more than one slot enqueues a two-item swap while the optimistic state shifts every in-between item | medium | defer — pre-existing (the old handler did the same); Story 19.6 owns reorder upload; noted in Design Notes |
 | 2 | Edge | Tied or non-contiguous stored positions make a swap a no-op | low | rejected — positions are unique in practice; fix adds guards |
 | 3 | Edge | `reorderedData` could differ from `displayItems` if a sync lands mid-drag | low | rejected — contrived; fix adds a branch |
-| 4 | Blind, Edge | Cross-group snap-back relies on a new array identity and is unverified with the real list | maybe-false | defer — settle by dragging across the boundary on a device |
+| 4 | Blind, Edge | Cross-group snap-back relies on a new array identity and is unverified with the real list | maybe-false → high | verified on device: the real list did not snap back — patched with a list remount (`listResetKey`) and a Jest mount-count assertion; re-verified on device |
 | 5 | Edge, Blind | Statuses other than `completed` sort as unfinished | false | `useFearLadderItems` filters rows to `pending` / `completed` only |
 | 6 | Blind, Edge | `localeCompare` id tie-break is locale-dependent | low | rejected — same tie-break as `resolveLowestPendingItem`; ties are rare |
 | 7 | Edge | New item gets `items.length + 1`, which can collide after deletions | low | defer — pre-existing, not caused by this story |

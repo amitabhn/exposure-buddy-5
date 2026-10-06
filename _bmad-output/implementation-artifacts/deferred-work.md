@@ -1185,8 +1185,5 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: A ladder drag of more than one slot enqueues only a two-item swap while the optimistic list shifts every in-between item, so local and server order diverge.
   evidence: Pre-existing in `ladder.tsx` `handleDragEnd`; Story 19.6 owns reorder upload behaviour.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
-  summary: Unverified (possibly medium): a cross-group drop on the real DraggableFlatList may not snap back, because the snap-back relies on a new `items` array identity.
-  evidence: Jest mocks the list. Settle by dragging an unfinished row below a completed one on a device.
-- source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
   summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
   evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3.

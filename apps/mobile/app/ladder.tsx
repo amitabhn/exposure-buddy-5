@@ -46,6 +46,9 @@ export default function LadderScreen() {
   // `items` stays in stored position order; the list shows unfinished items first, completed after
   // (Story 19.3). The sort is display-only — it never changes a stored position.
   const displayItems = useMemo(() => sortLadderForDisplay(items), [items])
+  // Bumped when a drop is rejected: DraggableFlatList keeps its own dropped order until it remounts
+  // (device-verified), so a new `data` array alone does not make the row snap back.
+  const [listResetKey, setListResetKey] = useState(0)
   const [crisisDetected, setCrisisDetected] = useState(false)
 
   // Form state
@@ -300,12 +303,12 @@ export default function LadderScreen() {
   function handleDragEnd({ data: reorderedData, from, to }: { data: FearLadderItem[]; from: number; to: number }) {
     if (from === to) return
     // Unfinished rows occupy [0, unfinishedCount), completed rows the rest. A drag stays inside its
-    // group: a drop across the boundary is ignored, and a fresh `items` array makes the list snap back.
+    // group: a drop across the boundary is ignored, and remounting the list makes the row snap back.
     const unfinishedCount = displayItems.filter(item => item.status !== 'completed').length
     const groupStart = from < unfinishedCount ? 0 : unfinishedCount
     const groupEnd = from < unfinishedCount ? unfinishedCount : displayItems.length
     if (to < groupStart || to >= groupEnd) {
-      setItems(prev => [...prev])
+      setListResetKey(k => k + 1)
       return
     }
     // Re-use the group's own stored position values (ascending) so the other group's positions
@@ -387,6 +390,7 @@ export default function LadderScreen() {
 
         {/* Drag-to-reorder list */}
         <DraggableFlatList
+          key={listResetKey}
           data={displayItems}
           keyExtractor={(item) => item.id}
           onDragEnd={handleDragEnd}
