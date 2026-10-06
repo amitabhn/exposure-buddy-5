@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, ScrollView, View } from 'react-native'
 import { Stack, useFocusEffect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { color } from '@exposure-buddy/ui'
@@ -52,11 +52,25 @@ export default function RelaxationPickerScreen() {
             key={technique.key}
             style={styles.card}
             onPress={() => handleSelect(technique)}
+            testID={`relaxation-card-${technique.key}`}
             accessibilityRole="button"
-            accessibilityLabel={t(`relaxation.techniques.${technique.key}.label`)}
+            // An unbuilt technique is announced as such, since the visible "Coming soon" badge is not
+            // read when the card carries an explicit label.
+            accessibilityLabel={
+              technique.route === null
+                ? t('relaxation.comingSoon.cardLabel', { technique: t(`relaxation.techniques.${technique.key}.label`) })
+                : t(`relaxation.techniques.${technique.key}.label`)
+            }
             accessibilityHint={t(`relaxation.techniques.${technique.key}.description`)}
           >
-            <Text style={styles.cardTitle}>{t(`relaxation.techniques.${technique.key}.label`)}</Text>
+            <View style={styles.cardTitleRow}>
+              <Text style={styles.cardTitle}>{t(`relaxation.techniques.${technique.key}.label`)}</Text>
+              {technique.route === null && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{t('relaxation.comingSoon.badge')}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.cardDescription}>{t(`relaxation.techniques.${technique.key}.description`)}</Text>
           </TouchableOpacity>
         ))}
@@ -77,6 +91,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: color.surface.primary,
   },
-  cardTitle: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 4 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary },
+  badge: { marginLeft: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: color.surface.secondary },
+  badgeText: { fontSize: 12, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.secondary },
   cardDescription: { fontSize: 14, color: color.content.secondary, lineHeight: 20 },
 })

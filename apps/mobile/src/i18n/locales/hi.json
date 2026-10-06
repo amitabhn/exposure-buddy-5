@@ -371,7 +371,9 @@
       "title": "Coming soon",
       "body": "{{technique}} is not available yet. You can go back and try another technique.",
       "bodyGeneric": "This technique is not available yet. You can go back and try another technique.",
-      "back": "Back to techniques"
+      "back": "Back to techniques",
+      "badge": "Coming soon",
+      "cardLabel": "{{technique}}, coming soon"
     }
   }
 }

@@ -15,13 +15,15 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 
 **Problem:** (Beta feedback items 3 and 6, severity 2; FR-RELAX-01.) Home's "Practice Relaxation" opens the exposure-flow technique picker for the lowest pending ladder item, and its Continue pushes `/session/intent` — so picking any option starts an exposure item. With an empty ladder it dumps the user on `/ladder`.
 
-**Approach:** Give Practice Relaxation its own technique picker that is not tied to a ladder item or session. It lists the six named somatic techniques from the PRD — Box Breathing and 5-4-3-2-1 Grounding open their existing screens (`/calm-me/breathing`, `/calm-me/grounding`); 4-7-8 Breathing, Bhramari, Nadi Shodhana and Body Scan have no screen yet and open a "Coming soon" screen with a way back. The exposure flow's own use of `/session/technique` is untouched.
+**Approach:** Give Practice Relaxation its own technique picker that is not tied to a ladder item or session. It lists the six named somatic techniques from the PRD — Box Breathing and 5-4-3-2-1 Grounding open their existing screens (`/calm-me/breathing`, `/calm-me/grounding`); 4-7-8 Breathing, Bhramari, Nadi Shodhana and Body Scan have no screen yet: their cards carry a visible "Coming soon" badge and are announced to screen readers as coming soon, and tapping one opens a "Coming soon" screen with a way back. The exposure flow's own use of `/session/technique` is untouched.
 
 **Decision (2026-10-06, product owner):** the picker shows named techniques, not the three exposure-flow cards (Somatic / Breathing / Cognitive); cognitive techniques are not listed.
 
+**Amendment (2026-10-06, product owner, after review):** unbuilt techniques are marked on the card itself — a visible "Coming soon" badge plus an accessibility label of the form "<technique>, coming soon" — not only after tapping.
+
 ## Boundaries & Constraints
 
-**Always:** No `exposure_sessions` row and no `fearItemId`/`sessionId` is created or passed by Practice Relaxation. Reuse the existing `/calm-me` technique screens; back from a technique returns to the picker. All new copy lives in `en.json` and `hi.json` (Hindi mirrors English per convention) with natural-speech accessibility labels; neutral, non-clinical wording. Practice Relaxation works with an empty ladder.
+**Always:** No `exposure_sessions` row and no `fearItemId`/`sessionId` is created or passed by Practice Relaxation. Reuse the existing `/calm-me` technique screens; back from a technique returns to the picker. All new copy lives in `en.json` and `hi.json` (Hindi mirrors English per convention) with natural-speech accessibility labels; neutral, non-clinical wording. Practice Relaxation works with an empty ladder. An unbuilt technique's card shows a visible "Coming soon" badge and its accessibility label says it is coming soon; built techniques show neither.
 
 **Never:** Do not change `/session/technique`, `ladder.tsx`'s "Start session", or `intent.tsx`. Do not duplicate the breathing or grounding screens. Do not add a migration, a PowerSync table, or MMKV state. Do not change the Insta Calm FAB or `/calm-me/index`.
 
@@ -31,6 +33,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 |----------|--------------|---------------------------|----------------|
 | Open from Home, ladder has items | Tap Practice Relaxation | Picker opens; route has no `fearItemId`/`sessionId` | N/A |
 | Open from Home, empty ladder | Tap Practice Relaxation | Picker opens (not `/ladder`) | N/A |
+| View the picker | Open it | Four unbuilt cards show a "Coming soon" badge and announce "<technique>, coming soon"; the two built cards show no badge and announce just their name | N/A |
 | Built technique | Pick Box Breathing or 5-4-3-2-1 Grounding | `/calm-me/breathing` or `/calm-me/grounding`; back returns to the picker | N/A |
 | Unbuilt technique | Pick 4-7-8, Bhramari, Nadi Shodhana or Body Scan | "Coming soon" screen naming it, with a back control to the picker | Unknown key falls back to the generic message |
 | Exposure flow | Ladder item → Start session → technique → Continue | Still reaches `/session/intent` | N/A |
@@ -52,7 +55,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `apps/mobile/app/relaxation/_layout.tsx`, `index.tsx` -- picker screen listing the six techniques; the two built ones route to `/calm-me/breathing` and `/calm-me/grounding`, the rest to coming-soon; no ladder or session params
+- [x] `apps/mobile/app/relaxation/_layout.tsx`, `index.tsx` -- picker screen listing the six techniques; the two built ones route to `/calm-me/breathing` and `/calm-me/grounding`, the rest to coming-soon (badge and "coming soon" accessibility label on those cards); no ladder or session params
 - [x] `apps/mobile/app/relaxation/coming-soon.tsx` -- generic screen reading the technique key from params, with a back control
 - [x] `apps/mobile/app/_layout.tsx` -- register the `relaxation` stack screen
 - [x] `apps/mobile/app/(app)/index.tsx` -- `handlePracticeRelaxation` → `router.push('/relaxation')`; narrow `buildSessionRoute`
@@ -62,6 +65,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 **Acceptance Criteria:**
 - Given Home, when the user taps Practice Relaxation with or without ladder items, then the relaxation picker opens and no exposure session or `exposure_sessions` write occurs
 - Given a technique with a screen, when it is chosen, then that screen opens and back returns to the picker
+- Given the picker, when it renders, then each unbuilt technique shows a visible "Coming soon" badge and an accessibility label that announces it as coming soon, and built techniques show neither
 - Given a listed technique with no screen, when it is chosen, then a "Coming soon" screen shows with a visible way back and no crash
 - Given the exposure flow, when a session is started from the ladder, then `/session/technique` → `/session/intent` behaves as before and its tests pass unchanged
 - Given English and Hindi, when the new screens render, then all text comes from locale keys and every control has an accessible label
@@ -77,8 +81,11 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 - Review patches (2026-10-06): double-tap guard on the picker, `en`/`hi` key-parity test, sturdier picker and Home assertions, `buildSessionRoute` parameter dropped. After patches: affected suites 83/83, `eslint` and `tsc` clean.
 - Device verification (Android dev client on this branch): picker opens with an empty ladder; Box Breathing and 5-4-3-2-1 Grounding open and back returns to the picker; a Coming soon technique names itself and both its "Back to techniques" button and hardware back return to the picker; edge-swipe back from the picker returns to Home. Not run on device: Practice Relaxation with a pending ladder item and the exposure-flow regression (both covered by Jest; `session/technique.test.tsx` and `ladder.test.tsx` pass unchanged).
 - Observation: the picker shows "Practice Relaxation" twice (navigation header and heading), the same pattern as the existing `session/technique.tsx`.
+- Badge adopted (2026-10-06): unbuilt cards render a "Coming soon" pill (`relaxation.comingSoon.badge`) and an accessibility label `relaxation.comingSoon.cardLabel` ("{{technique}}, coming soon"); cards now carry `testID="relaxation-card-<key>"` and the picker tests query by it. Device-verified: the phone exposes "4-7-8 Breathing, coming soon" (and likewise for the other three) and plain names for the two built cards.
 
 ## Spec Change Log
+
+- 2026-10-06 — human-requested amendment, not a review loopback. Trigger: review findings 6 and 7 (unbuilt cards give no cue before tapping; not announced to screen readers), which were rejected because fixing them edited the spec. After seeing a prototype on a device the product owner chose to adopt the badge and the accessibility label. Amended the frozen Intent (Approach, Amendment note), Boundaries (Always), the I/O matrix (new "View the picker" row) and the acceptance criteria. Avoids the known-bad state of four identical-looking cards that are dead ends until tapped, and of TalkBack announcing them as ordinary buttons. KEEP: the Coming soon screen and its way back; the six-technique list; built cards unchanged.
 
 ## Review Triage Log
 
@@ -103,6 +110,7 @@ Layers run 2026-10-06 as subagents: Blind Hunter (11 findings), Edge Case Hunter
 | 15 | Edge | Picker as stack root leaves the back control inert | low | rejected, as 14 |
 | 16 | Edge | Hindi untranslated (see 2) | low | rejected, as 2 |
 | 17 | Edge | No test for real-stack back-to-picker | false | verified on device (see 4) |
+| — | — | Update 2026-10-06: rows 6 and 7 superseded — the product owner adopted the badge and accessibility label (see Spec Change Log) | — | implemented and device-verified |
 
 
 ## Verification
