@@ -3313,7 +3313,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.2: Practice Relaxation Opens the Selected Technique
 
-**Status: backlog.** Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
+**Status: review** (implemented and device-verified; PR open). Feedback items 3 and 6 — severity 2 (broken core flow). Screens: `apps/mobile/app/session/technique.tsx` (Continue pushes `/session/intent` at `:31-33`), `(app)/index.tsx:104`, existing techniques under `app/calm-me/` (`breathing.tsx`, `grounding.tsx`).
 
 **Given** selecting a technique under Practice Relaxation and continuing starts an exposure item from the ladder
 **When** this story is implemented
@@ -3326,6 +3326,8 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** a listed technique has no implemented screen
 **When** the user selects it
 **Then** a "Coming soon" screen is shown with a clear way back, with copy added to `en.json` and `hi.json`; no dead end and no crash
+
+**Decisions (2026-10-06, product owner):** the picker lists the six named somatic techniques from the PRD — Box Breathing and 5-4-3-2-1 Grounding (built) plus 4-7-8 Breathing, Bhramari, Nadi Shodhana and Body Scan (Coming soon); unbuilt cards carry a visible "Coming soon" badge and an accessibility label announcing it, in addition to the Coming soon screen on tap
 
 **Given** `/session/technique` is still used by the real exposure flow (technique chosen as part of an exposure session)
 **When** the Home action is rerouted

@@ -451,5 +451,43 @@
         "details": "Your data is processed by Supabase (database and authentication) and PowerSync (offline sync). No health data, session content, or PII is transmitted to any third-party analytics, advertising, or data-broker service."
       }
     }
+  },
+  "relaxation": {
+    "title": "Practice Relaxation",
+    "heading": "Relaxation Techniques",
+    "techniques": {
+      "boxBreathing": {
+        "label": "Box Breathing",
+        "description": "Breathe in a steady four-part rhythm to settle your body."
+      },
+      "grounding54321": {
+        "label": "5-4-3-2-1 Grounding",
+        "description": "Notice what is around you, one sense at a time."
+      },
+      "breathing478": {
+        "label": "4-7-8 Breathing",
+        "description": "A slow breathing pattern with a long, relaxing breath out."
+      },
+      "bhramari": {
+        "label": "Bhramari",
+        "description": "A gentle humming breath that can feel calming."
+      },
+      "nadiShodhana": {
+        "label": "Nadi Shodhana",
+        "description": "Alternate-nostril breathing for a steady, even rhythm."
+      },
+      "bodyScan": {
+        "label": "Body Scan",
+        "description": "Move your attention slowly through your body."
+      }
+    },
+    "comingSoon": {
+      "title": "Coming soon",
+      "body": "{{technique}} is not available yet. You can go back and try another technique.",
+      "bodyGeneric": "This technique is not available yet. You can go back and try another technique.",
+      "back": "Back to techniques",
+      "badge": "Coming soon",
+      "cardLabel": "{{technique}}, coming soon"
+    }
   }
 }

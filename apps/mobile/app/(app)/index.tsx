@@ -82,29 +82,29 @@ export default function HomeScreen() {
   // suppressed only for 'empty-ladder' (every other reachable state has items.length > 0).
   const showProgress = homeState !== 'empty-ladder'
 
-  // Builds a fresh-session route into the ERP session flow for the lowest pending ladder
+  // Builds a fresh-session route to the pre-exposure intent screen for the lowest pending ladder
   // item, matching the query-param contract ladder.tsx's own "Start session" button uses.
   // Returns null when there's no pending item to start a session for (defensive,
-  // not-actively-reached branch — see CourageLadderEntryCard's fallbackLabel prop) — callers
-  // fall back to '/ladder' in that case.
-  function buildSessionRoute(path: '/session/technique' | '/session/intent'): string | null {
+  // not-actively-reached branch — see CourageLadderEntryCard's fallbackLabel prop) — the caller
+  // falls back to '/ladder' in that case.
+  function buildSessionRoute(): string | null {
     if (!lowestPendingItemForLabel) return null
     const sessionId = generateUUID()
     // eslint-disable-next-line i18next/no-literal-string
-    return `${path}?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
+    return `/session/intent?fearItemId=${lowestPendingItemForLabel.id}&sessionId=${sessionId}&description=${encodeURIComponent(lowestPendingItemForLabel.description)}&predictedSuds=${lowestPendingItemForLabel.predictedSuds}`
   }
 
   // "Start this step" on the 'morning' card skips technique selection entirely and jumps
   // straight to the pre-exposure intention/SUDS-check screen — intent.tsx's `technique`
   // param is optional and defaults to null when omitted, so this is safe.
   function handleStartNextStep() {
-    router.push(buildSessionRoute('/session/intent') ?? '/ladder')
+    router.push(buildSessionRoute() ?? '/ladder')
   }
 
-  // "Practice Relaxation" opens the technique-picker for the same lowest pending item,
-  // letting the user browse/select a technique without committing past that screen.
+  // "Practice Relaxation" opens the relaxation picker (Story 19.2). It is deliberately not tied to
+  // a ladder item or an exposure session — no fearItemId/sessionId — and works with an empty ladder.
   function handlePracticeRelaxation() {
-    router.push(buildSessionRoute('/session/technique') ?? '/ladder')
+    router.push('/relaxation')
   }
 
   // State 4 ('progressing') navigation params: prefer sessionRecoveryData (MMKV, device-local,

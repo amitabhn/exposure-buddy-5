@@ -178,13 +178,14 @@ describe('HomeScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/ladder')
   })
 
-  it('Practice Relaxation action button falls back to /ladder when there is no lowest pending item', () => {
+  it('Practice Relaxation action button opens the relaxation picker even when the ladder is empty (no /ladder redirect)', () => {
     const { getByRole } = render(<HomeScreen />)
     fireEvent.press(getByRole('button', { name: 'home.actions.practiceRelaxation' }))
-    expect(mockPush).toHaveBeenCalledWith('/ladder')
+    expect(mockPush).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/relaxation')
   })
 
-  it('Practice Relaxation action button navigates to /session/technique with the lowest pending item when one exists', () => {
+  it('Practice Relaxation action button opens the relaxation picker with no fearItemId or sessionId when a pending item exists', () => {
     mockResolveLowestPendingItem.mockReturnValue({
       id: 'item-a',
       description: 'Speaking up in a meeting',
@@ -195,11 +196,11 @@ describe('HomeScreen', () => {
     })
     const { getByRole } = render(<HomeScreen />)
     fireEvent.press(getByRole('button', { name: 'home.actions.practiceRelaxation' }))
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /^\/session\/technique\?fearItemId=item-a&sessionId=[0-9a-f-]{36}&description=Speaking%20up%20in%20a%20meeting&predictedSuds=5$/
-      )
-    )
+    expect(mockPush).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/relaxation')
+    const [target] = mockPush.mock.calls[0] ?? []
+    expect(typeof target).toBe('string')
+    expect(target).not.toMatch(/fearItemId|sessionId|\/session\//)
   })
 
   it('renders the action buttons in every home state', () => {
