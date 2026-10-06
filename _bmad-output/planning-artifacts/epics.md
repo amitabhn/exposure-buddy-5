@@ -482,7 +482,7 @@ Beta users can see evidence that they are making progress, recover cleanly from 
 Beta users get an onboarding ladder step that goes back correctly, a Practice Relaxation flow that opens the technique they chose, a courage ladder that clearly separates finished from unfinished items, a first-launch pointer to Insta Calm, and a reviewed SUDS input.
 
 **FRs covered:** FR-ONBOARD-NAV-01, FR-RELAX-01, FR-LADDER-DONE-01, FR-INSTACALM-DISCOVER-01, FR-SUDS-INPUT-01.
-**Scope note:** Eleven stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only; 19.6–19.11 are defects, verification gaps and tech debt found during 19.1's device verification on 2026-10-06 (not beta feedback items, no FRs of their own).
+**Scope note:** Twelve stories. 19.2 (the severity-2 bug) lands first; 19.5 is a review story that may close with a decision only; 19.6–19.12 are defects, verification gaps and tech debt found during 19.1's device verification and PR CI on 2026-10-06 (not beta feedback items, no FRs of their own).
 
 ---
 
@@ -3458,4 +3458,20 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** `config.toml` pins `major_version = 15` yet the local image started Postgres 17
 **When** the story is scoped
 **Then** the intended local Postgres version is decided, `config.toml` and `docs/setup/local-environment.md` agree with it, and the recovery steps for the version-mismatch volume error are documented where a developer will find them
+
+### Story 19.12: Maestro Core and Session Shards Pass Again (Broken on `main` Since Story 18.7)
+
+**Status: backlog.** Found 2026-10-06 in PR #100's CI (run 37460921690); the failure is **not** from that PR — `main` is red on the same shards. Components: `apps/mobile/.maestro/` (`setup/ensureOnboarded.yaml`, `setup/_onboarding-clickthrough.yaml`, `setup/reachDebrief.yaml`, `backgrounded-recovery.yaml`, `ladder-build.yaml`), `.github/workflows/ci.yml`, possibly `apps/mobile/app/(app)/_layout.tsx` and `useOnboardingExistenceFallback`.
+
+**Given** the last green `main` CI was 2026-09-30 (`458d7c3`) and the first red was the merge of PR #98, Story 18.7 (`6aecb65`, 2026-10-02) — `E2E Smoke (core)` and `E2E Smoke (session)` have failed on every `main` run since, and on PR #100, while `E2E Smoke (onboarding)` passes
+**When** each shard runs its two flows in sequence
+**Then** the failure is diagnosed and recorded — the signature is identical every time: the first flow in a shard passes (`ladder-build`, `debrief`) and the second fails with "Element not found: Text matching regex: Add your first situation" (`exposure-loop`, `backgrounded-recovery`; on one `main` run `debrief` was the failing second flow) — and the flow after the first one is the one that starts with the shared test user (`test1@test.com`) already holding server-side onboarding metadata and ladder items from the first flow
+
+**Given** Story 18.7 added the reinstall fallback, which holds the onboarding redirect for up to 10 s while it checks the local replica, and CI has no PowerSync endpoint
+**When** `ensureOnboarded.yaml` signs in on cleared state and conditionally runs the onboarding clickthrough only `when: visible: "Your journey starts here"`
+**Then** the story establishes whether the hold (a welcome screen that appears later than the flow waits), existing server-side data, or something else is why the Home empty-state button never appears, and fixes the flows (or the app, if the app is wrong) so the second flow in each shard passes; candidate fixes include waiting for the welcome or Home screen explicitly instead of relying on the animation wait, and giving each flow its own test user
+
+**Given** the CI e2e jobs are label-gated on pull requests, so a regression like this reached `main` unnoticed until the next push run
+**When** the fix lands
+**Then** `main` CI is green on all three shards, and the story records whether the gating should change (for example, a scheduled or required e2e run) so a Maestro regression cannot sit on `main` for days
 
