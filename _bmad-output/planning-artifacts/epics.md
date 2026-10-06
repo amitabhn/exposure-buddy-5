@@ -3347,6 +3347,10 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **When** the review is done
 **Then** the story file records a comparison — speed of entry at a distressed moment, precision, accessibility (screen-reader adjustable semantics, touch-target size), consistency with the other SUDS surfaces — and a decision with rationale
 
+**Given** the numbered-box SUDS control has a legend ("No distress / Moderate / Extreme distress")
+**When** the system font scale is 200%
+**Then** the legend labels neither run together nor clip (observed on Android 2026-10-06 during Story 19.1's verification: the labels collide and "Extreme distress" is cut off), whichever control the review decides on
+
 **Given** SUDS is also captured elsewhere (calibration, mid-session, debrief)
 **When** the decision is made
 **Then** it explicitly covers whether all surfaces change together, so the app doesn't ship two different SUDS controls
@@ -3370,6 +3374,10 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **Given** a reorder whose items genuinely no longer exist (deleted before upload)
 **When** the pair is processed
 **Then** the existing non-retryable handling is kept for that case only — it must not be what swallows the "inserts not uploaded yet" case — and a regression test in `packages/sync` reproduces the failing order (inserts + swap in one batch) and fails against the current code
+
+**Given** the loss is visible to the user (reproduced offline on the preview build 2026-10-06: two items added and reordered with no network; on reconnect both uploaded in their original order and the device's order flipped back to the server's)
+**When** the fix is made
+**Then** the order the user arranged is what the server ends up with, and the device never visibly reverts it
 
 **Given** a reorder is lost today when its inserts are blocked behind a failing upload
 **When** this story is scoped
@@ -3405,9 +3413,9 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.9: Diagnose Why Server Rows Are Not Downloaded in the Dev-Client Session, Then Verify the 18.7 Reinstall Fallback on a Device
 
-**Status: backlog.** Found 2026-10-06 during Story 19.1's device verification. Components: `packages/sync`, `apps/mobile/src/hooks/useOnboardingExistenceFallback.ts`, `apps/mobile/app/(app)/_layout.tsx`.
+**Status: reopened 2026-10-06 — the slow/offline first-sync case is untested-then-failed.** Found during Story 19.1's device verification. **Done so far:** the Story 18.7 fallback is verified on a device — on the EAS `preview` build, a cleared-data sign-in on an account with a server-side ladder item lands on Home within ~10 s. The earlier failures were specific to the Android Expo dev client, where PowerSync stays at `connecting` and never downloads (the PowerSync URL is bundled, `fetchCredentials` returns a valid token, and the service streams the data to a direct request); this is recorded in `docs/setup/local-environment.md` and `deferred-work.md`. Why the dev client cannot stream is not diagnosed and no app change was needed. Components: `packages/sync`, `apps/mobile/src/hooks/useOnboardingExistenceFallback.ts`, `apps/mobile/app/(app)/_layout.tsx`.
 
-**Given** a server-side `fear_ladder_items` row existed for the signed-in account
+**Given** a server-side `fear_ladder_items` row existed for the signed-in account (reproduced twice on 2026-10-06 — once with a row inserted directly, once with a row this same app had just uploaded — and the PowerSync URL is confirmed present in the dev bundle, so a missing env var is ruled out)
 **When** the Android development client signed in after an app-data clear (and again after a relaunch)
 **Then** the root cause of the row never reaching the local replica is found and recorded — candidates include PowerSync not connecting in that session, a stalled first checkpoint, or the 10-second decision timeout elapsing before the first sync — and fixed if it is ours
 
@@ -3415,13 +3423,21 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **When** the reinstall scenario is re-run on a device with an account that has server-side ladder items and no saved onboarding step
 **Then** the app skips onboarding and lands on Home (Story 18.7 behaviour), and the result is recorded in Story 19.1's device-verification table; if first sync can legitimately exceed the 10-second window, the story decides how the fallback should behave rather than silently sending an existing user through onboarding again
 
+**Reopened — Given** the existence check holds the onboarding redirect for at most 10 seconds (`SYNC_WAIT_TIMEOUT_MS`) and then lets the user through
+**When** an existing account signs in on cleared data and the first sync does not finish in that window (reproduced on the preview build by cutting the network ~6 s after sign-in)
+**Then** the user is not silently sent through onboarding again — observed 2026-10-06: they landed on the welcome screen, and continuing produced a position-1 ladder item that collides with the account's existing position 1 (`uq_user_position`), so the write retried every ~5 s and never uploaded while the device showed 3 items against the server's 2; the story decides and records the behaviour, with candidates: show a "couldn't check your account — retry" state instead of onboarding on timeout; keep the decision hook mounted (or re-run it) so a late sync still routes an existing user to Home; or confirm existence over the Supabase REST API at timeout when online, independent of PowerSync
+
+**Given** the chosen behaviour
+**When** it is implemented
+**Then** it is covered by a test of the timeout path and re-verified on a device by cutting the network after sign-in; its interaction with Story 19.7 (a stalled write) is noted
+
 ### Story 19.10: Complete Story 19.1's Remaining Device and Automation Verification
 
 **Status: backlog.** Closes the gaps listed in Story 19.1's spec. Components: `apps/mobile/.maestro/`, `apps/mobile/app/(onboarding)/`.
 
 **Given** Story 19.1 was verified on one Android device only
 **When** this story runs
-**Then** OS back is checked on iOS (swipe-back) and as the Android swipe-back gesture; the "Do this later" label and the new ladder copy are checked with TalkBack and in Hindi; resume at `complete` is checked, including pressing back through the rebuilt stack; and results are added to the 19.1 device-verification table
+**Then** OS back is checked on iOS (swipe-back) — the Android edge-swipe gesture was already verified in Story 19.1 on 2026-10-06; the "Do this later" label and the new ladder copy are checked with TalkBack and in Hindi; results are added to the 19.1 device-verification table
 
 **Given** the Maestro onboarding flows assert the new strings but have never run
 **When** they are run (locally with Maestro installed, or in CI)

@@ -104,7 +104,7 @@ Build: EAS `preview` APK of `e22d7d0` (does NOT include 1367292 or c44caad). Dev
 | Cold relaunch after adding an item and backing out of `complete` | **Landed on Home** (not onboarding) — cause: Story 18.7 fallback; fixed in 1367292, unverified |
 | Cold-start sign-in flash (~3 s) before session restore | Observed — not part of this story |
 
-Still unchecked: 1367292 / c44caad on device (needs a new EAS build), iOS swipe-back, Android swipe-back gesture, TalkBack, Hindi.
+Still unchecked: 1367292 / c44caad on device (needs a new EAS build), iOS swipe-back, TalkBack, Hindi.
 
 ### Device Verification (Android dev client, 2026-10-06)
 
@@ -116,8 +116,18 @@ Build: EAS `development` client of `db36d6c` with Metro serving the working tree
 | Ladder → `complete` → back → force-stop → cold relaunch resumes at the ladder, not `complete` (1367292, step rewind) | Pass |
 | Same relaunch with a saved ladder item resumes onboarding instead of landing on Home (1367292, fallback gate) | Pass |
 | Resumed ladder lists the saved item with Next / Add another (resumed-ladder change) | Pass — before the change it showed an empty form |
+| Android edge-swipe back gesture (device in full-screen gesture navigation), left and right edge: ladder → assessment → welcome; crisis → ladder; `complete` → ladder | Pass |
+| Force-stop on `complete` (empty ladder, step 4 saved), cold relaunch: resumes on `complete`; back → ladder → assessment → welcome through the rebuilt stack | Pass |
+| Double-tap on the assessment's Next → one ladder; one back → assessment; Next works again after returning (re-arm) | Pass |
+| Press Home on the ladder and reopen the app | Back on the ladder, step 3 | Pass |
+| System font scale 2.0 (from 0.86): ladder title, subtitle, the new field label, "Do this later" wrap without clipping | Pass — the pre-existing SUDS legend ("No distress / Moderate / Extreme distress") runs together and the right label is cut off ("Extreme distre"); filed under Story 19.5 |
+| Crisis phrase typed into the ladder form: banner appears and stays after the text is replaced; `complete` then shows the soft title, soft encouragement, no count, and the "Feeling overwhelmed?" link | Pass |
+| Reinstall fallback, dev client: cleared data, signed in, account has a server-side ladder item uploaded by this same app | Fail — onboarding after the ~10 s hold: in the Android dev client PowerSync never leaves `connecting` (fetchCredentials returns a valid token; the service streams the data fine to a direct request), so the replica stays empty. A dev-client limitation, not an app defect (see next row and Story 19.9) |
+| Reinstall fallback, EAS `preview` build (e22d7d0): same scenario | Pass — cleared data, signed in, landed on Home within ~10 s with the account's server-side item |
+| Offline onboarding, EAS `preview` build (e22d7d0): Wi-Fi and mobile data off, add two ladder items, reorder, finish onboarding | Pass locally (items, reorder and completion all work offline). **On reconnect both items uploaded but the reorder was lost**: the server has the original order and the device's order flipped back to it — Story 19.6 reproduced in a realistic scenario |
+| Slow first sync on reinstall, preview build: account with 2 server-side items, signed in on cleared data, network cut ~6 s after sign-in (before the first sync finished) | **Fail** — after the ~10 s hold the existing user landed on the onboarding welcome screen. Continuing through onboarding then stalled the upload queue: the new item (position 1) collided with the server's position 1 (`uq_user_position`), retried every ~5 s and never uploaded, while the device showed 3 items against the server's 2. Story 19.9 reopened |
 
-Still unchecked: iOS swipe-back, Android swipe-back gesture, TalkBack, Hindi.
+Still unchecked: iOS swipe-back, TalkBack, Hindi.
 
 ### Device Verification (Android, 2026-10-05)
 
