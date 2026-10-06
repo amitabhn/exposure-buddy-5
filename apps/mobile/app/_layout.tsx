@@ -138,6 +138,7 @@ export default function RootLayout() {
                   {/* eslint-disable-next-line i18next/no-literal-string */}
                   <Stack.Screen name="reminder-settings" options={{ headerShown: true, headerTitle: '', headerShadowVisible: false, headerStyle: { backgroundColor: '#ffffff' }, headerLeft: () => <BackButton />, headerBackVisible: false }} />
                   <Stack.Screen name="session" options={{ headerShown: false }} />
+                  <Stack.Screen name="relaxation" options={{ headerShown: false }} />
                 </Stack>
                 <PortalHost />
               </ThemeProvider>
