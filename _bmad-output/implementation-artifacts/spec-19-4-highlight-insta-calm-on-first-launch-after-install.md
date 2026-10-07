@@ -79,6 +79,10 @@ context:
 
 ## Implementation Notes
 
+- Device check of the overlay (Android dev client, this branch served from its own Metro): fresh install dims the whole screen with the button lit above it and the card under it; tapping the dim does nothing (no field focus, no keyboard); Android back dismisses it and the app stays open; "Got it" dismisses and it stays gone after a force-close and relaunch; tapping the button opens Insta Calm and the overlay is gone on return; at 200% font the card grows (capped scaling) but "Got it" stays visible and reachable. The scrim shows a ~30px darker edge band (left, right, top) from its elevation shadow, cosmetic only; every pixel is dimmed.
+- Not checked: iOS, TalkBack and VoiceOver, `/session/*` suppression on the device (covered by unit tests), the Maestro dismiss helper.
+- Process note: an earlier pass of this check ran the wrong build because port 8081 was held by another session's dev server (from the `installation-overlay-insta-calm-e8aefd` worktree); its old overlay code had no back handler and back exited the app. Re-run on a free port with this branch.
+
 ## Spec Change Log
 
 - 2026-10-07 — Party-mode review of the overlay draft added one behaviour to the frozen block: Android hardware back dismisses the overlay and counts as seen (Always, matrix row, AC). Reason: back otherwise navigates underneath a still-dimmed screen. Open and left as drafted: showing it on the very first screen (Sally and Winston prefer a calm moment; John and Mary back the spotlight) and no tap-outside-to-dismiss.

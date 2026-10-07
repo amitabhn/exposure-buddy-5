@@ -1197,5 +1197,5 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: The Maestro "Got it" dismiss helper (`setup/dismissInstaCalmIntro.yaml`) has not been run; the overlay's scrim blocks every tap and scroll on a cleared install.
   evidence: No local Maestro rig (Story 9.5). Settle by running the Maestro shards with the `run-e2e` label; 19.12 is already red on main.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
-  summary: The overlay itself has not been device-checked: scrim sizing from `useWindowDimensions` (edge-to-edge strips), paint order of scrim vs button, and touch blocking are not observable in Jest.
-  evidence: Review round on the overlay diff. Settle with an Android device check, or add a non-optional Maestro `assertVisible: "Got it"` flow on a cleared install.
+  summary: Overlay device check done on Android only (dim, touch swallow, back, Got it, button tap, 200% font all pass). iOS, TalkBack and VoiceOver remain unchecked, and the Maestro dismiss helper is unrun.
+  evidence: See the spec's Implementation Notes. Optionally add a non-optional Maestro `assertVisible: "Got it"` flow on a cleared install to guard paint order in CI.
