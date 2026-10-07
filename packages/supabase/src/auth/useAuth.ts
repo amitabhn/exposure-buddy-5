@@ -27,6 +27,8 @@ interface UseAuthResult {
   crisisFlaggedInOnboarding: boolean
   firstHomeVisitSeen: boolean
   markFirstHomeVisitSeen: () => void
+  instaCalmIntroSeen: boolean
+  markInstaCalmIntroSeen: () => void
   // Session state — served from AuthContext
   sessionRecoveryData: SessionRecoveryData | null
   setSessionInProgress: (data: SessionRecoveryData) => void
@@ -78,6 +80,8 @@ export function useAuth(): UseAuthResult {
     crisisFlaggedInOnboarding: onboarding.crisisFlaggedInOnboarding,
     firstHomeVisitSeen: onboarding.firstHomeVisitSeen,
     markFirstHomeVisitSeen: onboarding.markFirstHomeVisitSeen,
+    instaCalmIntroSeen: onboarding.instaCalmIntroSeen,
+    markInstaCalmIntroSeen: onboarding.markInstaCalmIntroSeen,
     // ERP session (AuthContext)
     sessionRecoveryData: auth.sessionRecoveryData,
     setSessionInProgress: auth.setSessionInProgress,

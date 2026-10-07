@@ -1187,3 +1187,9 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
   summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
   evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3. **Fixed 2026-10-07** on the Story 19.3 branch: position is now max stored position + 1.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Callout may overlap controls on sign-in (identifier pills) and the onboarding ladder (first item's reorder arrows), and grows with font scale or Hindi text.
+  evidence: Android device check done 2026-10-07: fixed (hidden on /session/*, font scale capped 1.2). Residual: still clips the sign-in Phone tab top edge at 200% font; iOS, TalkBack and VoiceOver unchecked.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Maestro flows launch with `clearState: true`, so the callout now shows on their first screen and could cover a tapped element.
+  evidence: Unverified medium. Settle by running the Maestro shards (19.12 already red on main).

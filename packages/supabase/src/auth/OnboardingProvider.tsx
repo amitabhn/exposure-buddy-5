@@ -21,6 +21,9 @@ export interface OnboardingContextValue {
   setCrisisFlaggedInOnboarding: () => void
   firstHomeVisitSeen: boolean
   markFirstHomeVisitSeen: () => void
+  // Story 19.4 — device-scoped; true until MMKV says otherwise so nothing flashes.
+  instaCalmIntroSeen: boolean
+  markInstaCalmIntroSeen: () => void
 }
 
 export const OnboardingContext = createContext<OnboardingContextValue>({
@@ -34,6 +37,8 @@ export const OnboardingContext = createContext<OnboardingContextValue>({
   setCrisisFlaggedInOnboarding: () => {},
   firstHomeVisitSeen: false,
   markFirstHomeVisitSeen: () => {},
+  instaCalmIntroSeen: true,
+  markInstaCalmIntroSeen: () => {},
 })
 
 interface OnboardingProviderProps {
@@ -51,6 +56,8 @@ export function OnboardingProvider({ children, mmkv }: OnboardingProviderProps):
   const [onboardingProgressReadFailed, setOnboardingProgressReadFailed] = useState(false)
   const [crisisFlaggedInOnboarding, setCrisisFlaggedInOnboardingLocal] = useState(false)
   const [firstHomeVisitSeen, setFirstHomeVisitSeenLocal] = useState(false)
+  // Default true: until MMKV has loaded (or if unavailable) the safe state is "do not show".
+  const [instaCalmIntroSeen, setInstaCalmIntroSeenLocal] = useState(true)
 
   // Mirrors the mmkv prop so imperative functions can access the current instance.
   const mmkvRef = useRef<MMKV | null>(mmkv ?? null)
@@ -91,6 +98,27 @@ export function OnboardingProvider({ children, mmkv }: OnboardingProviderProps):
       store.getBoolean(KV_KEYS.FIRST_HOME_VISIT_SEEN(userId)) ?? false
     )
   }, [userId])
+
+  // Story 19.4 — device-scoped read, keyed on [mmkv] (not userId): _layout.tsx loads mmkv
+  // asynchronously and the flag is independent of the signed-in user. Never reset on sign-out.
+  useEffect(() => {
+    if (!mmkv) return
+    try {
+      setInstaCalmIntroSeenLocal(mmkv.getBoolean(KV_KEYS.INSTA_CALM_INTRO_SEEN) ?? false)
+    } catch {
+      setInstaCalmIntroSeenLocal(true)
+    }
+  }, [mmkv])
+
+  function markInstaCalmIntroSeen(): void {
+    // Local state first so a failed MMKV write still hides the callout for this session.
+    setInstaCalmIntroSeenLocal(true)
+    try {
+      mmkvRef.current?.set(KV_KEYS.INSTA_CALM_INTRO_SEEN, true)
+    } catch (e) {
+      console.error('[OnboardingProvider] failed to persist instaCalmIntroSeen', e)
+    }
+  }
 
   function markOnboardingComplete(): void {
     const store = mmkvRef.current
@@ -159,6 +187,8 @@ export function OnboardingProvider({ children, mmkv }: OnboardingProviderProps):
       setCrisisFlaggedInOnboarding,
       firstHomeVisitSeen,
       markFirstHomeVisitSeen,
+      instaCalmIntroSeen,
+      markInstaCalmIntroSeen,
     }}>
       {children}
     </OnboardingContext.Provider>

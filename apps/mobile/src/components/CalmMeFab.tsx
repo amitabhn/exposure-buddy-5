@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { CalmMeButton } from '@exposure-buddy/ui'
+import { InstaCalmIntroCallout } from './InstaCalmIntroCallout'
 import { getResumeBannerVisible, subscribeResumeBannerVisible } from '../state/sessionResumeFlag'
 
 // Global Calm Me FAB — mounted as a sibling to <Stack> in app/_layout.tsx so it persists
@@ -16,7 +17,7 @@ export function CalmMeFab() {
   const pathname = usePathname()
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { sessionRecoveryData } = useAuth()
+  const { sessionRecoveryData, instaCalmIntroSeen, markInstaCalmIntroSeen } = useAuth()
   const navigatingRef = useRef(false)
   // eslint-disable-next-line i18next/no-literal-string
   const isOnCalmMeRoute = pathname === '/calm-me' || pathname.startsWith('/calm-me/')
@@ -42,9 +43,17 @@ export function CalmMeFab() {
   // in-session context").
   const isInSession = sessionRecoveryData !== null && pathname === '/session/active'
 
+  // Story 19.4 — the intro callout stays off every /session/* screen (SUDS rating boxes, stop,
+  // pause, debrief): it would cover tappable controls or sit on a distressed moment. The flag
+  // stays unset, so it appears on the next screen outside a session.
+  // eslint-disable-next-line i18next/no-literal-string
+  const isOnSessionRoute = pathname === '/session' || pathname.startsWith('/session/')
+
   function handlePress() {
     if (navigatingRef.current) return
     navigatingRef.current = true
+    // Story 19.4 — tapping the button itself counts as having seen the intro.
+    if (!instaCalmIntroSeen) markInstaCalmIntroSeen()
     // eslint-disable-next-line i18next/no-literal-string
     router.push(isInSession ? '/calm-me?inSession=1' : '/calm-me')
   }
@@ -58,6 +67,7 @@ export function CalmMeFab() {
         accessibilityLabel={t('calmMe.fab')}
         accessibilityHint={t('calmMe.fabHint')}
       />
+      {!instaCalmIntroSeen && !isOnSessionRoute && <InstaCalmIntroCallout onDismiss={markInstaCalmIntroSeen} />}
     </View>
   )
 }

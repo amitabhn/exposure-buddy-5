@@ -343,6 +343,11 @@
     "fabHint": "Opens calming techniques and crisis support",
     "fabLabel": "INSTA\nCALM",
     "exit": "Close",
+    "intro": {
+      "title": "Meet Insta Calm",
+      "body": "Tap it any time you feel overwhelmed. It opens calming techniques and support.",
+      "dismiss": "Got it"
+    },
     "affirmation": {
       "1": "Notice what's happening, and let it be there for a moment. Your goal isn't to eliminate anxiety - it's to practice handling it. You're building resilience with every minute you stay. One breath, one moment, one step at a time.",
       "2": "This feels really hard right now, and you're still here.",
