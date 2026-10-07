@@ -12,7 +12,7 @@ export { DpoServiceStub } from './stubs/DpoServiceStub'
 export { detectCrisisKeywords } from './crisis/keywordDetector'
 export { CRISIS_KEYWORDS } from './crisis/keywords'
 export type { FearLadderItemSummary, FearLadderItem, FearLadderItemStatus } from './selectors/fearLadder'
-export { resolveLowestPendingItem } from './selectors/fearLadder'
+export { resolveLowestPendingItem, sortLadderForDisplay } from './selectors/fearLadder'
 // ERP session types and state machine (Story 5.2+)
 export type { ExposureSession } from './types/exposure-session'
 export type { SudsReading } from './types/suds-reading'

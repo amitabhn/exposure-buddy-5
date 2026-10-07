@@ -3335,7 +3335,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.3: Courage Ladder — Completed Items Sink and Grey Out
 
-**Status: backlog.** Feedback item 4. Screens: `apps/mobile/app/ladder.tsx`, `src/hooks/useFearLadderItems.ts`; Home's lowest-pending-item selection (`(app)/index.tsx:104`) must keep working.
+**Status: review.** Feedback item 4. Screens: `apps/mobile/app/ladder.tsx`, `src/hooks/useFearLadderItems.ts`; Home's lowest-pending-item selection (`(app)/index.tsx:104`) must keep working.
 
 **Given** a ladder item has been completed
 **When** the ladder is shown

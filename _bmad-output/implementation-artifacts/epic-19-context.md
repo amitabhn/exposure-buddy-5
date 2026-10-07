@@ -9,7 +9,7 @@ Fix the problems beta users reported in the first build: an onboarding ladder st
 ## Stories
 
 - Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation (done, merged in PR #100)
-- Story 19.2: Practice Relaxation Opens the Selected Technique
+- Story 19.2: Practice Relaxation Opens the Selected Technique (merged in PR #101)
 - Story 19.3: Courage Ladder — Completed Items Sink and Grey Out
 - Story 19.4: Highlight Insta Calm on First Launch After Install
 - Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider

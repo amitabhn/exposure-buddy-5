@@ -24,3 +24,14 @@ export function resolveLowestPendingItem(items: FearLadderItem[]): FearLadderIte
   const { id, description, predictedSuds, position } = first
   return { id, description, predictedSuds, position }
 }
+
+const byPosition = (a: FearLadderItem, b: FearLadderItem) =>
+  a.position - b.position || a.id.localeCompare(b.id)
+
+// Display order only: unfinished items first, completed after, each group by position then id.
+// Pure — never mutates the input and never changes a stored position.
+export function sortLadderForDisplay(items: FearLadderItem[]): FearLadderItem[] {
+  const unfinished = items.filter(item => item.status !== 'completed').sort(byPosition)
+  const completed = items.filter(item => item.status === 'completed').sort(byPosition)
+  return [...unfinished, ...completed]
+}
