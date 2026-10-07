@@ -1199,3 +1199,6 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
   summary: Overlay device check done on Android only (dim, touch swallow, back, Got it, button tap, 200% font all pass). iOS, TalkBack and VoiceOver remain unchecked, and the Maestro dismiss helper is unrun.
   evidence: See the spec's Implementation Notes. Optionally add a non-optional Maestro `assertVisible: "Got it"` flow on a cleared install to guard paint order in CI.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Real Hindi copy for `calmMe.intro.{title,body,dismiss}` in `hi.json` (currently English copies, which the spec allows).
+  evidence: Deferred by the human 2026-10-07 during the overlay review. Hindi-locale users see an English intro and an English VoiceOver/TalkBack announcement until translated.
