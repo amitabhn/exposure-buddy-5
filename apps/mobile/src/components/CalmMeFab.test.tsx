@@ -192,6 +192,19 @@ describe('CalmMeFab — Story 19.4 first-launch intro callout', () => {
     expect(scrim.props.onStartShouldSetResponder()).toBe(true)
   })
 
+  it('makes the button and card the only VoiceOver-reachable content while the intro shows', () => {
+    unseen()
+    mockUsePathname.mockReturnValue('/')
+    const { getByTestId } = render(<CalmMeFab />)
+    expect(getByTestId('calm-me-fab-container').props.accessibilityViewIsModal).toBe(true)
+  })
+
+  it('is not modal for VoiceOver once the intro was seen', () => {
+    mockUsePathname.mockReturnValue('/')
+    const { getByTestId } = render(<CalmMeFab />)
+    expect(getByTestId('calm-me-fab-container').props.accessibilityViewIsModal).toBe(false)
+  })
+
   it('has no scrim once the intro was seen', () => {
     mockUsePathname.mockReturnValue('/')
     const { queryByTestId } = render(<CalmMeFab />)

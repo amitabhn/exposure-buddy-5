@@ -1188,11 +1188,14 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
   evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3. **Fixed 2026-10-07** on the Story 19.3 branch: position is now max stored position + 1.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
-  summary: Full-screen intro overlay: no fix for screen readers moving into the dimmed content behind it (the scrim is hidden from accessibility but the content is not).
-  evidence: `accessibilityViewIsModal` would also hide the Insta Calm button on iOS (shared container). iOS VoiceOver and Android TalkBack are unchecked; settle with a device check.
+  summary: Full-screen intro overlay: Android TalkBack can still reach the dimmed content behind the scrim (iOS is covered by `accessibilityViewIsModal` on the button+card container).
+  evidence: Android has no `accessibilityViewIsModal` equivalent reachable from `CalmMeFab`. iOS VoiceOver and Android TalkBack are unchecked; settle with a device check.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
   summary: The overlay shows on the very first screen (sign-in) before a new user has done anything; first-screen drop-off is unmeasured.
   evidence: Raised in the spec review round (Sally, Winston: prefer a calm moment; John, Mary: spotlight addresses discoverability). Settle with beta feedback (Epic 11) or an A/B of timing.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
   summary: The Maestro "Got it" dismiss helper (`setup/dismissInstaCalmIntro.yaml`) has not been run; the overlay's scrim blocks every tap and scroll on a cleared install.
   evidence: No local Maestro rig (Story 9.5). Settle by running the Maestro shards with the `run-e2e` label; 19.12 is already red on main.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: The overlay itself has not been device-checked: scrim sizing from `useWindowDimensions` (edge-to-edge strips), paint order of scrim vs button, and touch blocking are not observable in Jest.
+  evidence: Review round on the overlay diff. Settle with an Android device check, or add a non-optional Maestro `assertVisible: "Got it"` flow on a cleared install.

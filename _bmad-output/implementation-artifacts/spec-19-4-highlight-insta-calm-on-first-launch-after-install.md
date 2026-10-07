@@ -86,6 +86,24 @@ context:
 
 ## Review Triage Log
 
+Overlay review (3 layers, combined diff against main).
+
+| # | Finding | Verdict | Route | Evidence |
+|---|---------|---------|-------|----------|
+| 1 | hi.json carries English intro strings | false | rejected | Spec: "Hindi mirrors English where untranslated". |
+| 2 | VoiceOver/TalkBack can reach the screen behind the scrim | medium | patch (iOS) / defer (Android) | Confirmed: scrim only swallows touches. iOS patched: `accessibilityViewIsModal={showIntro}` on the button+card container (the app's `Stack` is its sibling in `_layout.tsx`), with tests. Android has no equivalent; deferred, unchecked on device. |
+| 3 | Another back handler registered later wins over the intro's | low | rejected | The intro handler registers when the overlay appears, after the navigator's, so it runs first; a later modal handler winning is an edge case with no named harm. |
+| 4 | Intro marked seen before `router.push`; a throw leaves it seen | low | rejected | `router.push` throwing is not a reachable path; fix reorders without a demonstrated failure. |
+| 5 | Scrim sized from `useWindowDimensions` may leave an uncovered strip (edge-to-edge) | maybe-false | defer | Needs an Android device check of the overlay (never run). |
+| 6 | Maestro optional "Got it" tap may time out before the async-loaded scrim appears; text match not scoped | maybe-false | defer | Needs the Maestro shards run; already deferred. Helper only runs right after launch on two flows. |
+| 7 | Scrim layering and touch blocking not observable in Jest | maybe-false | defer | Not testable in Jest; settle with a device check or a Maestro `assertVisible: "Got it"` flow. |
+| 8 | Announcement re-fires on remount; Android may announce twice (live region plus explicit) | low | rejected | Cosmetic, rare, unproven. |
+| 9 | `mmkv` store -> null leaves the flag false; markSeen with null ref | false | rejected | `mmkv` is set once (tri-state in `_layout.tsx`); degraded mode is null from the start. |
+| 10 | Hardcoded `#ffffff` / `rgba(0,0,0,0.65)` instead of tokens | false | rejected | Matches `CalmMeButton`, which uses `#ffffff`. |
+| 11 | Other `clearState` flows not updated | false | rejected | Only `ensureOnboarded.yaml` clears state (others reuse it); `onboarding.yaml` is a plain launch on a fresh install. |
+| 12 | No telemetry for intro shown/dismissed | false | rejected | Out of scope; no server or analytics change in the spec. |
+| 13 | Overlay can appear before the user has context (sign-in screen) | maybe-false | defer | Product timing question, raised in the spec review round (calm moment vs spotlight); logged in deferred-work. |
+
 ## Design Notes
 
 Default-`true` is deliberate: until MMKV has loaded (or if it is unavailable) the safe state is "do not show", so a signed-in user never sees a flash on every cold start and cold-start latency is untouched. Existing account reinstalling sees the callout again; accepted per the epic (Story 18.7 interplay).

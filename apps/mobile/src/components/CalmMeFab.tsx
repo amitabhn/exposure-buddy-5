@@ -84,8 +84,10 @@ export function CalmMeFab() {
         // eslint-disable-next-line i18next/no-literal-string
         <View style={[styles.scrim, { width, height }]} onStartShouldSetResponder={() => true} importantForAccessibility="no" testID="insta-calm-intro-scrim" />
       )}
+      {/* iOS: while the intro shows, only the button and card (this container) are reachable by
+          VoiceOver; the screen behind the dim is hidden from it. Android has no equivalent. */}
       {/* eslint-disable-next-line i18next/no-literal-string */}
-      <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">
+      <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none" accessibilityViewIsModal={showIntro} testID="calm-me-fab-container">
         <CalmMeButton
           onPress={handlePress}
           label={t('calmMe.fabLabel')}
