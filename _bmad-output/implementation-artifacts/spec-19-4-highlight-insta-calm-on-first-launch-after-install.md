@@ -2,7 +2,8 @@
 title: 'Highlight Insta Calm on First Launch After Install'
 type: 'feature'
 created: '2026-10-07'
-status: 'ready-for-dev'
+status: 'done'
+baseline_commit: 'c04a63eafeb46c77d75d2a786f278f16a54c8c13'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -51,10 +52,10 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `packages/core/src/constants/kvKeys.ts` -- device-scoped key -- survives sign-out, wiped on reinstall
-- [ ] `OnboardingProvider.tsx`, `useAuth.ts` + tests -- flag read/write, default `true`, not reset on sign-out
-- [ ] `InstaCalmIntroCallout.tsx`, `CalmMeFab.tsx`, `en.json`, `hi.json` + tests -- callout, dismissal, tap-marks-seen, a11y announcement
-- [ ] Rebuild `packages/core` and `packages/supabase` `dist` so mobile resolves the new exports
+- [x] `packages/core/src/constants/kvKeys.ts` -- device-scoped key -- survives sign-out, wiped on reinstall
+- [x] `OnboardingProvider.tsx`, `useAuth.ts` + tests -- flag read/write, default `true`, not reset on sign-out
+- [x] `InstaCalmIntroCallout.tsx`, `CalmMeFab.tsx`, `en.json`, `hi.json` + tests -- callout, dismissal, tap-marks-seen, a11y announcement
+- [x] Rebuild `packages/core` and `packages/supabase` `dist` so mobile resolves the new exports
 
 **Acceptance Criteria:**
 - Given a fresh install, when the first screen showing Insta Calm appears, then the callout shows once, below the button, and the button stays tappable
@@ -67,9 +68,31 @@ context:
 
 ## Implementation Notes
 
+- Post-review decisions (walkthrough, 11b9106): upgraders with an existing install DO see the callout once (the flag is per-MMKV; beta users are the audience). It is not rendered while `isInSession` (`sessionRecoveryData` present on `/session/active`); the flag stays unset so it appears on the next screen outside a session. Title is the neutral "Meet Insta Calm" (en and hi mirror).
+- Device check fixes (Android, 200% font): the callout is hidden on every `/session/*` route (it covered the SUDS rating boxes and sat on the stop screen), and its text scaling is capped at 1.2 (uncapped it grew to ~17 lines over the sign-in form). Residual: at 200% font it still clips the top edge of the sign-in Phone tab; its label and most of the tap area are clear.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Finding | Verdict | Route | Evidence |
+|---|---------|---------|-------|----------|
+| 1 | hi.json holds English intro strings | false | rejected | Spec Boundaries: "Hindi mirrors English where untranslated". |
+| 2 | "New: Insta Calm" title is wrong for fresh install | low | resolved | Retitled "Meet Insta Calm" in 11b9106 after the walkthrough. |
+| 3 | Callout also shows for users upgrading (flag unset) | false | rejected | Intended: the flag is per-MMKV; beta users who missed the button are the target (feedback item 5). |
+| 4 | Sign-in/onboarding overlap, maxWidth 180 untested; card grows with font scale/Hindi | maybe-false | defer | Needs device check with callout showing (sign-in pills, ladder arrows) and 2x font. Unverified medium. |
+| 5 | Android double announce (announce + live region) | maybe-false | rejected | Live regions announce changes, not initial mount; would be low if true. |
+| 6 | Re-announce when FAB remounts (resume banner) before dismissal | low | rejected | Rare path; fix adds a ref and cross-mount state. |
+| 7 | Mark-seen after navigatingRef guard | false | rejected | First tap already marks seen; double-tap needs nothing more. |
+| 8 | mmkv store -> null leaves flag false; markSeen with null ref no-ops | false | rejected | Degraded mode passes null from the start (`_layout.tsx` catch -> `setMmkv(null)`), so flag stays true; callout cannot show without a store. |
+| 9 | Non-null degraded stub would show callout | false | rejected | Degraded mode is `null`, not a stub. |
+| 10 | getBoolean-throw catch branch untested | low | patch | Test added (`stays true (hidden) when reading the flag throws`); 7/7 pass. |
+| 11 | Sign-out and banner tests vacuous | false | rejected | Sign-out test asserts the flag across the real reset block; banner test asserts hidden path. |
+| 12 | Unjustified eslint-disable comments | false | rejected | Same pattern as `CalmMeFab.tsx` for `pointerEvents="box-none"` under the i18next rule. |
+| 13 | Hardcoded #ffffff / magic numbers | false | rejected | Matches `CalmMeButton`, which also uses `#ffffff`. |
+| 14 | Callback not memoized | false | rejected | Other `mark*` functions in the provider are not memoized either. |
+| 15 | Redundant accessibilityLabel, language change re-announces | low | rejected | Cosmetic / negligible. |
+| 16 | Maestro flows (`clearState: true`) will now see the callout on first screen | maybe-false | defer | May cover taps in `.maestro` flows; run the Maestro shards to settle. Unverified medium. |
 
 ## Design Notes
 

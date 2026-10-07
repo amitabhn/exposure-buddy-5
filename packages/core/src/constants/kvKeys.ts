@@ -43,6 +43,9 @@ export const KV_KEYS = {
   // Forward-reference for Story 2.3 (deferred). Story 2.4 sign-out clears
   // all user-scoped MMKV keys but MUST NOT clear this key.
   PREVIEW_CHALLENGES: 'preview_challenges',
+  // Insta Calm first-launch callout "seen" flag. Device-scoped (the user is unknown on the
+  // sign-in screen where it first shows); sign-out MUST NOT clear it, a reinstall wipes it. (Story 19.4)
+  INSTA_CALM_INTRO_SEEN: 'calm_me:intro_seen',
 } as const
 
 // Total number of onboarding steps — used by OnboardingStepIndicator and
