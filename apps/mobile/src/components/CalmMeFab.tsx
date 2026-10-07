@@ -1,5 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
-import { View, StyleSheet, useWindowDimensions } from 'react-native'
+import { View, StyleSheet, BackHandler, useWindowDimensions } from 'react-native'
 import { usePathname, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,6 +28,29 @@ export function CalmMeFab() {
   // dismissed so it stays available for the rest of the resumed session.
   const isResumeBannerVisible = useSyncExternalStore(subscribeResumeBannerVisible, getResumeBannerVisible)
 
+  // Story 19.4 — the first-launch intro overlay stays off every /session/* screen (SUDS rating,
+  // active, stop, pause, debrief): it would dim a distressed moment. The flag stays unset, so it
+  // appears on the next screen outside a session. Computed before the early returns so the
+  // BackHandler effect below can follow the rules of hooks.
+  // eslint-disable-next-line i18next/no-literal-string
+  const isOnSessionRoute = pathname === '/session' || pathname.startsWith('/session/')
+  const showIntro = !instaCalmIntroSeen && !isOnSessionRoute && !isOnCalmMeRoute && !isResumeBannerVisible
+
+  // Android hardware back dismisses the intro (and counts as seen) instead of navigating away
+  // underneath a still-dimmed screen. Registered only while the overlay is actually showing.
+  // markInstaCalmIntroSeen is not memoized, so it is read through a ref to avoid re-subscribing
+  // to the back button on every render.
+  const markSeenRef = useRef(markInstaCalmIntroSeen)
+  markSeenRef.current = markInstaCalmIntroSeen
+  useEffect(() => {
+    if (!showIntro) return
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      markSeenRef.current()
+      return true
+    })
+    return () => sub.remove()
+  }, [showIntro])
+
   // Resets the double-tap guard once the user has left the calm-me subtree (or never
   // reached it), so the FAB is tappable again on the next screen — without this, a single
   // tap would permanently disable the FAB for the rest of the app session.
@@ -44,12 +67,6 @@ export function CalmMeFab() {
   // in-session context").
   const isInSession = sessionRecoveryData !== null && pathname === '/session/active'
 
-  // Story 19.4 — the intro callout stays off every /session/* screen (SUDS rating boxes, stop,
-  // pause, debrief): it would cover tappable controls or sit on a distressed moment. The flag
-  // stays unset, so it appears on the next screen outside a session.
-  // eslint-disable-next-line i18next/no-literal-string
-  const isOnSessionRoute = pathname === '/session' || pathname.startsWith('/session/')
-
   function handlePress() {
     if (navigatingRef.current) return
     navigatingRef.current = true
@@ -59,15 +76,13 @@ export function CalmMeFab() {
     router.push(isInSession ? '/calm-me?inSession=1' : '/calm-me')
   }
 
-  const showIntro = !instaCalmIntroSeen && !isOnSessionRoute
-
   return (
     <>
       {/* Dims the whole screen and swallows touches, so only the button (above it) and the
           intro card stay interactive until "Got it". */}
       {showIntro && (
         // eslint-disable-next-line i18next/no-literal-string
-        <View style={[styles.scrim, { width, height }]} onStartShouldSetResponder={() => true} importantForAccessibility="no" />
+        <View style={[styles.scrim, { width, height }]} onStartShouldSetResponder={() => true} importantForAccessibility="no" testID="insta-calm-intro-scrim" />
       )}
       {/* eslint-disable-next-line i18next/no-literal-string */}
       <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">

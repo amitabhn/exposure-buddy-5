@@ -1,5 +1,5 @@
 import React from 'react'
-import { AccessibilityInfo } from 'react-native'
+import { AccessibilityInfo, BackHandler } from 'react-native'
 import { render, fireEvent } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
@@ -183,6 +183,61 @@ describe('CalmMeFab — Story 19.4 first-launch intro callout', () => {
       expect(mockMarkSeen).not.toHaveBeenCalled()
     },
   )
+
+  it('dims the screen with a scrim that swallows touches while the intro shows', () => {
+    unseen()
+    mockUsePathname.mockReturnValue('/')
+    const { getByTestId } = render(<CalmMeFab />)
+    const scrim = getByTestId('insta-calm-intro-scrim')
+    expect(scrim.props.onStartShouldSetResponder()).toBe(true)
+  })
+
+  it('has no scrim once the intro was seen', () => {
+    mockUsePathname.mockReturnValue('/')
+    const { queryByTestId } = render(<CalmMeFab />)
+    expect(queryByTestId('insta-calm-intro-scrim')).toBeNull()
+  })
+
+  it.each(['/session/intent', '/session/active', '/calm-me', '/calm-me/helplines'])(
+    'has no scrim on %s even when unseen',
+    (p) => {
+      unseen()
+      mockUsePathname.mockReturnValue(p)
+      const { queryByTestId } = render(<CalmMeFab />)
+      expect(queryByTestId('insta-calm-intro-scrim')).toBeNull()
+    },
+  )
+
+  it('has no scrim while the resume banner is visible', () => {
+    unseen()
+    mockBannerVisible = true
+    mockUsePathname.mockReturnValue('/')
+    const { queryByTestId } = render(<CalmMeFab />)
+    expect(queryByTestId('insta-calm-intro-scrim')).toBeNull()
+  })
+
+  it('Android back dismisses the intro, marks it seen and is consumed', () => {
+    unseen()
+    mockUsePathname.mockReturnValue('/')
+    const sub = { remove: jest.fn() }
+    const add = jest.spyOn(BackHandler, 'addEventListener').mockReturnValue(sub as never)
+    const { unmount } = render(<CalmMeFab />)
+    expect(add).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function))
+    const handler = add.mock.calls[0]![1] as () => boolean
+    expect(handler()).toBe(true)
+    expect(mockMarkSeen).toHaveBeenCalledTimes(1)
+    unmount()
+    expect(sub.remove).toHaveBeenCalled()
+    add.mockRestore()
+  })
+
+  it('does not hook the back button when the intro is not showing', () => {
+    mockUsePathname.mockReturnValue('/')
+    const add = jest.spyOn(BackHandler, 'addEventListener')
+    render(<CalmMeFab />)
+    expect(add).not.toHaveBeenCalled()
+    add.mockRestore()
+  })
 
   it.each(['/calm-me', '/calm-me/helplines'])('renders nothing on %s even when unseen', (p) => {
     unseen()

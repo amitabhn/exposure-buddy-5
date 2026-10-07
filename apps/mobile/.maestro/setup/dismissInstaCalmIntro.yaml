@@ -1,0 +1,12 @@
+# Story 19.4 — dismiss the first-launch Insta Calm intro, if it is showing.
+#
+# The intro is a full-screen scrim that swallows every touch except the Insta Calm button and
+# its own "Got it" (accessibilityLabel and visible text: t('calmMe.intro.dismiss')). A cleared
+# install shows it on the very first screen, so every flow that cold-starts with clearState
+# must run this before its first tap or scroll. optional: true keeps it harmless when MMKV
+# state survived, the intro is already seen, or the screen is a /session/* route.
+appId: com.exposurebuddy.app
+---
+- tapOn:
+    text: "Got it"
+    optional: true
