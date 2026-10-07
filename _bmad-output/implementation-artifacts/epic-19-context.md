@@ -10,7 +10,7 @@ Fix the problems beta users reported in the first build: an onboarding ladder st
 
 - Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation (done, merged in PR #100)
 - Story 19.2: Practice Relaxation Opens the Selected Technique (merged in PR #101)
-- Story 19.3: Courage Ladder — Completed Items Sink and Grey Out
+- Story 19.3: Courage Ladder — Completed Items Sink and Grey Out (merged in PR #102)
 - Story 19.4: Highlight Insta Calm on First Launch After Install
 - Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider
 - Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
