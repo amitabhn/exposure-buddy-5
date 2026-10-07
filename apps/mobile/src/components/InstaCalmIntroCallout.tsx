@@ -11,7 +11,7 @@ interface InstaCalmIntroCalloutProps {
   onDismiss: () => void
 }
 
-// Story 19.4 — one-time pointer under the Insta Calm FAB. Presentational only; the parent
+// Story 19.4 — one-time explanation card under the Insta Calm FAB, shown over a full-screen scrim (rendered by CalmMeFab). Presentational only; the parent
 // decides when it shows. Only the card itself is touchable (outer wrapper is box-none).
 export function InstaCalmIntroCallout({ onDismiss }: InstaCalmIntroCalloutProps) {
   const { t } = useTranslation()
@@ -44,23 +44,23 @@ export function InstaCalmIntroCallout({ onDismiss }: InstaCalmIntroCalloutProps)
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginTop: 8, alignItems: 'flex-end' },
+  wrapper: { marginTop: 12, alignItems: 'flex-end' },
   // maxWidth keeps the card clear of left-aligned controls (e.g. sign-in identifier pills).
   card: {
-    maxWidth: 180,
+    maxWidth: 280,
     backgroundColor: '#ffffff',
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: color.accent.courage,
-    padding: 10,
+    padding: 16,
     shadowColor: color.content.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
-  title: { fontSize: 13, fontWeight: '700', fontFamily: 'Inter_700Bold', color: color.content.primary },
-  body: { fontSize: 12, lineHeight: 16, color: color.content.secondary, marginTop: 2 },
+  title: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold', color: color.content.primary },
+  body: { fontSize: 14, lineHeight: 20, color: color.content.secondary, marginTop: 4 },
   dismiss: { alignSelf: 'flex-end', minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' },
-  dismissText: { fontSize: 13, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.accent.courage },
+  dismissText: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.accent.courage },
 })

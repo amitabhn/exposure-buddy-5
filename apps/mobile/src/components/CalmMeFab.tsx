@@ -1,5 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View, StyleSheet, useWindowDimensions } from 'react-native'
 import { usePathname, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -17,6 +17,7 @@ export function CalmMeFab() {
   const pathname = usePathname()
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { width, height } = useWindowDimensions()
   const { sessionRecoveryData, instaCalmIntroSeen, markInstaCalmIntroSeen } = useAuth()
   const navigatingRef = useRef(false)
   // eslint-disable-next-line i18next/no-literal-string
@@ -58,17 +59,27 @@ export function CalmMeFab() {
     router.push(isInSession ? '/calm-me?inSession=1' : '/calm-me')
   }
 
+  const showIntro = !instaCalmIntroSeen && !isOnSessionRoute
+
   return (
-    // eslint-disable-next-line i18next/no-literal-string
-    <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">
-      <CalmMeButton
-        onPress={handlePress}
-        label={t('calmMe.fabLabel')}
-        accessibilityLabel={t('calmMe.fab')}
-        accessibilityHint={t('calmMe.fabHint')}
-      />
-      {!instaCalmIntroSeen && !isOnSessionRoute && <InstaCalmIntroCallout onDismiss={markInstaCalmIntroSeen} />}
-    </View>
+    <>
+      {/* Dims the whole screen and swallows touches, so only the button (above it) and the
+          intro card stay interactive until "Got it". */}
+      {showIntro && (
+        // eslint-disable-next-line i18next/no-literal-string
+        <View style={[styles.scrim, { width, height }]} onStartShouldSetResponder={() => true} importantForAccessibility="no" />
+      )}
+      {/* eslint-disable-next-line i18next/no-literal-string */}
+      <View style={[styles.container, { top: insets.top + 8 }]} pointerEvents="box-none">
+        <CalmMeButton
+          onPress={handlePress}
+          label={t('calmMe.fabLabel')}
+          accessibilityLabel={t('calmMe.fab')}
+          accessibilityHint={t('calmMe.fabHint')}
+        />
+        {showIntro && <InstaCalmIntroCallout onDismiss={markInstaCalmIntroSeen} />}
+      </View>
+    </>
   )
 }
 
@@ -77,5 +88,8 @@ const styles = StyleSheet.create({
   // (Story 9.3 focus-order fix) — without it, the Stack's opaque screen content paints
   // over the FAB instead of the reverse, since paint order otherwise follows source order.
   // top is set dynamically via useSafeAreaInsets so the button clears Dynamic Island / punch-hole cameras.
-  container: { position: 'absolute', right: 24, zIndex: 10, elevation: 10 },
+  container: { position: 'absolute', right: 24, zIndex: 10, elevation: 10, alignItems: 'flex-end' },
+  // Source order puts the container after the scrim, so the button paints on top of it.
+  // Sized from useWindowDimensions: the parent here has no height of its own, so top/bottom: 0 collapses to 0.
+  scrim: { position: 'absolute', top: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 10, elevation: 10 },
 })
