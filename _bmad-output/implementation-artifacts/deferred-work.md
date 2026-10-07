@@ -1191,9 +1191,6 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: Full-screen intro overlay: Android TalkBack can still reach the dimmed content behind the scrim (iOS is covered by `accessibilityViewIsModal` on the button+card container).
   evidence: Android has no `accessibilityViewIsModal` equivalent reachable from `CalmMeFab`. iOS VoiceOver and Android TalkBack are unchecked; settle with a device check.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
-  summary: The overlay shows on the very first screen (sign-in) before a new user has done anything; first-screen drop-off is unmeasured.
-  evidence: Raised in the spec review round (Sally, Winston: prefer a calm moment; John, Mary: spotlight addresses discoverability). Settle with beta feedback (Epic 11) or an A/B of timing.
-- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
   summary: The Maestro "Got it" dismiss helper (`setup/dismissInstaCalmIntro.yaml`) has not been run; the overlay's scrim blocks every tap and scroll on a cleared install.
   evidence: No local Maestro rig (Story 9.5). Settle by running the Maestro shards with the `run-e2e` label; 19.12 is already red on main.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
