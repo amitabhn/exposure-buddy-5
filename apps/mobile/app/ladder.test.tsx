@@ -260,6 +260,24 @@ describe('LadderScreen', () => {
     expect(queryByLabelText('ladder.descriptionLabel')).toBeNull()
   })
 
+  it('adds a new item after the highest stored position, even with a gap from deletions', async () => {
+    mockUseFearLadderItems.mockReturnValue({
+      items: [
+        { id: 'a', description: 'Item A', predictedSuds: 3, position: 1, status: 'pending' },
+        { id: 'c', description: 'Item C', predictedSuds: 5, position: 3, status: 'pending' },
+      ],
+      isLoading: false,
+    })
+    const { getByRole, getByLabelText } = render(<LadderScreen />)
+    fireEvent.press(getByRole('button', { name: 'ladder.addItem' }))
+    fireEvent.changeText(getByLabelText('ladder.descriptionLabel'), 'New situation')
+    fireEvent.changeText(getByLabelText('ladder.sudsLabel'), '6')
+    await act(async () => {
+      fireEvent.press(getByRole('button', { name: 'ladder.saveItem' }))
+    })
+    expect(mockEnqueue).toHaveBeenCalledWith('fear_ladder_items', 'INSERT', expect.objectContaining({ position: 4 }))
+  })
+
   it('detectCrisisKeywords called on add submit and shows banner', async () => {
     mockDetectCrisisKeywords.mockReturnValue(true)
     const { getByRole, getByLabelText, getByText } = render(<LadderScreen />)

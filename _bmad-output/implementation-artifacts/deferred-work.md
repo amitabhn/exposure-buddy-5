@@ -1186,4 +1186,4 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   evidence: Pre-existing in `ladder.tsx` `handleDragEnd`; Story 19.6 owns reorder upload behaviour.
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
   summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
-  evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3.
+  evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3. **Fixed 2026-10-07** on the Story 19.3 branch: position is now max stored position + 1.

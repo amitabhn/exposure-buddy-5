@@ -228,13 +228,14 @@ export default function LadderScreen() {
       // retry attempts, so a retry re-enqueues the *same* item rather than a new one —
       // description/predictedSuds are still read fresh from form state each attempt, so an
       // edit made before pressing retry is still picked up. `position` is recomputed from the
-      // current list length on every attempt (not frozen with the id) since the list may have
-      // changed between a failed attempt and a later retry.
+      // highest stored position on every attempt (not frozen with the id) since the list may have
+      // changed between a failed attempt and a later retry. Not the list length: deletions leave
+      // gaps, so length + 1 can collide with an existing position (uq_user_position).
       if (!pendingAddIdRef.current) {
         pendingAddIdRef.current = { id: generateUUID() }
       }
       const { id } = pendingAddIdRef.current
-      const position = items.length + 1
+      const position = Math.max(0, ...items.map(item => item.position)) + 1
       const hasCrisis = detectCrisisKeywords(description.trim())
       if (hasCrisis) setCrisisDetected(true)
       const newItem: FearLadderItem = {
