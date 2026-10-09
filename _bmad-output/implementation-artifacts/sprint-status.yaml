@@ -254,5 +254,5 @@ development_status:
   19-9-diagnose-dev-client-replica-download-and-verify-18-7-fallback-on-device: backlog # 2026-10-06 REOPENED: fallback verified on preview build when sync is fast, but a first sync slower than the 10 s hold sends an existing user through onboarding again (then a position collision stalls uploads); dev-client streaming gotcha documented
   19-10-complete-19-1-remaining-device-and-automation-verification: backlog # 2026-10-06: iOS swipe-back, TalkBack, Hindi, Maestro, assessment re-arm test (Android edge-swipe back and resume-at-complete already verified in 19.1)
   19-11-local-rls-suite-passes-on-fresh-postgres-17-stack: backlog # 2026-10-06: dpo_operators tests + config.toml major_version
-  19-12-maestro-core-and-session-shards-pass-again: backlog # 2026-10-06: red on main since 18.7 merge (6aecb65); 2nd flow per shard fails on 'Add your first situation'
+  19-12-maestro-core-and-session-shards-pass-again: ready-for-dev # 2026-10-06: red on main since 18.7 merge (6aecb65); 2nd flow per shard fails on 'Add your first situation'. 2026-10-09: spec drafted (diagnose first, then fix flows or app; gating decision recorded); not implemented
   epic-19-retrospective: optional
