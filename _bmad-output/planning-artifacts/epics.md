@@ -3409,6 +3409,10 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 **When** this story is scoped
 **Then** it notes its relationship to the user_onboarding_metadata upload failure (a 403 on the write-once table that retries forever and stalls the whole queue, see `deferred-work.md`) and does not attempt to fix that here
 
+**Given** the user drags a courage ladder item more than one slot (Story 19.3 deferred this to 19.6, folded in 2026-10-09)
+**When** the drag is enqueued
+**Then** the optimistic list shifts every in-between item, so the enqueue must carry the whole rearrangement — as a chain of adjacent swaps reusing `swap_ladder_positions`, one swap for a one-slot drag exactly as today — so that after upload the server holds the same positions the device shows, within the group-bounded behaviour of Story 19.3; Jest tests in `apps/mobile/app/ladder.test.tsx` cover 2-slot drags up and down in both groups
+
 ### Story 19.7: Upload Queue Does Not Stall on a Write the Server Will Never Accept
 
 **Status: backlog.** Found 2026-10-06 during Story 19.1's device verification; recorded in `deferred-work.md`. Component: `packages/sync/src/connector.ts` (`uploadData`).
