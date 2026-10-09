@@ -3,7 +3,7 @@
 // and SudsSlider has replaced it. Hardcoded English on purpose; not shipped copy.
 /* eslint-disable i18next/no-literal-string */
 import React, { useState } from 'react'
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { AccessibilityInfo, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import Slider from '@react-native-community/slider'
 
 const THUMB = 44
@@ -13,6 +13,12 @@ function SpikeSlider({ label }: { label: string }): React.ReactElement {
   const [width, setWidth] = useState(0)
   const shown = value ?? 5
   const set = (v: number) => setValue(Math.max(0, Math.min(10, Math.round(v))))
+  // The − / + buttons keep screen-reader focus on themselves, so the new rating must be spoken
+  // explicitly. The slider's own adjust action needs no call: its accessibilityValue is re-read.
+  const step = (v: number) => {
+    set(v)
+    AccessibilityInfo.announceForAccessibility(`${Math.max(0, Math.min(10, v))} out of 10`)
+  }
 
   return (
     <View style={styles.block}>
@@ -22,7 +28,7 @@ function SpikeSlider({ label }: { label: string }): React.ReactElement {
         <Pressable
           style={[styles.step, (value ?? 5) <= 0 && styles.disabled]}
           disabled={value !== null && value <= 0}
-          onPress={() => set(value === null ? 5 : value - 1)}
+          onPress={() => step(value === null ? 5 : value - 1)}
           accessibilityRole="button"
           accessibilityLabel="Decrease"
         >
@@ -69,7 +75,7 @@ function SpikeSlider({ label }: { label: string }): React.ReactElement {
         <Pressable
           style={[styles.step, value === 10 && styles.disabled]}
           disabled={value === 10}
-          onPress={() => set(value === null ? 5 : value + 1)}
+          onPress={() => step(value === null ? 5 : value + 1)}
           accessibilityRole="button"
           accessibilityLabel="Increase"
         >
