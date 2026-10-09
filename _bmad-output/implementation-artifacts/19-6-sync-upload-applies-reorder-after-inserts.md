@@ -26,13 +26,13 @@ so that my ladder never silently snaps back to its original order after sync.
   - [ ] Add a test with entries `[PUT item-a (txn 1), PUT item-b (txn 2), PATCH item-a pos 2 + PATCH item-b pos 1 (txn 3)]`; assert `from('fear_ladder_items').upsert` is called for both before `rpc('swap_ladder_positions', …)` (compare `mock.invocationCallOrder`).
   - [ ] Run it against unmodified `connector.ts`; confirm it fails; note the failure in the Debug Log.
 - [ ] Task 2: Preserve `ps_crud` order in `uploadData` (AC: 1, 2)
-  - [ ] Replace `groupReorderPairs`' `{ pairs, remaining }` return with an ordered list of upload units (`{ kind: 'swap', entries: [a, b] } | { kind: 'entry', entry }`), ordered by the position of each unit's first entry in `batch.crud`.
+  - [ ] Replace `groupReorderPairs`' `{ pairs, remaining }` return with an ordered list of upload units (`{ kind: 'swap', entries: [a, b] } | { kind: 'entry', entry }`), where only a reorder pair is grouped: a pair is emitted at the position of its first entry (its second entry is skipped), and every other entry stays exactly where it is in `batch.crud`.
   - [ ] `uploadData` iterates the units in that order: swap → existing RPC + error handling unchanged; entry → `_uploadEntry` + `throw error`.
   - [ ] Keep `isReorderPair` unchanged (still the only definition of a pair).
 - [ ] Task 3: Cover the other timing cases (AC: 2, 3)
   - [ ] Test: swap alone in a batch (items inserted in an earlier batch) → RPC called, no `from` calls (existing test at `connector.test.ts:52` already covers this; keep it green).
   - [ ] Test: an insert before the swap fails (`upsert` resolves `{ error }`) → `uploadData` throws, RPC **not** called, `batch.complete` **not** called (the swap stays queued and retries after its insert).
-  - [ ] Test: insert, then delete of the same item, then a swap including it → RPC returns "one or both items not found" → logged, not thrown, batch completes (existing non-retryable path, now reached only for a real deletion).
+  - [ ] Test: insert, then delete of the same item, then a swap including it (synthetic: the UI cannot enqueue a swap on an item it already deleted; the real-world source is a delete synced from another device) → RPC returns "one or both items not found" → logged, not thrown, batch completes (existing non-retryable path, now reached only for a real deletion).
   - [ ] Test: two swaps in one batch with a PATCH between them → all three execute in original order.
 - [ ] Task 4: Existing behaviour regression check (AC: 3)
   - [ ] All existing `connector.test.ts` cases pass unchanged (non-pair fall-through, malformed position, three non-retryable errors, retryable error throws).
@@ -41,7 +41,8 @@ so that my ladder never silently snaps back to its original order after sync.
   - [ ] In `apps/mobile/app/ladder.tsx` `handleDragEnd`, replace the single `reorder_positions` enqueue with a chain of adjacent swaps (see Dev Notes: *Multi-slot drag design*). Keep the early returns, the group bounds, the optimistic update and the `groupPositions`/`reorderedGroup` computation exactly as they are.
   - [ ] A one-slot drag must produce one enqueue with the same payload as today (the three existing drag tests in `apps/mobile/app/ladder.test.tsx` must pass unmodified).
   - [ ] Add Jest tests in `apps/mobile/app/ladder.test.tsx`: a 2-slot drag down (e.g. unfinished group of 4, drag index 0 to 2) enqueues two swaps in order; a 2-slot drag up enqueues two swaps in order; applying the enqueued swaps to the stored positions reproduces the optimistic order; a drag inside the completed group of 3+ items does the same and never mentions an unfinished item.
-  - [ ] Enqueues run sequentially (await each) so `ps_crud` holds them in order; a failed enqueue stops the chain and is logged with the existing `[LadderScreen] reorder enqueue failed:` message (no new UI, matching today).
+  - [ ] Enqueues run sequentially (await each) so `ps_crud` holds them in order, and chains from separate drags are serialised through one ref-held promise tail (see Dev Notes). A failed enqueue stops that chain and is logged with the existing `[LadderScreen] reorder enqueue failed:` message (no new UI; accepted partial-chain risk below).
+  - [ ] Add a Jest test: two drags fired back to back (the first chain not yet resolved) enqueue all of drag 1's swaps before any of drag 2's.
 - [ ] Task 6: Record the decision and close out (AC: 2, 5, 6, 7)
   - [ ] Completion Notes: approach + rationale; the device/offline verification result (or that it was not run).
   - [ ] Update `deferred-work.md`: add a pointer under the 19.1 entry that the offline-reorder-lost item is fixed by 19.6; mark the Story 19.3 multi-slot-drag entry as resolved by 19.6 (AC 7); leave the poison-write item open for 19.7.
@@ -77,12 +78,12 @@ type UploadUnit =
   | { kind: 'swap'; a: CrudEntry; b: CrudEntry }
   | { kind: 'entry'; entry: CrudEntry }
 
-// Walk batch.crud once, in order. Group by transactionId as today; emit a unit when you meet the
-// FIRST entry of a group, using the whole group's classification (pair → one swap unit; otherwise
-// one 'entry' unit per member, in their original relative order). Entries with transactionId == null
-// are always single 'entry' units.
+// First pass: bucket by transactionId (as today) and keep only the groups that isReorderPair accepts.
+// Second pass, walk batch.crud once, in order: the first entry of a pair group → one 'swap' unit
+// (the pair's second entry is skipped when met); every other entry, including members of non-pair
+// groups and entries with transactionId == null → its own 'entry' unit, in place.
 ```
-A non-pair group sharing a `transactionId` (3+ entries, mixed ops) is emitted at the position of its first member, its members in their original relative order. This does not depend on a transaction's rows being adjacent in `batch.crud`: the unit is placed by its first entry either way. (PowerSync's own API doc for `getCrudBatch` says a batch "does not group data by transaction. One batch may contain data from multiple transactions, and a single transaction may be split over multiple batches" — `@powersync/common` `CommonPowerSyncDatabase.getCrudBatch`. Adjacency is an inference from SQLite's single-writer transactions, not a documented guarantee, so the code must not rely on it.)
+Only pairs are lifted out of the plain order; a non-pair group (3+ entries, mixed ops) is never regrouped, so none of its members can be moved past another transaction's entries. This does not depend on a transaction's rows being adjacent in `batch.crud`. (PowerSync's own API doc for `getCrudBatch` says a batch "does not group data by transaction. One batch may contain data from multiple transactions, and a single transaction may be split over multiple batches" — `@powersync/common` `CommonPowerSyncDatabase.getCrudBatch`. Adjacency is an inference from SQLite's single-writer transactions, not a documented guarantee, so the code must not rely on it.)
 
 ### Multi-slot drag design (AC 7)
 
@@ -96,6 +97,8 @@ Algorithm, with `p = groupPositions` (the group's stored values by slot, before 
 - `f == t` was already returned early. For `|f - t| == 1` this yields exactly today's single payload (`itemA` moved at its new position, `itemB` displaced at the moved item's old position), so existing tests hold.
 - Final state: `m` at `p[t]`; every item between shifted one slot toward `f`; identical to `reorderedGroup` positions. Add a test that replays the enqueued swaps over the starting positions and compares to the optimistic order, so the two cannot drift apart again.
 - Each enqueue is awaited in order (`for … of` with `await`), each becoming its own `_reorder` write transaction, so each is its own pair in `ps_crud`. Keep `updatedAt: Date.now()` per payload as today.
+- Serialise drags: keep a `useRef<Promise<void>>` tail; each drag builds its payloads synchronously (positions are computed against the optimistic state at drop time) and then appends its chain to the tail (`tail.current = tail.current.then(runChain)`), so a second drag can never interleave its swaps into the first drag's chain. The chain function catches its own errors, so the tail never rejects.
+- **Accepted risk:** if an enqueue fails partway through a chain (a local SQLite write error), the earlier swaps are already in the local database and `ps_crud`, while the screen shows the full optimistic order. This is logged only, no UI, as today's single-swap failure is; the next local-database refresh shows the partial order. A middle swap dropped on upload because an item was deleted elsewhere leaves a free position, not a collision (reasoned, not tested).
 - The handler is currently synchronous and fire-and-forget (`.catch` logs). Keep the optimistic update synchronous; run the chain in an inner async function whose rejection is caught with the existing message so `handleDragEnd`'s return type and the DraggableFlatList contract do not change.
 
 ### Behaviour to preserve
