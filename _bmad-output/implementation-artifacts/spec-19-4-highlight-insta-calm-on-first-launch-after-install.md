@@ -2,7 +2,7 @@
 title: 'Highlight Insta Calm on First Launch After Install'
 type: 'feature'
 created: '2026-10-07'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
