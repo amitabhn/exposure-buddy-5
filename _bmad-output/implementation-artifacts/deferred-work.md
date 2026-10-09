@@ -1202,3 +1202,6 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-12-maestro-core-and-session-shards-pass-again.md`
   summary: E2E gating — add a scheduled (nightly) run of the Maestro e2e jobs on `main` with failure notification so a regression cannot sit on `main` for days.
   evidence: The `core`/`session` shards were red on `main` from 2026-10-02 (PR #98) through five merges (PRs #98-#103) because the e2e jobs run only with the `run-e2e` label on PRs. Recommendation recorded in the 19.12 spec Implementation Notes; not applied (making the ~70 min jobs required per PR was ruled out).
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-5-review-suds-input-numbered-boxes-vs-slider.md`
+  summary: After the SUDS slider ships, check whether ratings of exactly 5 rise against the numbered-box history: the unset thumb is parked at 5 and the first − / + press sets 5, so the cheapest path is a 5.
+  evidence: Raised in the 19.5 spec review (party mode, 2026-10-09). Peak and predicted SUDS drive ladder ordering and progress. The human chose the parked thumb after reviewing renders, so this is a post-beta measurement, not a build item. Hiding the thumb until touched is the fallback if the skew is real.
