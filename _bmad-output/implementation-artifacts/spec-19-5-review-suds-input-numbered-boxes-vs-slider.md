@@ -2,7 +2,8 @@
 title: 'Review SUDS Input — Numbered Boxes vs. Slider'
 type: 'feature'
 created: '2026-10-08'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: 'f0dc2e7594d8e0793a17524f0b0be583493f3704'
 route: 'dispatch'
 review_loop_iteration: 5
 context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.md']
@@ -87,7 +88,7 @@ A prop-level fix on the `ScrollView`, `Modal` or slider (for example `nestedScro
 
 ## Implementation Notes
 
-Spike Gate result (platforms, devices, checks passed, any prop-level fix applied): not yet run.
+Spike Gate result (platforms, devices, checks passed, any prop-level fix applied): not yet run. Prepared 2026-10-09: `@react-native-community/slider` 5.2.0 added to `apps/mobile/package.json`; dev-only spike route `apps/mobile/app/spike-slider.tsx` (`/spike-slider`, renders nothing outside `__DEV__`) has an inline slider, a Modal with an overflowing ScrollView, and a pageSheet Modal, with the adjustable wrapper and hidden native control. Needs a new dev-client build and a real iOS and Android device. No call site migrated. Delete the spike route once the Gate passes.
 
 ## Spec Change Log
 
