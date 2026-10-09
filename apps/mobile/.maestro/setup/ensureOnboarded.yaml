@@ -46,9 +46,10 @@ appId: com.exposurebuddy.app
 # has no PowerSync endpoint, so on cleared state the welcome screen always arrives at ~10 s.
 # A flow that sampled early saw neither screen, skipped onboarding, and then failed on its
 # first Home tap. 30 s covers the 10 s hold with headroom. Regex text match: either marker ends
-# the wait (home: empty-ladder greeting, or the returning-user greeting).
+# the wait (home: empty-ladder greeting, or the returning-user greeting). Dots are escaped so
+# the sign-in screen's "Welcome back" (auth.welcomeSignin, no period) can never end the wait early.
 - extendedWaitUntil:
-    visible: "Your journey starts here|Your Courage Ladder is ready. Let's go!|Welcome back."
+    visible: "Your journey starts here|Your Courage Ladder is ready\\. Let's go!|Welcome back\\."
     timeout: 30000
 
 # Conditionally complete onboarding only if the welcome screen appeared.

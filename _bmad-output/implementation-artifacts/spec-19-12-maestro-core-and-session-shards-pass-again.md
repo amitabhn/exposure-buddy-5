@@ -2,7 +2,7 @@
 title: 'Maestro Core and Session Shards Pass Again'
 type: 'bugfix'
 created: '2026-10-09'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '81699723cf9cdea513e19093bf64860c39e9f09a'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -67,7 +67,7 @@ context:
 **Diagnosed cause (timing race, not server data).** From the artifacts of `main` run 37612378261 (`E2E Smoke (core)`, commit `f39a705`; `exposure-loop` and `ladder-build` command logs and screenshots):
 - Story 18.7's fallback (`useOnboardingExistenceFallback`) holds the onboarding redirect for `SYNC_WAIT_TIMEOUT_MS` = 10 s whenever the user is authenticated, onboarding is not complete in MMKV and no saved onboarding step exists. Every `ensureOnboarded` run starts with `clearState: true`, and CI has no PowerSync endpoint (logcat: `[PowerSync]: Sync error ... Not signed in 401`, repeating), so the replica is always empty and the hold always runs its full 10 s before the app routes to welcome.
 - `ensureOnboarded.yaml` sampled too early. After the DEV sign-in tap it did `waitForAnimationToEnd`, then `runFlow ... when: visible: "Your journey starts here"`, whose visibility poll lasts about 7 s. In `exposure-loop` the animation wait took 1.0 s and the `when` check ended **SKIPPED after 7.1 s**, before the hold released; the failing step's screenshot shows the welcome screen ("Step 1 of 4", "Get started") appearing right after. Onboarding was skipped, so the flow's first Home tap (`Add your first situation`) failed. In `ladder-build` (first flow) the same animation wait happened to take 6.5 s, so the `when` poll caught the welcome screen and onboarding ran. It passed by luck, not because it differed.
-- Hypothesis (b), existing server-side data, is **ruled out as the cause**: the hold is independent of server data in CI (empty replica either way), and the second flow does reach welcome after the hold. Hypothesis (a) is confirmed. The app is not wrong: with a real PowerSync endpoint an existing account lands on Home (the 18.7 intent), which the flow already handles ("direct to Home" branch).
+- Hypothesis (b), existing server-side data, is **ruled out as the cause**: the hold is independent of server data in CI (empty replica either way), and the second flow does reach welcome after the hold. Hypothesis (a) is confirmed. The app is not wrong for this failure (the separate real-user risk of a first sync slower than the 10 s hold is Story 19.9): with a real PowerSync endpoint an existing account lands on Home (the 18.7 intent), which the flow already handles ("direct to Home" branch).
 
 **Fix.** `apps/mobile/.maestro/setup/ensureOnboarded.yaml`: after the DEV sign-in tap, replace the fixed `waitForAnimationToEnd` with `extendedWaitUntil` (30 s) on a regex of the welcome title or either Home greeting (`Your journey starts here|Your Courage Ladder is ready. Let's go!|Welcome back.`); the existing conditional onboarding clickthrough then runs deterministically. No app change, so no unit test. Per-flow users were not needed: the flows already `clearState` and are idempotent.
 
@@ -88,3 +88,22 @@ The 18.7 fallback holds the onboarding redirect for up to 10 s, and CI has no Po
 **Commands:**
 - `pnpm turbo typecheck lint test` -- expected: all green
 - Push with the `run-e2e` label (ask first) -- expected: `E2E Smoke (core)`, `(session)` and `(onboarding)` all green
+
+## Review Triage Log
+
+Three layers (blind, edge-case, verification-gap) on the diff since baseline.
+
+| # | Finding | Verdict | Route | Evidence |
+|---|---------|---------|-------|----------|
+| 1 | Unescaped `.` in the wait regex could match the sign-in screen's "Welcome back" and end the wait early | low | patch | `auth.welcomeSignin` is "Welcome back" (no period); a full-match regex needs one more char so it would not match, but escaping makes it certain. Dots escaped. |
+| 2 | Curly vs straight apostrophe in "Let's go!" | false | rejected | `en.json` uses a straight apostrophe; `onboarding.yaml:227` already asserts the same string and passes. |
+| 3 | Home greeting may carry a name or trailing text | false | rejected | `home.welcomeBack` / `home.readyToStart` are exact strings, rendered as one Text (`(app)/index.tsx:131`). |
+| 4 | 30 s timeout is a guess, not tied to `SYNC_WAIT_TIMEOUT_MS` | low | rejected | Comment names the 10 s hold; coupling it to the constant adds a cross-language dependency for no demonstrated failure. |
+| 5 | The `when: visible` check after the wait could still race | false | rejected | The wait returns only once welcome or Home is visible; if welcome, the `when` is true at once. |
+| 6 | Hold lengthened or screen other than welcome/home after sign-in (resumed onboarding, transient Home) | false | rejected | `clearState` removes any saved onboarding step; Home is not mounted while the hold shows the spinner. |
+| 7 | Root cause inferred from one run | false | rejected | Command timings, `when` SKIPPED at 7.1 s and the failure screenshot (welcome) are direct evidence; the CI run on this branch is the remaining AC. |
+| 8 | Other `ensureOnboarded` callers / fixed waits elsewhere not audited | false | rejected | All four shard flows call `ensureOnboarded.yaml`; sign-in occurs only there (`onboarding.yaml` is the real-OTP flow). |
+| 9 | No guard against recurrence; gating has no owner | low | rejected | Recommendation recorded in `deferred-work.md` as the spec requires; a lint rule is new scope. |
+| 10 | Sprint-status comment says "not implemented"; spec/sprint statuses differ | low | patch | Comment updated; statuses are aligned when presented. |
+| 11 | Notes omit Story 19.9 link | low | patch | Sentence added to the Implementation Notes. |
+| 12 | Fix and per-flow-user claims untested | maybe-false | rejected | Not testable locally (no Maestro rig); settled by the labelled CI run, already the open AC. |
