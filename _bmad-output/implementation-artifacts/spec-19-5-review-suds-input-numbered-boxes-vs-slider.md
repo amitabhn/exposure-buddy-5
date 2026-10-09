@@ -71,7 +71,7 @@ A prop-level fix on the `ScrollView`, `Modal` or slider (for example `nestedScro
 - [ ] `apps/mobile/package.json`, a spike screen (one story: the spike is a checkpoint inside it, not a separate story; no call site is migrated until it passes, and a failed spike stops the story) -- add the dependency, build a dev client, run the Gate on iOS and Android, record the result here -- native-module risk
 - [ ] `apps/mobile/src/components/SudsSlider.tsx` -- shared control per the matrix -- replaces all SUDS inputs
 - [ ] the seven call sites -- swap in `SudsSlider`; Insta Calm also gets the Continue button and intro line; the `session/active` Modal cards get a `ScrollView` -- one control everywhere
-- [ ] delete the old components and tests; add `SudsSlider.test.tsx`, update screen tests, Jest slider mock -- regression coverage
+- [ ] delete the old components and tests; add `SudsSlider.test.tsx`, update screen tests, Jest slider mock -- regression coverage. `SudsSlider.test.tsx` must include the matrix row "Button press with a screen reader": spy on `AccessibilityInfo.announceForAccessibility`, press + (and −), and assert one call with `"N out of 10, <word>"` per press and none when the button is disabled at 0 or 10, and none for the slider's own screen-reader adjust
 - [ ] `.maestro/onboarding.yaml`, `.maestro/setup/addLadderItem.yaml` -- drive the slider -- keep E2E working
 - [ ] `en.json`, `hi.json` -- new copy
 
@@ -95,6 +95,8 @@ Spike Gate result, 2026-10-09 (human-run). **iOS: PASS.** Device: iPhone 15 Plus
 ## Spec Change Log
 
 Five party-mode review passes, 2026-10-09. Gate edits are human-approved (Cooper). Pass 5 (`e95ee77` plus this commit): the Gate's `ScrollView` check now requires overflowing content, a prop-level fix counts as a pass, and the Gate is a checklist. Review stopped here by the human; the spike is the next evidence.
+
+After pass 5, human-requested (Cooper, 2026-10-09): `a9e2e70` added the screen-reader announcement after − / + (Always sentence, matrix row "Button press with a screen reader", acceptance criterion); `210edee` and `c28c4cf` recorded the Gate result (iOS and Android pass) in Implementation Notes; party-mode Gate review added a Jest test for the announcement row (see Tasks). Open: the announcement is untested on Android 12+ (`View.announceForAccessibility` is deprecated from API 36) and on iOS with VoiceOver.
 
 ## Review Triage Log
 
