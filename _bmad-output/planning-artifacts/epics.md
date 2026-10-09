@@ -3351,7 +3351,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.4: Highlight Insta Calm on First Launch After Install
 
-**Status: backlog.** Feedback item 5. Components: `apps/mobile/src/components/CalmMeFab.tsx`, `app/calm-me/index.tsx`.
+**Status: done** (merged PR #103, a0a7b51). Feedback item 5. Components: `apps/mobile/src/components/CalmMeFab.tsx`, `app/calm-me/index.tsx`.
 
 **Given** the app is opened for the first time after an install
 **When** the user reaches the first screen where the Insta Calm button shows

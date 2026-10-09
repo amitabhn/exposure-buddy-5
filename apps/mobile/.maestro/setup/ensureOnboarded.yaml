@@ -39,7 +39,18 @@ appId: com.exposurebuddy.app
     element:
       text: "DEV: Sign in as test user"
 - tapOn: "DEV: Sign in as test user"
-- waitForAnimationToEnd
+
+# Story 19.12 — wait explicitly for the post-sign-in destination (welcome OR home). The fixed
+# waitForAnimationToEnd + the `when: visible` poll below only cover ~7 s, but Story 18.7's
+# reinstall fallback holds the onboarding redirect for up to SYNC_WAIT_TIMEOUT_MS (10 s) and CI
+# has no PowerSync endpoint, so on cleared state the welcome screen always arrives at ~10 s.
+# A flow that sampled early saw neither screen, skipped onboarding, and then failed on its
+# first Home tap. 30 s covers the 10 s hold with headroom. Regex text match: either marker ends
+# the wait (home: empty-ladder greeting, or the returning-user greeting). Dots are escaped so
+# the sign-in screen's "Welcome back" (auth.welcomeSignin, no period) can never end the wait early.
+- extendedWaitUntil:
+    visible: "Your journey starts here|Your Courage Ladder is ready\\. Let's go!|Welcome back\\."
+    timeout: 30000
 
 # Conditionally complete onboarding only if the welcome screen appeared.
 # If the app navigated directly to home, the runFlow condition is false and we skip.
