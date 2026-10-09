@@ -52,7 +52,7 @@ context:
 - [x] Record the diagnosed cause in Implementation Notes, ruling hypotheses (a) and (b) in or out with evidence
 - [x] Fix the flows or the app accordingly (explicit waits and/or per-flow users); app fixes carry a unit test
 - [x] Record the e2e gating recommendation (scheduled or required run versus label-gated) in Implementation Notes and `deferred-work.md` if it is left for a later story
-- [ ] Run all three shards with the `run-e2e` label (after asking before pushing) and record the run id
+- [x] Run all three shards with the `run-e2e` label (after asking before pushing) and record the run id
 
 **Acceptance Criteria:**
 - Given the failing second flow in `core` and `session`, then the cause is written down with evidence, not inferred
@@ -73,7 +73,7 @@ context:
 
 **Gating recommendation (recorded, not applied).** The e2e jobs are label-gated on PRs, so this sat red on `main` from 2026-10-02 to 2026-10-09 (five merges: PRs #98-#103). Recommend a `schedule:` (nightly) run of the e2e jobs on `main` plus a failing-notification, rather than making the 70-minute jobs required on every PR. Logged in `deferred-work.md`.
 
-**Not yet done:** all three shards green on a run on this branch (needs a push with the `run-e2e` label; awaiting the human's go-ahead, since pushes trigger paid ~70 min CI).
+**CI result.** PR #104, run 37905372770 (`run-e2e`): `E2E Smoke (core)`, `(session)` and `(onboarding)` all **success** (core 11m, session 12m, onboarding 8m). The first attempt failed before any shard ran, with a Gradle `Java heap space` error in `E2E Build APK` (27m48s; the same job had passed on the two preceding runs, so treated as a runner flake); re-running the failed jobs built the APK and all three shards passed. Both second flows (`exposure-loop`, `backgrounded-recovery`) now pass.
 
 ## Spec Change Log
 
