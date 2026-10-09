@@ -2,7 +2,7 @@
 title: 'Maestro Core and Session Shards Pass Again'
 type: 'bugfix'
 created: '2026-10-09'
-status: 'in-review'
+status: 'done'
 baseline_commit: '81699723cf9cdea513e19093bf64860c39e9f09a'
 route: 'dispatch'
 review_loop_iteration: 0
