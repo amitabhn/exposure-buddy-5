@@ -1187,3 +1187,15 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-3-courage-ladder-completed-items-sink-and-grey-out.md`
   summary: Adding a ladder item uses `items.length + 1` as its position, which can collide with an existing position after deletions.
   evidence: Pre-existing in `ladder.tsx` add handler; not caused by Story 19.3. **Fixed 2026-10-07** on the Story 19.3 branch: position is now max stored position + 1.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Full-screen intro overlay: Android TalkBack can still reach the dimmed content behind the scrim (iOS is covered by `accessibilityViewIsModal` on the button+card container).
+  evidence: Android has no `accessibilityViewIsModal` equivalent reachable from `CalmMeFab`. iOS VoiceOver and Android TalkBack are unchecked; settle with a device check.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: The Maestro "Got it" dismiss helper (`setup/dismissInstaCalmIntro.yaml`) has not been run; the overlay's scrim blocks every tap and scroll on a cleared install.
+  evidence: No local Maestro rig (Story 9.5). Settle by running the Maestro shards with the `run-e2e` label; 19.12 is already red on main.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Overlay device-checked on Android (dim, touch swallow, back, Got it, button tap, 200% font, `/session/*` suppression, sign-out/in, upgrader path all pass). iOS, TalkBack and VoiceOver, and the Hindi locale are deferred by the human; the Maestro dismiss helper will be run in the PR.
+  evidence: See the spec's Implementation Notes. Optionally add a non-optional Maestro `assertVisible: "Got it"` flow on a cleared install to guard paint order in CI.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
+  summary: Real Hindi copy for `calmMe.intro.{title,body,dismiss}` in `hi.json` (currently English copies, which the spec allows).
+  evidence: Deferred by the human 2026-10-07 during the overlay review. Hindi-locale users see an English intro and an English VoiceOver/TalkBack announcement until translated.

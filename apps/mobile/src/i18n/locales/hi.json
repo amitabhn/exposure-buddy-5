@@ -294,6 +294,11 @@
     "fabHint": "शांत करने की तकनीकें और संकट सहायता खोलता है",
     "fabLabel": "INSTA\nCALM",
     "exit": "बंद करें",
+    "intro": {
+      "title": "Meet Insta Calm",
+      "body": "Tap it any time you feel overwhelmed. It opens calming techniques and support.",
+      "dismiss": "Got it"
+    },
     "needToStop": "मुझे रुकना है",
     "yes": "हाँ",
     "notNow": "अभी नहीं",

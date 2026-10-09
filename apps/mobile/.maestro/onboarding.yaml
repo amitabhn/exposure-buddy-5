@@ -18,6 +18,9 @@ appId: com.exposurebuddy.app
 # there is no tap needed to reach signup mode — only the launch itself is required here).
 - launchApp
 
+# Story 19.4 — the first-launch intro scrim blocks touches (incl. scroll) until dismissed.
+- runFlow: setup/dismissInstaCalmIntro.yaml
+
 # Story 10.1 defaulted the auth method to Password; this flow exercises the OTP path
 # (the whole point of this shard), so switch it via the "use a code instead" inline link
 # (accessibilityLabel: t('auth.authMethod.switchToOtp'), visible text: t('auth.authMethod.
