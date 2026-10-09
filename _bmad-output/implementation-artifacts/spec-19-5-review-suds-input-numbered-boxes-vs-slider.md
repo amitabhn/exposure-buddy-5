@@ -70,7 +70,7 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 - Given Insta Calm, when the value changes, then nothing runs until Continue is tapped, and Continue is disabled until a value exists
 - Given an existing session or ladder item, when its value is read back, then it is unchanged and no migration ran
 - Given an existing ladder item, when its edit sheet opens, then the slider shows the stored value
-- Given the Maestro onboarding and ladder flows, when run, then their SUDS steps work with the slider and no flow fails that passes on `main` (core and session shards are already red on `main`, Story 19.12)
+- Given the Maestro onboarding and ladder flows, when run, then their SUDS steps work with the slider and no flow fails that passes on `main` (core and session shards were red on `main` until Story 19.12 landed in PR #104; compare against the latest `main` run, not an older one)
 
 ## Implementation Notes
 
