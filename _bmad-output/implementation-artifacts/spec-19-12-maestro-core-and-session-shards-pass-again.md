@@ -2,7 +2,8 @@
 title: 'Maestro Core and Session Shards Pass Again'
 type: 'bugfix'
 created: '2026-10-09'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: '81699723cf9cdea513e19093bf64860c39e9f09a'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -47,10 +48,10 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Pull artifacts from a red `main` run (screenshots, logcat, `report.xml`) and reproduce the two-flow sequence; record the screen the second flow is actually on when it fails
-- [ ] Record the diagnosed cause in Implementation Notes, ruling hypotheses (a) and (b) in or out with evidence
-- [ ] Fix the flows or the app accordingly (explicit waits and/or per-flow users); app fixes carry a unit test
-- [ ] Record the e2e gating recommendation (scheduled or required run versus label-gated) in Implementation Notes and `deferred-work.md` if it is left for a later story
+- [x] Pull artifacts from a red `main` run (screenshots, logcat, `report.xml`) and reproduce the two-flow sequence; record the screen the second flow is actually on when it fails
+- [x] Record the diagnosed cause in Implementation Notes, ruling hypotheses (a) and (b) in or out with evidence
+- [x] Fix the flows or the app accordingly (explicit waits and/or per-flow users); app fixes carry a unit test
+- [x] Record the e2e gating recommendation (scheduled or required run versus label-gated) in Implementation Notes and `deferred-work.md` if it is left for a later story
 - [ ] Run all three shards with the `run-e2e` label (after asking before pushing) and record the run id
 
 **Acceptance Criteria:**
@@ -63,7 +64,16 @@ context:
 
 ## Implementation Notes
 
-(To be filled in during implementation: diagnosed cause, evidence, run ids.)
+**Diagnosed cause (timing race, not server data).** From the artifacts of `main` run 37612378261 (`E2E Smoke (core)`, commit `f39a705`; `exposure-loop` and `ladder-build` command logs and screenshots):
+- Story 18.7's fallback (`useOnboardingExistenceFallback`) holds the onboarding redirect for `SYNC_WAIT_TIMEOUT_MS` = 10 s whenever the user is authenticated, onboarding is not complete in MMKV and no saved onboarding step exists. Every `ensureOnboarded` run starts with `clearState: true`, and CI has no PowerSync endpoint (logcat: `[PowerSync]: Sync error ... Not signed in 401`, repeating), so the replica is always empty and the hold always runs its full 10 s before the app routes to welcome.
+- `ensureOnboarded.yaml` sampled too early. After the DEV sign-in tap it did `waitForAnimationToEnd`, then `runFlow ... when: visible: "Your journey starts here"`, whose visibility poll lasts about 7 s. In `exposure-loop` the animation wait took 1.0 s and the `when` check ended **SKIPPED after 7.1 s**, before the hold released; the failing step's screenshot shows the welcome screen ("Step 1 of 4", "Get started") appearing right after. Onboarding was skipped, so the flow's first Home tap (`Add your first situation`) failed. In `ladder-build` (first flow) the same animation wait happened to take 6.5 s, so the `when` poll caught the welcome screen and onboarding ran. It passed by luck, not because it differed.
+- Hypothesis (b), existing server-side data, is **ruled out as the cause**: the hold is independent of server data in CI (empty replica either way), and the second flow does reach welcome after the hold. Hypothesis (a) is confirmed. The app is not wrong: with a real PowerSync endpoint an existing account lands on Home (the 18.7 intent), which the flow already handles ("direct to Home" branch).
+
+**Fix.** `apps/mobile/.maestro/setup/ensureOnboarded.yaml`: after the DEV sign-in tap, replace the fixed `waitForAnimationToEnd` with `extendedWaitUntil` (30 s) on a regex of the welcome title or either Home greeting (`Your journey starts here|Your Courage Ladder is ready. Let's go!|Welcome back.`); the existing conditional onboarding clickthrough then runs deterministically. No app change, so no unit test. Per-flow users were not needed: the flows already `clearState` and are idempotent.
+
+**Gating recommendation (recorded, not applied).** The e2e jobs are label-gated on PRs, so this sat red on `main` from 2026-10-02 to 2026-10-09 (five merges: PRs #98-#103). Recommend a `schedule:` (nightly) run of the e2e jobs on `main` plus a failing-notification, rather than making the 70-minute jobs required on every PR. Logged in `deferred-work.md`.
+
+**Not yet done:** all three shards green on a run on this branch (needs a push with the `run-e2e` label; awaiting the human's go-ahead, since pushes trigger paid ~70 min CI).
 
 ## Spec Change Log
 

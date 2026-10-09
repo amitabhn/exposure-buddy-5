@@ -1199,3 +1199,6 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-4-highlight-insta-calm-on-first-launch-after-install.md`
   summary: Real Hindi copy for `calmMe.intro.{title,body,dismiss}` in `hi.json` (currently English copies, which the spec allows).
   evidence: Deferred by the human 2026-10-07 during the overlay review. Hindi-locale users see an English intro and an English VoiceOver/TalkBack announcement until translated.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-12-maestro-core-and-session-shards-pass-again.md`
+  summary: E2E gating — add a scheduled (nightly) run of the Maestro e2e jobs on `main` with failure notification so a regression cannot sit on `main` for days.
+  evidence: The `core`/`session` shards were red on `main` from 2026-10-02 (PR #98) through five merges (PRs #98-#103) because the e2e jobs run only with the `run-e2e` label on PRs. Recommendation recorded in the 19.12 spec Implementation Notes; not applied (making the ~70 min jobs required per PR was ruled out).
