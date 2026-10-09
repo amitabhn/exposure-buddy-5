@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-10-08'
 status: 'ready-for-dev'
 route: 'dispatch'
-review_loop_iteration: 0
+review_loop_iteration: 5
 context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.md']
 ---
 
@@ -20,7 +20,15 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 
 **Always:** One shared component on all seven surfaces: pre-session `session/intent`, mid-session and debrief in `session/active`, `calm-me/index`, onboarding `assessment`, `FearItemForm`, and the add/edit form in `app/ladder.tsx:461` (today a number field). Value `null` means unset: the thumb sits at 5 in a muted tint, the readout shows a dash with "Drag to rate" below it, and the surface's primary button (Continue, Log, Next, Save or Finish session) stays disabled. Editing an existing item (`ladder.tsx:176`) starts at its stored value, not unset. The first −, + or screen-reader increase/decrease from unset sets 5; a first drag sets the dragged value. "First drag" means the release: the control reports the value on `onSlidingComplete` (and on every `onValueChange` during the drag), so grabbing the thumb at its parked 5 and letting go without moving it still sets 5. A native slider does not fire `onValueChange` when the value is unchanged, so `onValueChange` alone must not be relied on. Thumb at least 44 dp and − / + buttons at least 52 dp, disabled at 0 and 10. A wrapper exposes the `adjustable` role and handles increment/decrement in JS (so the unset rule holds), and the native slider inside it is hidden from the accessibility tree (`accessibilityElementsHidden`, `importantForAccessibility="no-hide-descendants"`) so a screen reader meets one slider stop, plus the separate − and + buttons, with spoken value "N out of 10, <word>", or "Not set". The readout shows the number with a word below it, centred between the buttons. The word comes from this table: 0 "No distress", 1–2 "Very mild", 3–4 "Mild", 5–6 "Moderate", 7–8 "High", 9 "Very high", 10 "Extreme distress". So 0 is the only "No distress", and 0, 5 and 10 always match the legend under the ticks. Insta Calm (`calm-me/index.tsx`) gets an explicit **Continue** button, disabled until a value exists and while the handler runs. Today one box tap runs `handleFreshSudsSelected`, which abandons the session, resets the ladder item and opens the debrief; a slider fires on the first press and on every drag step, so that handler runs only on Continue. The fresh-SUDS card also gets a friendly intro line above it: "Before we wrap up, take a moment to notice how you are feeling." Legend under the ticks sits in three equal columns with a 16 px gap and 8 px side padding: "No distress" left-aligned, "Moderate" centred, "Extreme distress" right-aligned, each wrapping inside its own column. Ticks are drawn to match the thumb's travel on both platforms. New copy (− / + labels, "Drag to rate", "Not set") goes in `en.json` and `hi.json`.
 
-**Gate:** Before any call site is migrated, a spike (the dependency plus one slider on one screen, built into a dev client) must pass on a real iOS and a real Android device: renders, drags, steps, ticks line up with the thumb, TalkBack/VoiceOver adjust works, the slider is announced once (no duplicate focus stop from the native control), the slider drags and steps inside an Android `Modal` (the mid-session and debrief surfaces in `session/active` are Modals), the slider still drags and steps when it sits inside a vertical `ScrollView` inside that Modal, on both platforms (the parent scroll must not steal or delay the thumb drag), and on iOS dragging the thumb inside a `pageSheet` Modal does not dismiss the sheet (the `ladder.tsx` edit sheet). If it fails, stop and return to the human; do not hand-build a gesture slider.
+**Gate:** Before any call site is migrated, a spike (the dependency plus one slider on one screen, built into a dev client) must pass every check below on a real iOS and a real Android device:
+
+- It renders, drags and steps, and the ticks line up with the thumb.
+- TalkBack/VoiceOver adjust works, and the slider is announced once (no duplicate focus stop from the native control).
+- On Android, the slider drags and steps inside a `Modal` (the mid-session and debrief surfaces in `session/active` are Modals).
+- On both platforms, the slider drags and steps when it sits inside a vertical `ScrollView` inside that Modal, and the `ScrollView` content is taller than the viewport so it actually scrolls (a `ScrollView` whose content fits tests nothing). The parent scroll must not steal or delay the thumb drag.
+- On iOS, dragging the thumb inside a `pageSheet` Modal does not dismiss the sheet (the `ladder.tsx` edit sheet).
+
+A prop-level fix on the `ScrollView`, `Modal` or slider (for example `nestedScrollEnabled`, or disabling parent scroll while the thumb is held) counts as a pass; record the prop in Implementation Notes. If a check still fails after that, stop and return to the human; do not hand-build a gesture slider.
 
 **Never:** No migration, no PowerSync schema change, no change to stored `suds_value` / `predicted_suds`. Do not cap or disable font scaling. Do not hand-build a gesture slider; use the Expo-bundled native slider. Keep the old controls only until every call site is migrated, then delete them.
 
@@ -79,7 +87,11 @@ context: ['{project-root}/_bmad-output/implementation-artifacts/epic-19-context.
 
 ## Implementation Notes
 
+Spike Gate result (platforms, devices, checks passed, any prop-level fix applied): not yet run.
+
 ## Spec Change Log
+
+Five party-mode review passes, 2026-10-09. Gate edits are human-approved (Cooper). Pass 5 (`e95ee77` plus this commit): the Gate's `ScrollView` check now requires overflowing content, a prop-level fix counts as a pass, and the Gate is a checklist. Review stopped here by the human; the spike is the next evidence.
 
 ## Review Triage Log
 
