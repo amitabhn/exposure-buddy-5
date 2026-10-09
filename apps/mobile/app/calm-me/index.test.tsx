@@ -21,8 +21,8 @@ jest.mock('../../src/sync/adapter', () => ({
   getAdapter: jest.fn(() => ({ enqueue: mockEnqueue })),
 }))
 
-jest.mock('../../src/components/session/SudsScale', () => ({
-  SudsScale: ({ onChange }: { onChange: (v: number) => void }) => {
+jest.mock('../../src/components/SudsSlider', () => ({
+  SudsSlider: ({ onChange }: { onChange: (v: number) => void }) => {
     const { TouchableOpacity, Text } = require('react-native')
     return (
       <>
@@ -165,6 +165,7 @@ describe('CalmMeScreen — in-session layout', () => {
     fireEvent.press(getByLabelText('calmMe.needToStop'))
     fireEvent.press(getByLabelText('calmMe.yes'))
     await act(async () => { fireEvent.press(getByTestId('suds-btn-3')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
 
     await waitFor(() => {
       expect(mockEnqueue).toHaveBeenCalledWith(
@@ -192,6 +193,18 @@ describe('CalmMeScreen — in-session layout', () => {
     expect(url).toContain('completedAtMs=')
   })
 
+  it('fresh SUDS: Continue is disabled until a value exists and nothing runs before Continue is tapped', async () => {
+    const { getByLabelText, getByTestId } = render(<CalmMeScreen />)
+    fireEvent.press(getByLabelText('calmMe.needToStop'))
+    fireEvent.press(getByLabelText('calmMe.yes'))
+    expect(getByLabelText('session.intent.continue').props.accessibilityState.disabled).toBe(true)
+    await act(async () => { fireEvent.press(getByTestId('suds-btn-7')) })
+    expect(mockEnqueue).not.toHaveBeenCalled()
+    expect(getByLabelText('session.intent.continue').props.accessibilityState.disabled).toBe(false)
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
+    await waitFor(() => expect(mockEnqueue).toHaveBeenCalledTimes(2))
+  })
+
   it('guards a null fearItemId in the debrief URL instead of interpolating the literal string "null"', async () => {
     mockUseAuth.mockReturnValue({
       sessionRecoveryData: { ...sessionRecoveryData, fearItemId: null },
@@ -204,6 +217,7 @@ describe('CalmMeScreen — in-session layout', () => {
     fireEvent.press(getByLabelText('calmMe.needToStop'))
     fireEvent.press(getByLabelText('calmMe.yes'))
     await act(async () => { fireEvent.press(getByTestId('suds-btn-5')) })
+    await act(async () => { fireEvent.press(getByLabelText('session.intent.continue')) })
 
     await waitFor(() => {
       const debriefCall = mockRouterPush.mock.calls.find((c: string[]) => c[0]?.includes('/session/debrief'))

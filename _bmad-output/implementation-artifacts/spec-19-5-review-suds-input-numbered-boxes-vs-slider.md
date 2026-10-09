@@ -67,13 +67,13 @@ A prop-level fix on the `ScrollView`, `Modal` or slider (for example `nestedScro
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] this story file -- record the comparison and decision (Design Notes) -- review deliverable
-- [ ] `apps/mobile/package.json`, a spike screen (one story: the spike is a checkpoint inside it, not a separate story; no call site is migrated until it passes, and a failed spike stops the story) -- add the dependency, build a dev client, run the Gate on iOS and Android, record the result here -- native-module risk
-- [ ] `apps/mobile/src/components/SudsSlider.tsx` -- shared control per the matrix -- replaces all SUDS inputs
-- [ ] the seven call sites -- swap in `SudsSlider`; Insta Calm also gets the Continue button and intro line; the `session/active` Modal cards get a `ScrollView` -- one control everywhere
-- [ ] delete the old components and tests; add `SudsSlider.test.tsx`, update screen tests, Jest slider mock -- regression coverage. `SudsSlider.test.tsx` must include the matrix row "Button press with a screen reader": spy on `AccessibilityInfo.announceForAccessibility`, press + (and −), and assert one call with `"N out of 10, <word>"` per press and none when the button is disabled at 0 or 10, and none for the slider's own screen-reader adjust
-- [ ] `.maestro/onboarding.yaml`, `.maestro/setup/addLadderItem.yaml` -- drive the slider -- keep E2E working
-- [ ] `en.json`, `hi.json` -- new copy
+- [x] this story file -- record the comparison and decision (Design Notes) -- review deliverable
+- [x] `apps/mobile/package.json`, a spike screen (one story: the spike is a checkpoint inside it, not a separate story; no call site is migrated until it passes, and a failed spike stops the story) -- add the dependency, build a dev client, run the Gate on iOS and Android, record the result here -- native-module risk
+- [x] `apps/mobile/src/components/SudsSlider.tsx` -- shared control per the matrix -- replaces all SUDS inputs
+- [x] the seven call sites -- swap in `SudsSlider`; Insta Calm also gets the Continue button and intro line; the `session/active` Modal cards get a `ScrollView` -- one control everywhere
+- [x] delete the old components and tests; add `SudsSlider.test.tsx`, update screen tests, Jest slider mock -- regression coverage. `SudsSlider.test.tsx` must include the matrix row "Button press with a screen reader": spy on `AccessibilityInfo.announceForAccessibility`, press + (and −), and assert one call with `"N out of 10, <word>"` per press and none when the button is disabled at 0 or 10, and none for the slider's own screen-reader adjust
+- [x] `.maestro/onboarding.yaml`, `.maestro/setup/addLadderItem.yaml` -- drive the slider -- keep E2E working
+- [x] `en.json`, `hi.json` -- new copy
 
 **Acceptance Criteria:**
 - Given the story file, when read, then it holds the comparison, the decision, the spike result, and the statement that all seven surfaces change together
@@ -91,6 +91,8 @@ A prop-level fix on the `ScrollView`, `Modal` or slider (for example `nestedScro
 ## Implementation Notes
 
 Spike Gate result, 2026-10-09 (human-run). **iOS: PASS.** Device: iPhone 15 Plus, iOS 26.6, Debug dev client built from this worktree (slider 5.2.0), JS from Metro. Checked on `/spike-slider`: (1) inline slider: drag, − / +, ticks, release-without-moving; (2) slider inside a `Modal` with an overflowing vertical `ScrollView`: thumb drag not stolen by the parent scroll; (3) slider inside a `pageSheet` Modal: dragging the thumb does not dismiss the sheet; (4) VoiceOver adjust. All four worked. No prop-level fix was needed. **Android: PASS** (human-run, 2026-10-09). Device: Redmi K20 Pro, Android 11, EAS development APK (build `1914c343`, commit `f0dc2e7`; it contains the slider's native classes), JS from Metro. Checked on `/spike-slider`: inline slider, slider inside a plain `Modal`, slider inside the `Modal` with an overflowing `ScrollView` (parent scroll did not steal the thumb drag), and TalkBack (slider announced once, adjust works, − and + are separate controls, and the rating is spoken after − or +). No prop-level fix was needed. The screen-reader announcement after − / + was added after the iOS run and has not been checked on iOS with VoiceOver; it is covered by the matrix row and acceptance criterion. **Gate: cleared on both platforms.** **Decision (human):** on iOS the thumb moves continuously while dragging and settles on the nearest step at release; `step={1}` already makes the value an integer, and the library ignores value updates mid-drag on iOS (`RNCSliderComponentView.mm`). Accepted as-is: no library patch, no custom thumb. Android was checked afterward; any platform difference is accepted. Prepared 2026-10-09: dev-only spike route `apps/mobile/app/spike-slider.tsx` has an inline slider, a Modal with an overflowing ScrollView, and a pageSheet Modal, with the adjustable wrapper and hidden native control. The Gate has passed on both platforms: delete the spike route and the temporary "Slider spike" home-screen button before the call-site migration. No call site migrated.
+
+Implementation, 2026-10-09: `SudsSlider` (`src/components/SudsSlider.tsx`) replaces both box controls on all seven surfaces; `SudsScale`, `SudsCalibrationWidget`, their tests and the spike route are deleted; `session/active` cards scroll (`ScrollView`, card `maxHeight` 90%); Insta Calm has the intro line and a Continue button. `ladder.test.tsx` mocks `SudsSlider` with a text field so its form tests are unchanged. Maestro: besides the two named flows, `_onboarding-clickthrough`, `reachDebrief` and `backgrounded-recovery` tapped "N out of 10" / "4 — Mild" and now use + (and − once for 4). Jest 601/601, tsc clean. Not yet done: on-device checks in Verification (200% font, modal-card scrolling, iOS VoiceOver announcement), Maestro run. `hi.json` carries English placeholders for the new strings, as the spec says.
 
 ## Spec Change Log
 

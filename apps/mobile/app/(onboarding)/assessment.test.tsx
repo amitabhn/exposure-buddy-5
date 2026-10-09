@@ -36,10 +36,10 @@ jest.mock('../../src/components/onboarding/OnboardingStepIndicator', () => ({
   OnboardingStepIndicator: () => null,
 }))
 
-jest.mock('../../src/components/onboarding/SudsCalibrationWidget', () => {
+jest.mock('../../src/components/SudsSlider', () => {
   const { TouchableOpacity } = require('react-native')
   return {
-    SudsCalibrationWidget: ({ onChange }: { onChange: (v: number) => void }) => (
+    SudsSlider: ({ onChange }: { onChange: (v: number) => void }) => (
       <TouchableOpacity testID="suds-widget" accessibilityRole="none" onPress={() => onChange(7)}>
       </TouchableOpacity>
     ),

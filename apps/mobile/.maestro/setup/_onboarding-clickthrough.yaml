@@ -10,10 +10,9 @@ appId: com.exposurebuddy.app
     text: "Get started"
 - waitForAnimationToEnd
 
-# assessment.tsx — SUDS calibration widget: pick value 5
-# (SudsCalibrationWidget a11y labels: "0 out of 10" … "10 out of 10")
+# assessment.tsx — SUDS slider: from unset, one tap on + lands on 5
 - tapOn:
-    text: "5 out of 10"
+    text: "Increase rating"
 
 # assessment.tsx CTA — "Next" (disabled until a SUDS value is picked). The CTA sits below the
 # SUDS widget in a ScrollView — on the emulator it's below the fold, so scroll it into view first.

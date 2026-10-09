@@ -75,6 +75,23 @@ jest.mock('../src/sync/adapter', () => ({
   getAdapter: jest.fn(() => ({ enqueue: mockEnqueue })),
 }))
 
+// SudsSlider is covered by its own suite; here a text field stands in so the form logic stays testable.
+jest.mock('../src/components/SudsSlider', () => {
+  const { TextInput } = require('react-native')
+  return {
+    SudsSlider: ({ value, onChange }: { value: number | null; onChange: (v: number) => void }) => (
+      <TextInput
+        accessibilityLabel="ladder.sudsLabel"
+        value={value !== null ? String(value) : ''}
+        onChangeText={(v: string) => {
+          const n = parseInt(v, 10)
+          if (!isNaN(n) && n >= 0 && n <= 10) onChange(n)
+        }}
+      />
+    ),
+  }
+})
+
 jest.mock('../src/components/navigation/BackButton', () => ({
   BackButton: () => null,
 }))

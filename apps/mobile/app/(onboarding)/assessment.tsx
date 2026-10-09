@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
-import { SudsCalibrationWidget } from '../../src/components/onboarding/SudsCalibrationWidget'
+import { SudsSlider } from '../../src/components/SudsSlider'
 import { getAdapter } from '../../src/sync/adapter'
 
 // Pure-JS UUID v4 — avoids native module dependency (crypto global absent in Hermes without polyfill)
@@ -79,7 +79,7 @@ export default function AssessmentScreen() {
         {/* SUDS calibration section */}
         <Text style={styles.sectionTitle}>{t('onboarding.assessment.calibrationTitle')}</Text>
         <Text style={styles.scenario}>{t('onboarding.assessment.practiceScenario')}</Text>
-        <SudsCalibrationWidget value={selectedValue} onChange={setSelectedValue} />
+        <SudsSlider value={selectedValue} onChange={setSelectedValue} />
 
         {saveError ? (
           <View>

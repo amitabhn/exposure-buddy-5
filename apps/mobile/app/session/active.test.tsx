@@ -20,8 +20,8 @@ jest.mock('../../src/sync/adapter', () => ({
   getAdapter: jest.fn(() => ({ enqueue: mockEnqueue })),
 }))
 
-jest.mock('../../src/components/session/SudsScale', () => ({
-  SudsScale: ({ onChange }: { onChange: (v: number) => void }) => {
+jest.mock('../../src/components/SudsSlider', () => ({
+  SudsSlider: ({ onChange }: { onChange: (v: number) => void }) => {
     const { TouchableOpacity, Text } = require('react-native')
     return (
       <>
@@ -189,7 +189,7 @@ describe('ActiveScreen — completion modal', () => {
     expect(getByLabelText('session.active.finishSession')).toBeTruthy()
   })
 
-  it('completion modal shows SudsScale buttons', async () => {
+  it('completion modal shows SUDS buttons', async () => {
     const { getByLabelText, getAllByTestId } = render(<ActiveScreen />)
     await act(async () => { fireEvent.press(getByLabelText('session.active.completeExposure')) })
     const buttons = getAllByTestId(/^suds-btn-/)
