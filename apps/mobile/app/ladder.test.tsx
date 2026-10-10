@@ -344,6 +344,34 @@ describe('LadderScreen', () => {
       expect(consoleError).toHaveBeenCalledTimes(1)
     })
 
+    // Deferred item 1 repro: the local DB watch can push a half-applied chain back into the list
+    // (ladder.tsx remoteItems effect). A second drag made on that partial order builds its swaps
+    // from partial positions, so the replayed server state must not collide.
+    // KNOWN BUG (deferred, code review 19.6): currently collides (item 1 and item 4 both end at
+    // position 3). `it.failing` keeps the suite green; flip to `it` when the fix lands.
+    it.failing('a second drag on a half-applied first chain leaves unique positions on the server', async () => {
+      let releaseFirst: () => void = () => {}
+      mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      const { rerender } = render(<LadderScreen />)
+      // drag 1: Item 1 two slots down (swaps 1<->2, then 1<->3); swap 1 is "written" but not yet the rest
+      act(() => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      // the local DB now reports only swap 1 applied: order 2, 1, 3, 4
+      const partial = [mk('1', 2), mk('2', 1), mk('3', 3), mk('4', 4)]
+      mockUseFearLadderItems.mockReturnValue({ items: partial, isLoading: false })
+      rerender(<LadderScreen />)
+      // drag 2 on the displayed (partial) order: Item 4 one slot up
+      act(() => { mockDragEnd.current!({ data: [partial[1]!, partial[0]!, partial[3]!, partial[2]!], from: 3, to: 2 }) })
+      await act(async () => { releaseFirst() })
+      const positions = new Map(four.map(i => [i.id, i.position]))
+      for (const p of payloads()) {
+        positions.set(p.itemAId, p.itemANewPosition)
+        positions.set(p.itemBId, p.itemBNewPosition)
+      }
+      const serverPositions = [...positions.values()]
+      expect(new Set(serverPositions).size).toBe(serverPositions.length)
+    })
+
     it('two back-to-back drags enqueue all of the first chain before any of the second', async () => {
       let releaseFirst: () => void = () => {}
       mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
