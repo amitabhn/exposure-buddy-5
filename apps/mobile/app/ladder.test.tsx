@@ -370,6 +370,35 @@ describe('LadderScreen', () => {
       expect(new Set(serverPositions).size).toBe(serverPositions.length)
     })
 
+    it('holds remote updates while a chain is pending and applies the next one once it finishes', async () => {
+      let releaseFirst: () => void = () => {}
+      mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      const { getAllByRole, rerender } = render(<LadderScreen />)
+      act(() => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      // a remote update (new item 5) arrives mid-chain: held, the optimistic order stays
+      mockUseFearLadderItems.mockReturnValue({ items: [...four, mk('5', 5)], isLoading: false })
+      rerender(<LadderScreen />)
+      expect(labels(getAllByRole)).toEqual(['2', '3', '1', '4'])
+      await act(async () => { releaseFirst() })
+      // the next remote emission after the chain finished is applied
+      mockUseFearLadderItems.mockReturnValue({ items: [...four, mk('5', 5)], isLoading: false })
+      rerender(<LadderScreen />)
+      expect(labels(getAllByRole)).toEqual(['1', '2', '3', '4', '5'])
+    })
+
+    it('a failed chain also releases the hold on remote updates', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+      mockEnqueue.mockRejectedValueOnce(new Error('sqlite busy'))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      const { getAllByRole, rerender } = render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      expect(consoleError).toHaveBeenCalledWith('[LadderScreen] reorder enqueue failed:', expect.any(Error))
+      mockUseFearLadderItems.mockReturnValue({ items: [...four, mk('5', 5)], isLoading: false })
+      rerender(<LadderScreen />)
+      expect(labels(getAllByRole)).toEqual(['1', '2', '3', '4', '5'])
+    })
+
     it('two back-to-back drags enqueue all of the first chain before any of the second', async () => {
       let releaseFirst: () => void = () => {}
       mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
