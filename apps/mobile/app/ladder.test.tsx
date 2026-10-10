@@ -238,6 +238,101 @@ describe('LadderScreen', () => {
     })
   })
 
+  describe('multi-slot drag (Story 19.6)', () => {
+    const mk = (id: string, position: number, status = 'pending') =>
+      ({ id, description: `Item ${id}`, predictedSuds: 5, position, status })
+    const four = [mk('1', 1), mk('2', 2), mk('3', 3), mk('4', 4)]
+    const labels = (getAllByRole: ReturnType<typeof render>['getAllByRole']) =>
+      getAllByRole('button')
+        .map(b => b.props.accessibilityLabel as string | undefined)
+        .filter((l): l is string => !!l && l.startsWith('Item '))
+        .map(l => l.slice(5, 6))
+    const payloads = () => mockEnqueue.mock.calls.map(call => call[2])
+    // Replays the enqueued swaps over the starting positions, as the server would apply them.
+    const replay = (items: { id: string; position: number }[]) => {
+      const positions = new Map(items.map(i => [i.id, i.position]))
+      for (const p of payloads()) {
+        positions.set(p.itemAId, p.itemANewPosition)
+        positions.set(p.itemBId, p.itemBNewPosition)
+      }
+      return [...positions.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id)
+    }
+
+    it('a 2-slot drag down enqueues two adjacent swaps in order', async () => {
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      expect(payloads()).toEqual([
+        expect.objectContaining({ itemAId: '1', itemANewPosition: 2, itemBId: '2', itemBNewPosition: 1 }),
+        expect.objectContaining({ itemAId: '1', itemANewPosition: 3, itemBId: '3', itemBNewPosition: 2 }),
+      ])
+      expect(labels(getAllByRole)).toEqual(['2', '3', '1', '4'])
+      expect(replay(four)).toEqual(['2', '3', '1', '4'])
+    })
+
+    it('a 2-slot drag up enqueues two adjacent swaps in order', async () => {
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [four[0]!, four[3]!, four[1]!, four[2]!], from: 3, to: 1 }) })
+      expect(payloads()).toEqual([
+        expect.objectContaining({ itemAId: '4', itemANewPosition: 3, itemBId: '3', itemBNewPosition: 4 }),
+        expect.objectContaining({ itemAId: '4', itemANewPosition: 2, itemBId: '2', itemBNewPosition: 3 }),
+      ])
+      expect(labels(getAllByRole)).toEqual(['1', '4', '2', '3'])
+      expect(replay(four)).toEqual(['1', '4', '2', '3'])
+    })
+
+    it('a full-length drag reproduces the optimistic order on the server, with gaps in stored positions', async () => {
+      const gapped = [mk('1', 2), mk('2', 5), mk('3', 6), mk('4', 9)]
+      mockUseFearLadderItems.mockReturnValue({ items: gapped, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [gapped[3]!, gapped[0]!, gapped[1]!, gapped[2]!], from: 3, to: 0 }) })
+      expect(payloads()).toHaveLength(3)
+      expect(labels(getAllByRole)).toEqual(['4', '1', '2', '3'])
+      expect(replay(gapped)).toEqual(['4', '1', '2', '3'])
+    })
+
+    it('a multi-slot drag inside the completed group never mentions an unfinished item', async () => {
+      const items = [mk('1', 1, 'completed'), mk('2', 2, 'completed'), mk('3', 3, 'completed'), mk('4', 4)]
+      mockUseFearLadderItems.mockReturnValue({ items, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      // display order: 4, 1, 2, 3 -> drag Item 3 (index 3) up to index 1
+      await act(async () => { mockDragEnd.current!({ data: [items[3]!, items[2]!, items[0]!, items[1]!], from: 3, to: 1 }) })
+      expect(payloads()).toHaveLength(2)
+      for (const p of payloads()) {
+        expect(p.itemAId).not.toBe('4')
+        expect(p.itemBId).not.toBe('4')
+      }
+      expect(labels(getAllByRole)).toEqual(['4', '3', '1', '2'])
+      expect(replay(items)).toEqual(['3', '1', '2', '4'])
+    })
+
+    it('a failed enqueue stops the chain and logs the existing message', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+      mockEnqueue.mockRejectedValueOnce(new Error('sqlite busy'))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      expect(mockEnqueue).toHaveBeenCalledTimes(1)
+      expect(consoleError).toHaveBeenCalledWith('[LadderScreen] reorder enqueue failed:', expect.any(Error))
+    })
+
+    it('two back-to-back drags enqueue all of the first chain before any of the second', async () => {
+      let releaseFirst: () => void = () => {}
+      mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      render(<LadderScreen />)
+      // drag 1: Item 1 two slots down (2 swaps); its first enqueue is still pending
+      act(() => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
+      // drag 2 (on the optimistic order 2,3,1,4): Item 4 one slot up (1 swap)
+      act(() => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[3]!, four[0]!], from: 3, to: 2 }) })
+      expect(mockEnqueue).toHaveBeenCalledTimes(1)
+      await act(async () => { releaseFirst() })
+      expect(mockEnqueue).toHaveBeenCalledTimes(3)
+      expect(payloads().map(p => [p.itemAId, p.itemBId])).toEqual([['1', '2'], ['1', '3'], ['4', '1']])
+    })
+  })
+
   it('renders status labels for each item', () => {
     mockUseFearLadderItems.mockReturnValue({ items: [baseItem], isLoading: false })
     const { getByText } = render(<LadderScreen />)

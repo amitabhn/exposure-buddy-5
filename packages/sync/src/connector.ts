@@ -52,15 +52,20 @@ function isReorderPair(group: CrudEntry[]): group is [CrudEntry, CrudEntry] {
   })
 }
 
-function groupReorderPairs(crud: CrudEntry[]): { pairs: [CrudEntry, CrudEntry][]; remaining: CrudEntry[] } {
-  const byTransaction = new Map<number, CrudEntry[]>()
-  const remaining: CrudEntry[] = []
+// One step of the upload: a reorder pair (sent as one swap RPC) or a single entry.
+type UploadUnit =
+  | { kind: 'swap'; a: CrudEntry; b: CrudEntry }
+  | { kind: 'entry'; entry: CrudEntry }
 
+// Story 19.6: batch.crud is the user's chronological order, so uploads must replay it. Only a
+// reorder pair is lifted out of the plain order, and it is emitted where its FIRST entry sits (its
+// second entry is skipped); every other entry, including members of a non-pair group, stays where
+// it is. An insert therefore always reaches Supabase before a swap that mentions it. This does not
+// rely on a transaction's rows being adjacent in batch.crud.
+function toUploadUnits(crud: CrudEntry[]): UploadUnit[] {
+  const byTransaction = new Map<number, CrudEntry[]>()
   for (const entry of crud) {
-    if (entry.transactionId == null) {
-      remaining.push(entry)
-      continue
-    }
+    if (entry.transactionId == null) continue
     const group = byTransaction.get(entry.transactionId)
     if (group) {
       group.push(entry)
@@ -69,16 +74,19 @@ function groupReorderPairs(crud: CrudEntry[]): { pairs: [CrudEntry, CrudEntry][]
     }
   }
 
-  const pairs: [CrudEntry, CrudEntry][] = []
-  for (const group of byTransaction.values()) {
-    if (isReorderPair(group)) {
-      pairs.push(group)
+  const units: UploadUnit[] = []
+  const pairSecondEntries = new Set<CrudEntry>()
+  for (const entry of crud) {
+    if (pairSecondEntries.has(entry)) continue
+    const group = entry.transactionId == null ? undefined : byTransaction.get(entry.transactionId)
+    if (group && isReorderPair(group)) {
+      pairSecondEntries.add(group[1])
+      units.push({ kind: 'swap', a: group[0], b: group[1] })
     } else {
-      remaining.push(...group)
+      units.push({ kind: 'entry', entry })
     }
   }
-
-  return { pairs, remaining }
+  return units
 }
 
 let _urlValidationWarned = false
@@ -117,26 +125,24 @@ export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
     const batch = await database.getCrudBatch(200)
     if (!batch) return  // nothing to upload
 
-    const { pairs, remaining } = groupReorderPairs(batch.crud)
-
-    for (const [entryA, entryB] of pairs) {
-      const { error } = await this.supabase.rpc('swap_ladder_positions', {
-        p_item_a_id: entryA.id,
-        p_item_a_new_position: entryA.opData!['position'] as number,
-        p_item_b_id: entryB.id,
-        p_item_b_new_position: entryB.opData!['position'] as number,
-      })
-      // Non-retryable application errors (e.g. one of the paired items was deleted
-      // before this batch uploaded — see AC 2/AC 3's error-type discrimination note)
-      // must not propagate as a bare throw, or PowerSync retries the whole batch
-      // forever. Only retryable network-level failures should throw.
-      if (error && isRetryableError(error)) throw error
-      if (error) console.error('[PowerSync] swap_ladder_positions non-retryable error:', error)
-    }
-
-    for (const entry of remaining) {
-      const { error } = await this._uploadEntry(entry)
-      if (error) throw error  // PowerSync will retry after configured wait (default 5s)
+    for (const unit of toUploadUnits(batch.crud)) {
+      if (unit.kind === 'swap') {
+        const { error } = await this.supabase.rpc('swap_ladder_positions', {
+          p_item_a_id: unit.a.id,
+          p_item_a_new_position: unit.a.opData!['position'] as number,
+          p_item_b_id: unit.b.id,
+          p_item_b_new_position: unit.b.opData!['position'] as number,
+        })
+        // Non-retryable application errors (e.g. one of the paired items was deleted
+        // before this batch uploaded — see AC 2/AC 3's error-type discrimination note)
+        // must not propagate as a bare throw, or PowerSync retries the whole batch
+        // forever. Only retryable network-level failures should throw.
+        if (error && isRetryableError(error)) throw error
+        if (error) console.error('[PowerSync] swap_ladder_positions non-retryable error:', error)
+      } else {
+        const { error } = await this._uploadEntry(unit.entry)
+        if (error) throw error  // PowerSync will retry after configured wait (default 5s)
+      }
     }
 
     await batch.complete()

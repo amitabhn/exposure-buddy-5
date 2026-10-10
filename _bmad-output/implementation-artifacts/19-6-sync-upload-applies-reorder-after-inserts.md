@@ -1,6 +1,6 @@
 # Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
 
-Status: ready-for-dev
+Status: review
 
 <!-- Source: epics.md Epic 19, Story 19.6. Found 2026-10-06 during Story 19.1's Android device verification. A defect against Story 6.2 (AC 2/3) reorder behaviour; no FR of its own, not a beta-feedback item. -->
 
@@ -155,10 +155,26 @@ If an insert earlier in the queue is permanently rejected (for example `uq_user_
 
 ### Agent Model Used
 
-_to be filled by the dev agent_
+claude-sonnet-5-5 (implemented directly, no subagents)
 
 ### Debug Log References
 
+- Baseline: `1ca4e52`. Task 1: the five new `connector.test.ts` cases (inserts → swap order, failed insert, delete → swap, two swaps + PATCH, non-pair group not regrouped) were run against unmodified `connector.ts` first and all 5 failed; after the fix 31/31 pass in `packages/sync`.
+- `pnpm turbo typecheck lint` (sync + mobile): 7/7 successful. Mobile Jest 606/606 (ladder.test.tsx 64/64, the three existing drag tests unmodified).
+- The fresh worktree needed `pnpm install` and `pnpm turbo build --filter='@exposure-buddy/sync^...'` before tests could resolve workspace packages.
+
 ### Completion Notes List
 
+- **Approach (AC 2): preserve `ps_crud` order.** `groupReorderPairs` is replaced by `toUploadUnits`: only reorder pairs are grouped (emitted at their first entry's slot, second entry skipped); every other entry, including members of non-pair groups, stays in place. `uploadData` has one loop and the unchanged error policy. Cases: (a) earlier batch: swap alone, existing test; (b) same batch: insert precedes swap; (c) failing insert: `uploadData` throws before the swap, batch not completed, swap stays queued. Rejected "pairs last": it drops `swap A,B` then `DELETE A` and reorders a swap against a later PATCH.
+- **AC 6:** no dead-lettering, retry cap or new non-retryable classes; the three `NON_RETRYABLE_RPC_ERRORS` untouched.
+- **AC 7:** `handleDragEnd` builds k adjacent swaps (moved item vs neighbour, positions from the group's own stored values) and runs them through a ref-held promise tail so separate drags cannot interleave; the first enqueue of an idle chain stays synchronous. Jest replays the enqueued swaps over the starting positions and compares to the optimistic order. Accepted risk as in Dev Notes (partial chain on a local write failure).
+- **AC 5: not verified on a device or with the offline preview-build repro.** Only unit/Jest coverage was run.
+
 ### File List
+
+- `packages/sync/src/connector.ts`
+- `packages/sync/__tests__/connector.test.ts`
+- `apps/mobile/app/ladder.tsx`
+- `apps/mobile/app/ladder.test.tsx`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
