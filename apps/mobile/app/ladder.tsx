@@ -150,7 +150,12 @@ export default function LadderScreen() {
   }, [ladderLoading, screenTransitioned, items.length])
 
   // Sync remote items into local state when stub is replaced in Epic 6; sort by position ascending (AC 1)
+  // While a drag's swap chain is still being enqueued the local DB only holds part of it, so applying
+  // it would show (and let the next drag build swaps from) a half-applied order. The optimistic order
+  // stays until the chains finish; the DB emission that follows the last write then applies the final
+  // state (Story 19.6 review).
   useEffect(() => {
+    if (reorderChainsPending.current > 0) return
     setItems([...remoteItems].sort((a, b) => a.position - b.position))
   }, [remoteItems])
 

@@ -347,9 +347,7 @@ describe('LadderScreen', () => {
     // Deferred item 1 repro: the local DB watch can push a half-applied chain back into the list
     // (ladder.tsx remoteItems effect). A second drag made on that partial order builds its swaps
     // from partial positions, so the replayed server state must not collide.
-    // KNOWN BUG (deferred, code review 19.6): currently collides (item 1 and item 4 both end at
-    // position 3). `it.failing` keeps the suite green; flip to `it` when the fix lands.
-    it.failing('a second drag on a half-applied first chain leaves unique positions on the server', async () => {
+    it('a second drag on a half-applied first chain leaves unique positions on the server', async () => {
       let releaseFirst: () => void = () => {}
       mockEnqueue.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve }))
       mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
