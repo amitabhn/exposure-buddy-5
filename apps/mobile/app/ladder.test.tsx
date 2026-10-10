@@ -307,6 +307,21 @@ describe('LadderScreen', () => {
       expect(replay(items)).toEqual(['3', '1', '2', '4'])
     })
 
+    it('a multi-slot drag down inside the completed group never mentions an unfinished item', async () => {
+      const items = [mk('1', 1, 'completed'), mk('2', 2, 'completed'), mk('3', 3, 'completed'), mk('4', 4)]
+      mockUseFearLadderItems.mockReturnValue({ items, isLoading: false })
+      const { getAllByRole } = render(<LadderScreen />)
+      // display order: 4, 1, 2, 3 -> drag Item 1 (index 1) down to index 3
+      await act(async () => { mockDragEnd.current!({ data: [items[3]!, items[1]!, items[2]!, items[0]!], from: 1, to: 3 }) })
+      expect(payloads()).toHaveLength(2)
+      for (const p of payloads()) {
+        expect(p.itemAId).not.toBe('4')
+        expect(p.itemBId).not.toBe('4')
+      }
+      expect(labels(getAllByRole)).toEqual(['4', '2', '3', '1'])
+      expect(replay(items)).toEqual(['2', '3', '1', '4'])
+    })
+
     it('a failed enqueue stops the chain and logs the existing message', async () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
       mockEnqueue.mockRejectedValueOnce(new Error('sqlite busy'))
@@ -315,6 +330,18 @@ describe('LadderScreen', () => {
       await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[2]!, four[0]!, four[3]!], from: 0, to: 2 }) })
       expect(mockEnqueue).toHaveBeenCalledTimes(1)
       expect(consoleError).toHaveBeenCalledWith('[LadderScreen] reorder enqueue failed:', expect.any(Error))
+    })
+
+    it('a drag after a failed chain still enqueues (the chain tail is not wedged)', async () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+      mockEnqueue.mockRejectedValueOnce(new Error('sqlite busy'))
+      mockUseFearLadderItems.mockReturnValue({ items: four, isLoading: false })
+      render(<LadderScreen />)
+      await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[0]!, four[2]!, four[3]!], from: 0, to: 1 }) })
+      expect(mockEnqueue).toHaveBeenCalledTimes(1)
+      await act(async () => { mockDragEnd.current!({ data: [four[1]!, four[0]!, four[3]!, four[2]!], from: 3, to: 2 }) })
+      expect(mockEnqueue).toHaveBeenCalledTimes(2)
+      expect(consoleError).toHaveBeenCalledTimes(1)
     })
 
     it('two back-to-back drags enqueue all of the first chain before any of the second', async () => {

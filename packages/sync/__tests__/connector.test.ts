@@ -215,9 +215,13 @@ describe('SupabasePowerSyncConnector.uploadData', () => {
       const del = makeEntry({ id: 'item-a', op: UpdateType.DELETE, transactionId: 3, opData: undefined })
       const { db, result } = run(supabase, [put('item-a', 1), put('item-b', 2), del, ...swapPair(4)])
 
-      await expect(result).resolves.not.toThrow()
+      await expect(result).resolves.toBeUndefined()
+      expect(supabase.rpc).toHaveBeenCalledOnce()
       expect(supabase.deleteEq.mock.invocationCallOrder[0]).toBeLessThan(supabase.rpc.mock.invocationCallOrder[0]!)
-      expect(consoleError).toHaveBeenCalled()
+      expect(consoleError).toHaveBeenCalledWith(
+        '[PowerSync] swap_ladder_positions non-retryable error:',
+        expect.objectContaining({ message: expect.stringContaining('not found') }),
+      )
       expect(db.complete).toHaveBeenCalledOnce()
       consoleError.mockRestore()
     })
@@ -245,7 +249,9 @@ describe('SupabasePowerSyncConnector.uploadData', () => {
       const deleteOrder = supabase.deleteEq.mock.invocationCallOrder[0]!
       const patchOrders = supabase.updateEq.mock.invocationCallOrder
       expect(upsertOrder).toBeLessThan(deleteOrder)
+      expect(patchOrders).toHaveLength(2)
       expect(deleteOrder).toBeLessThan(patchOrders[0]!)
+      expect(patchOrders[0]!).toBeLessThan(patchOrders[1]!)
     })
   })
 })

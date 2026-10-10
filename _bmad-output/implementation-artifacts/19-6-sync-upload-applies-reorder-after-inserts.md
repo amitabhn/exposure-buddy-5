@@ -1,6 +1,6 @@
 # Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
 
-Status: review
+Status: done
 
 <!-- Source: epics.md Epic 19, Story 19.6. Found 2026-10-06 during Story 19.1's Android device verification. A defect against Story 6.2 (AC 2/3) reorder behaviour; no FR of its own, not a beta-feedback item. -->
 
@@ -104,7 +104,7 @@ Algorithm, with `p = groupPositions` (the group's stored values by slot, before 
 ### Behaviour to preserve
 
 - Same RPC arguments and the same three-string non-retryable list; do not widen it (AC 6).
-- `batch.complete()` only after every unit succeeded or was a logged non-retryable swap. A thrown per-entry error leaves the whole batch queued and PowerSync retries it (default 5 s). Because uploads are idempotent (PUT upsert, absolute-position swap, PATCH to absolute values), re-sending earlier units on retry is safe and is how it works today.
+- `batch.complete()` only after every unit succeeded or was a logged non-retryable swap. A thrown per-entry error leaves the whole batch queued and PowerSync retries it (default 5 s). Single uploads are idempotent (PUT upsert, absolute-position swap, PATCH to absolute values), so re-sending earlier units on retry is safe for them and is how it works today. A multi-slot drag is a CHAIN of swaps and is not idempotent as a whole (see Review Findings, Story 19.7 dependency).
 - `ON_CONFLICT_OVERRIDES` and `_uploadEntry` untouched.
 
 ### Interaction with 19.7 (do not fix here)
@@ -133,7 +133,7 @@ If an insert earlier in the queue is permanently rejected (for example `uq_user_
 
 - Story 19.1 found this bug; its verification table (`spec-19-1-…md`, "Offline onboarding, EAS preview build (e22d7d0)") is the authoritative repro.
 - Story 19.3 touched `handleDragEnd` (group-bounded drags, stable position values) and deferred the multi-slot divergence to 19.6; AC 7 now closes that deferral. Its spec notes the drag "still sends a two-item swap, as before" — that is the behaviour changed here; its group-bounds and position-reuse logic is not.
-- Story 6.2-C introduced `swap_ladder_positions` and the non-retryable classification; its review noted that retries are idempotent by construction (absolute positions). That is why replay-in-order on retry is safe.
+- Story 6.2-C introduced `swap_ladder_positions` and the non-retryable classification; its review noted that a single swap is idempotent by construction (absolute positions). That does not extend to a chain of swaps on the same item: a retry that replays swap 1 after swap 2 has applied can collide on `uq_user_position` (23505, retried forever). Known dependency on Story 19.7.
 - Recent branch convention for Epic 19 stories has used `spec-19-N-…md` files (bmad-build); this file follows the `bmad-create-story` default name. If the dev agent prefers a `spec-` file, rename and update `sprint-status.yaml` consistently.
 
 ### Git Intelligence
@@ -178,3 +178,28 @@ claude-sonnet-5-5 (implemented directly, no subagents)
 - `apps/mobile/app/ladder.test.tsx`
 - `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Review Findings
+
+_Code review 2026-10-10 (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor)._
+
+- [x] [Review][Patch] Retrying a failed batch replays a swap chain against moved-on server state (decision 2026-10-10: record as a 19.7 dependency, no code change) — correct the Dev Notes claim that absolute-position swaps are idempotent (true for one swap, not a chain), and add a 19.7 dependency note to `deferred-work.md`: a retryable failure mid-chain replays swap 1 and can hit `uq_user_position` (23505, not in `NON_RETRYABLE_RPC_ERRORS`), retrying forever. [19-6 story Dev Notes, deferred-work.md]
+- [x] [Review][Patch] Add test: a drag after a failed enqueue chain still enqueues (tail not wedged) [apps/mobile/app/ladder.test.tsx]
+- [x] [Review][Patch] Tighten weak assertions: `resolves.not.toThrow()` is vacuous (use `resolves.toBeUndefined()` and assert the swap was sent); the "deleted elsewhere" test should check the logged message is from `swap_ladder_positions`; the non-pair-group test should assert both PATCHes' relative order; add a downward multi-slot drag test in the completed group [packages/sync/__tests__/connector.test.ts, apps/mobile/app/ladder.test.tsx]
+- [x] [Review][Patch] Wording: `deferred-work.md` and the story call the offline-reorder bug "fixed" while AC 5 (device or offline repro) is unrun; change to "fix implemented, unverified" [_bmad-output/implementation-artifacts/deferred-work.md]
+- [x] [Review][Patch] `sprint-status.yaml` `last_updated` still says "19.6 backlog -> ready-for-dev" while the entry is `review` [_bmad-output/implementation-artifacts/sprint-status.yaml]
+- [x] [Review][Defer] Second drag during a pending chain reads `displayItems` that the `remoteItems` effect may have reset to a partial chain state [apps/mobile/app/ladder.tsx:152,332] — deferred: unverified; window is milliseconds. Settle by dragging twice quickly on a device or with a Jest case that refreshes `remoteItems` mid-chain.
+- [x] [Review][Defer] A transaction split across two `getCrudBatch` calls could upload half a reorder pair as a lone position PATCH [packages/sync/src/connector.ts toUploadUnits] — deferred: pre-existing, acknowledged in the spec; belongs with 19.7.
+- [x] [Review][Defer] AC 4 evidence: the "two swaps around a PATCH" and "non-pair group" tests may also pass on the old `connector.ts` [19-6 Debug Log] — deferred: unverified; settle by running those two tests against `main`'s `connector.ts`. Only the insert-before-swap tests are confirmed regression proofs.
+
+#### Rejected
+
+- Silent early `return` in the swap loop after `setItems` (Verification Gap, Edge Case, Blind Hunter) — low: the same guard existed before the change, and the data is consistent by construction; a fix adds branches for an unreachable path.
+- Optimistic order not rolled back when a chain fails partway (Edge Case, Blind Hunter) — low: needs a local SQLite write failure; the old code also only logged.
+- Non-adjacent pair entries in `toUploadUnits` (Edge Case) — false: a pair is written in one `writeTransaction`, so its rows are contiguous in `ps_crud`.
+- "Items not found" swap dropped on a genuine race (Edge Case) — false: AC 3 keeps that handling deliberately, and inserts now precede swaps.
+- Stale `reorderedData` vs `displayItems` mismatch (Edge Case) — false: `handleDragEnd` takes `from`/`to` from the same list it renders.
+- `reorderChainsPending` is more complex than needed (Blind Hunter, Acceptance Auditor) — low: it keeps an idle chain's first enqueue synchronous, which existing tests rely on; spec deviation noted.
+- k-slot drag costs k RPC round-trips (Blind Hunter) — low: the spec decided against a bulk RPC.
+- Tasks unchecked, `UploadUnit` shape differs from Task 2, stale "Decision" wording, `epics.md` status line (Acceptance Auditor, Blind Hunter) — low: fix edits the spec under review.
+- AC 5 unmet (Acceptance Auditor, Blind Hunter) — not a diff defect: the spec discloses it; its wording is covered by the patch above.
