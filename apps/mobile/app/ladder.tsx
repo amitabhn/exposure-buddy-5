@@ -66,6 +66,8 @@ export default function LadderScreen() {
   // frozen here — it's recomputed from the current list length on every attempt (including
   // retries) so a retry after the list has changed doesn't ship a stale/colliding position.
   const pendingAddIdRef = useRef<{ id: string } | null>(null)
+  const reorderChainTail = useRef<Promise<void>>(Promise.resolve())
+  const reorderChainsPending = useRef(0)
 
   // Accessibility: wait for the stack-push transition to finish before placing focus (Story
   // 12.3 AC-B3, root-caused 2026-09-21). On-device VoiceOver/TalkBack testing found that even
@@ -148,7 +150,12 @@ export default function LadderScreen() {
   }, [ladderLoading, screenTransitioned, items.length])
 
   // Sync remote items into local state when stub is replaced in Epic 6; sort by position ascending (AC 1)
+  // While a drag's swap chain is still being enqueued the local DB only holds part of it, so applying
+  // it would show (and let the next drag build swaps from) a half-applied order. The optimistic order
+  // stays until the chains finish; the DB emission that follows the last write then applies the final
+  // state (Story 19.6 review).
   useEffect(() => {
+    if (reorderChainsPending.current > 0) return
     setItems([...remoteItems].sort((a, b) => a.position - b.position))
   }, [remoteItems])
 
@@ -325,17 +332,44 @@ export default function LadderScreen() {
         .map(item => ({ ...item, position: newPositionById.get(item.id) ?? item.position }))
         .sort((a, b) => a.position - b.position),
     )  // optimistic
-    const movedItem = reorderedGroup[to - groupStart]
-    const displacedItem = reorderedGroup[from - groupStart]
-    if (!movedItem || !displacedItem) return
-    // eslint-disable-next-line i18next/no-literal-string
-    getAdapter().enqueue('fear_ladder_items', 'reorder_positions', {
-      itemAId: movedItem.id,
-      itemANewPosition: movedItem.position,
-      itemBId: displacedItem.id,
-      itemBNewPosition: displacedItem.position,
-      updatedAt: Date.now(),
-    }).catch(err => console.error('[LadderScreen] reorder enqueue failed:', err))
+    // A drag of k slots is k adjacent swaps of the moved item with its neighbour, so the server ends
+    // up with exactly the positions shown above (the old single swap left the k-1 in-between items
+    // unchanged server-side). A one-slot drag is one swap with the same payload as before.
+    const group = displayItems.slice(groupStart, groupEnd)
+    const fromSlot = from - groupStart
+    const toSlot = to - groupStart
+    const movedItem = group[fromSlot]
+    if (!movedItem) return
+    const swaps: { itemAId: string; itemANewPosition: number; itemBId: string; itemBNewPosition: number }[] = []
+    const step = fromSlot < toSlot ? 1 : -1
+    for (let slot = fromSlot; slot !== toSlot; slot += step) {
+      const neighbour = group[slot + step]
+      const movedPosition = groupPositions[slot + step]
+      const neighbourPosition = groupPositions[slot]
+      if (!neighbour || movedPosition === undefined || neighbourPosition === undefined) return
+      swaps.push({
+        itemAId: movedItem.id,
+        itemANewPosition: movedPosition,
+        itemBId: neighbour.id,
+        itemBNewPosition: neighbourPosition,
+      })
+    }
+    // Chains are serialised: a second drag waits for the first to finish enqueueing, otherwise
+    // their swaps could interleave in ps_crud and the absolute positions would land out of order.
+    // The first enqueue of an idle chain still runs synchronously.
+    const runChain = async () => {
+      try {
+        for (const swap of swaps) {
+          // eslint-disable-next-line i18next/no-literal-string
+          await getAdapter().enqueue('fear_ladder_items', 'reorder_positions', { ...swap, updatedAt: Date.now() })
+        }
+      } catch (err) {
+        console.error('[LadderScreen] reorder enqueue failed:', err)
+      }
+    }
+    const started = reorderChainsPending.current === 0 ? runChain() : reorderChainTail.current.then(runChain)
+    reorderChainsPending.current += 1
+    reorderChainTail.current = started.finally(() => { reorderChainsPending.current -= 1 })
   }
 
   // D8b: fail closed while the active-session query is still resolving, not just once
