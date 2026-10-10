@@ -107,3 +107,27 @@ Three layers (blind, edge-case, verification-gap) on the diff since baseline.
 | 10 | Sprint-status comment says "not implemented"; spec/sprint statuses differ | low | patch | Comment updated; statuses are aligned when presented. |
 | 11 | Notes omit Story 19.9 link | low | patch | Sentence added to the Implementation Notes. |
 | 12 | Fix and per-flow-user claims untested | maybe-false | rejected | Not testable locally (no Maestro rig); settled by the labelled CI run, already the open AC. |
+
+### Review Findings
+
+Code review of merge `17cc099` (PR #104), 2026-10-10. Layers: Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor.
+
+- [x] [Review][Patch] `epics.md` Story 19.12 entry still says `**Status: backlog.**` while sprint-status and the spec say review [_bmad-output/planning-artifacts/epics.md:3490]
+- [x] [Review][Patch] Post-sign-in `extendedWaitUntil` has no `label`, so a 30 s timeout reports only a generic "Element not found: Text matching regex" (spec I/O matrix asks for a readable failure message) [apps/mobile/.maestro/setup/ensureOnboarded.yaml:52]
+- [x] [Review][Defer] No scheduled/`main` e2e run, so label-gated shards can sit red on `main` again — deferred: already recorded in `deferred-work.md` by this story (nightly `schedule:` run + failure notification); no new entry added.
+
+#### Rejected
+
+- Swapped-order AC not demonstrated (low): each flow does `clearState` and the wait is state-independent; the fix is a CI run, not a code change.
+- "Welcome back." may not match every Home variant (low): the 10 s hold only occurs on a cleared-state sign-in, where either the welcome screen or an empty/returning Home appears; no other variant shown reachable.
+- First-launch scrim may reappear after sign-in (low): `dismissInstaCalmIntro` runs after `clearState`; the scrim is first-launch-only and nothing shows it reappearing.
+- 30 s timeout not coupled to `SYNC_WAIT_TIMEOUT_MS` (low): the YAML comment already names the 10 s hold; a coupling mechanism adds complexity for a rare change.
+- Welcome visible then `when: visible` race (false): the wait ends only on a matched marker and the screen is stable, so the follow-up check sees the same welcome screen.
+- Hard-coded English strings (low): same limitation as `onboarding.yaml`; pre-existing.
+- 10 s CI hold adds ~10 s per flow (low): consequence of Story 18.7 design, not this change.
+- Root cause inferred from one run / `debrief` as failing second flow (low): the fix's fix is a spec edit; CI went green after the change.
+- Spec status `in-review` vs sprint `review`, stale Change Log, status vocabulary (low): fix edits the spec under review.
+- `epics.md`/sprint-status `last_updated` run-on, 19.4 flip, "five merges (PRs #98-#103)" count (low): bookkeeping nits with no named harm.
+- `pnpm turbo typecheck lint test` result unrecorded (low): diff touches only YAML and docs.
+- Gradle heap-space flake without follow-up (low): CI infrastructure, not part of this change.
+- Story 19.4 `done` rests on the onboarding shard only (low): already stated in the sprint-status entry.
