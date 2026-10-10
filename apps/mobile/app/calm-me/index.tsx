@@ -7,7 +7,7 @@ import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
 import { CALM_ME_AFFIRMATIONS, selectNextAffirmation } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
-import { SudsScale } from '../../src/components/session/SudsScale'
+import { SudsSlider } from '../../src/components/SudsSlider'
 
 export default function CalmMeScreen() {
   const { t } = useTranslation()
@@ -36,6 +36,7 @@ export default function CalmMeScreen() {
   const [showDebriefConfirm, setShowDebriefConfirm] = useState(false)
   const [showFreshSudsPrompt, setShowFreshSudsPrompt] = useState(false)
   const [submittingSuds, setSubmittingSuds] = useState(false)
+  const [freshSuds, setFreshSuds] = useState<number | null>(null)
 
   function handleExit() {
     // Exit always wins over an open confirm/prompt — dismisses everything, no state change.
@@ -196,8 +197,21 @@ export default function CalmMeScreen() {
 
         {showFreshSudsPrompt && (
           <View style={styles.sudsPromptCard}>
+            <Text style={styles.sudsIntro}>{t('calmMe.freshSudsIntro')}</Text>
             <Text style={styles.confirmTitle}>{t('session.active.sudsModalTitle')}</Text>
-            <SudsScale value={null} onChange={handleFreshSudsSelected} />
+            <SudsSlider value={freshSuds} onChange={setFreshSuds} />
+            <TouchableOpacity
+              style={[styles.confirmYesButton, styles.sudsContinueButton, (freshSuds === null || submittingSuds) && styles.sudsContinueDisabled]}
+              onPress={() => {
+                if (freshSuds !== null) handleFreshSudsSelected(freshSuds)
+              }}
+              disabled={freshSuds === null || submittingSuds}
+              accessibilityRole="button"
+              accessibilityLabel={t('session.intent.continue')}
+              accessibilityState={{ disabled: freshSuds === null || submittingSuds }}
+            >
+              <Text style={styles.confirmYesText}>{t('session.intent.continue')}</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -243,5 +257,8 @@ const styles = StyleSheet.create({
   confirmYesText: { color: '#ffffff', fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   confirmNotNowButton: { flex: 1, borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   confirmNotNowText: { color: color.content.secondary, fontSize: 15 },
+  sudsIntro: { fontSize: 15, color: color.content.primary, textAlign: 'center', marginBottom: 12 },
+  sudsContinueButton: { flex: 0, marginTop: 20 },
+  sudsContinueDisabled: { opacity: 0.4 },
   sudsPromptCard: { marginTop: 'auto', backgroundColor: color.surface.secondary, borderRadius: 12, padding: 20 },
 })

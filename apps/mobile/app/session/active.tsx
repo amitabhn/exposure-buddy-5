@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, Pressable, StyleSheet, Modal } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Modal, ScrollView } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getAdapter } from '../../src/sync/adapter'
-import { SudsScale } from '../../src/components/session/SudsScale'
+import { SudsSlider } from '../../src/components/SudsSlider'
 import { useAuth } from '@exposure-buddy/supabase'
 import { transition } from '@exposure-buddy/core'
 import { color, CalmMeButton } from '@exposure-buddy/ui'
@@ -274,8 +274,9 @@ export default function ActiveScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <ScrollView bounces={false}>
             <Text style={styles.modalTitle}>{t('session.active.sudsModalTitle')}</Text>
-            <SudsScale value={pendingSuds} onChange={setPendingSuds} />
+            <SudsSlider value={pendingSuds} onChange={setPendingSuds} />
             <TouchableOpacity
               style={[styles.logConfirmButton, pendingSuds === null && styles.logConfirmDisabled]}
               onPress={handleLogSuds}
@@ -293,6 +294,7 @@ export default function ActiveScreen() {
             >
               <Text style={styles.cancelText}>{t('ladder.cancel')}</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -309,8 +311,9 @@ export default function ActiveScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <ScrollView bounces={false}>
             <Text style={styles.modalTitle}>{t('session.active.completionModalTitle')}</Text>
-            <SudsScale value={pendingDebriefSuds} onChange={setPendingDebriefSuds} />
+            <SudsSlider value={pendingDebriefSuds} onChange={setPendingDebriefSuds} />
             <TouchableOpacity
               style={[
                 styles.logConfirmButton,
@@ -336,6 +339,7 @@ export default function ActiveScreen() {
             >
               <Text style={styles.cancelText}>{t('ladder.cancel')}</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
   stopButton: { borderWidth: 1, borderColor: color.surface.secondary, borderRadius: 8, paddingVertical: 16, alignItems: 'center' },
   stopButtonText: { color: color.content.secondary, fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: color.surface.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 48 },
+  modalCard: { maxHeight: '90%', backgroundColor: color.surface.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 48 },
   modalTitle: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: color.content.primary, marginBottom: 20 },
   logConfirmButton: { backgroundColor: color.accent.courage, borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   logConfirmDisabled: { backgroundColor: color.surface.secondary },

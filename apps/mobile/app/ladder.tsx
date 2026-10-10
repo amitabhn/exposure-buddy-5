@@ -10,6 +10,7 @@ import { detectCrisisKeywords, sortLadderForDisplay } from '@exposure-buddy/core
 import type { FearLadderItem } from '@exposure-buddy/core'
 import { getAdapter } from '../src/sync/adapter'
 import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
+import { SudsSlider } from '../src/components/SudsSlider'
 import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
 import { BackButton } from '../src/components/navigation/BackButton'
 
@@ -459,17 +460,7 @@ export default function LadderScreen() {
               accessibilityLabel={t('ladder.descriptionLabel')}
             />
             <Text style={styles.formLabel}>{t('ladder.sudsLabel')}</Text>
-            <TextInput
-              style={styles.textInput}
-              value={predictedSuds !== null ? String(predictedSuds) : ''}
-              onChangeText={(v) => {
-                const n = parseInt(v, 10)
-                setPredictedSuds(isNaN(n) || n < 0 || n > 10 ? null : n)
-              }}
-              keyboardType="number-pad"
-              maxLength={2}
-              accessibilityLabel={t('ladder.sudsLabel')}
-            />
+            <SudsSlider value={predictedSuds} onChange={setPredictedSuds} />
             <View style={styles.formActions}>
               <TouchableOpacity
                 style={styles.cancelButton}

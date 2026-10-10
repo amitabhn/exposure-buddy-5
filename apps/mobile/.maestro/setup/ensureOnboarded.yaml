@@ -49,6 +49,7 @@ appId: com.exposurebuddy.app
 # the wait (home: empty-ladder greeting, or the returning-user greeting). Dots are escaped so
 # the sign-in screen's "Welcome back" (auth.welcomeSignin, no period) can never end the wait early.
 - extendedWaitUntil:
+    label: "Wait for welcome or Home after DEV sign-in (30 s; 18.7 reinstall hold is 10 s)"
     visible: "Your journey starts here|Your Courage Ladder is ready\\. Let's go!|Welcome back\\."
     timeout: 30000
 

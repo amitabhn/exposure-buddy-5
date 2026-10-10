@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { detectCrisisKeywords } from '@exposure-buddy/core'
-import { SudsCalibrationWidget } from './SudsCalibrationWidget'
+import { SudsSlider } from '../SudsSlider'
 
 interface FearItemFormProps {
   onSave: (description: string, predictedSuds: number) => Promise<void>
@@ -55,7 +55,7 @@ export function FearItemForm({ onSave, onCrisisDetected }: FearItemFormProps) {
       />
 
       <Text style={styles.label}>{t('onboarding.fearLadder.predictedSudsLabel')}</Text>
-      <SudsCalibrationWidget value={predictedSuds} onChange={setPredictedSuds} />
+      <SudsSlider value={predictedSuds} onChange={setPredictedSuds} />
 
       <TouchableOpacity
         style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}

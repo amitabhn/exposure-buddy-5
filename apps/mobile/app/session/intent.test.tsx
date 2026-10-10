@@ -27,8 +27,8 @@ jest.mock('../../src/sync/adapter', () => ({
   getAdapter: jest.fn(() => ({ enqueue: mockEnqueue })),
 }))
 
-jest.mock('../../src/components/session/SudsScale', () => ({
-  SudsScale: ({ onChange }: { onChange: (v: number) => void }) => {
+jest.mock('../../src/components/SudsSlider', () => ({
+  SudsSlider: ({ onChange }: { onChange: (v: number) => void }) => {
     const { TouchableOpacity, Text } = require('react-native')
     return (
       <>

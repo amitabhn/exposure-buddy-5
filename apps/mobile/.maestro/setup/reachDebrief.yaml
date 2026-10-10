@@ -49,9 +49,11 @@ appId: com.exposurebuddy.app
 # We're now directly on intent.tsx — see comment above for why technique.tsx is skipped.
 
 # intent.tsx — pre-SUDS: pick 4 (below 8 to avoid crisis-contacts block on debrief)
-# SudsScale anchor label: "4 — Mild"
+# SUDS slider: + from unset lands on 5, then − once for 4
 - tapOn:
-    text: "4 — Mild"
+    text: "Increase rating"
+- tapOn:
+    text: "Decrease rating"
 - tapOn:
     text: "Continue"
 - waitForAnimationToEnd
@@ -82,8 +84,9 @@ appId: com.exposurebuddy.app
 - tapOn:
     text: "Log how I'm feeling"
 - waitForAnimationToEnd
-# SUDS log modal: value 5 (non-anchor value, label is the number string "5")
-- tapOn: "5"
+# SUDS log modal: + from unset lands on 5
+- tapOn:
+    text: "Increase rating"
 - tapOn:
     text: "Log"
 - waitForAnimationToEnd
@@ -92,9 +95,11 @@ appId: com.exposurebuddy.app
 - tapOn:
     text: "Complete exposure"
 - waitForAnimationToEnd
-# Exit SUDS: pick 4 — Mild (below 8)
+# Exit SUDS: 4 (below 8) — + then −
 - tapOn:
-    text: "4 — Mild"
+    text: "Increase rating"
+- tapOn:
+    text: "Decrease rating"
 - tapOn:
     text: "Finish session"
 - waitForAnimationToEnd

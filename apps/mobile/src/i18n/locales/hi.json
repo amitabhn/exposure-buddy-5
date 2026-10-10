@@ -63,7 +63,6 @@
       "body3": "Courage here doesn't mean feeling no fear. It means taking one small step even when it feels uncomfortable.",
       "calibrationTitle": "Let's practise the distress scale",
       "practiceScenario": "Imagine you're about to give a short speech to 5 strangers. How anxious would you feel right now?",
-      "calibrationLabel": "Rate your distress (0–10)",
       "sudsAnchor0": "No distress",
       "sudsAnchor5": "Moderate",
       "sudsAnchor10": "Extreme distress",
@@ -175,12 +174,16 @@
       "message": "Stopping when you need to is an act of self-awareness. You can try again whenever you feel ready."
     },
     "suds": {
-      "anchor0": "0 — Completely calm",
-      "anchor2": "2 — Very mild",
-      "anchor4": "4 — Mild",
-      "anchor6": "6 — Moderate",
-      "anchor8": "8 — Severe",
-      "anchor10": "10 — Worst imaginable"
+      "label": "Distress rating",
+      "decrease": "Decrease rating",
+      "increase": "Increase rating",
+      "dragHint": "Drag to rate",
+      "notSet": "Not set",
+      "valueText": "{{value}} out of 10, {{word}}",
+      "wordVeryMild": "Very mild",
+      "wordMild": "Mild",
+      "wordHigh": "High",
+      "wordVeryHigh": "Very high"
     },
     "technique": {
       "title": "Choose a technique",
@@ -290,6 +293,7 @@
     }
   },
   "calmMe": {
+    "freshSudsIntro": "Before we wrap up, take a moment to notice how you are feeling.",
     "fab": "Insta Calm",
     "fabHint": "शांत करने की तकनीकें और संकट सहायता खोलता है",
     "fabLabel": "INSTA\nCALM",

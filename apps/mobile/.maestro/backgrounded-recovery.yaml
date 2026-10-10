@@ -55,7 +55,9 @@ appId: com.exposurebuddy.app
 
 # intent.tsx — pick pre-SUDS below 8
 - tapOn:
-    text: "4 — Mild"
+    text: "Increase rating"
+- tapOn:
+    text: "Decrease rating"
 - tapOn:
     text: "Continue"
 - waitForAnimationToEnd

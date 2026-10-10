@@ -3487,7 +3487,7 @@ Current baseline (`apps/mobile/package.json` as of 2026-09-28): `expo ~54.0.0`, 
 
 ### Story 19.12: Maestro Core and Session Shards Pass Again (Broken on `main` Since Story 18.7)
 
-**Status: backlog.** Found 2026-10-06 in PR #100's CI (run 37460921690); the failure is **not** from that PR — `main` is red on the same shards. Components: `apps/mobile/.maestro/` (`setup/ensureOnboarded.yaml`, `setup/_onboarding-clickthrough.yaml`, `setup/reachDebrief.yaml`, `backgrounded-recovery.yaml`, `ladder-build.yaml`), `.github/workflows/ci.yml`, possibly `apps/mobile/app/(app)/_layout.tsx` and `useOnboardingExistenceFallback`.
+**Status: review.** Found 2026-10-06 in PR #100's CI (run 37460921690); the failure is **not** from that PR — `main` is red on the same shards. Components: `apps/mobile/.maestro/` (`setup/ensureOnboarded.yaml`, `setup/_onboarding-clickthrough.yaml`, `setup/reachDebrief.yaml`, `backgrounded-recovery.yaml`, `ladder-build.yaml`), `.github/workflows/ci.yml`, possibly `apps/mobile/app/(app)/_layout.tsx` and `useOnboardingExistenceFallback`.
 
 **Given** the last green `main` CI was 2026-09-30 (`458d7c3`) and the first red was the merge of PR #98, Story 18.7 (`6aecb65`, 2026-10-02) — `E2E Smoke (core)` and `E2E Smoke (session)` have failed on every `main` run since, and on PR #100, while `E2E Smoke (onboarding)` passes
 **When** each shard runs its two flows in sequence

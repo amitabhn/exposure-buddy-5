@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@exposure-buddy/supabase'
 import type { SessionRecoveryData } from '@exposure-buddy/core'
 import { getAdapter } from '../../src/sync/adapter'
-import { SudsScale } from '../../src/components/session/SudsScale'
+import { SudsSlider } from '../../src/components/SudsSlider'
 import { BackButton } from '../../src/components/navigation/BackButton'
 import { color } from '@exposure-buddy/ui'
 
@@ -155,7 +155,7 @@ export default function IntentScreen() {
         ) : null}
 
         <Text style={styles.label}>{t('session.intent.sudsLabel')}</Text>
-        <SudsScale value={state.preSuds} onChange={(v) => dispatch({ type: 'SET_SUDS', value: v })} />
+        <SudsSlider value={state.preSuds} onChange={(v) => dispatch({ type: 'SET_SUDS', value: v })} />
 
         <Text style={styles.label}>{t('session.intent.intentionPrompt')}</Text>
         <TextInput
