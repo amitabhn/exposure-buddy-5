@@ -1206,3 +1206,9 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: After the SUDS slider ships, check whether ratings of exactly 5 rise against the numbered-box history: the unset thumb is parked at 5 and the first − / + press sets 5, so the cheapest path is a 5.
   evidence: Raised in the 19.5 spec review (party mode, 2026-10-09). Peak and predicted SUDS drive ladder ordering and progress. The human chose the parked thumb after reviewing renders, so this is a post-beta measurement, not a build item. Hiding the thumb until touched is the fallback if the skew is real.
   owner_and_trigger: Cooper, at the first beta review after the slider ships and at least 4 weeks of ratings exist. Compare the share of `suds_value` / `predicted_suds` equal to 5 against the same share in the numbered-box history. If it is more than 5 percentage points higher, hide the thumb until touched (new story). Threshold and window are proposed defaults; adjust when scheduling.
+
+## Deferred from: code review of spec-19-5-review-suds-input-numbered-boxes-vs-slider (2026-10-10)
+
+- `hi.json` has English placeholders for `session.suds.*` and `calmMe.freshSudsIntro`; needs a Hindi translation and a translator's check of the `valueText` word order.
+- Unverified (medium if real): tick alignment against the native thumb travel, the 44 dp thumb, 200% font legend/readout wrap, and ladder pageSheet overflow at 200%. Settled by the on-device checks in the spec's Verification section.
+- Unverified (medium if real): Android may fire `onValueChange` on mount, turning an unset slider into 5 and enabling the primary button. Settled by opening each SUDS surface on Android and touching nothing.

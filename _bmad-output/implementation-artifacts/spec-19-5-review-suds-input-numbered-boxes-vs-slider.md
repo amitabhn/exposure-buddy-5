@@ -2,7 +2,7 @@
 title: 'Review SUDS Input — Numbered Boxes vs. Slider'
 type: 'feature'
 created: '2026-10-08'
-status: 'in-progress'
+status: 'review'
 baseline_commit: 'f0dc2e7594d8e0793a17524f0b0be583493f3704'
 route: 'dispatch'
 review_loop_iteration: 5
@@ -101,6 +101,31 @@ Five party-mode review passes, 2026-10-09. Gate edits are human-approved (Cooper
 After pass 5, human-requested (Cooper, 2026-10-09): `a9e2e70` added the screen-reader announcement after − / + (Always sentence, matrix row "Button press with a screen reader", acceptance criterion); `210edee` and `c28c4cf` recorded the Gate result (iOS and Android pass) in Implementation Notes; party-mode Gate review added a Jest test for the announcement row (see Tasks). Open: the announcement is untested on Android 12+ (`View.announceForAccessibility` is deprecated from API 36) and on iOS with VoiceOver.
 
 ## Review Triage Log
+
+### Review Findings
+
+Code review 2026-10-10 (Blind Hunter, Edge Case Hunter, Verification Gap Reviewer, Acceptance Auditor), diff `f0dc2e7..e364dc1`.
+
+- [x] [Review][Decision→Patch] Readout moved between − and + (human chose fix-the-code, 2026-10-10): top row is (−) readout (+), slider track with ticks on its own line below, legend under. Needs the on-device 200% font check. [apps/mobile/src/components/SudsSlider.tsx]
+- [x] [Review][Patch] Add one unmocked `SudsSlider` wiring test: every consumer test stubs the slider, so a wrong `value`/`onChange` hookup passes Jest. Render the real slider in `assessment.test.tsx` or `FearItemForm.test.tsx` and assert the primary button enables after pressing `session.suds.increase` [apps/mobile/app/(onboarding)/assessment.test.tsx]
+- [x] [Review][Patch] Omit `now` from `accessibilityValue` when unset, so assistive tech does not report a parked 5 next to "Not set" [apps/mobile/src/components/SudsSlider.tsx:87]
+- [x] [Review][Patch] Remove the orphaned `onboarding.assessment.calibrationLabel` key (only `SudsCalibrationWidget` used it) from `en.json` and `hi.json` [apps/mobile/src/i18n/locales/en.json:156]
+- [x] [Review][Patch] Update the stale 19-5 comment in sprint-status.yaml ("not implemented") to the real state [_bmad-output/implementation-artifacts/sprint-status.yaml:250]
+- [x] [Review][Defer] `hi.json` carries English for `session.suds.*` and `calmMe.freshSudsIntro`; the spec allows placeholders but a Hindi translation (and word order in `valueText`) is still owed — deferred: spec-sanctioned placeholder, needs a translator
+- [x] [Review][Defer] Tick alignment (fixed 22 dp inset, `trackWidth` 0 until first layout), the 44 dp thumb, 200% font legend/readout wrap, and ladder pageSheet overflow at 200% are unverified; unverified severity medium — deferred: settled by the on-device checks in the spec's Verification section
+- [x] [Review][Defer] Android may emit `onValueChange` on mount, which would silently turn unset into 5 and enable the primary button; unverified severity medium — deferred: settled by the Android device check (open any SUDS surface, touch nothing, confirm the button stays disabled); the spike did not report it
+
+#### Rejected
+
+- `freshSuds` never reset in Insta Calm (3 layers) — false: `handleExit` calls `router.back()` and unmounts the screen, and the confirm step cannot be re-entered from the prompt in the same mount; keeping the value after a failed submit is intended for retry.
+- `onChange` fires twice per drag end — false/harmless: same value, idempotent set-state.
+- Ladder form cannot clear to null — false: `setPredictedSuds(null)` runs on add/edit open and cancel (`ladder.tsx:168,186`).
+- Readout/speech may carry a "0 —" prefix from the anchor strings — false: `en.json` anchors are plain ("No distress", "Moderate", "Extreme distress").
+- Native dependency, missing Jest mock, spike result unrecorded — false: Gate result is recorded in Implementation Notes and `SudsSlider.test.tsx` renders the real slider and passes.
+- Slider drag stolen by the modal `ScrollView` — false: covered by the Gate on both platforms.
+- Slider-to-crisis 7→8 boundary untested — false: the ≥8 crisis logic in `active.tsx` is unchanged; the slider only supplies the integer.
+- Hard-coded hex colours and file-level `i18next` lint disable — low, not worth fixing here: no theming consumer exists, and the disable is scoped to identifiers (lint is clean).
+- Two screen-reader labels on the ladder form, Prettier indentation in `active.tsx`, Maestro `reachDebrief`/`addLadderItem` scroll and unset-start assumptions, announce-before-parent-confirms, stale docs references to the deleted components, lost large-font tests of deleted components — low, unlikely to be met in everyday use, and the fixes add complexity.
 
 ## Design Notes
 

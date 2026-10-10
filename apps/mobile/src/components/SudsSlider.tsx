@@ -57,13 +57,6 @@ export function SudsSlider({ value, onChange }: SudsSliderProps): React.ReactEle
 
   return (
     <View>
-      <View style={styles.readoutBlock}>
-        <Text style={[styles.readoutNumber, isUnset && styles.readoutMuted]}>
-          {isUnset ? '-' : String(value)}
-        </Text>
-        <Text style={styles.readoutWord}>{isUnset ? t('session.suds.dragHint') : t(wordKey(shown))}</Text>
-      </View>
-
       <View style={styles.row}>
         <Pressable
           style={[styles.stepButton, !isUnset && shown <= MIN && styles.stepDisabled]}
@@ -75,50 +68,11 @@ export function SudsSlider({ value, onChange }: SudsSliderProps): React.ReactEle
           <Text style={styles.stepText}>−</Text>
         </Pressable>
 
-        <View
-          style={styles.track}
-          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-          accessible
-          accessibilityRole="adjustable"
-          accessibilityLabel={t('session.suds.label')}
-          accessibilityValue={{
-            min: MIN,
-            max: MAX,
-            now: shown,
-            text: isUnset ? t('session.suds.notSet') : spoken(shown),
-          }}
-          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-          onAccessibilityAction={(e) => {
-            if (e.nativeEvent.actionName === 'increment') adjust(1)
-            if (e.nativeEvent.actionName === 'decrement') adjust(-1)
-          }}
-        >
-          <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ height: THUMB }}
-          >
-            <Slider
-              style={{ height: THUMB, width: '100%' }}
-              minimumValue={MIN}
-              maximumValue={MAX}
-              step={1}
-              value={shown}
-              minimumTrackTintColor={tint}
-              maximumTrackTintColor="#d1d5db"
-              thumbTintColor={tint}
-              // A native slider does not fire onValueChange when the value is unchanged, so a
-              // grab-and-release of the parked thumb is reported by onSlidingComplete.
-              onValueChange={(v) => onChange(clamp(v))}
-              onSlidingComplete={(v) => onChange(clamp(v))}
-            />
-          </View>
-          {/* Ticks inset by half a thumb on each side: the native thumb travel on both platforms. */}
-          <View style={[styles.ticks, { width: trackWidth }]} pointerEvents="none">
-            {Array.from({ length: TICK_COUNT }, (_, i) => (
-              <View key={i} style={styles.tick} />
-            ))}
-          </View>
+        <View style={styles.readoutBlock}>
+          <Text style={[styles.readoutNumber, isUnset && styles.readoutMuted]}>
+            {isUnset ? '-' : String(value)}
+          </Text>
+          <Text style={styles.readoutWord}>{isUnset ? t('session.suds.dragHint') : t(wordKey(shown))}</Text>
         </View>
 
         <Pressable
@@ -132,6 +86,52 @@ export function SudsSlider({ value, onChange }: SudsSliderProps): React.ReactEle
         </Pressable>
       </View>
 
+      <View
+        style={styles.track}
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={t('session.suds.label')}
+        accessibilityValue={{
+          min: MIN,
+          max: MAX,
+          ...(isUnset ? {} : { now: shown }),
+          text: isUnset ? t('session.suds.notSet') : spoken(shown),
+        }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'increment') adjust(1)
+          if (e.nativeEvent.actionName === 'decrement') adjust(-1)
+        }}
+      >
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ height: THUMB }}
+        >
+          <Slider
+            style={{ height: THUMB, width: '100%' }}
+            minimumValue={MIN}
+            maximumValue={MAX}
+            step={1}
+            value={shown}
+            minimumTrackTintColor={tint}
+            maximumTrackTintColor="#d1d5db"
+            thumbTintColor={tint}
+            // A native slider does not fire onValueChange when the value is unchanged, so a
+            // grab-and-release of the parked thumb is reported by onSlidingComplete.
+            onValueChange={(v) => onChange(clamp(v))}
+            onSlidingComplete={(v) => onChange(clamp(v))}
+          />
+        </View>
+        {/* Ticks inset by half a thumb on each side: the native thumb travel on both platforms. */}
+        <View style={[styles.ticks, { width: trackWidth }]} pointerEvents="none">
+          {Array.from({ length: TICK_COUNT }, (_, i) => (
+            <View key={i} style={styles.tick} />
+          ))}
+        </View>
+      </View>
+
       <View style={styles.legend}>
         <Text style={[styles.legendLabel, styles.legendStart]}>{t('onboarding.assessment.sudsAnchor0')}</Text>
         <Text style={[styles.legendLabel, styles.legendMiddle]}>{t('onboarding.assessment.sudsAnchor5')}</Text>
@@ -142,11 +142,11 @@ export function SudsSlider({ value, onChange }: SudsSliderProps): React.ReactEle
 }
 
 const styles = StyleSheet.create({
-  readoutBlock: { alignItems: 'center', marginBottom: 8 },
+  readoutBlock: { flex: 1, alignItems: 'center' },
   readoutNumber: { fontSize: 36, fontWeight: '600', fontFamily: 'Inter_600SemiBold', color: ACTIVE },
   readoutMuted: { color: MUTED },
   readoutWord: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   stepButton: {
     width: STEP_BUTTON,
     height: STEP_BUTTON,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   stepDisabled: { opacity: 0.35 },
   stepText: { fontSize: 26, color: ACTIVE },
-  track: { flex: 1, justifyContent: 'center' },
+  track: { marginTop: 8, justifyContent: 'center' },
   ticks: {
     position: 'absolute',
     left: 0,
