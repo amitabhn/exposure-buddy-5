@@ -120,6 +120,8 @@ Writer audit, run 2026-10-12 (`grep -rnE "enqueue\(|fear_ladder_items" apps/mobi
 
 Implemented 2026-10-12: `OnboardingDecisionContext` (root provider in `app/_layout.tsx`); hook returns `isHoldExpired` and no longer decides on timeout; `/ladder` is a thin wrapper that renders `<Redirect href="/(app)" />` while undecided; Home omits the four `/ladder` controls. `pnpm` equivalents run in `apps/mobile`: tsc, eslint, full jest (47 suites, 644 tests) green. Device verification on an EAS `preview` build and the three Maestro shards are NOT done (need the user / a labelled PR).
 
+Device verification, 2026-10-12, EAS `preview` Android build dbd29738 (head 893298a) on Redmi K20 Pro, driven over adb: clean install (old debug-signed app uninstalled), signed in as an existing hosted account (11 ladder items), Wi-Fi and mobile data cut ~7 s after tapping Sign in. At +15 s: spinner (hold not yet expired). At +22 s (hold expired, sync incomplete, network still off): Home with the empty card and only "Practice Relaxation"; no "Add your first situation", no "Your Ladder", no onboarding. Network restored: by +45 s Home showed "0 of 11 steps climbed", the next-step card and both ladder buttons; "Your Ladder" opened with all 11 items; onboarding never appeared and logcat has no onboarding/welcome line. NOT run: the very-slow-connection variant, and a brand-new-account run.
+
 Entry points to `/ladder` found 2026-10-12: `app/(app)/index.tsx` lines 101 (fallback), 177, 220, 232; none from notifications or deep links.
 
 ## Spec Change Log
