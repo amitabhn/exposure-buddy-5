@@ -2,7 +2,8 @@
 title: 'Story 19.10: Complete Story 19.1 Remaining Device and Automation Verification'
 type: 'chore'
 created: '2026-10-12'
-status: 'draft'
+status: 'in-progress'
+baseline_commit: '888d5816a8b9e0a2096196c0dad4dc65aad2a8eb'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
