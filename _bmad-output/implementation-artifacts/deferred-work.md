@@ -1258,4 +1258,10 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
   summary: **Writes made while the session is unconfirmed are discarded if the server later rejects the refresh token; account-deletion requests made offline fail (no client session).**
   evidence: Accepted by the spec carve-out (local data is on the user's own device); the deletion failure is pre-existing offline behaviour. A notice or write-block is a UX/DPDPA call.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-10-complete-19-1-remaining-device-and-automation-verification.md`
+  summary: **Hindi translation of the onboarding ladder step.** Only `skipCta` is Hindi in `hi.json`; `title`, `subtitle`, `descriptionLabel`, `descriptionPlaceholder`, `predictedSudsLabel`, `addCta`, `addAnother`, `moveUp`, `moveDown`, `sudsDisplay` and `nextCta` are English; needs a reviewed translation. Fine for beta.
+  evidence: `apps/mobile/src/i18n/locales/hi.json` lines ~79-80 match `en.json`; deferred by the human on 2026-10-12 when scoping Story 19.10.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-10-complete-19-1-remaining-device-and-automation-verification.md`
+  summary: **TalkBack check of the 19.1 ladder step ("Do this later" announced as a button, subtitle and description field label order).** Not done; adb cannot judge speech, so it needs a human with TalkBack on.
+  evidence: Listed as unchecked in Story 19.1's Device Verification; deferred by the human on 2026-10-12 when scoping Story 19.10.
 
