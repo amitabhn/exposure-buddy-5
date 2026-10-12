@@ -47,7 +47,25 @@ context:
 |----------|--------------|---------------------------|----------------|
 | Reinstall, fast sync | rows arrive < 10 s | hit; `markOnboardingComplete()`; Home | n/a |
 | Reinstall, slow sync | first sync not done at 10 s, existing account | released to Home, flag unset; when rows arrive, hit marks complete; never sees onboarding | n/a |
-| Reinstall, network cut before first sync | sync never completes | stays on Home (empty), flag unset; recovers if the network returns | no trap, no onboarding |
+| Reinstall, network cut before first sync | sync never completes | stays on Home Review run 1, 2026-10-12 (blind hunter, edge-case hunter, verification gap), diff 0ec7373..7ef7996.
+
+| Finding | Verdict / route | Evidence |
+|---|---|---|
+| Root-layout provider wiring untested (context default is a silent no-op) | medium / patch (applied) | Layout, Home and ladder tests each supply or mock the context; deleting the provider in `app/_layout.tsx` left everything green. Added a real-RootLayout wiring test in `app/_layout.coldStart.test.tsx`; mutation check (provider removed) fails it. |
+| Late empty sync routes a new account to onboarding from whatever screen it is on (edge #1, blind #1, claim) | low / rejected | Specified behaviour (Decision 1, matrix row "New signup, slow sync"); needs a brand-new account on a slow sync who is mid-screen at the moment sync completes; deferring until Home is focused is new navigation logic, not a direct correction. Flag for the human. |
+| Idle account stays undecided when all reads fail and no later checkpoint arrives (edge #2) | false / by design | Accepted cost in Decision 5 (restart re-runs the decision); a reactive-empty fallback was rejected on purpose. |
+| Retry loop restarts on a new checkpoint while in flight; valid late answer dropped; backoff timer not cleared (edge #3, blind) | low / rejected | Per-checkpoint cap holds (each checkpoint gets its own 3); a discarded answer is re-read next loop; the timer holds a closure for at most 750 ms. |
+| "Attempt counter (a ref)" wording (edge claim) | low / rejected | Counter is loop-local, `answeredRef` is the ref; fix would edit this spec. Behaviour matches the intent. |
+| `progressing` Home state may keep a /ladder control (edge #4) | false | That card targets `/session/*`, not `/ladder` (`index.tsx` progressing branch). |
+| Gate does not cover a Ladder already mounted when undecided flips (edge #5) | false | Undecided only becomes true after the hold expires, and Home (the only entry) is not shown before that; `hasSynced` never reverts. |
+| Cleanup-then-set causes a one-frame `false` (edge #6, blind) | false | Both updates run in one layout-effect phase and batch to a single render; a screen cannot mount between them. |
+| Read failures not logged (blind) | low / rejected | Not required by the spec; adds telemetry surface. |
+| New offline account has no way out; empty-state copy (blind) | false / by design | Decisions 1, 2 and 5 accept an empty Home without copy; subtext ("Add a situation...") reads fine without the CTA. |
+| Other writers not audited (blind) | false | Writer audit recorded in Implementation Notes. |
+| `answeredRef` locks a stale empty answer (blind) | false | Same one-shot behaviour as 18.7; not changed by this story. |
+| Provider indentation / lint-disable on `<Redirect>` (blind) | false | eslint passes; the disable is required (rule fired without it); surrounding file already uses this indentation. |
+| `mockRedirect` not cleared; no `isHoldExpired` reset test; no on-/ladder transition test (blind) | false / low | `jest.clearAllMocks()` in `beforeEach` clears it; the rest cover paths the code does not have or only cosmetic. |
+, flag unset; recovers if the network returns | no trap, no onboarding |
 | New signup, fast sync | first sync completes, 0 rows | decided empty; onboarding | unchanged |
 | New signup, slow sync | first sync not done at 10 s | released to Home, then routed to onboarding once sync completes empty | no write happens before routing |
 | Already onboarded | local flag true | hook disabled; unchanged | n/a |
