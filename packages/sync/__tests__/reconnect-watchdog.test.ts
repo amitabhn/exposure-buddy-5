@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { watchStalledConnection, STALL_MS } from '../src/reconnect-watchdog'
 
 describe('watchStalledConnection (Story 19.7)', () => {
-  beforeEach(() => vi.useFakeTimers())
-  afterEach(() => vi.useRealTimers())
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.stubEnv('EXPO_PUBLIC_POWERSYNC_URL', 'https://example.powersync.test')
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
 
   const setup = (connected: boolean) => {
     const db = { currentStatus: { connected } }
@@ -44,5 +50,13 @@ describe('watchStalledConnection (Story 19.7)', () => {
     stop()
     vi.advanceTimersByTime(STALL_MS * 2)
     expect(reconnect).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when no PowerSync endpoint is configured', () => {
+    vi.stubEnv('EXPO_PUBLIC_POWERSYNC_URL', '')
+    const { reconnect, stop } = setup(false)
+    vi.advanceTimersByTime(STALL_MS * 3)
+    expect(reconnect).not.toHaveBeenCalled()
+    expect(() => stop()).not.toThrow()
   })
 })

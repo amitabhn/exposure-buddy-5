@@ -8,11 +8,15 @@ const CHECK_MS = 5_000
 // never resume: the upload loop only wakes on a local write or a fresh stream line. Calling
 // connect() again aborts the hung attempt and starts a new one. Reconnect once the stream has
 // been disconnected for STALL_MS; offline retries fail fast, so repeating this is harmless.
+// Does nothing when EXPO_PUBLIC_POWERSYNC_URL is unset.
 export function watchStalledConnection(
   db: AbstractPowerSyncDatabase,
   reconnect: () => void,
   now: () => number = Date.now,
 ): () => void {
+  // Same gate as fetchCredentials: with no PowerSync endpoint (CI, local dev) the stream is never
+  // meant to connect, so "disconnected" is not a stall.
+  if (!process.env['EXPO_PUBLIC_POWERSYNC_URL']) return () => {}
   let disconnectedSince: number | null = null
   const timer = setInterval(() => {
     if (db.currentStatus?.connected) {
