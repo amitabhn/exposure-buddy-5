@@ -2,10 +2,10 @@
 title: 'Story 19.9: An Existing Account Reinstalling Is Not Sent Through Onboarding Again When the First Sync Is Slow'
 type: 'bugfix'
 created: '2026-10-12'
-status: 'ready-for-dev'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
-baseline_commit: '3037f22'
+baseline_commit: '0ec7373'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-19-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/spec-18-7-skip-onboarding-for-existing-users-after-reinstall.md'
@@ -68,12 +68,12 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Hook: separate "hold expired" from "decided"; timeout no longer sets `isDecided`.
-- [ ] Layout: on hold expiry with no decision, render Home without redirecting or marking complete; keep the fallback enabled so a late hit or a completed empty sync still acts.
-- [ ] Ladder gate: while undecided, `/ladder` redirects to Home (no add form mounted, no `enqueue`); once decided it behaves as today. Publish the signal per the contract above. Writer audit already done (UPDATE-only elsewhere); re-confirm and record in Implementation Notes.
-- [ ] Hook: replace the one-shot post-sync read with a bounded retry (3 attempts, short backoff), then stop and stay undecided (no reactive-empty fallback). The attempt counter (a ref) re-arms when `enabled` or `hasSynced` changes or when the sync status's `lastSyncedAt` changes (each completed sync checkpoint earns up to 3 more reads); no timers, no new persisted state. Worst case is 3 reads per checkpoint.
-- [ ] Home: while `isUndecided`, hide the `/ladder`-bound controls (see "No dead taps"); they render as today once decided.
-- [ ] Tests (written first, must fail on current code): slow sync then late hit never calls `router.replace('/(onboarding)/welcome')`; timeout with `hasSynced` false does not route to onboarding; completed sync with 0 rows after the hold routes to onboarding; opening `/ladder` while undecided redirects to Home and never calls `enqueue('fear_ladder_items', ...)`; a rejected post-sync local read does not route to onboarding on the first failure, a later successful retry decides, after all retries fail a new `lastSyncedAt` re-arms the attempts and a successful read then decides (and a permanent failure is capped at 3 reads per checkpoint), and after all retries fail with an empty settled reactive query the hook stays undecided (no onboarding route, `/ladder` still gated), while a reactive row after exhaustion still counts as a hit; a late hit after the hold expired calls `markOnboardingComplete()` and never calls `router.replace`; the undecided signal resets to false when `(app)/_layout` unmounts (sign-out then sign-in as another account leaves `/ladder` usable); Home renders none of the `/ladder`-bound controls while undecided and renders them again once decided; fast-path cases unchanged; mid-onboarding unchanged.
+- [x] Hook: separate "hold expired" from "decided"; timeout no longer sets `isDecided`.
+- [x] Layout: on hold expiry with no decision, render Home without redirecting or marking complete; keep the fallback enabled so a late hit or a completed empty sync still acts.
+- [x] Ladder gate: while undecided, `/ladder` redirects to Home (no add form mounted, no `enqueue`); once decided it behaves as today. Publish the signal per the contract above. Writer audit already done (UPDATE-only elsewhere); re-confirm and record in Implementation Notes.
+- [x] Hook: replace the one-shot post-sync read with a bounded retry (3 attempts, short backoff), then stop and stay undecided (no reactive-empty fallback). The attempt counter (a ref) re-arms when `enabled` or `hasSynced` changes or when the sync status's `lastSyncedAt` changes (each completed sync checkpoint earns up to 3 more reads); no timers, no new persisted state. Worst case is 3 reads per checkpoint.
+- [x] Home: while `isUndecided`, hide the `/ladder`-bound controls (see "No dead taps"); they render as today once decided.
+- [x] Tests (written first, must fail on current code): slow sync then late hit never calls `router.replace('/(onboarding)/welcome')`; timeout with `hasSynced` false does not route to onboarding; completed sync with 0 rows after the hold routes to onboarding; opening `/ladder` while undecided redirects to Home and never calls `enqueue('fear_ladder_items', ...)`; a rejected post-sync local read does not route to onboarding on the first failure, a later successful retry decides, after all retries fail a new `lastSyncedAt` re-arms the attempts and a successful read then decides (and a permanent failure is capped at 3 reads per checkpoint), and after all retries fail with an empty settled reactive query the hook stays undecided (no onboarding route, `/ladder` still gated), while a reactive row after exhaustion still counts as a hit; a late hit after the hold expired calls `markOnboardingComplete()` and never calls `router.replace`; the undecided signal resets to false when `(app)/_layout` unmounts (sign-out then sign-in as another account leaves `/ladder` usable); Home renders none of the `/ladder`-bound controls while undecided and renders them again once decided; fast-path cases unchanged; mid-onboarding unchanged.
 - [ ] Device verification on an EAS `preview` build (not the dev client): repeat the 2026-10-06 repro (cleared data, sign in, cut network ~6 s later) and confirm Home, then restore the network and confirm the ladder appears with no onboarding; repeat with a very slow connection; record in Implementation Notes and `deferred-work.md`. Also run the three Maestro shards (core, session, onboarding): 19.12 broke on exactly this hold timing, and the release-to-Home path changes where `ensureOnboarded.yaml` lands first.
 
 **Acceptance Criteria:**
@@ -99,6 +99,8 @@ context:
 ## Implementation Notes
 
 Writer audit, run 2026-10-12 (`grep -rnE "enqueue\(|fear_ladder_items" apps/mobile/app apps/mobile/src`, non-test): `fear_ladder_items` INSERT/DELETE/reorder only in `app/ladder.tsx` (216 UPDATE, 261 INSERT, 292 DELETE, 364 reorder_positions) and `app/(onboarding)/ladder.tsx` (100 INSERT, 151 reorder; mid-onboarding only, excluded by the carve-out). UPDATE-only: `app/(app)/_layout.tsx:208`, `calm-me/index.tsx:84`, `session/grounding.tsx:71`, `session/active.tsx:152`. Re-run at implementation and record any change here.
+
+Implemented 2026-10-12: `OnboardingDecisionContext` (root provider in `app/_layout.tsx`); hook returns `isHoldExpired` and no longer decides on timeout; `/ladder` is a thin wrapper that renders `<Redirect href="/(app)" />` while undecided; Home omits the four `/ladder` controls. `pnpm` equivalents run in `apps/mobile`: tsc, eslint, full jest (47 suites, 644 tests) green. Device verification on an EAS `preview` build and the three Maestro shards are NOT done (need the user / a labelled PR).
 
 Entry points to `/ladder` found 2026-10-12: `app/(app)/index.tsx` lines 101 (fallback), 177, 220, 232; none from notifications or deep links.
 

@@ -123,16 +123,99 @@ describe('useOnboardingExistenceFallback', () => {
       expect(mockGetAll).not.toHaveBeenCalled()
     })
 
-    it('a failed authoritative read does not decide — the timeout still releases the hold', async () => {
+    // Story 19.9: bounded retry; exhaustion stays undecided (a timeout is not an answer).
+    it('a rejected authoritative read does not decide or route on the first failure, and a later retry that answers decides', async () => {
       jest.useFakeTimers()
-      mockGetAll.mockRejectedValue(new Error('db closed'))
+      mockGetAll.mockRejectedValueOnce(new Error('db closed')).mockResolvedValue([{ id: 'item-1' }])
       const { result } = renderHook(() => useOnboardingExistenceFallback(true))
       await act(async () => {})
       expect(result.current.isDecided).toBe(false)
-      act(() => {
-        jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS)
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000)
       })
+      expect(mockGetAll).toHaveBeenCalledTimes(2)
+      expect(result.current.hasExistingAccountData).toBe(true)
       expect(result.current.isDecided).toBe(true)
+    })
+
+    it('after all 3 attempts fail the hook stays undecided, even with a settled-empty reactive query and the hold expired', async () => {
+      jest.useFakeTimers()
+      mockGetAll.mockRejectedValue(new Error('db closed'))
+      const { result } = renderHook(() => useOnboardingExistenceFallback(true))
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(SYNC_WAIT_TIMEOUT_MS)
+      })
+      expect(mockGetAll).toHaveBeenCalledTimes(3)
+      expect(result.current.isHoldExpired).toBe(true)
+      expect(result.current.isDecided).toBe(false)
+      expect(result.current.hasExistingAccountData).toBe(false)
+    })
+
+    it('a reactive row after retry exhaustion still counts as a hit', async () => {
+      jest.useFakeTimers()
+      mockGetAll.mockRejectedValue(new Error('db closed'))
+      const { result, rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      expect(result.current.isDecided).toBe(false)
+      mockUseQuery.mockReturnValue({ data: [{ id: 'item-1' }], isLoading: false })
+      rerender({})
+      expect(result.current.hasExistingAccountData).toBe(true)
+      expect(result.current.isDecided).toBe(true)
+    })
+
+    it('a new lastSyncedAt after exhaustion re-arms the attempts, capped at 3 reads per checkpoint, and a successful read decides', async () => {
+      jest.useFakeTimers()
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(1000) })
+      mockGetAll.mockRejectedValue(new Error('db closed'))
+      const { result, rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      expect(mockGetAll).toHaveBeenCalledTimes(3)
+      // Same checkpoint: no further reads.
+      rerender({})
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      expect(mockGetAll).toHaveBeenCalledTimes(3)
+      // Next checkpoint: up to 3 more, and a success decides.
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(2000) })
+      mockGetAll.mockResolvedValue([])
+      rerender({})
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      expect(mockGetAll).toHaveBeenCalledTimes(4)
+      expect(result.current.isDecided).toBe(true)
+      expect(result.current.hasExistingAccountData).toBe(false)
+    })
+
+    it('a permanent failure is capped at 3 reads per checkpoint', async () => {
+      jest.useFakeTimers()
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(1000) })
+      mockGetAll.mockRejectedValue(new Error('db closed'))
+      const { rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(2000) })
+      rerender({})
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000)
+      })
+      expect(mockGetAll).toHaveBeenCalledTimes(6)
+    })
+
+    it('does not re-read on a later checkpoint once the read has answered', async () => {
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(1000) })
+      const { result, rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      await waitFor(() => expect(result.current.isDecided).toBe(true))
+      mockUseStatus.mockReturnValue({ hasSynced: true, lastSyncedAt: new Date(2000) })
+      rerender({})
+      await act(async () => {})
+      expect(mockGetAll).toHaveBeenCalledTimes(1)
     })
 
     it('is true immediately on a hit, without waiting for the first sync to be reported', () => {
@@ -142,14 +225,43 @@ describe('useOnboardingExistenceFallback', () => {
       expect(result.current.isDecided).toBe(true)
     })
 
-    it('becomes true after SYNC_WAIT_TIMEOUT_MS when sync never completes (offline) so the user is never trapped', () => {
+    // Story 19.9: the timeout releases the hold but is never an answer.
+    it('after SYNC_WAIT_TIMEOUT_MS with the first sync incomplete: isHoldExpired true, isDecided stays false', () => {
       jest.useFakeTimers()
       mockUseStatus.mockReturnValue({ hasSynced: false })
       const { result } = renderHook(() => useOnboardingExistenceFallback(true))
-      expect(result.current.isDecided).toBe(false)
+      expect(result.current.isHoldExpired).toBe(false)
       act(() => {
         jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS)
       })
+      expect(result.current.isHoldExpired).toBe(true)
+      expect(result.current.isDecided).toBe(false)
+      expect(result.current.hasExistingAccountData).toBe(false)
+    })
+
+    it('a late hit after the hold expired still decides as a hit', () => {
+      jest.useFakeTimers()
+      mockUseStatus.mockReturnValue({ hasSynced: false })
+      const { result, rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      act(() => {
+        jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS)
+      })
+      mockUseQuery.mockReturnValue({ data: [{ id: 'item-1' }], isLoading: false })
+      rerender({})
+      expect(result.current.hasExistingAccountData).toBe(true)
+      expect(result.current.isDecided).toBe(true)
+    })
+
+    it('a completed first sync with zero rows after the hold expired decides empty (new account)', async () => {
+      jest.useFakeTimers()
+      mockUseStatus.mockReturnValue({ hasSynced: false })
+      const { result, rerender } = renderHook(() => useOnboardingExistenceFallback(true))
+      act(() => {
+        jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS)
+      })
+      mockUseStatus.mockReturnValue({ hasSynced: true })
+      rerender({})
+      await act(async () => {})
       expect(result.current.isDecided).toBe(true)
       expect(result.current.hasExistingAccountData).toBe(false)
     })

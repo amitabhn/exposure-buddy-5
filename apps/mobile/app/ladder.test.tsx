@@ -47,9 +47,15 @@ const mockAddListener = jest.fn((event: string, callback: (e: { data: { closing:
   return jest.fn()
 })
 
+const mockRedirect = jest.fn()
+
 jest.mock('expo-router', () => ({
   Stack: {
     Screen: () => null,
+  },
+  Redirect: ({ href }: { href: string }) => {
+    mockRedirect(href)
+    return null
   },
   useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
   useNavigation: () => ({ addListener: mockAddListener }),
@@ -105,6 +111,11 @@ jest.mock('@exposure-buddy/core', () => ({
 
 import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
+const mockUseIsOnboardingUndecided = jest.fn()
+jest.mock('../src/contexts/OnboardingDecisionContext', () => ({
+  useIsOnboardingUndecided: () => mockUseIsOnboardingUndecided(),
+}))
+
 import LadderScreen from './ladder'
 
 const mockUseFearLadderItems = useFearLadderItems as jest.Mock
@@ -136,12 +147,31 @@ describe('LadderScreen', () => {
     mockUseActiveExposureSession.mockReturnValue({ activeSession: null, isLoading: false })
     mockDetectCrisisKeywords.mockReturnValue(false)
     mockEnqueue.mockResolvedValue(undefined)
+    mockUseIsOnboardingUndecided.mockReturnValue(false)
     jest.spyOn(Alert, 'alert').mockImplementation(() => {})
   })
 
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+  })
+
+  // Story 19.9: nothing may write fear_ladder_items while the onboarding decision is undecided.
+  describe('onboarding decision undecided (Story 19.9)', () => {
+    it('redirects to Home, mounts no add form and enqueues nothing', () => {
+      mockUseIsOnboardingUndecided.mockReturnValue(true)
+      const { queryByText, queryAllByRole } = render(<LadderScreen />)
+      expect(mockRedirect).toHaveBeenCalledWith('/(app)')
+      expect(queryByText('ladder.emptyState')).toBeNull()
+      expect(queryAllByRole('button')).toHaveLength(0)
+      expect(mockEnqueue).not.toHaveBeenCalled()
+    })
+
+    it('opens normally once decided', () => {
+      const { getByText } = render(<LadderScreen />)
+      expect(mockRedirect).not.toHaveBeenCalled()
+      expect(getByText('ladder.emptyState')).toBeTruthy()
+    })
   })
 
   it('renders empty state when no items', () => {

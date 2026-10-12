@@ -7,6 +7,7 @@ import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { initErrorHandler, reportDroppedWrite } from '../src/error-handler'
 import { ReducedMotionProvider } from '../src/contexts/AnimationContext'
+import { OnboardingDecisionProvider } from '../src/contexts/OnboardingDecisionContext'
 import i18n from '../src/i18n'
 import { useFonts } from 'expo-font'
 import {
@@ -113,6 +114,7 @@ export default function RootLayout() {
         <SplashGate />
         <PowerSyncConnectionManager>
           <OnboardingProvider mmkv={mmkv}>
+          <OnboardingDecisionProvider>
           <SafeAreaProvider>
             <ReducedMotionProvider>
               <ThemeProvider value={DefaultTheme}>
@@ -138,6 +140,7 @@ export default function RootLayout() {
               </ThemeProvider>
             </ReducedMotionProvider>
           </SafeAreaProvider>
+          </OnboardingDecisionProvider>
           </OnboardingProvider>
         </PowerSyncConnectionManager>
       </AuthProvider>

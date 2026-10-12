@@ -10,6 +10,7 @@ import { scheduleSessionReminder, cancelSessionReminder } from '../../src/notifi
 import { useActiveSessionRecoveryFallback } from '../../src/hooks/useActiveSessionRecoveryFallback'
 import { useOnboardingExistenceFallback } from '../../src/hooks/useOnboardingExistenceFallback'
 import { markSessionResumed } from '../../src/state/sessionResumeFlag'
+import { usePublishOnboardingUndecided } from '../../src/contexts/OnboardingDecisionContext'
 
 export default function AppLayout() {
   const { t } = useTranslation()
@@ -93,14 +94,23 @@ export default function AppLayout() {
   const isIncompleteOnboarding = !isLoading && isAuthenticated && !isOnboardingComplete && !isStorageDegraded
   const isMidOnboarding = isIncompleteOnboarding && onboardingProgressStep !== null
   const isAwaitingOnboardingDecision = isIncompleteOnboarding && onboardingProgressStep === null
-  const { hasExistingAccountData, isDecided } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
-  const isDecisionPending = isMidOnboarding || (isAwaitingOnboardingDecision && !isDecided)
+  const { hasExistingAccountData, isDecided, isHoldExpired } = useOnboardingExistenceFallback(isAwaitingOnboardingDecision)
+  // Story 19.9: a timeout is not an answer. The spinner is held only while the hold has not
+  // expired; once it has expired with no decision the user is released to Home (the (app) group,
+  // so this layout and the fallback query stay mounted) and the fallback keeps running — a late
+  // hit marks onboarding complete, a completed empty sync routes to onboarding. While undecided,
+  // /ladder is gated (nothing may write fear_ladder_items) via the root-level context.
+  const isDecisionPending = isMidOnboarding || (isAwaitingOnboardingDecision && !isDecided && !isHoldExpired)
+  const isUndecided = isAwaitingOnboardingDecision && !isDecided && isHoldExpired
+  usePublishOnboardingUndecided(isUndecided)
   useEffect(() => {
     if (isAwaitingOnboardingDecision && hasExistingAccountData) {
       markOnboardingComplete()
-      router.replace('/(app)')
+      // Late hit (hold expired): the user is already inside (app) and may be on another screen —
+      // never navigate them. Only the spinner case needs the replace.
+      if (!isHoldExpired) router.replace('/(app)')
     }
-  }, [isAwaitingOnboardingDecision, hasExistingAccountData, markOnboardingComplete, router])
+  }, [isAwaitingOnboardingDecision, hasExistingAccountData, isHoldExpired, markOnboardingComplete, router])
 
   // Auth + onboarding gate — never redirect while isLoading (ARC-004 cold-start).
   // Priority: unauthenticated → sign-in; authenticated + onboarding incomplete → onboarding.
