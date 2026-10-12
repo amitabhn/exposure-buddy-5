@@ -1229,7 +1229,7 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 ## Deferred from: Story 19.7 device verification (2026-10-12)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
-  summary: **Cold JS start while offline shows the sign-in screen even with a fresh token.** Seen on the Android dev client after a reload with no network; likely related to Stories 19.8/19.9. Not investigated.
+  summary: ~~**Cold JS start while offline shows the sign-in screen even with a fresh token.**~~ **RESOLVED in Story 19.8** (code + unit tests; device re-check of the offline case is in that spec's Implementation Notes). Cause: supabase-js's `INITIAL_SESSION(null)` was treated as signed out and wiped the stored session.
   evidence: Observed during the 19.7 reconnect-stall repro; the reconnect stall itself is fixed in 19.7 (stalled-stream watchdog).
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
   summary: **No native network-state listener in the app.** The 19.7 fix polls connection status (20s) because no NetInfo/expo-network dependency exists; a native listener would reconnect immediately on network regain but needs a dev-client rebuild.
@@ -1243,3 +1243,19 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
   summary: **A dropped write leaves the local row in SQLite while the server never gets it.** The UI shows it as saved; only a generic notice appears.
   evidence: The drop-and-notify design is the story's intent; local rollback or resync (e.g. revert the row, or `disconnectAndClear` and resync) was not scoped.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
+  summary: **No "offline, will sync" indicator for a user on a stored-but-unconfirmed session.** Such a user reaches home but is not syncing (PowerSync stays disconnected until a refresh succeeds); whether to show a cue is a UX call.
+  evidence: Spec Decision 5; `isSessionConfirmed` (AuthContext/useAuth) is the signal a future indicator would read.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
+  summary: **Unconfirmed-session refresh retry uses AppState plus a 30 s interval, not a network-state event.** No NetInfo/expo-network dependency exists (same gap as the 19.7 entry above).
+  evidence: `AuthProvider.tsx` retry effect; a native listener would retry the moment the network returns.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
+  summary: **Device case (b) (expired access token, valid refresh token), iOS and TalkBack were not run for 19.8.**
+  evidence: (b) needs ~1 h with the app closed after sign-in; same mechanism as (a). Run before release.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
+  summary: **Retry success path relies on auth-js emitting TOKEN_REFRESHED from `refreshSession({ refresh_token })` on a client with `persistSession:false`.** If it does not, an offline-start user never confirms and PowerSync never connects.
+  evidence: Unit tests mock the event. Settle on device: offline cold start, restore network, wait up to 30 s, confirm PowerSync connects (would be medium, unverified).
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-8-no-sign-in-flash-on-cold-start-for-signed-in-user.md`
+  summary: **Writes made while the session is unconfirmed are discarded if the server later rejects the refresh token; account-deletion requests made offline fail (no client session).**
+  evidence: Accepted by the spec carve-out (local data is on the user's own device); the deletion failure is pre-existing offline behaviour. A notice or write-block is a UX/DPDPA call.
+
