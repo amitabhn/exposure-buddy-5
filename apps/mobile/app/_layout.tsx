@@ -5,9 +5,9 @@ import { BackButton } from '../src/components/navigation/BackButton'
 import { CalmMeFab } from '../src/components/CalmMeFab'
 import { PortalHost } from '@rn-primitives/portal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { initErrorHandler } from '../src/error-handler'
+import { initErrorHandler, reportDroppedWrite } from '../src/error-handler'
 import { ReducedMotionProvider } from '../src/contexts/AnimationContext'
-import '../src/i18n'
+import i18n from '../src/i18n'
 import { useFonts } from 'expo-font'
 import {
   Inter_400Regular,
@@ -21,7 +21,7 @@ import {
 } from '@expo-google-fonts/dm-serif-display'
 import * as SplashScreen from 'expo-splash-screen'
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { Alert, View, Text, StyleSheet } from 'react-native'
 import { AuthProvider, OnboardingProvider, initSession, useAuth, createSupabaseClient, type MMKV } from '@exposure-buddy/supabase'
 import * as Sentry from '@sentry/react-native'
 import {
@@ -31,6 +31,7 @@ import {
   PowerSyncSyncAdapter,
   SupabasePowerSyncConnector,
   initAdapter,
+  watchStalledConnection,
 } from '@exposure-buddy/sync'
 
 export function ErrorBoundary({ error }: ErrorBoundaryProps) {
@@ -169,11 +170,15 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
   const inFlightRef = useRef<Promise<void>>(Promise.resolve())
   // Track the current per-user db so the disconnect branch operates on the right instance.
   const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
+  const stopStallWatchRef = useRef<(() => void) | null>(null)
   // Never null: start with placeholder so useQuery's conditional hook calls never see a
   // falsy context value (Rules of Hooks — useQuery.js:8 returns early before 3 inner hooks).
   const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase>>(
     _placeholderDb,
   )
+
+  // The watchdog is owned by the sign-in branch below; this only stops it if the provider unmounts.
+  useEffect(() => () => stopStallWatchRef.current?.(), [])
 
   useEffect(() => {
     if (userId === undefined) return                          // auth still loading
@@ -186,13 +191,26 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
       setDb(powerSyncDb)
       // initAdapter is per-user: each userId gets its own adapter instance bound to its db.
       initAdapter(new PowerSyncSyncAdapter(powerSyncDb))
-      const connector = new SupabasePowerSyncConnector(createSupabaseClient())
-      inFlightRef.current = inFlightRef.current
-        .then(() => powerSyncDb.connect(connector))
-        .catch(logSyncLifecycleError)
+      const connector = new SupabasePowerSyncConnector(
+        createSupabaseClient(),
+        reportDroppedWrite,
+        // Generic on purpose: no table, row values or promise that anyone was notified.
+        () => Alert.alert(i18n.t('error.writesDropped')),
+      )
+      const connect = () => {
+        inFlightRef.current = inFlightRef.current
+          .then(() => powerSyncDb.connect(connector))
+          .catch(logSyncLifecycleError)
+      }
+      connect()
+      // A stream hung by a network drop never reports connected again; re-connect it.
+      stopStallWatchRef.current?.()
+      stopStallWatchRef.current = watchStalledConnection(powerSyncDb, connect)
     } else {
       const powerSyncDb = currentDbRef.current
       currentDbRef.current = null
+      stopStallWatchRef.current?.()
+      stopStallWatchRef.current = null
       setDb(_placeholderDb)  // revert to placeholder — never null (see useState init above)
       if (!powerSyncDb) return  // nothing to disconnect
       inFlightRef.current = inFlightRef.current

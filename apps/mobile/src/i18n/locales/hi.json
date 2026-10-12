@@ -2,6 +2,9 @@
   "common": {
     "back": "वापस जाएं"
   },
+  "error": {
+    "writesDropped": "Some changes couldn't be saved."
+  },
   "legal": {
     "dpo": {
       "title": "डेटा संरक्षण अधिकारी",

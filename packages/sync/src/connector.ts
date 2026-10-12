@@ -33,6 +33,54 @@ function isRetryableError(error: unknown): boolean {
   return !NON_RETRYABLE_RPC_ERRORS.some(known => message.includes(known))
 }
 
+// Story 19.7: a write the server will never accept must not stall every write behind it.
+// Only an enumerated set of Postgres codes is permanent; everything else (network errors, 5xx,
+// 401 / PGRST301 expired token, 408, 429, 40001, 40P01, 57014, PGRST204/205, unknown 4xx and any
+// unclassified error) is transient and keeps the throw-to-retry contract. Never drop on an unknown.
+const MAX_PERMANENT_ATTEMPTS = 5
+const FK_VIOLATION = '23503'
+const RLS_DENIED = '42501'
+
+type ErrorClass = 'transient' | 'permanent' | 'fk'
+
+function errorCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code
+  return typeof code === 'string' ? code : ''
+}
+
+function classifyError(error: unknown): ErrorClass {
+  const code = errorCode(error)
+  if (code === FK_VIOLATION) return 'fk'
+  if (code === RLS_DENIED || code.startsWith('22') || code.startsWith('23')) return 'permanent'
+  return 'transient'
+}
+
+// PostgREST errors have no constraint field; the name only appears inside `message`
+// (`... violates unique constraint "uq_user_position"`). Extract it with a strict pattern and
+// never forward `message` or `details` themselves: they can echo row values (e.g. 22P02).
+const CONSTRAINT_IN_MESSAGE = /constraint "([^"]*)"/
+const SAFE_CONSTRAINT_NAME = /^[a-z0-9_]+$/
+
+function constraintName(error: unknown, code: string): string | undefined {
+  if (!code.startsWith('23')) return undefined
+  const message = (error as { message?: unknown } | null)?.message
+  if (typeof message !== 'string') return undefined
+  const name = CONSTRAINT_IN_MESSAGE.exec(message)?.[1]
+  return name !== undefined && SAFE_CONSTRAINT_NAME.test(name) ? name : undefined
+}
+
+// What a dropped write reports: no row values, no message, no details (DPDPA).
+export interface DroppedWriteReport {
+  table: string
+  op: 'PUT' | 'PATCH' | 'DELETE' | 'swap'
+  code: string
+  constraint?: string
+  // A dropped DELETE overrides the user's intent to remove data, so it is reported louder.
+  level: 'error' | 'warning'
+}
+
+export type DroppedWriteReporter = (report: DroppedWriteReport) => void
+
 // AC 3: `_reorder` (adapter.ts) writes both position UPDATEs in one SQLite
 // writeTransaction, giving both ps_crud rows the same transactionId. A "reorder pair"
 // is exactly two entries sharing a transactionId, both PATCH, both on
@@ -89,10 +137,27 @@ function toUploadUnits(crud: CrudEntry[]): UploadUnit[] {
   return units
 }
 
+function unitKey(unit: UploadUnit): string {
+  return unit.kind === 'swap'
+    ? `${unit.a.clientId}:${unit.b.clientId}`
+    : String(unit.entry.clientId)
+}
+
 let _urlValidationWarned = false
 
 export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
-  constructor(private readonly supabase: SupabaseClient) {}
+  // In memory, so the attempt bound is per app process, not lifetime. Keyed by the entry's
+  // clientId (a swap unit uses `a.clientId:b.clientId`).
+  private readonly attempts = new Map<string, number>()
+  // Dropped keys stay skipped if the batch is replayed after a later transient throw, so a dropped
+  // write is never re-attempted or re-reported. Cleared once the batch completes.
+  private readonly dropped = new Set<string>()
+
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly reportDroppedWrite?: DroppedWriteReporter,
+    private readonly onWritesDropped?: () => void,
+  ) {}
 
   async fetchCredentials() {
     const endpoint = process.env['EXPO_PUBLIC_POWERSYNC_URL']
@@ -125,7 +190,11 @@ export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
     const batch = await database.getCrudBatch(200)
     if (!batch) return  // nothing to upload
 
-    for (const unit of toUploadUnits(batch.crud)) {
+    const units = toUploadUnits(batch.crud)
+    for (const unit of units) {
+      const key = unitKey(unit)
+      if (this.dropped.has(key)) continue
+
       if (unit.kind === 'swap') {
         const { error } = await this.supabase.rpc('swap_ladder_positions', {
           p_item_a_id: unit.a.id,
@@ -133,19 +202,79 @@ export class SupabasePowerSyncConnector implements PowerSyncBackendConnector {
           p_item_b_id: unit.b.id,
           p_item_b_new_position: unit.b.opData!['position'] as number,
         })
-        // Non-retryable application errors (e.g. one of the paired items was deleted
-        // before this batch uploaded — see AC 2/AC 3's error-type discrimination note)
-        // must not propagate as a bare throw, or PowerSync retries the whole batch
-        // forever. Only retryable network-level failures should throw.
-        if (error && isRetryableError(error)) throw error
-        if (error) console.error('[PowerSync] swap_ladder_positions non-retryable error:', error)
+        // The three NON_RETRYABLE_RPC_ERRORS are known application errors (e.g. one of the paired
+        // items was deleted before this batch uploaded) that can never succeed, so they drop at
+        // once; bounded retry would only add delay. Any other swap error follows the bounded path.
+        if (error && !isRetryableError(error)) {
+          this.drop(key, 'fear_ladder_items', 'swap', error)
+        } else {
+          await this.settle(key, 'fear_ladder_items', 'swap', error)
+        }
       } else {
         const { error } = await this._uploadEntry(unit.entry)
-        if (error) throw error  // PowerSync will retry after configured wait (default 5s)
+        await this.settle(key, unit.entry.table, unit.entry.op, error)
       }
     }
 
     await batch.complete()
+    const hadDrops = this.dropped.size > 0
+    for (const unit of units) {
+      const key = unitKey(unit)
+      this.attempts.delete(key)
+      this.dropped.delete(key)
+    }
+    if (hadDrops) this.onWritesDropped?.()
+  }
+
+  // Success clears the counter. A transient error throws (PowerSync retries after its configured
+  // wait). A permanent one throws until its 5th attempt, then drops so the batch can complete.
+  private async settle(key: string, table: string, op: DroppedWriteReport['op'], error: unknown) {
+    if (!error) {
+      this.attempts.delete(key)
+      return
+    }
+    const errorClass = classifyError(error)
+    if (errorClass === 'transient') throw error
+    if (errorClass === 'fk') {
+      // The parent was dropped or is absent; ps_crud order replay means it can never succeed later.
+      this.drop(key, table, op, error)
+      return
+    }
+    // 42501 with no valid session is the anon-key fallback after a token failure, not a real RLS
+    // denial: retry it without counting.
+    if (errorCode(error) === RLS_DENIED && !(await this.hasValidSession())) throw error
+    const attempt = (this.attempts.get(key) ?? 0) + 1
+    if (attempt < MAX_PERMANENT_ATTEMPTS) {
+      this.attempts.set(key, attempt)
+      throw error
+    }
+    this.drop(key, table, op, error)
+  }
+
+  private drop(key: string, table: string, op: DroppedWriteReport['op'], error: unknown) {
+    this.attempts.delete(key)
+    this.dropped.add(key)
+    const code = errorCode(error)
+    const report: DroppedWriteReport = {
+      table,
+      op,
+      code,
+      level: op === UpdateType.DELETE ? 'error' : 'warning',
+    }
+    const constraint = constraintName(error, code)
+    if (constraint) report.constraint = constraint
+    try {
+      this.reportDroppedWrite?.(report)
+    } catch {
+      // Reporting must never stall the upload queue.
+    }
+  }
+
+  private async hasValidSession(): Promise<boolean> {
+    const { data: { session } } = await this.supabase.auth.getSession()
+    if (!session) return false
+    // Unknown expiry is not a valid session (fetchCredentials agrees): stay transient, never drop.
+    return typeof session.expires_at === 'number' && session.expires_at * 1000 > Date.now()
   }
 
   private async _uploadEntry(entry: CrudEntry): Promise<{ error: unknown }> {

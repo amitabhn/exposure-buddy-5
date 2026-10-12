@@ -11,9 +11,9 @@ Fix the problems beta users reported in the first build: an onboarding ladder st
 - Story 19.1: Onboarding Courage Ladder — "Do this later" Label & Back Navigation (done, merged in PR #100)
 - Story 19.2: Practice Relaxation Opens the Selected Technique (merged in PR #101)
 - Story 19.3: Courage Ladder — Completed Items Sink and Grey Out (merged in PR #102)
-- Story 19.4: Highlight Insta Calm on First Launch After Install
-- Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider
-- Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On
+- Story 19.4: Highlight Insta Calm on First Launch After Install (merged in PR #103)
+- Story 19.5: Review SUDS Input — Numbered Boxes vs. Slider (merged in PR #105)
+- Story 19.6: Sync Upload Applies a Reorder After the Inserts It Depends On (merged in PR #106)
 - Story 19.7: Upload Queue Does Not Stall on a Write the Server Will Never Accept
 - Story 19.8: No Sign-In Flash on Cold Start for a Signed-In User
 - Story 19.9: An Existing Account Reinstalling Is Not Sent Through Onboarding Again When the First Sync Is Slow
@@ -42,6 +42,6 @@ Fix the problems beta users reported in the first build: an onboarding ladder st
 ## Cross-Story Dependencies
 
 - 19.2 should land before 19.3 (both touch how Home and the ladder choose and show items).
-- 19.6 (reorder after inserts) and 19.7 (queue stall) both change the connector's `uploadData` ordering and error handling and should be designed together.
+- 19.6 (reorder after inserts) is merged: `uploadData` now replays `ps_crud` in order and only reorder pairs are grouped; a multi-slot drag uploads a chain of adjacent swaps. 19.7 (queue stall) builds on it and owns error handling: a retryable failure part-way through a swap chain replays the earlier swaps and can collide on `uq_user_position` (23505, currently retried forever).
 - 19.9 (slow first sync) interacts with 19.7: the position collision that follows a mis-routed onboarding is a stalled write.
 - 19.10 closes 19.1's remaining verification; 19.12 is independent of every other story and is about `main` CI health.

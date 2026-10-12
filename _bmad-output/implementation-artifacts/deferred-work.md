@@ -1225,3 +1225,21 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 
 - **Offline edits do not upload after reconnect until the JS is reloaded (dev client).** Reproduced on the Android dev client against hosted: make a ladder change with Wi-Fi and data off, reconnect, and nothing reaches the server for 2.5+ minutes. Backgrounding/foregrounding the app and toggling Wi-Fi did not help; PowerSync connects and logs "Could not apply checkpoint due to local data. Will retry at completed upload or next checkpoint", but `uploadData` does not run. Opening the dev-client link (JS reload) flushed the queue within seconds. The same stall occurs with `main`'s `connector.ts`, so it is not caused by Story 19.6. Not yet diagnosed (preview/production build untested; possibly the dev-client streaming gotcha from Story 19.9). Unverified whether a release build recovers on its own. Candidate for Story 19.9 or 19.7.
 - **Device verification summary (Story 19.6).** On-device with hosted Supabase: (1) online 2-slot drag down and up uploaded exact positions, gaps preserved; (2) offline add + swap of two items landed with the swap after both inserts (AC 1/5); (3) with a temporary 10 s delay between swaps, a second drag made inside the first chain's window left unique server positions and no partial order on screen (the `remoteItems` hold). Not covered: iOS, TalkBack/Hindi, and the real PowerSync emission timing under a seconds-long write lock beyond the delayed-enqueue emulation.
+
+## Deferred from: Story 19.7 device verification (2026-10-12)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
+  summary: **Cold JS start while offline shows the sign-in screen even with a fresh token.** Seen on the Android dev client after a reload with no network; likely related to Stories 19.8/19.9. Not investigated.
+  evidence: Observed during the 19.7 reconnect-stall repro; the reconnect stall itself is fixed in 19.7 (stalled-stream watchdog).
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
+  summary: **No native network-state listener in the app.** The 19.7 fix polls connection status (20s) because no NetInfo/expo-network dependency exists; a native listener would reconnect immediately on network regain but needs a dev-client rebuild.
+  evidence: `grep netinfo|expo-network` finds nothing in `apps/mobile/package.json` or the packages.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
+  summary: **`_layout.tsx` wiring is untested**: connector gets `reportDroppedWrite` and the notice callback, and `watchStalledConnection` starts on sign-in and stops on sign-out.
+  evidence: `app/_layout.test.tsx` mocks `useAuth` as `{}`, so the signed-in branch never runs; removing the wiring would keep every test green. Needs a signed-in harness with `@exposure-buddy/sync` mocked.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
+  summary: **Stall watchdog may restart a slow healthy connect, and is unproven on iOS/release.** (unverified, would be medium)
+  evidence: It checks only `currentStatus.connected`. Settle by logging `currentStatus.connecting` during a hung repro: if it is false while hung, skip the reconnect while `connecting`; if true, keep as is. Also run once on a release build and iOS.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-7-upload-queue-does-not-stall-on-permanently-rejected-write.md`
+  summary: **A dropped write leaves the local row in SQLite while the server never gets it.** The UI shows it as saved; only a generic notice appears.
+  evidence: The drop-and-notify design is the story's intent; local rollback or resync (e.g. revert the row, or `disconnectAndClear` and resync) was not scoped.

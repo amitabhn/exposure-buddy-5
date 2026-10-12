@@ -1,4 +1,17 @@
 import * as Sentry from '@sentry/react-native'
+import type { DroppedWriteReport } from '@exposure-buddy/sync'
+
+// Story 19.7: the payload is table, op, error code and constraint name only (see DroppedWriteReport),
+// so no row values or free text reach Sentry.
+export function reportDroppedWrite(report: DroppedWriteReport): void {
+  try {
+    const { level, ...tags } = report
+    // eslint-disable-next-line i18next/no-literal-string
+    Sentry.captureMessage('upload write dropped', { level, tags })
+  } catch {
+    // Reporting must never stall the upload queue.
+  }
+}
 
 export function initErrorHandler(): void {
   if (typeof global === 'undefined' || !global.ErrorUtils) return
