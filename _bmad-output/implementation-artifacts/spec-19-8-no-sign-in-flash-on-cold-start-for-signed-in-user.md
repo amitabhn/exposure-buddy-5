@@ -108,6 +108,7 @@ context:
 - (a) fresh token, online: sign-in never rendered; home on the 3rd poll (~3 s, dev-client JS load included).
 - (c) airplane mode: sign-in never rendered; home from the local replica; no PowerSync sync-error toast (not connected). After restoring the network, a cold start landed on home again: the stored session was no longer wiped.
 - Revoked session (deleted the account's rows in `auth.sessions`, token still unexpired): home from the fast path, then sign-in after ~25 s (the rejection arrives late, the spec's "late rejection" row); a following cold start went straight to sign-in, so stored auth state was cleared. Not measured: which status the server returned; if it was 403 rather than 400/401 the end state here would have been wrong, so the observed outcome suggests the rejected class was hit or auth-js emitted SIGNED_OUT itself.
+- Revoked session re-run after the 403 amendment (same account, its one session deleted from `auth.sessions`): `/auth/v1/user` returned 403 at 14:26:16 and no `/token` retry was needed; the UI reached sign-in ~9 s after launch (JS load included) instead of ~25 s, and a following cold start went straight to sign-in (stored state cleared).
 - (b) expired access token: NOT run (needs ~1 h with the app closed). iOS and TalkBack unchecked.
 
 ### Implementation
