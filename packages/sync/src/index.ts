@@ -8,6 +8,9 @@ export type { Database } from './schema'
 export { createPowerSyncDatabase, getPowerSyncDatabase } from './client'
 
 export { SupabasePowerSyncConnector } from './connector'
+export type { DroppedWriteReport, DroppedWriteReporter } from './connector'
+
+export { watchStalledConnection } from './reconnect-watchdog'
 
 export { buildOutboxEntry } from './utils/outbox'
 export type { OutboxEntry, OutboxOperation } from './utils/outbox-schema'

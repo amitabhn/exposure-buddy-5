@@ -6,7 +6,8 @@
   "error": {
     "notFoundTitle": "Oops!",
     "screenNotFound": "This screen does not exist.",
-    "goHome": "Go to home screen!"
+    "goHome": "Go to home screen!",
+    "writesDropped": "Some changes couldn't be saved."
   },
   "auth": {
     "welcomeSignup": "Welcome to\n{{appName}}",

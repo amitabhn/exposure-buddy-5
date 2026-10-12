@@ -11,9 +11,12 @@ vi.mock('@powersync/react-native', () => ({
   UpdateType: { PUT: 'PUT', PATCH: 'PATCH', DELETE: 'DELETE' },
 }))
 
+let nextClientId = 1
+
+// Real ps_crud clientIds are unique per entry; the connector keys its retry counter on them.
 function makeEntry(overrides: Partial<CrudEntry> & { id: string }): CrudEntry {
   return {
-    clientId: 1,
+    clientId: nextClientId++,
     op: UpdateType.PATCH,
     table: 'fear_ladder_items',
     transactionId: undefined,
@@ -35,7 +38,10 @@ function makeMockSupabase() {
     upsert,
   }))
   const rpc = vi.fn().mockResolvedValue({ error: null })
-  return { from, rpc, updateEq, deleteEq, upsert }
+  const getSession = vi.fn().mockResolvedValue({
+    data: { session: { expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+  })
+  return { from, rpc, updateEq, deleteEq, upsert, auth: { getSession } }
 }
 
 function makeMockDatabase(crud: CrudEntry[]) {
@@ -209,8 +215,7 @@ describe('SupabasePowerSyncConnector.uploadData', () => {
       expect(db.complete).not.toHaveBeenCalled()
     })
 
-    it('a swap whose items were deleted elsewhere is logged and skipped, batch still completes (synthetic: delete before swap)', async () => {
-      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    it('a swap whose items were deleted elsewhere is dropped and reported, batch still completes (synthetic: delete before swap)', async () => {
       supabase.rpc.mockResolvedValueOnce({ error: { message: 'swap_ladder_positions: one or both items not found' } })
       const del = makeEntry({ id: 'item-a', op: UpdateType.DELETE, transactionId: 3, opData: undefined })
       const { db, result } = run(supabase, [put('item-a', 1), put('item-b', 2), del, ...swapPair(4)])
@@ -218,12 +223,7 @@ describe('SupabasePowerSyncConnector.uploadData', () => {
       await expect(result).resolves.toBeUndefined()
       expect(supabase.rpc).toHaveBeenCalledOnce()
       expect(supabase.deleteEq.mock.invocationCallOrder[0]).toBeLessThan(supabase.rpc.mock.invocationCallOrder[0]!)
-      expect(consoleError).toHaveBeenCalledWith(
-        '[PowerSync] swap_ladder_positions non-retryable error:',
-        expect.objectContaining({ message: expect.stringContaining('not found') }),
-      )
       expect(db.complete).toHaveBeenCalledOnce()
-      consoleError.mockRestore()
     })
 
     it('two swaps with a PATCH between them execute in original order', async () => {
@@ -253,5 +253,250 @@ describe('SupabasePowerSyncConnector.uploadData', () => {
       expect(deleteOrder).toBeLessThan(patchOrders[0]!)
       expect(patchOrders[0]!).toBeLessThan(patchOrders[1]!)
     })
+  })
+})
+
+describe('permanent rejections (Story 19.7)', () => {
+  let supabase: ReturnType<typeof makeMockSupabase>
+  let report: ReturnType<typeof vi.fn>
+  let notice: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    supabase = makeMockSupabase()
+    report = vi.fn()
+    notice = vi.fn()
+  })
+
+  const put = (id: string, table = 'fear_ladder_items') =>
+    makeEntry({ id, op: UpdateType.PUT, table, opData: { position: 1 } })
+  const uniqueViolation = {
+    code: '23505',
+    message: 'duplicate key value violates unique constraint "uq_user_position"',
+    details: 'Key (user_id, position)=(11111111-2222-3333-4444-555555555555, 1) already exists.',
+  }
+  const connectorFor = () =>
+    new SupabasePowerSyncConnector(supabase as unknown as SupabaseClient, report, notice)
+  const upload = (connector: SupabasePowerSyncConnector, db: ReturnType<typeof makeMockDatabase>) =>
+    connector.uploadData(db as unknown as AbstractPowerSyncDatabase)
+
+  it('throws on attempts 1-4 and drops on the 5th; valid writes after it upload and the batch completes', async () => {
+    const bad = put('bad')
+    const good1 = put('good-1')
+    const good2 = put('good-2')
+    supabase.upsert.mockImplementation(async (row: { id: string }) =>
+      ({ error: row.id === 'bad' ? uniqueViolation : null }))
+    const db = makeMockDatabase([bad, good1, good2])
+    const connector = connectorFor()
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toEqual(uniqueViolation)
+    }
+    expect(db.complete).not.toHaveBeenCalled()
+    expect(report).not.toHaveBeenCalled()
+
+    await expect(upload(connector, db)).resolves.toBeUndefined()
+    expect(db.complete).toHaveBeenCalledOnce()
+    expect(report).toHaveBeenCalledOnce()
+    expect(report).toHaveBeenCalledWith({
+      table: 'fear_ladder_items',
+      op: 'PUT',
+      code: '23505',
+      constraint: 'uq_user_position',
+      level: 'warning',
+    })
+    expect(notice).toHaveBeenCalledOnce()
+  })
+
+  it('does not drop on a transient failure: network error, 5xx, 401, 429, 40001, PGRST204, unknown 4xx, unclassified', async () => {
+    const errors = [
+      { message: 'TypeError: Network request failed', code: '' },
+      { message: 'bad gateway', code: '502' },
+      { message: 'JWT expired', code: 'PGRST301' },
+      { message: 'unauthorized', code: '401' },
+      { message: 'too many requests', code: '429' },
+      { message: 'serialization failure', code: '40001' },
+      { message: 'column not in schema cache', code: 'PGRST204' },
+      { message: 'bad request', code: '400' },
+      { message: 'who knows' },
+    ]
+    for (const error of errors) {
+      const entry = put(`item-${error.code ?? 'none'}`)
+      supabase.upsert.mockResolvedValue({ error })
+      const db = makeMockDatabase([entry])
+      const connector = connectorFor()
+      for (let attempt = 1; attempt <= 8; attempt++) {
+        await expect(upload(connector, db)).rejects.toEqual(error)
+      }
+      expect(db.complete).not.toHaveBeenCalled()
+    }
+    expect(report).not.toHaveBeenCalled()
+    expect(notice).not.toHaveBeenCalled()
+  })
+
+  it('drops a 23503 child on the first rejection and uploads later writes', async () => {
+    const child = put('reading-1', 'exposure_sessions')
+    const later = put('later')
+    supabase.upsert.mockImplementation(async (row: { id: string }) => ({
+      error: row.id === 'reading-1'
+        ? { code: '23503', message: 'insert or update on table "exposure_sessions" violates foreign key constraint "exposure_sessions_fear_item_id_fkey"' }
+        : null,
+    }))
+    const db = makeMockDatabase([child, later])
+
+    await expect(upload(connectorFor(), db)).resolves.toBeUndefined()
+    expect(supabase.upsert).toHaveBeenCalledTimes(2)
+    expect(db.complete).toHaveBeenCalledOnce()
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({
+      table: 'exposure_sessions', code: '23503', constraint: 'exposure_sessions_fear_item_id_fkey',
+    }))
+  })
+
+  it('42501 with a valid session is bounded then dropped; a DELETE is reported at error level', async () => {
+    const del = makeEntry({ id: 'item-x', op: UpdateType.DELETE, opData: undefined })
+    supabase.deleteEq.mockResolvedValue({ error: { code: '42501', message: 'permission denied' } })
+    const db = makeMockDatabase([del])
+    const connector = connectorFor()
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toMatchObject({ code: '42501' })
+    }
+    await expect(upload(connector, db)).resolves.toBeUndefined()
+    expect(report).toHaveBeenCalledWith({
+      table: 'fear_ladder_items', op: 'DELETE', code: '42501', level: 'error',
+    })
+    expect(notice).toHaveBeenCalledOnce()
+  })
+
+  it('42501 without a valid session is transient and never counts toward the drop', async () => {
+    supabase.upsert.mockResolvedValue({ error: { code: '42501', message: 'permission denied' } })
+    const connector = connectorFor()
+    const db = makeMockDatabase([put('item-a')])
+
+    for (const session of [null, {}, { expires_at: Math.floor(Date.now() / 1000) - 10 }]) {
+      supabase.auth.getSession.mockResolvedValue({ data: { session } })
+      for (let attempt = 1; attempt <= 8; attempt++) {
+        await expect(upload(connector, db)).rejects.toMatchObject({ code: '42501' })
+      }
+    }
+    expect(report).not.toHaveBeenCalled()
+  })
+
+  it('a write that succeeds after transient failures reports nothing and shows no notice', async () => {
+    supabase.upsert
+      .mockResolvedValueOnce({ error: { code: '23505', message: 'duplicate key value violates unique constraint "uq_user_position"' } })
+      .mockResolvedValue({ error: null })
+    const connector = connectorFor()
+    const db = makeMockDatabase([put('item-a')])
+
+    await expect(upload(connector, db)).rejects.toMatchObject({ code: '23505' })
+    await expect(upload(connector, db)).resolves.toBeUndefined()
+    expect(db.complete).toHaveBeenCalledOnce()
+    expect(report).not.toHaveBeenCalled()
+    expect(notice).not.toHaveBeenCalled()
+  })
+
+  it('reports a parent and three 23503 children as 4 reports and 1 notice', async () => {
+    const parent = put('parent')
+    const children = [put('c1', 'exposure_sessions'), put('c2', 'exposure_sessions'), put('c3', 'exposure_sessions')]
+    supabase.upsert.mockImplementation(async (row: { id: string }) => ({
+      error: row.id === 'parent'
+        ? uniqueViolation
+        : { code: '23503', message: 'violates foreign key constraint "exposure_sessions_fear_item_id_fkey"' },
+    }))
+    const db = makeMockDatabase([parent, ...children])
+    const connector = connectorFor()
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toBeDefined()
+    }
+    await upload(connector, db)
+    expect(report).toHaveBeenCalledTimes(4)
+    expect(notice).toHaveBeenCalledOnce()
+  })
+
+  it('a swap rejected with 23505 follows the bounded path, then later writes proceed', async () => {
+    const swap = [
+      makeEntry({ id: 'item-a', transactionId: 9, opData: { position: 2 } }),
+      makeEntry({ id: 'item-b', transactionId: 9, opData: { position: 1 } }),
+    ]
+    supabase.rpc.mockResolvedValue({ error: uniqueViolation })
+    const db = makeMockDatabase([...swap, put('after')])
+    const connector = connectorFor()
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toEqual(uniqueViolation)
+    }
+    await expect(upload(connector, db)).resolves.toBeUndefined()
+    expect(supabase.upsert).toHaveBeenCalledOnce()
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ op: 'swap', code: '23505' }))
+  })
+
+  it('a dropped write is not re-attempted or re-reported when the batch is replayed after a transient throw', async () => {
+    const fk = put('child', 'exposure_sessions')
+    const flaky = put('flaky')
+    let flakyCalls = 0
+    supabase.upsert.mockImplementation(async (row: { id: string }) => {
+      if (row.id === 'child') return { error: { code: '23503', message: 'violates foreign key constraint "exposure_sessions_fear_item_id_fkey"' } }
+      flakyCalls++
+      return { error: flakyCalls === 1 ? { message: 'network down' } : null }
+    })
+    const db = makeMockDatabase([fk, flaky])
+    const connector = connectorFor()
+
+    await expect(upload(connector, db)).rejects.toEqual({ message: 'network down' })
+    expect(notice).not.toHaveBeenCalled()
+    await expect(upload(connector, db)).resolves.toBeUndefined()
+
+    expect(supabase.upsert.mock.calls.filter(([row]) => row.id === 'child')).toHaveLength(1)
+    expect(report).toHaveBeenCalledOnce()
+    expect(notice).toHaveBeenCalledOnce()
+  })
+
+  it('never puts message or details text in the report, and omits a constraint name that fails the pattern', async () => {
+    const uuid = '99999999-aaaa-bbbb-cccc-000000000000'
+    const leaky = {
+      code: '23514',
+      message: `new row violates check constraint "Bad Name ${uuid}"`,
+      details: `Failing row contains (${uuid}, free text the user typed).`,
+    }
+    supabase.upsert.mockResolvedValue({ error: leaky })
+    const db = makeMockDatabase([put('item-a')])
+    const connector = connectorFor()
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toBeDefined()
+    }
+    await upload(connector, db)
+
+    const payload = JSON.stringify(report.mock.calls)
+    expect(payload).not.toContain(uuid)
+    expect(payload).not.toContain('free text')
+    expect(report.mock.calls[0]![0]).toEqual({
+      table: 'fear_ladder_items', op: 'PUT', code: '23514', level: 'warning',
+    })
+  })
+
+  it('a 22P02 message that echoes an input value never reaches the report', async () => {
+    const uuid = '12345678-1234-1234-1234-123456789012'
+    supabase.upsert.mockResolvedValue({
+      error: { code: '22P02', message: `invalid input syntax for type uuid: "${uuid}"` },
+    })
+    const db = makeMockDatabase([put('item-a')])
+    const connector = connectorFor()
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      await expect(upload(connector, db)).rejects.toBeDefined()
+    }
+    await upload(connector, db)
+    expect(JSON.stringify(report.mock.calls)).not.toContain(uuid)
+    expect(report.mock.calls[0]![0]).not.toHaveProperty('constraint')
+  })
+
+  it('a throwing reporter does not stall the queue', async () => {
+    report.mockImplementation(() => { throw new Error('sentry down') })
+    supabase.upsert.mockResolvedValue({
+      error: { code: '23503', message: 'violates foreign key constraint "exposure_sessions_fear_item_id_fkey"' },
+    })
+    const db = makeMockDatabase([put('child', 'exposure_sessions')])
+    await expect(upload(connectorFor(), db)).resolves.toBeUndefined()
+    expect(db.complete).toHaveBeenCalledOnce()
   })
 })
