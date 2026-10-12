@@ -133,6 +133,20 @@ describe('AssessmentScreen', () => {
       expect(mockPush).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('Next navigates to the ladder again after returning from it (OS back re-arms the guard)', async () => {
+    const { getByTestId, getByRole } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledTimes(1))
+
+    // OS back from the ladder: the kept-mounted assessment regains focus
+    act(() => { mockFocusCallbacks.forEach((cb) => cb()) })
+
+    fireEvent.press(getByRole('button'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledTimes(2))
+    expect(mockPush).toHaveBeenLastCalledWith('/(onboarding)/ladder')
+  })
 })
 
 describe('AssessmentScreen — Story 9.6 error paths', () => {
