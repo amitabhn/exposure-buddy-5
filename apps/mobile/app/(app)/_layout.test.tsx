@@ -36,12 +36,14 @@ const mockMarkOnboardingComplete = jest.fn()
 let mockSessionRecoveryData: { sessionId: string; fearItemId: string | null; description: string; preSuds: number; startedAt?: string } | null = null
 let mockIsOnboardingComplete = true
 let mockIsStorageDegraded = false
+let mockIsLoading = false
+let mockIsAuthenticated = true
 let mockOnboardingProgressStep: number | null = null
 
 jest.mock('@exposure-buddy/supabase', () => ({
   useAuth: () => ({
-    isLoading: false,
-    isAuthenticated: true,
+    isLoading: mockIsLoading,
+    isAuthenticated: mockIsAuthenticated,
     isOnboardingComplete: mockIsOnboardingComplete,
     isStorageDegraded: mockIsStorageDegraded,
     onboardingProgressStep: mockOnboardingProgressStep,
@@ -109,6 +111,8 @@ beforeEach(() => {
   mockUseOnboardingExistenceFallback.mockReturnValue({ hasExistingAccountData: false, isLoading: false, isDecided: true })
   mockIsOnboardingComplete = true
   mockIsStorageDegraded = false
+  mockIsLoading = false
+  mockIsAuthenticated = true
   mockOnboardingProgressStep = null
 })
 
@@ -520,5 +524,25 @@ describe('AppLayout — Story 18.2 Resume fires the shared resume signal', () =>
     const { getByLabelText } = render(<AppLayout />)
     await act(async () => { fireEvent.press(getByLabelText('session.recovery.resume')) })
     expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('sessionId=session-uuid-9'))
+  })
+})
+
+describe('AppLayout — Story 19.8 auth gate during cold-start restore', () => {
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('never redirects to sign-in while the stored session is still being restored (isLoading)', async () => {
+    mockIsLoading = true
+    mockIsAuthenticated = false
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/(auth)/sign-in')
+  })
+
+  it('redirects to sign-in once loading ends with no session', async () => {
+    mockIsLoading = false
+    mockIsAuthenticated = false
+    render(<AppLayout />)
+    await act(async () => {})
+    expect(mockRouterReplace).toHaveBeenCalledWith('/(auth)/sign-in')
   })
 })

@@ -82,7 +82,6 @@ export default function RootLayout() {
     DMSerifDisplay_400Regular_Italic,
   })
 
-  const splashHidden = useRef(false)
   // Cold start sequence (ARC-004):
   // 1. initErrorHandler() — module scope, first
   // 2. SplashScreen.preventAutoHideAsync() — module scope, second
@@ -102,13 +101,6 @@ export default function RootLayout() {
       })
   }, [])
 
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && !splashHidden.current) {
-      splashHidden.current = true
-      SplashScreen.hideAsync().catch(() => {})
-    }
-  }, [fontsLoaded, fontError])
-
   // Hold the splash screen while fonts load.
   // On fontError: proceed with system fonts (SF Pro / Roboto) — do not crash.
   if (!fontsLoaded && !fontError) {
@@ -118,6 +110,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider mmkv={mmkv}>
+        <SplashGate />
         <PowerSyncConnectionManager>
           <OnboardingProvider mmkv={mmkv}>
           <SafeAreaProvider>
@@ -152,6 +145,17 @@ export default function RootLayout() {
   )
 }
 
+// Story 19.8: the native splash stays up until fonts are ready (RootLayout returns null
+// until then) AND auth has a definite answer, so a signed-in user never sees sign-in while
+// the stored session restores. AuthProvider bounds isLoading at 5 s, so this cannot hang.
+function SplashGate() {
+  const { isLoading } = useAuth()
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync().catch(() => {})
+  }, [isLoading])
+  return null
+}
+
 function logSyncLifecycleError(err: unknown) {
   console.error('[PowerSync] lifecycle error:', err)
   // eslint-disable-next-line i18next/no-literal-string
@@ -159,7 +163,7 @@ function logSyncLifecycleError(err: unknown) {
 }
 
 function PowerSyncConnectionManager({ children }: { children: React.ReactNode }) {
-  const { userId: rawUserId, isLoading } = useAuth()
+  const { userId: rawUserId, isLoading, isSessionConfirmed } = useAuth()
   // Tri-state: undefined = auth still loading, null = signed-out, string = signed-in user id.
   // useAuth().userId is string|null; isLoading collapses the two null states into a distinct sentinel.
   const userId = isLoading ? undefined : rawUserId
@@ -171,6 +175,8 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
   // Track the current per-user db so the disconnect branch operates on the right instance.
   const currentDbRef = useRef<ReturnType<typeof getPowerSyncDatabase> | null>(null)
   const stopStallWatchRef = useRef<(() => void) | null>(null)
+  const startSyncRef = useRef<(() => void) | null>(null)
+  const syncStartedRef = useRef(false)
   // Never null: start with placeholder so useQuery's conditional hook calls never see a
   // falsy context value (Rules of Hooks — useQuery.js:8 returns early before 3 inner hooks).
   const [db, setDb] = useState<ReturnType<typeof getPowerSyncDatabase>>(
@@ -202,15 +208,23 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
           .then(() => powerSyncDb.connect(connector))
           .catch(logSyncLifecycleError)
       }
-      connect()
-      // A stream hung by a network drop never reports connected again; re-connect it.
-      stopStallWatchRef.current?.()
-      stopStallWatchRef.current = watchStalledConnection(powerSyncDb, connect)
+      // Story 19.8: a session restored from storage but not yet confirmed by a refresh may
+      // carry an expired token. The local replica is readable (db is set above), but nothing
+      // connects — and so nothing uploads — until the confirmation effect below fires.
+      startSyncRef.current = () => {
+        connect()
+        // A stream hung by a network drop never reports connected again; re-connect it.
+        stopStallWatchRef.current?.()
+        stopStallWatchRef.current = watchStalledConnection(powerSyncDb, connect)
+      }
+      syncStartedRef.current = false
     } else {
       const powerSyncDb = currentDbRef.current
       currentDbRef.current = null
       stopStallWatchRef.current?.()
       stopStallWatchRef.current = null
+      startSyncRef.current = null
+      syncStartedRef.current = false
       setDb(_placeholderDb)  // revert to placeholder — never null (see useState init above)
       if (!powerSyncDb) return  // nothing to disconnect
       inFlightRef.current = inFlightRef.current
@@ -218,6 +232,15 @@ function PowerSyncConnectionManager({ children }: { children: React.ReactNode })
         .catch(logSyncLifecycleError)
     }
   }, [userId])
+
+  // Connect once the session is confirmed (re-runs on user change: the effect above resets
+  // syncStartedRef and installs the new user's startSync first, as effects run in order).
+  useEffect(() => {
+    if (userId && isSessionConfirmed && !syncStartedRef.current && startSyncRef.current) {
+      syncStartedRef.current = true
+      startSyncRef.current()
+    }
+  }, [userId, isSessionConfirmed])
 
   return (
     <PowerSyncContext.Provider value={db}>

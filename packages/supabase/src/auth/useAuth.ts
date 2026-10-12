@@ -9,6 +9,7 @@ import type { PendingDeletionRecord, SessionRecoveryData, TechniqueType } from '
 interface UseAuthResult {
   authState: AuthState
   isLoading: boolean
+  isSessionConfirmed: boolean
   isAuthenticated: boolean
   signOut: () => Promise<void>
   requestAccountDeletion: () => Promise<void>
@@ -62,6 +63,7 @@ export function useAuth(): UseAuthResult {
   return {
     authState: auth.authState,
     isLoading: auth.isLoading,
+    isSessionConfirmed: auth.isSessionConfirmed,
     isAuthenticated: auth.authState.session !== null,
     signOut: auth.signOut,
     requestAccountDeletion: auth.requestAccountDeletion,

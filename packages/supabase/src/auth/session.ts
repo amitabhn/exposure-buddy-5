@@ -144,3 +144,45 @@ export function getOnboardingProgress(mmkv: MMKV, userId: string): { step: numbe
 export function setOnboardingProgress(mmkv: MMKV, userId: string, progress: { step: number }): void {
   mmkv.set(KV_KEYS.ONBOARDING_PROGRESS(userId), JSON.stringify(progress))
 }
+
+// ─── Cold-start restore helpers (Story 19.8) ─────────────────────────────────
+
+// Seconds of remaining access-token life above which the stored session is trusted at
+// cold start without waiting for the network (auth-js setSession makes a /user round trip).
+export const FAST_PATH_MARGIN_SECONDS = 60
+
+/** Reads the `exp` claim (epoch seconds) from a JWT without verifying it; null if unreadable. */
+export function getJwtExpSeconds(token: string): number | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const exp = (JSON.parse(atob(padded)) as { exp?: unknown }).exp
+    return typeof exp === 'number' && Number.isFinite(exp) ? exp : null
+  } catch {
+    return null
+  }
+}
+
+/** True when the access token is unexpired by more than FAST_PATH_MARGIN_SECONDS. */
+export function isAccessTokenFresh(accessToken: string, nowMs: number): boolean {
+  const exp = getJwtExpSeconds(accessToken)
+  return exp !== null && exp * 1000 - nowMs > FAST_PATH_MARGIN_SECONDS * 1000
+}
+
+const DEAD_SESSION_CODES = new Set(['session_not_found', 'refresh_token_not_found', 'refresh_token_already_used'])
+
+/**
+ * Single error-classification rule for refresh / setSession failures: an auth-api error with
+ * status 400/401 (invalid, not-found, used or revoked refresh token), or status 403 with a
+ * dead-session code (`/user` answers 403 session_not_found for a revoked session), counts as
+ * rejected. Network failure, timeout, 5xx, 429 and non-JSON responses are unconfirmed.
+ */
+export function isRejectedRefreshError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { name?: unknown; status?: unknown; code?: unknown }
+  if (e.name !== 'AuthApiError') return false
+  if (e.status === 400 || e.status === 401) return true
+  return e.status === 403 && typeof e.code === 'string' && DEAD_SESSION_CODES.has(e.code)
+}
