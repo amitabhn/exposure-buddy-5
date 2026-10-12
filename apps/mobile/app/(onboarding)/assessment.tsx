@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { useRouter, Stack, useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@exposure-buddy/supabase'
 import { color } from '@exposure-buddy/ui'
 import { OnboardingStepIndicator } from '../../src/components/onboarding/OnboardingStepIndicator'
@@ -18,6 +19,7 @@ function generateUUID(): string {
 
 export default function AssessmentScreen() {
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
   const router = useRouter()
   const { userId, setOnboardingProgressStep, setSudsCalibration } = useAuth()
   const [selectedValue, setSelectedValue] = useState<number | null>(null)
@@ -65,9 +67,9 @@ export default function AssessmentScreen() {
 
   return (
     <>
-      {/* Back gesture is available on step 2 — no gestureEnabled: false */}
-      <Stack.Screen options={{}} />
-      <ScrollView contentContainerStyle={styles.container}>
+      {/* No header back button (the swipe / OS back gesture still works — no gestureEnabled: false) */}
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 16 }]}>
         <OnboardingStepIndicator step={2} />
 
         {/* Psychoeducation section */}
