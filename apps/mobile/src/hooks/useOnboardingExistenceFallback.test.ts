@@ -13,8 +13,15 @@ jest.mock('@exposure-buddy/sync', () => ({
 }))
 
 describe('useOnboardingExistenceFallback', () => {
+  const originalPowerSyncUrl = process.env.EXPO_PUBLIC_POWERSYNC_URL
+  afterAll(() => {
+    if (originalPowerSyncUrl === undefined) delete process.env.EXPO_PUBLIC_POWERSYNC_URL
+    else process.env.EXPO_PUBLIC_POWERSYNC_URL = originalPowerSyncUrl
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
+    process.env.EXPO_PUBLIC_POWERSYNC_URL = 'https://example.powersync.test'
     mockUseQuery.mockReturnValue({ data: [], isLoading: false, isFetching: false })
     mockUseStatus.mockReturnValue({ hasSynced: true })
     mockGetAll.mockResolvedValue([])
@@ -264,6 +271,36 @@ describe('useOnboardingExistenceFallback', () => {
       await act(async () => {})
       expect(result.current.isDecided).toBe(true)
       expect(result.current.hasExistingAccountData).toBe(false)
+    })
+
+    // Builds with no PowerSync endpoint (CI E2E, local dev) can never sync: the timeout is a true
+    // answer there, as in 18.7.
+    describe('no PowerSync endpoint configured', () => {
+      beforeEach(() => {
+        delete process.env.EXPO_PUBLIC_POWERSYNC_URL
+      })
+
+      it('stays undecided until the hold expires, then decides "no existing data"', () => {
+        jest.useFakeTimers()
+        mockUseStatus.mockReturnValue({ hasSynced: false })
+        const { result } = renderHook(() => useOnboardingExistenceFallback(true))
+        expect(result.current.isDecided).toBe(false)
+        act(() => {
+          jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS)
+        })
+        expect(result.current.isDecided).toBe(true)
+        expect(result.current.hasExistingAccountData).toBe(false)
+      })
+
+      it('does not decide on the timeout while disabled', () => {
+        jest.useFakeTimers()
+        mockUseStatus.mockReturnValue({ hasSynced: false })
+        const { result } = renderHook(() => useOnboardingExistenceFallback(false))
+        act(() => {
+          jest.advanceTimersByTime(SYNC_WAIT_TIMEOUT_MS * 2)
+        })
+        expect(result.current.isDecided).toBe(false)
+      })
     })
 
     it('does not start the timeout while disabled', () => {

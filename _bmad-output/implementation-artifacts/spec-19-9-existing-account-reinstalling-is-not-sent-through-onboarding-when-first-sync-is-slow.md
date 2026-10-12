@@ -17,7 +17,7 @@ context:
 
 **Problem:** Story 18.7's reinstall fallback (`useOnboardingExistenceFallback`, `apps/mobile/app/(app)/_layout.tsx`) holds the onboarding redirect for at most `SYNC_WAIT_TIMEOUT_MS` (10 s) and then treats "timed out" as "decided: new account". When the first PowerSync sync takes longer than that (slow or dropped network), an existing user is sent to onboarding. Redirecting unmounts the `(app)` layout, so the fallback can never correct itself when the data does arrive. Continuing through onboarding adds a position-1 ladder item that collides with the server's position 1 (`uq_user_position`), which stalls the upload queue (reproduced on the preview build, 2026-10-06: sign in on cleared data, cut the network ~6 s later).
 
-**Approach:** A timeout is not an answer. Only a hit or a completed first sync with an authoritative local read decides "new account". When the hold times out with the first sync still incomplete, the user is released to Home (the `(app)` group, so the layout and the fallback query stay mounted) and is **not** routed to onboarding and **not** marked complete. The fallback keeps running: a hit later calls `markOnboardingComplete()`; a completed first sync with no rows routes to onboarding as today. The 10 s hold stays for the common fast path.
+**Approach:** A timeout is not an answer. Only a hit or a completed first sync with an authoritative local read decides "new account". When the hold times out with the first sync still incomplete, the user is released to Home (the `(app)` group, so the layout and the fallback query stay mounted) and is **not** routed to onboarding and **not** marked complete. The fallback keeps running: a hit later calls `markOnboardingComplete()`; a completed first sync with no rows routes to onboarding as today. The 10 s hold stays for the common fast path. A build with no PowerSync endpoint (`EXPO_PUBLIC_POWERSYNC_URL` unset: CI E2E, local dev) can never sync, so there the timeout still decides "no existing data" as in 18.7 (human-approved amendment, 2026-10-12).
 
 </frozen-after-approval>
 
@@ -68,6 +68,7 @@ context:
 , flag unset; recovers if the network returns | no trap, no onboarding |
 | New signup, fast sync | first sync completes, 0 rows | decided empty; onboarding | unchanged |
 | New signup, slow sync | first sync not done at 10 s | released to Home, then routed to onboarding once sync completes empty | no write happens before routing |
+| No PowerSync endpoint (CI E2E, local dev) | hold expires, sync can never complete | decided empty; onboarding, as in 18.7 | n/a |
 | Already onboarded | local flag true | hook disabled; unchanged | n/a |
 | Mid-onboarding on this device | saved step present | welcome, resumes; fallback not consulted | unchanged |
 | Open Ladder while undecided | hold expired, undecided, user taps a Home entry to `/ladder` | redirected back to Home; no add form, no write | silent, no copy |
@@ -104,6 +105,7 @@ context:
 - Given all post-sync local-read retries fail, then the user stays on Home, is not sent to onboarding, and the Ladder stays gated; and given a later sync checkpoint, then the read is attempted again.
 - Given the decision is undecided, then Home shows no control that leads to the Ladder; given it is decided, they appear.
 - Given a first sync under 10 s, then behaviour and timing are unchanged.
+- Given a build with no PowerSync endpoint, when the hold expires, then a new account is routed to onboarding as in 18.7 (the Maestro shards depend on this).
 - Given `pnpm turbo typecheck lint test`, then all pass.
 
 ## Decisions (resolved 2026-10-12)
@@ -134,6 +136,8 @@ Entry points to `/ladder` found 2026-10-12: `app/(app)/index.tsx` lines 101 (fal
 - 2026-10-12, party pass 3, applied by the human's call: retry exhaustion stays undecided (no reactive-empty fallback; restart recovers, accepted); late hit no longer calls `router.replace` after the hold expires; signal cleanup-reset contract and test; writer-audit grep recorded in Implementation Notes; one-line constraint noting the gate derives from the frozen Approach. Frozen block untouched.
 
 - 2026-10-12, party pass 4, applied by the human's call: Home hides the `/ladder`-bound controls while undecided (no dead taps, no new strings; Decision 2 amended); retry attempts re-arm on each `lastSyncedAt` change, capped at 3 reads per checkpoint; writer audit corrected (`(onboarding)/ladder.tsx` also inserts, safe via the carve-out) and recorded; root context provider chosen for the signal; Maestro shards added to verification. Frozen block untouched.
+
+- 2026-10-12, CI failure on PR #109, human-approved (option A): all three Maestro shards failed because the CI E2E build has no PowerSync endpoint, so with the timeout no longer deciding, the test account stayed undecided on Home (CTA hidden, onboarding never reached). Amended the frozen Approach and matrix: with `EXPO_PUBLIC_POWERSYNC_URL` unset the hold expiry decides "no existing data" (hook only; real builds set the URL and are unchanged, device-verified). Review layers had missed this. Known-bad avoided: decide-on-timeout in builds that can sync.
 
 ## Review Triage Log
 

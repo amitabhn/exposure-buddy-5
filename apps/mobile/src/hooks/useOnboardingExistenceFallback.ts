@@ -30,6 +30,10 @@ import { useQuery, useStatus, usePowerSync } from '@exposure-buddy/sync'
 // so the caller can stop showing its spinner and release the user to Home, but `isDecided` stays
 // false: only a hit, or a completed first sync with an authoritative local read, decides. A
 // slow or dropped first sync therefore never sends an existing account through onboarding.
+// Exception: a build with no PowerSync endpoint (CI E2E, local dev) can never sync, so no
+// replica will ever arrive and the timeout is a true answer there ("no existing data") — that
+// keeps the 18.7 behaviour those builds (and the Maestro flows) rely on. Same gate as
+// fetchCredentials and the stall watchdog in packages/sync.
 export const SYNC_WAIT_TIMEOUT_MS = 10_000
 
 // Bounded retry for the post-sync local read. Exhaustion stays undecided (never falls back to
@@ -114,7 +118,8 @@ export function useOnboardingExistenceFallback(enabled: boolean): {
   }, [enabled])
 
   const hasExistingAccountData = useMemo(() => (data?.length ?? 0) > 0 || syncedHit === true, [data, syncedHit])
-  const isDecided = hasExistingAccountData || (hasSynced && syncedHit !== null)
+  const isSyncConfigured = !!process.env.EXPO_PUBLIC_POWERSYNC_URL
+  const isDecided = hasExistingAccountData || (hasSynced && syncedHit !== null) || (!isSyncConfigured && timedOut)
 
   return { hasExistingAccountData, isLoading, isDecided, isHoldExpired: timedOut }
 }
