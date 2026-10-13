@@ -1268,3 +1268,11 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
   summary: **More English strings under a Hindi locale than the deferred ladder list: the SUDS control hint "Drag to rate", the legend "No distress / Moderate / Extreme distress", the "Feeling overwhelmed?" link, and the whole assessment step (title, body, scenario, SUDS control, Next); Settings "Sign out" and "Delete my account".** Same fix as the ladder translation above: a reviewed Hindi pass over `hi.json`. Prioritise the account-deletion dialog and its Settings entry point (the whole "Delete your account" notice, including the DPDPA consent-retention text, is English under a Hindi locale): DPDPA 2023 is a hard requirement for this app, and the data-rights surface is the one place English-only is more than polish.
   evidence: Found in the 2026-10-13 Hindi device check on the Redmi (EAS preview 1.0.2 (2)); recorded in Story 19.1's Device Verification. The skip CTA "बाद में करें" and its layout were fine. Fine for beta per the 2026-10-12 decision.
 
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-11-local-rls-suite-passes-on-fresh-postgres-17-stack.md`
+  summary: Revoke the default client-role grants (anon/authenticated hold every privilege, including TRUNCATE) on the other 11 public tables, leaving RLS plus targeted grants as the gate.
+  evidence: Local query 2026-10-13 shows anon has SELECT and TRUNCATE on all 12 public tables; RLS is on for each, so reads are filtered, but grant-level blocking is only intended for dpo_operators (19.11) and TRUNCATE is not subject to RLS. Wider change with its own test impact; hosted likely identical.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-11-local-rls-suite-passes-on-fresh-postgres-17-stack.md`
+  summary: **Migration 0035 (REVOKE client-role grants on `dpo_operators`) is not applied to the hosted project; apply it deliberately and verify with `information_schema.role_table_grants`.**
+  evidence: Story 19.11 never touches hosted (Decision 3). The same Supabase default privileges apply there, so hosted `dpo_operators` very likely still grants anon/authenticated; RLS with no policy keeps reads empty, so exposure is low, but the grant-level intent of 0023 is unmet until applied.
