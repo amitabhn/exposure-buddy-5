@@ -91,16 +91,19 @@ Found while re-testing on device after the last review round; committed locally,
 - **Follow-ups filed from this verification:** 19.6 (reorder sent before the inserts it depends on), 19.7 (upload queue stalls on a permanently rejected write), 19.8 (sign-in flash), 19.9 (server rows not downloaded in the dev-client session; 18.7 fallback unverified on device), 19.10 (remaining device/Maestro verification), 19.11 (local RLS suite on Postgres 17).
 - **Observed, not fixed (out of scope):** on cold start a user with a valid session sees the sign-in screen for ~3 s before the session restores and the app redirects — taps in that window land on sign-in controls. Filed as Story 19.8.
 
-### Device Verification (iOS and Maestro, 2026-10-13, Story 19.10)
+### Device Verification (iOS, Hindi and Maestro, 2026-10-13, Story 19.10)
 
-Build: local Release build of `54baff8` (this branch, includes the assessment header change below), installed with `devicectl`. Device: iPhone 15 Plus, hosted Supabase, fresh throwaway account.
+iOS build: local Release build of `54baff8` (this branch, includes the assessment header change below), installed with `devicectl`. Device: iPhone 15 Plus, hosted Supabase, fresh throwaway account. Hindi build: EAS `preview` 1.0.2 (2) already on the Redmi K20 Pro (pre-dates the assessment header change), hosted Supabase, fresh throwaway account, device language set to Hindi (hi-IN) and restored to en-GB afterwards.
 
 | Check | Result |
 |---|---|
 | iOS left-edge swipe back: ladder → assessment → welcome | Pass |
-| iOS left-edge swipe back: crisis → ladder. Observed: the crisis step shows no visible back control, so the swipe (or OS back on Android) is the only exit; accepted as is | Pass |
+| iOS left-edge swipe back: crisis → ladder | Pass |
 | iOS left-edge swipe back: `complete` → ladder | Pass |
 | Assessment step ("Step 2 of 4") after hiding its header back button (`headerShown: false`, top inset padding as on the ladder): no back button, swipe back still works, content clear of the status bar | Pass |
+| Hindi, ladder step (Redmi, step indicator "चरण 3 / 4"): the Skip CTA reads "बाद में करें", full-width, the Devanagari glyphs and matras are intact and nothing clips or overflows in the button or elsewhere on the step | Pass |
+| Hindi, ladder step: English strings seen. In the known-untranslated list: title "Build your Courage Ladder", subtitle, label "Describe a situation that makes you anxious", placeholder "e.g. Riding the elevator alone", "How anxious would you feel? (0–10)", "Add to ladder". **Outside that list:** the SUDS control hint "Drag to rate", the legend "No distress / Moderate / Extreme distress", and the "Feeling overwhelmed?" link | Recorded, not fixed (beta decision: Hindi translation deferred) |
+| Hindi, other screens seen: welcome (step 1/4) is fully Hindi; the assessment step (2/4) has a Hindi step indicator only, its title, body, scenario, SUDS control and Next are English; Settings is mixed (reminders and privacy rows Hindi, "Sign out" / "Delete my account" English) | Recorded |
 | Maestro: `onboarding`, `core` and `session` shards, run 38249274244 on main (PR #107 merge, built `4f3a38d`): all three passed. The flows (`onboarding.yaml`, `_onboarding-clickthrough.yaml`) were last edited by 19.4 (a0a7b51) and 19.5 (e364dc1), both inside that run, and are identical to HEAD. The `onboarding` shard asserts the new ladder label; the "Do this later" tap is in the clickthrough used by `core` and `session` | Pass (CI evidence, no rerun) |
 
 Note: the first iPhone pass (2026-10-12) was on a build before the assessment header change; the table above is the re-check on the final build. A visible header back button on the assessment step was reported on iOS and removed in Story 19.10.
@@ -118,7 +121,7 @@ Build: EAS `preview` APK of `e22d7d0` (does NOT include 1367292 or c44caad). Dev
 | Cold relaunch after adding an item and backing out of `complete` | **Landed on Home** (not onboarding) — cause: Story 18.7 fallback; fixed in 1367292, unverified |
 | Cold-start sign-in flash (~3 s) before session restore | Observed — not part of this story |
 
-Still unchecked: TalkBack (deferred, see `deferred-work.md`), Hindi (see Story 19.10). 1367292 / c44caad were verified on the dev client (2026-10-06, below); iOS swipe-back was verified 2026-10-13 (above).
+Still unchecked: TalkBack (deferred, see `deferred-work.md`). 1367292 / c44caad were verified on the dev client (2026-10-06, below); iOS swipe-back and Hindi were verified 2026-10-13 (above).
 
 ### Device Verification (Android dev client, 2026-10-06)
 
@@ -141,7 +144,7 @@ Build: EAS `development` client of `db36d6c` with Metro serving the working tree
 | Offline onboarding, EAS `preview` build (e22d7d0): Wi-Fi and mobile data off, add two ladder items, reorder, finish onboarding | Pass locally (items, reorder and completion all work offline). **On reconnect both items uploaded but the reorder was lost**: the server has the original order and the device's order flipped back to it — Story 19.6 reproduced in a realistic scenario |
 | Slow first sync on reinstall, preview build: account with 2 server-side items, signed in on cleared data, network cut ~6 s after sign-in (before the first sync finished) | **Fail** — after the ~10 s hold the existing user landed on the onboarding welcome screen. Continuing through onboarding then stalled the upload queue: the new item (position 1) collided with the server's position 1 (`uq_user_position`), retried every ~5 s and never uploaded, while the device showed 3 items against the server's 2. Story 19.9 reopened |
 
-Still unchecked: TalkBack (deferred, see `deferred-work.md`), Hindi (see Story 19.10). iOS swipe-back was verified 2026-10-13 (above).
+Still unchecked: TalkBack (deferred, see `deferred-work.md`). iOS swipe-back and Hindi were verified 2026-10-13 (above).
 
 ### Device Verification (Android, 2026-10-05)
 
