@@ -1170,9 +1170,9 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 
 ## Deferred from: code review of spec-19-1 (2026-10-05)
 
-- OS-back fix verified only by mocked router calls; no real-stack test or Maestro back step, and "Not verified on device" — do the manual Android + iOS check (or add a Maestro back-from-ladder step).
-- Persisted onboarding progress step stays 4 after back from `complete` to ladder (ladder's `setOnboardingProgressStep(3)` effect runs on mount only); resume then lands on `complete` without `count`.
-- No test that assessment Next works again after returning from ladder (`isSubmittingRef` reset).
+- **RESOLVED (2026-10-13, Story 19.10).** OS-back fix verified only by mocked router calls; no real-stack test or Maestro back step, and "Not verified on device" — do the manual Android + iOS check (or add a Maestro back-from-ladder step). Device-checked: Android dev client and edge-swipe (2026-10-06) and iPhone swipe-back on ladder, crisis and `complete` (2026-10-13), see Story 19.1's Device Verification. The Maestro back step was declined by the human (2026-10-12); OS back stays covered by Jest and the manual checks.
+- **RESOLVED (2026-10-06, 1367292).** Persisted onboarding progress step stays 4 after back from `complete` to ladder (ladder's `setOnboardingProgressStep(3)` effect runs on mount only); resume then lands on `complete` without `count`. Fixed by focus-time step persistence; verified on the Android dev client (back from `complete`, force-stop, cold relaunch resumes at the ladder).
+- **RESOLVED (2026-10-13, Story 19.10).** No test that assessment Next works again after returning from ladder (`isSubmittingRef` reset). Added "Next navigates to the ladder again after returning from it" in `assessment.test.tsx` (2616e49); it fails when the re-arm in `useFocusEffect` is removed.
 
 ## Deferred from: Story 19.1 device verification (2026-10-06)
 
@@ -1264,4 +1264,7 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-10-complete-19-1-remaining-device-and-automation-verification.md`
   summary: **TalkBack check of the 19.1 ladder step ("Do this later" announced as a button, subtitle and description field label order).** Not done; adb cannot judge speech, so it needs a human with TalkBack on.
   evidence: Listed as unchecked in Story 19.1's Device Verification; deferred by the human on 2026-10-12 when scoping Story 19.10.
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-10-complete-19-1-remaining-device-and-automation-verification.md`
+  summary: **More English strings under a Hindi locale than the deferred ladder list: the SUDS control hint "Drag to rate", the legend "No distress / Moderate / Extreme distress", the "Feeling overwhelmed?" link, and the whole assessment step (title, body, scenario, SUDS control, Next); Settings "Sign out" and "Delete my account".** Same fix as the ladder translation above: a reviewed Hindi pass over `hi.json`.
+  evidence: Found in the 2026-10-13 Hindi device check on the Redmi (EAS preview 1.0.2 (2)); recorded in Story 19.1's Device Verification. The skip CTA "बाद में करें" and its layout were fine. Fine for beta per the 2026-10-12 decision.
 

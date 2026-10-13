@@ -3,7 +3,7 @@ title: 'Story 19.10: Complete Story 19.1 Remaining Device and Automation Verific
 type: 'chore'
 created: '2026-10-12'
 status: 'in-progress'
-baseline_commit: '888d5816a8b9e0a2096196c0dad4dc65aad2a8eb'
+baseline_commit: 'fec0f80267d3d852a10131cfb9a4aae5cad0c646'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -52,12 +52,12 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `apps/mobile/app/(onboarding)/assessment.test.tsx` -- add a behavioral test (no access to `isSubmittingRef`): pick a SUDS value, press Next and await the async `enqueue` (one push), fire the focus callbacks, press Next again, expect a second push -- closes the 19.1 review deferral. Commit this test first, before the device runs, so it survives if they slip
-- [ ] Maestro -- record the SHA the run built and confirm `onboarding.yaml` and `_onboarding-clickthrough.yaml` are unchanged since 19.1's edits (history of both files); if they changed, say so and rerun the shard instead of citing the old run. Record the latest green `onboarding`, `core` and `session` shard run on `main` (run 38249274244, the PR #107 merge, all three passed; the 19.8 merge run 38264200966 was still in progress, check it before recording) in the 19.1 table, noting the onboarding shard covers the "Do this later" and new ladder copy path; no rerun and no flow change
-- [ ] Pre-flight, not evidence: `grep -rn gestureEnabled "apps/mobile/app/(onboarding)"` before building for the iPhone; a hit that disables the swipe is a defect to fix or defer before the device run
-- [ ] iOS swipe-back on the iPhone against hosted with a fresh throwaway account (expo run:ios --device, team JCG7J2Y5BN): ladder to assessment to welcome, crisis to ladder, complete to ladder; also note whether the crisis step has a visible back control or the swipe is the only exit; record in the 19.1 table
-- [ ] Hindi on the Redmi (device language Hindi): skip CTA and layout; list every English string seen on the step; take a screenshot for review (kept out of the repo) and record in words what is shown, including whether the Devanagari glyphs clip in the button
-- [ ] `_bmad-output/implementation-artifacts/spec-19-1-*.md` -- update "Still unchecked" lines (TalkBack stays unchecked, pointing at the deferral; drop the stale "1367292 / c44caad on device" item, already passed on the 2026-10-06 dev client) and tables with dates and builds; fix the malformed "Press Home on the ladder" row (stray extra column) in the 2026-10-06 table; `sprint-status.yaml` and `deferred-work.md` -- close the 19.1 deferrals that are now done
+- [x] `apps/mobile/app/(onboarding)/assessment.test.tsx` -- add a behavioral test (no access to `isSubmittingRef`): pick a SUDS value, press Next and await the async `enqueue` (one push), fire the focus callbacks, press Next again, expect a second push -- closes the 19.1 review deferral. Commit this test first, before the device runs, so it survives if they slip
+- [x] Maestro -- record the SHA the run built and confirm `onboarding.yaml` and `_onboarding-clickthrough.yaml` are unchanged since 19.1's edits (history of both files); if they changed, say so and rerun the shard instead of citing the old run. Record the latest green `onboarding`, `core` and `session` shard run on `main` (run 38249274244, the PR #107 merge, all three passed; the 19.8 merge run 38264200966 was still in progress, check it before recording) in the 19.1 table, noting the onboarding shard covers the "Do this later" and new ladder copy path; no rerun and no flow change
+- [x] Pre-flight, not evidence: `grep -rn gestureEnabled "apps/mobile/app/(onboarding)"` before building for the iPhone; a hit that disables the swipe is a defect to fix or defer before the device run
+- [x] iOS swipe-back on the iPhone against hosted with a fresh throwaway account (expo run:ios --device, team JCG7J2Y5BN): ladder to assessment to welcome, crisis to ladder, complete to ladder; also note whether the crisis step has a visible back control or the swipe is the only exit; record in the 19.1 table
+- [x] Hindi on the Redmi (device language Hindi): skip CTA and layout; list every English string seen on the step; take a screenshot for review (kept out of the repo) and record in words what is shown, including whether the Devanagari glyphs clip in the button
+- [x] `_bmad-output/implementation-artifacts/spec-19-1-*.md` -- update "Still unchecked" lines (TalkBack stays unchecked, pointing at the deferral; drop the stale "1367292 / c44caad on device" item, already passed on the 2026-10-06 dev client) and tables with dates and builds; fix the malformed "Press Home on the ladder" row (stray extra column) in the 2026-10-06 table; `sprint-status.yaml` and `deferred-work.md` -- close the 19.1 deferrals that are now done
 
 **Acceptance Criteria:**
 - Given the iPhone, when the user swipes back (ladder to assessment to welcome; crisis to ladder; complete to ladder), then each lands on the previous step, and the result is in the 19.1 table
@@ -68,7 +68,14 @@ context:
 
 ## Implementation Notes
 
-(empty until implementation)
+- **Re-arm test** (`2616e49`): "Next navigates to the ladder again after returning from it" in `assessment.test.tsx`; behavioral (two pushes), no ref access. Verified it fails with the `isSubmittingRef` re-arm removed from `useFocusEffect`.
+- **`gestureEnabled` pre-flight:** the only hit is `welcome.tsx` (`gestureEnabled: false`, first step, nothing to swipe back to); assessment, ladder, crisis and `complete` leave the swipe enabled.
+- **Maestro:** run 38249274244 (main, built `4f3a38d`, the PR #107 merge): `onboarding`, `core`, `session` all green. The 19.8 merge run 38264200966 also finished green on all three shards. The flows were edited after 19.1 by 19.4 (`a0a7b51`) and 19.5 (`e364dc1`), both inside the run, and are identical to HEAD, so the literal "unchanged since 19.1" check does not hold but the evidence covers the current flows. Correction to the I/O matrix wording: `onboarding.yaml` asserts the new ladder label; the "Do this later" tap is in `_onboarding-clickthrough.yaml` (core and session shards).
+- **iOS swipe-back:** passes on ladder to assessment to welcome, crisis to ladder, `complete` to ladder (iPhone 15 Plus, local Release build of `54baff8`, hosted, throwaway account). The crisis step has no visible back control; the swipe is the only exit, accepted as is (`1cc8e00`).
+- **Defect found and fixed (small, in 19.1's scope):** the iOS assessment step ("Step 2 of 4") showed a visible header back button, unlike the ladder and `complete`. Set `headerShown: false` with `insets.top + 16` top padding, as on the ladder (`94c39e4`); re-verified on the iPhone. The swipe and OS back still work. This goes beyond the spec's "no new onboarding behaviour" wording and was requested by the human on 2026-10-12.
+- **Hindi:** skip CTA "बाद में करें" intact with no clipping; English strings seen, including three outside the known-untranslated list ("Drag to rate", the SUDS legend, "Feeling overwhelmed?") plus the whole assessment step; logged in `deferred-work.md`. Tested on the EAS preview 1.0.2 (2) already on the Redmi, which pre-dates the header change. The throwaway account used for it was deleted through the app's own flow (30-day soft delete), and the device language was restored to en-GB.
+- **Closed in `deferred-work.md`:** the three 19.1 code-review deferrals (OS-back device check, persisted step after back from `complete`, re-arm test). TalkBack and the Hindi translation stay deferred.
+- **Operational notes:** `expo run:ios` stalls on "Preparing <device>" when the iPhone is locked, and its install step can hang; `devicectl device install app` plus `process launch` is the reliable path.
 
 ## Verification
 
