@@ -91,6 +91,20 @@ Found while re-testing on device after the last review round; committed locally,
 - **Follow-ups filed from this verification:** 19.6 (reorder sent before the inserts it depends on), 19.7 (upload queue stalls on a permanently rejected write), 19.8 (sign-in flash), 19.9 (server rows not downloaded in the dev-client session; 18.7 fallback unverified on device), 19.10 (remaining device/Maestro verification), 19.11 (local RLS suite on Postgres 17).
 - **Observed, not fixed (out of scope):** on cold start a user with a valid session sees the sign-in screen for ~3 s before the session restores and the app redirects — taps in that window land on sign-in controls. Filed as Story 19.8.
 
+### Device Verification (iOS and Maestro, 2026-10-13, Story 19.10)
+
+Build: local Release build of `54baff8` (this branch, includes the assessment header change below), installed with `devicectl`. Device: iPhone 15 Plus, hosted Supabase, fresh throwaway account.
+
+| Check | Result |
+|---|---|
+| iOS left-edge swipe back: ladder → assessment → welcome | Pass |
+| iOS left-edge swipe back: crisis → ladder | Pass |
+| iOS left-edge swipe back: `complete` → ladder | Pass |
+| Assessment step ("Step 2 of 4") after hiding its header back button (`headerShown: false`, top inset padding as on the ladder): no back button, swipe back still works, content clear of the status bar | Pass |
+| Maestro: `onboarding`, `core` and `session` shards, run 38249274244 on main (PR #107 merge, built `4f3a38d`): all three passed. The flows (`onboarding.yaml`, `_onboarding-clickthrough.yaml`) were last edited by 19.4 (a0a7b51) and 19.5 (e364dc1), both inside that run, and are identical to HEAD. The `onboarding` shard asserts the new ladder label; the "Do this later" tap is in the clickthrough used by `core` and `session` | Pass (CI evidence, no rerun) |
+
+Note: the first iPhone pass (2026-10-12) was on a build before the assessment header change; the table above is the re-check on the final build. A visible header back button on the assessment step was reported on iOS and removed in Story 19.10.
+
 ### Device Verification (Android, 2026-10-06)
 
 Build: EAS `preview` APK of `e22d7d0` (does NOT include 1367292 or c44caad). Device: Redmi K20 Pro, hosted Supabase, existing signed-in account.
@@ -104,7 +118,7 @@ Build: EAS `preview` APK of `e22d7d0` (does NOT include 1367292 or c44caad). Dev
 | Cold relaunch after adding an item and backing out of `complete` | **Landed on Home** (not onboarding) — cause: Story 18.7 fallback; fixed in 1367292, unverified |
 | Cold-start sign-in flash (~3 s) before session restore | Observed — not part of this story |
 
-Still unchecked: 1367292 / c44caad on device (needs a new EAS build), iOS swipe-back, TalkBack, Hindi.
+Still unchecked: TalkBack (deferred, see `deferred-work.md`), Hindi (see Story 19.10). 1367292 / c44caad were verified on the dev client (2026-10-06, below); iOS swipe-back was verified 2026-10-13 (above).
 
 ### Device Verification (Android dev client, 2026-10-06)
 
@@ -119,7 +133,7 @@ Build: EAS `development` client of `db36d6c` with Metro serving the working tree
 | Android edge-swipe back gesture (device in full-screen gesture navigation), left and right edge: ladder → assessment → welcome; crisis → ladder; `complete` → ladder | Pass |
 | Force-stop on `complete` (empty ladder, step 4 saved), cold relaunch: resumes on `complete`; back → ladder → assessment → welcome through the rebuilt stack | Pass |
 | Double-tap on the assessment's Next → one ladder; one back → assessment; Next works again after returning (re-arm) | Pass |
-| Press Home on the ladder and reopen the app | Back on the ladder, step 3 | Pass |
+| Press Home on the ladder and reopen the app: back on the ladder, step 3 | Pass |
 | System font scale 2.0 (from 0.86): ladder title, subtitle, the new field label, "Do this later" wrap without clipping | Pass — the pre-existing SUDS legend ("No distress / Moderate / Extreme distress") runs together and the right label is cut off ("Extreme distre"); filed under Story 19.5 |
 | Crisis phrase typed into the ladder form: banner appears and stays after the text is replaced; `complete` then shows the soft title, soft encouragement, no count, and the "Feeling overwhelmed?" link | Pass |
 | Reinstall fallback, dev client: cleared data, signed in, account has a server-side ladder item uploaded by this same app | Fail — onboarding after the ~10 s hold: in the Android dev client PowerSync never leaves `connecting` (fetchCredentials returns a valid token; the service streams the data fine to a direct request), so the replica stays empty. A dev-client limitation, not an app defect (see next row and Story 19.9) |
@@ -127,7 +141,7 @@ Build: EAS `development` client of `db36d6c` with Metro serving the working tree
 | Offline onboarding, EAS `preview` build (e22d7d0): Wi-Fi and mobile data off, add two ladder items, reorder, finish onboarding | Pass locally (items, reorder and completion all work offline). **On reconnect both items uploaded but the reorder was lost**: the server has the original order and the device's order flipped back to it — Story 19.6 reproduced in a realistic scenario |
 | Slow first sync on reinstall, preview build: account with 2 server-side items, signed in on cleared data, network cut ~6 s after sign-in (before the first sync finished) | **Fail** — after the ~10 s hold the existing user landed on the onboarding welcome screen. Continuing through onboarding then stalled the upload queue: the new item (position 1) collided with the server's position 1 (`uq_user_position`), retried every ~5 s and never uploaded, while the device showed 3 items against the server's 2. Story 19.9 reopened |
 
-Still unchecked: iOS swipe-back, TalkBack, Hindi.
+Still unchecked: TalkBack (deferred, see `deferred-work.md`), Hindi (see Story 19.10). iOS swipe-back was verified 2026-10-13 (above).
 
 ### Device Verification (Android, 2026-10-05)
 
