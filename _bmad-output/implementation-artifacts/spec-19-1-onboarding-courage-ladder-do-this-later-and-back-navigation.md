@@ -98,7 +98,7 @@ Build: local Release build of `54baff8` (this branch, includes the assessment he
 | Check | Result |
 |---|---|
 | iOS left-edge swipe back: ladder → assessment → welcome | Pass |
-| iOS left-edge swipe back: crisis → ladder | Pass |
+| iOS left-edge swipe back: crisis → ladder. Observed: the crisis step shows no visible back control, so the swipe (or OS back on Android) is the only exit; accepted as is | Pass |
 | iOS left-edge swipe back: `complete` → ladder | Pass |
 | Assessment step ("Step 2 of 4") after hiding its header back button (`headerShown: false`, top inset padding as on the ladder): no back button, swipe back still works, content clear of the status bar | Pass |
 | Maestro: `onboarding`, `core` and `session` shards, run 38249274244 on main (PR #107 merge, built `4f3a38d`): all three passed. The flows (`onboarding.yaml`, `_onboarding-clickthrough.yaml`) were last edited by 19.4 (a0a7b51) and 19.5 (e364dc1), both inside that run, and are identical to HEAD. The `onboarding` shard asserts the new ladder label; the "Do this later" tap is in the clickthrough used by `core` and `session` | Pass (CI evidence, no rerun) |
