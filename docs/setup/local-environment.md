@@ -109,7 +109,27 @@ Story 2.4 introduced a duplicate `nav` key by accident — the second definition
 
 ### Supabase RLS tests skip without local Supabase
 
-`packages/supabase/__tests__/rls/*.test.ts` use `describe.skipIf(skipIfNoSupabase)`. If local Supabase is not running, the tests pass with skips — not failures. Run `supabase start` before running RLS tests or you'll get a false-green CI signal locally.
+`packages/supabase/__tests__/rls/*.test.ts` use `describe.skipIf(skipIfNoSupabase)`. The tests skip, and the run still passes, unless both `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are set. Run `supabase start`, then export the keys in the shell that runs vitest:
+
+```bash
+eval "$(supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed 's/^ANON_KEY/export SUPABASE_ANON_KEY/;s/^SERVICE_ROLE_KEY/export SUPABASE_SERVICE_ROLE_KEY/')"
+cd packages/supabase && npx vitest run __tests__/rls
+```
+
+CI does not run the RLS suite (it has no anon key), so a green CI does not mean RLS is verified. Run it locally before merging any migration or policy change.
+
+### `supabase start` crash loop: `database files are incompatible with server` / edge_runtime `BOOT_ERROR`
+
+The local stack runs Postgres 17 (`[db] major_version = 17` in `supabase/config.toml`, the same version as the hosted project). A `supabase_db_*` Docker volume created by an older Postgres 15 stack is incompatible: the db container exits with `database files are incompatible with server` and `edge_runtime` then fails with `BOOT_ERROR`. Check `docker ps -a` for the exited `supabase_db_*` container.
+
+**Warning: this fix deletes all local Supabase data (test users, ladder rows, everything).**
+
+```bash
+supabase stop --no-backup   # deletes the project's data volumes, whatever they are named
+supabase start
+```
+
+Older notes cite volume names starting `exposure-buddy`; the project is now `jhbtzsvlgglyfbrgmpsb`, which is why `--no-backup` is safer than removing volumes by name. Re-create any test users afterwards.
 
 ### Turbo cache and env vars
 

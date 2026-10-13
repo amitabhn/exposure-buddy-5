@@ -1276,3 +1276,7 @@ _Code review (Blind Hunter + Edge Case Hunter + Verification Gap Reviewer) again
 - source_spec: `_bmad-output/implementation-artifacts/spec-19-11-local-rls-suite-passes-on-fresh-postgres-17-stack.md`
   summary: **Migration 0035 (REVOKE client-role grants on `dpo_operators`) is not applied to the hosted project; apply it deliberately and verify with `information_schema.role_table_grants`.**
   evidence: Story 19.11 never touches hosted (Decision 3). The same Supabase default privileges apply there, so hosted `dpo_operators` very likely still grants anon/authenticated; RLS with no policy keeps reads empty, so exposure is low, but the grant-level intent of 0023 is unmet until applied.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-19-11-local-rls-suite-passes-on-fresh-postgres-17-stack.md`
+  summary: **No CI job runs the RLS suite, so nothing automatic catches a regression of the `dpo_operators` grants (or any other RLS/grant change).**
+  evidence: Review (Verification Gap, Edge Case, Blind Hunter) found the suite skips without `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` and CI sets neither for vitest. A CI job doing `supabase start`, exporting keys from `supabase status -o env`, and running `vitest run __tests__/rls` would close it; a `role_table_grants` assertion would also cover TRUNCATE, which the 42501 tests do not.
