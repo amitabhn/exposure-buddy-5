@@ -2,7 +2,7 @@
 title: 'Story 19.10: Complete Story 19.1 Remaining Device and Automation Verification'
 type: 'chore'
 created: '2026-10-12'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: 'fec0f80267d3d852a10131cfb9a4aae5cad0c646'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -76,6 +76,24 @@ context:
 - **Hindi:** skip CTA "बाद में करें" intact with no clipping; English strings seen, including three outside the known-untranslated list ("Drag to rate", the SUDS legend, "Feeling overwhelmed?") plus the whole assessment step; logged in `deferred-work.md`. Tested on the EAS preview 1.0.2 (2) already on the Redmi, which pre-dates the header change. The throwaway account used for it was deleted through the app's own flow (30-day soft delete), and the device language was restored to en-GB.
 - **Closed in `deferred-work.md`:** the three 19.1 code-review deferrals (OS-back device check, persisted step after back from `complete`, re-arm test). TalkBack and the Hindi translation stay deferred.
 - **Operational notes:** `expo run:ios` stalls on "Preparing <device>" when the iPhone is locked, and its install step can hang; `devicectl device install app` plus `process launch` is the reliable path.
+
+## Review Triage Log
+
+Layers: Blind Hunter (9 findings, floor 6), Edge Case Hunter (6), Verification Gap (1 gap + 2 other). Loopbacks: none (`review_loop_iteration` 0).
+
+| # | Finding (layers) | Verdict | Route | Evidence |
+|---|---|---|---|---|
+| 1 | Maestro run 38249274244 built `4f3a38d`, before the assessment header change, so it does not cover the final assessment layout (BH, ECH, VG) | medium | patch | True: 94c39e4 is later than that run. The 19.1 Maestro row now says so and tells the PR to carry the `run-e2e` label. |
+| 2 | Android not rechecked after hiding the assessment header; status-bar overlap, 2x font, OS back unchecked (BH, ECH) | low | patch | Real gap, but the identical `headerShown: false` + `insets.top + 16` pattern is on the ladder and passed on Android incl. 2x font. Recorded as "not rechecked" in the 19.1 table. |
+| 3 | No test asserts the header option or padding (BH, VG) | low | patch | True: `Stack.Screen` was mocked to null. Added "hides the header..." test capturing the options; it fails when `headerShown: false` is reverted. `useSafeAreaInsets` needs no mock (suite passes). |
+| 4 | Top padding plus removed header pushes Next further below the fold (ECH) | false | reject | Old layout was header plus 32 dp top padding; new is `insets.top + 16`, so content moves up. The screen is a ScrollView. |
+| 5 | Hindi/other English strings under a Hindi locale are waved off as "fine for beta", incl. account-deletion notice (BH) | medium | defer | Pre-existing (not caused by this diff). Priority note for the deletion dialog and DPDPA added to the `deferred-work.md` entry. |
+| 6 | No visible back control is an accessibility cost; switch/VoiceOver users have no way back; add a "Back" link (BH) | low | reject | Human-requested removal; OS back exists on both platforms and the forward path stays open; same accepted trade-off as the crisis step (1cc8e00). |
+| 7 | Spec scope, Boundaries and ACs not updated for the header change (BH, ECH) | n/a | reject | Fix is to edit this build's spec, and the intent is frozen. The deviation is human-requested and recorded in Implementation Notes; the human can renegotiate the frozen intent if wanted. |
+| 8 | Status mismatch: spec `in-review` vs sprint `in-progress`; 19.1 sprint entry ends "not pushed, no PR" (BH, ECH) | low | reject | The sprint flip to `review` is the next step (present). The stale 19.1 text is pre-existing, not caused by this diff. |
+| 9 | Hindi evidence gaps: one device and build, screenshot not in the repo, not rechecked with the new padding, no i18n key audit (BH, ECH) | low | reject | Padding is language-independent; the screenshot is intentionally outside the repo (human decision); an i18n audit is speculative. |
+| 10 | Re-arm test: `getByRole('button')` ambiguous; no guard assertion before focus; deferred-work cites `2616e49` ordering unprovable (BH, VG) | false | reject | The screen has one button (the neighbouring tests use the same query and pass); the double-press test covers the guard; the commit order is in `git log` (2616e49 precedes the device-run docs). |
+| 11 | Hosted throwaway accounts only soft-deleted; the iPhone account's cleanup not mentioned (BH) | low | reject | Not caused by the code diff. The iPhone account was created by the human; surfaced in the review summary instead. |
 
 ## Verification
 
