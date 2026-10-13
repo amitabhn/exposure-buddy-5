@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useStatus, usePowerSync } from '@exposure-buddy/sync'
 
 // Story 18.7 — reinstall onboarding-skip fallback. `isOnboardingComplete`
@@ -22,11 +22,25 @@ import { useQuery, useStatus, usePowerSync } from '@exposure-buddy/sync'
 // empty until PowerSync's first sync completes, so an empty result before that is NOT "new
 // account". It becomes true on a hit, or once the first sync has completed AND an authoritative
 // one-shot local read has answered (the reactive query lags the sync-complete signal — observed
-// on-device: hasSynced flipped true while the watched query still showed zero rows), or after
-// SYNC_WAIT_TIMEOUT_MS (offline / unreachable service — never trap the user).
+// on-device: hasSynced flipped true while the watched query still showed zero rows).
 // The caller must not route to onboarding until it is true: the host layout unmounts on that
 // redirect, which would tear this query down before it could ever self-correct.
+//
+// Story 19.9: a timeout is NOT an answer. `isHoldExpired` turns true after SYNC_WAIT_TIMEOUT_MS
+// so the caller can stop showing its spinner and release the user to Home, but `isDecided` stays
+// false: only a hit, or a completed first sync with an authoritative local read, decides. A
+// slow or dropped first sync therefore never sends an existing account through onboarding.
+// Exception: a build with no PowerSync endpoint (CI E2E, local dev) can never sync, so no
+// replica will ever arrive and the timeout is a true answer there ("no existing data") — that
+// keeps the 18.7 behaviour those builds (and the Maestro flows) rely on. Same gate as
+// fetchCredentials and the stall watchdog in packages/sync.
 export const SYNC_WAIT_TIMEOUT_MS = 10_000
+
+// Bounded retry for the post-sync local read. Exhaustion stays undecided (never falls back to
+// the reactive query, which lags hasSynced). Each later sync checkpoint (lastSyncedAt change)
+// re-arms up to this many attempts, so the worst case is READ_MAX_ATTEMPTS reads per checkpoint.
+const READ_MAX_ATTEMPTS = 3
+const READ_BACKOFF_MS = 250
 
 const QUERY = `
   SELECT id
@@ -50,31 +64,49 @@ export function useOnboardingExistenceFallback(enabled: boolean): {
   hasExistingAccountData: boolean
   isLoading: boolean
   isDecided: boolean
+  isHoldExpired: boolean
 } {
   const { data, isLoading } = useQuery<FallbackRow>(QUERY, [enabled ? 1 : 0])
   const status = useStatus()
   const db = usePowerSync()
   const hasSynced = status?.hasSynced === true
+  // Epoch ms of the latest completed sync checkpoint; a change re-arms the read retries.
+  const lastSyncedAtMs = status?.lastSyncedAt instanceof Date ? status.lastSyncedAt.getTime() : null
   const [timedOut, setTimedOut] = useState(false)
-  // null = not answered yet; a failed read stays null so the timeout still releases the hold.
+  // null = not answered yet; a read that fails every attempt stays null (undecided).
   const [syncedHit, setSyncedHit] = useState<boolean | null>(null)
+  const answeredRef = useRef(false)
 
   useEffect(() => {
     if (!enabled || !hasSynced) {
+      answeredRef.current = false
       setSyncedHit(null)
       return
     }
+    if (answeredRef.current) return
     let cancelled = false
-    db.getAll<FallbackRow>(SYNCED_CHECK_QUERY).then(
-      (rows) => {
-        if (!cancelled) setSyncedHit(rows.length > 0)
-      },
-      () => {},
-    )
+    ;(async () => {
+      for (let attempt = 0; attempt < READ_MAX_ATTEMPTS; attempt++) {
+        try {
+          const rows = await db.getAll<FallbackRow>(SYNCED_CHECK_QUERY)
+          if (!cancelled) {
+            answeredRef.current = true
+            setSyncedHit(rows.length > 0)
+          }
+          return
+        } catch {
+          if (cancelled) return
+          if (attempt < READ_MAX_ATTEMPTS - 1) {
+            await new Promise((resolve) => setTimeout(resolve, READ_BACKOFF_MS * (attempt + 1)))
+            if (cancelled) return
+          }
+        }
+      }
+    })()
     return () => {
       cancelled = true
     }
-  }, [enabled, hasSynced, db])
+  }, [enabled, hasSynced, lastSyncedAtMs, db])
 
   useEffect(() => {
     if (!enabled) {
@@ -86,7 +118,8 @@ export function useOnboardingExistenceFallback(enabled: boolean): {
   }, [enabled])
 
   const hasExistingAccountData = useMemo(() => (data?.length ?? 0) > 0 || syncedHit === true, [data, syncedHit])
-  const isDecided = hasExistingAccountData || timedOut || (hasSynced && syncedHit !== null)
+  const isSyncConfigured = !!process.env.EXPO_PUBLIC_POWERSYNC_URL
+  const isDecided = hasExistingAccountData || (hasSynced && syncedHit !== null) || (!isSyncConfigured && timedOut)
 
-  return { hasExistingAccountData, isLoading, isDecided }
+  return { hasExistingAccountData, isLoading, isDecided, isHoldExpired: timedOut }
 }

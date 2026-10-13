@@ -65,6 +65,11 @@ jest.mock('../../src/hooks/useActiveExposureSession', () => ({
   useActiveExposureSession: (...args: unknown[]) => mockUseActiveExposureSession(...args),
 }))
 
+const mockUseIsOnboardingUndecided = jest.fn()
+jest.mock('../../src/contexts/OnboardingDecisionContext', () => ({
+  useIsOnboardingUndecided: () => mockUseIsOnboardingUndecided(),
+}))
+
 import HomeScreen from './'
 
 const defaultAuthValue = {
@@ -88,11 +93,37 @@ describe('HomeScreen', () => {
     mockResolveHomeScreenState.mockReturnValue('morning')
     mockIsGroundingSignalFresh.mockReturnValue(false)
     mockResolveLowestPendingItem.mockReturnValue(null)
+    mockUseIsOnboardingUndecided.mockReturnValue(false)
   })
 
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+  })
+
+  // Story 19.9: while the onboarding decision is undecided, no control leads to /ladder (no dead taps).
+  describe('onboarding decision undecided (Story 19.9)', () => {
+    const ladderControls = ['home.emptyState.cta', 'home.completedState.cta', 'home.actions.yourLadder']
+
+    it.each(['empty-ladder', 'completed', 'morning'])('state %s: renders no /ladder-bound control or courage card while undecided', (state) => {
+      mockUseIsOnboardingUndecided.mockReturnValue(true)
+      mockResolveHomeScreenState.mockReturnValue(state)
+      const { queryByLabelText, queryByTestId, getByLabelText } = render(<HomeScreen />)
+      for (const label of ladderControls) expect(queryByLabelText(label)).toBeNull()
+      expect(queryByTestId('courage-card')).toBeNull()
+      // Non-ladder controls stay.
+      expect(getByLabelText('home.actions.practiceRelaxation')).toBeTruthy()
+    })
+
+    it.each([
+      ['empty-ladder', 'home.emptyState.cta'],
+      ['completed', 'home.completedState.cta'],
+    ])('state %s: renders the CTA again once decided', (state, label) => {
+      mockResolveHomeScreenState.mockReturnValue(state)
+      const { getByLabelText } = render(<HomeScreen />)
+      expect(getByLabelText(label)).toBeTruthy()
+      expect(getByLabelText('home.actions.yourLadder')).toBeTruthy()
+    })
   })
 
   it('renders readyToStart greeting when firstHomeVisitSeen is false on mount', () => {

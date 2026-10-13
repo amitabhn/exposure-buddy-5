@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, AccessibilityInfo, findNodeHandle, TextInput, Modal, ActivityIndicator, Alert } from 'react-native'
-import { Stack, useRouter, useNavigation } from 'expo-router'
+import { Redirect, Stack, useRouter, useNavigation } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'
 import { useAuth } from '@exposure-buddy/supabase'
@@ -13,6 +13,7 @@ import { useFearLadderItems } from '../src/hooks/useFearLadderItems'
 import { SudsSlider } from '../src/components/SudsSlider'
 import { useActiveExposureSession } from '../src/hooks/useActiveExposureSession'
 import { BackButton } from '../src/components/navigation/BackButton'
+import { useIsOnboardingUndecided } from '../src/contexts/OnboardingDecisionContext'
 
 // expo-router's useNavigation() returns the base NavigationProp, whose EventMapCore doesn't
 // include native-stack-specific events like 'transitionEnd' — @react-navigation/native-stack
@@ -35,7 +36,18 @@ function generateUUID(): string {
 // eslint-disable-next-line i18next/no-literal-string
 const CHECK_MARK = '✓'
 
+// Story 19.9 — while the reinstall onboarding decision is undecided (hold expired, first sync not
+// complete), nothing may write fear_ladder_items on this device: a local row would read as a hit
+// and take position 1 (uq_user_position collision). Silent redirect to Home, no copy; the
+// content component below is never mounted, so no add form and no enqueue.
 export default function LadderScreen() {
+  const isUndecided = useIsOnboardingUndecided()
+  // eslint-disable-next-line i18next/no-literal-string
+  if (isUndecided) return <Redirect href="/(app)" />
+  return <LadderContent />
+}
+
+function LadderContent() {
   const { t } = useTranslation()
   const router = useRouter()
   const navigation = useNavigation()

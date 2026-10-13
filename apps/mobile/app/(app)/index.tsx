@@ -8,6 +8,7 @@ import { CourageLadderEntryCard, LadderProgressBar, color, radius, spacing, typo
 import { resolveLowestPendingItem, resolveHomeScreenState, isGroundingSignalFresh, isSessionRecoveryFresh, type HomeScreenContext } from '@exposure-buddy/core'
 import { useFearLadderItems } from '../../src/hooks/useFearLadderItems'
 import { useActiveExposureSession } from '../../src/hooks/useActiveExposureSession'
+import { useIsOnboardingUndecided } from '../../src/contexts/OnboardingDecisionContext'
 
 // Pure-JS UUID v4 — same pattern as ladder.tsx / session/intent.tsx (Hermes limitation: no crypto.randomUUID)
 function generateUUID(): string {
@@ -22,6 +23,9 @@ export default function HomeScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { firstHomeVisitSeen, markFirstHomeVisitSeen, isOnboardingComplete, authState, sessionRecoveryData, getGroundingActiveAt } = useAuth()
+  // Story 19.9: while the onboarding decision is undecided, controls that lead to /ladder are not
+  // rendered (no dead taps; no new copy). They appear once decided.
+  const isUndecided = useIsOnboardingUndecided()
   const cardRef = useRef<ElementRef<typeof CourageLadderEntryCard>>(null)
   // Capture MMKV-derived value at mount — prevents greeting flicker on first visit
   const seenOnMount = useRef(firstHomeVisitSeen)
@@ -147,7 +151,7 @@ export default function HomeScreen() {
             />
           ) : null}
 
-          {homeState === 'morning' ? (
+          {homeState === 'morning' && isUndecided ? null : homeState === 'morning' ? (
             <CourageLadderEntryCard
               ref={cardRef}
               lowestPendingItem={lowestPendingItemForLabel}
@@ -172,14 +176,16 @@ export default function HomeScreen() {
             <View style={styles.completedCard}>
               <Text style={styles.stateHeadline}>{t('home.completedState.headline')}</Text>
               <Text style={styles.stateSubtext}>{t('home.completedState.subtext')}</Text>
-              <TouchableOpacity
-                style={styles.ctaButton}
-                onPress={() => router.push('/ladder')}
-                accessibilityRole="button"
-                accessibilityLabel={t('home.completedState.cta')}
-              >
-                <Text style={styles.ctaButtonText}>{t('home.completedState.cta')}</Text>
-              </TouchableOpacity>
+              {isUndecided ? null : (
+                <TouchableOpacity
+                  style={styles.ctaButton}
+                  onPress={() => router.push('/ladder')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.completedState.cta')}
+                >
+                  <Text style={styles.ctaButtonText}>{t('home.completedState.cta')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : homeState === 'progressing' ? (
             <TouchableOpacity
@@ -215,26 +221,30 @@ export default function HomeScreen() {
                 {t('home.emptyState.headline')}
               </Text>
               <Text style={styles.stateSubtext}>{t('home.emptyState.subtext')}</Text>
-              <TouchableOpacity
-                style={styles.ctaButton}
-                onPress={() => router.push('/ladder')}
-                accessibilityRole="button"
-                accessibilityLabel={t('home.emptyState.cta')}
-              >
-                <Text style={styles.ctaButtonText}>{t('home.emptyState.cta')}</Text>
-              </TouchableOpacity>
+              {isUndecided ? null : (
+                <TouchableOpacity
+                  style={styles.ctaButton}
+                  onPress={() => router.push('/ladder')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.emptyState.cta')}
+                >
+                  <Text style={styles.ctaButtonText}>{t('home.emptyState.cta')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/ladder')}
-              accessibilityRole="button"
-              accessibilityLabel={t('home.actions.yourLadder')}
-            >
-              <Text style={styles.actionButtonText}>{t('home.actions.yourLadder')}</Text>
-            </TouchableOpacity>
+            {isUndecided ? null : (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => router.push('/ladder')}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.actions.yourLadder')}
+              >
+                <Text style={styles.actionButtonText}>{t('home.actions.yourLadder')}</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={handlePracticeRelaxation}

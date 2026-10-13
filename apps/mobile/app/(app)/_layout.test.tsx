@@ -98,6 +98,7 @@ jest.mock('../../src/notifications/sessionReminder', () => ({
 }))
 
 import AppLayout from './_layout'
+import { OnboardingDecisionProvider, useIsOnboardingUndecided } from '../../src/contexts/OnboardingDecisionContext'
 
 // The first render in this file is cold (heavy module graph) and has exceeded Jest's 5 s default
 // on the GitHub runner, failing the first test deterministically (CI run 37460921690, twice) while
@@ -436,6 +437,95 @@ describe('AppLayout — Story 18.7 onboarding-skip fallback', () => {
     expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
     // The pre-existing redirect gate still sends an incomplete-onboarding user to welcome.
     expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+  })
+
+  // Story 19.9 — a timeout is not an answer: the hold expiring releases the user to Home but never
+  // decides "new account".
+  describe('hold expired without a decision (slow first sync)', () => {
+    const expired = { hasExistingAccountData: false, isLoading: false, isDecided: false, isHoldExpired: true }
+
+    beforeEach(() => {
+      mockIsOnboardingComplete = false
+      mockUseOnboardingExistenceFallback.mockReturnValue(expired)
+    })
+
+    it('releases the user to Home (no spinner), without routing to onboarding or marking onboarding complete', async () => {
+      const { toJSON } = render(<AppLayout />)
+      await act(async () => {})
+      expect(JSON.stringify(toJSON())).not.toContain('ActivityIndicator')
+      expect(mockRouterReplace).not.toHaveBeenCalled()
+      expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+    })
+
+    it('slow sync then a late hit: marks onboarding complete and never navigates or routes to onboarding', async () => {
+      const { rerender } = render(<AppLayout />)
+      await act(async () => {})
+      mockUseOnboardingExistenceFallback.mockReturnValue({ ...expired, hasExistingAccountData: true, isDecided: true })
+      rerender(<AppLayout />)
+      await waitFor(() => {
+        expect(mockMarkOnboardingComplete).toHaveBeenCalled()
+      })
+      expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    it('new account on a slow sync: once the first sync completes empty, routes to onboarding', async () => {
+      const { rerender } = render(<AppLayout />)
+      await act(async () => {})
+      expect(mockRouterReplace).not.toHaveBeenCalled()
+      mockUseOnboardingExistenceFallback.mockReturnValue({ ...expired, isDecided: true })
+      rerender(<AppLayout />)
+      await waitFor(() => {
+        expect(mockRouterReplace).toHaveBeenCalledWith('/(onboarding)/welcome')
+      })
+      expect(mockMarkOnboardingComplete).not.toHaveBeenCalled()
+    })
+
+    it('fast path unchanged: before the hold expires an undecided layout still shows the spinner', () => {
+      mockUseOnboardingExistenceFallback.mockReturnValue({ ...expired, isHoldExpired: false })
+      const { toJSON } = render(<AppLayout />)
+      expect(JSON.stringify(toJSON())).toContain('ActivityIndicator')
+    })
+
+    describe('undecided signal', () => {
+      function Probe() {
+        return <>{useIsOnboardingUndecided() ? 'UNDECIDED' : 'DECIDED'}</>
+      }
+      function renderWithProbe() {
+        const tree = (showLayout: boolean) => (
+          <OnboardingDecisionProvider>
+            {showLayout ? <AppLayout /> : null}
+            <Probe />
+          </OnboardingDecisionProvider>
+        )
+        const utils = render(tree(true))
+        return { ...utils, tree }
+      }
+
+      it('is true while undecided with the hold expired', () => {
+        const { toJSON } = renderWithProbe()
+        expect(JSON.stringify(toJSON())).toContain('UNDECIDED')
+      })
+
+      it('is false once decided', () => {
+        mockUseOnboardingExistenceFallback.mockReturnValue({ ...expired, isDecided: true })
+        const { toJSON } = renderWithProbe()
+        expect(JSON.stringify(toJSON())).toContain('DECIDED')
+        expect(JSON.stringify(toJSON())).not.toContain('UNDECIDED')
+      })
+
+      it('is false before the hold expires', () => {
+        mockUseOnboardingExistenceFallback.mockReturnValue({ ...expired, isHoldExpired: false })
+        const { toJSON } = renderWithProbe()
+        expect(JSON.stringify(toJSON())).not.toContain('UNDECIDED')
+      })
+
+      it('resets to false when the layout unmounts (sign-out), so it cannot outlive the layout', () => {
+        const { toJSON, rerender, tree } = renderWithProbe()
+        expect(JSON.stringify(toJSON())).toContain('UNDECIDED')
+        rerender(tree(false))
+        expect(JSON.stringify(toJSON())).not.toContain('UNDECIDED')
+      })
+    })
   })
 
   // Relaunch mid-onboarding: the onboarding ladder writes real fear_ladder_items rows, so the

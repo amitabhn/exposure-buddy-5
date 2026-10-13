@@ -21,8 +21,36 @@ jest.mock('expo-splash-screen', () => ({
 jest.mock('expo-font', () => ({ useFonts: jest.fn(() => [true, null]) }))
 jest.mock('@expo-google-fonts/inter', () => ({}))
 jest.mock('@expo-google-fonts/dm-serif-display', () => ({}))
+// Story 19.9: stand-ins mounted inside <Stack> (where (app)/_layout and ladder live) to prove the
+// real root layout provides OnboardingDecisionContext to them. Inert unless mockWireProbe is set.
+let mockWireProbe = false
+let mockObservedUndecided: boolean | null = null
+function MockWirePublisher() {
+  const { usePublishOnboardingUndecided } = jest.requireActual('../src/contexts/OnboardingDecisionContext')
+  usePublishOnboardingUndecided(true)
+  return null
+}
+function MockWireReader() {
+  const { useIsOnboardingUndecided } = jest.requireActual('../src/contexts/OnboardingDecisionContext')
+  mockObservedUndecided = useIsOnboardingUndecided()
+  return null
+}
+
 jest.mock('expo-router', () => ({
-  Stack: Object.assign(({ children }: { children: React.ReactNode }) => <>{children}</>, { Screen: () => null }),
+  Stack: Object.assign(
+    ({ children }: { children: React.ReactNode }) => (
+      <>
+        {mockWireProbe ? (
+          <>
+            <MockWirePublisher />
+            <MockWireReader />
+          </>
+        ) : null}
+        {children}
+      </>
+    ),
+    { Screen: () => null },
+  ),
   DefaultTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
@@ -59,6 +87,8 @@ jest.mock('@exposure-buddy/sync', () => ({
 import RootLayout from './_layout'
 
 beforeEach(() => {
+  mockWireProbe = false
+  mockObservedUndecided = null
   mockHideAsync.mockClear()
   mockConnect.mockClear()
 })
@@ -106,5 +136,17 @@ describe('PowerSyncConnectionManager gating (Story 19.8)', () => {
     render(<RootLayout />)
     await act(async () => {})
     expect(mockConnect).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('OnboardingDecisionContext wiring (Story 19.9)', () => {
+  // The context defaults to "not undecided" with a no-op setter, so a missing provider would turn
+  // the /ladder gate off silently with every other test green. This renders the real RootLayout.
+  it('the real root layout provides the context to screens mounted inside the Stack', async () => {
+    mockWireProbe = true
+    mockAuth = { userId: 'user-1', isLoading: false, isSessionConfirmed: true }
+    render(<RootLayout />)
+    await act(async () => {})
+    expect(mockObservedUndecided).toBe(true)
   })
 })
