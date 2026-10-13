@@ -2,7 +2,7 @@
 title: 'Story 19.9: An Existing Account Reinstalling Is Not Sent Through Onboarding Again When the First Sync Is Slow'
 type: 'bugfix'
 created: '2026-10-12'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '0ec7373'
