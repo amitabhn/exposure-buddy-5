@@ -13,7 +13,10 @@ const mockPush = jest.fn()
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
   Stack: {
-    Screen: () => null,
+    Screen: ({ options }: { options: Record<string, unknown> }) => {
+      mockStackScreenOptions.push(options)
+      return null
+    },
   },
   useFocusEffect: (cb: () => void) => {
     require('react').useEffect(() => {
@@ -25,6 +28,7 @@ jest.mock('expo-router', () => ({
 
 const mockSetOnboardingProgressStep = jest.fn()
 const mockFocusCallbacks: Array<() => void> = []
+const mockStackScreenOptions: Array<Record<string, unknown>> = []
 const mockSetSudsCalibration = jest.fn()
 const mockUseAuth = jest.fn()
 
@@ -58,6 +62,7 @@ import AssessmentScreen from './assessment'
 describe('AssessmentScreen', () => {
   beforeEach(() => {
     mockFocusCallbacks.length = 0
+    mockStackScreenOptions.length = 0
     jest.clearAllMocks()
     jest.spyOn(Math, 'random').mockReturnValue(0.5)
     mockUseAuth.mockReturnValue({
@@ -82,6 +87,12 @@ describe('AssessmentScreen', () => {
   it('renders the "Feeling overwhelmed?" link', () => {
     const { getByText } = render(<AssessmentScreen />)
     expect(getByText('onboarding.overwhelmed.cta')).toBeTruthy()
+  })
+
+  it('hides the header so there is no visible back button (the OS back gesture still works)', () => {
+    render(<AssessmentScreen />)
+    expect(mockStackScreenOptions).toContainEqual({ headerShown: false })
+    expect(mockStackScreenOptions.some((o) => o.gestureEnabled === false)).toBe(false)
   })
 
   it('Next button is disabled before value selected', () => {
@@ -132,6 +143,20 @@ describe('AssessmentScreen', () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('Next navigates to the ladder again after returning from it (OS back re-arms the guard)', async () => {
+    const { getByTestId, getByRole } = render(<AssessmentScreen />)
+    fireEvent.press(getByTestId('suds-widget'))
+    fireEvent.press(getByRole('button'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledTimes(1))
+
+    // OS back from the ladder: the kept-mounted assessment regains focus
+    act(() => { mockFocusCallbacks.forEach((cb) => cb()) })
+
+    fireEvent.press(getByRole('button'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledTimes(2))
+    expect(mockPush).toHaveBeenLastCalledWith('/(onboarding)/ladder')
   })
 })
 
